@@ -67,8 +67,14 @@ export default function LivingWorld({genome,beastKey,beastName,onClose}:{genome?
    // a real sun: day/night from the wall clock (approach from Genesis X env sim: light = max(.1, h*.8+.2), ambient = max(.1, h*.3+.1))
    renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;sun.castShadow=true;sun.shadow.mapSize.set(phone?512:1024,phone?512:1024);
    {const c=sun.shadow.camera as any;c.left=c.bottom=-6;c.right=c.top=6;c.near=1;c.far=60;c.updateProjectionMatrix();}sun.shadow.bias=-.002;
+   // star from the recorded-seed universe: the home planet's own star; colour from its temperature (blackBodyToRGB, Cory's Lost Cosmos file)
+   const blackBodyToRGB=(temp:number)=>{temp/=100;let r:number,g:number,b:number;if(temp<=66){r=255;g=99.47*Math.log(temp)-161.12;b=temp<=19?0:138.52*Math.log(temp-10)-305.04;}else{r=329.7*Math.pow(temp-60,-.133);g=288.12*Math.pow(temp-60,-.0755);b=255;}const c=(x:number)=>Math.max(0,Math.min(255,x))/255;return new THREE.Color(c(r),c(g),c(b));};
+   const homePl=[...(u.planets||[])].sort((a:any,b:any)=>(b.habitability||0)-(a.habitability||0))[0];const homeStar=(u.stars||[]).find((x:any)=>x.id===homePl?.star)||u.stars?.[0];
+   const starCol=blackBodyToRGB(homeStar?.temperature_k||5800);sun.color.copy(starCol);(window as any).__lwStar={id:homeStar?.id,temperature_k:homeStar?.temperature_k,planet:homePl?.id};
+   renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.15;
    const DAY_S=240;const sunDir=new THREE.Vector3(1,.3,.2).normalize();const SKY_DAY=new THREE.Color(0x86bfff),SKY_DUSK=new THREE.Color(0xff9a5a),SKY_NIGHT=new THREE.Color(0x05030f);
-   const sunDisc=new THREE.Sprite(new THREE.SpriteMaterial({map:tex('window_glow.png'),color:0xfff0c0,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,fog:false}));sunDisc.scale.setScalar(40);scene.add(sunDisc);
+   const sunDisc=new THREE.Sprite(new THREE.SpriteMaterial({map:tex('window_glow.png'),color:0xfff0c0,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,fog:false}));sunDisc.scale.setScalar(40);sunDisc.material.color.copy(starCol);scene.add(sunDisc);
+   const starMesh=new THREE.Mesh(new THREE.SphereGeometry(6,32,20),new THREE.MeshBasicMaterial({color:starCol,toneMapped:false}));scene.add(starMesh);
    const moon=new THREE.Mesh(new THREE.SphereGeometry(2.2,24,16),new THREE.MeshStandardMaterial({color:0xd8dcef,emissive:0x40445a,roughness:1}));scene.add(moon);
    let starMat:any=null;
    // ---- stars + 12D lattice in the sky
@@ -227,7 +233,7 @@ uniform vec3 uPlay[8];
    // test/debug hook: walk the traveler to the first seeded spot of a biome (used for screenshots)
    (window as any).__lwGoBiome=(b:string)=>{const r=lwS(u.seed+':goto');for(let i=0;i<4000;i++){const v=unitFrom(r) as number[];if(biomeAt(BP,v)===b){pN.set(v[0],v[1],v[2]);pF.set(1,0,0).addScaledVector(pN,-pN.x).normalize();return true;}}return false;};
    // physics + events state: gravity hop on the sphere, wind, storm puff, sunrise, meetings; greeting once per visit
-   let exWalk=0,exBack=false;
+   let exWalk=0,exBack=false,exRun=false;
    let bY=0,bVY=0,puff=0,storming=0,windS=.3,greeted=false,lastSunH=0,evCool=0;const G_SURF=4.2;const windV=new THREE.Vector3(1,0,.4).normalize();const metCool:Record<string,number>={};
    const beastNm=beastName||'Your beast';const say=(s:string,cd=6)=>{if(evCool>0)return;evCool=cd;lineRef.current(s);};
    const hop=(v:number)=>{if(bY<=0.001)bVY=v;};
@@ -240,8 +246,8 @@ uniform vec3 uPlay[8];
     tickAcc+=dt;if(tickAcc>=TICK_S){tickAcc=0;applyTick();}
     {const a=((Date.now()/1000)%DAY_S)/DAY_S*Math.PI*2;sunDir.set(Math.cos(a),.35*Math.sin(a*.5+1),Math.sin(a)).normalize();UG.uSun.value.copy(sunDir);
      const fN=spawnRef.current?pN:bN;const h=fN.dot(sunDir);const focus=fN.clone().multiplyScalar(PR);sun.position.copy(focus).addScaledVector(sunDir,25);sun.target.position.copy(focus);
-     const dayL=Math.max(.1,h*.8+.2);sun.intensity=2.2*dayL;sun.color.setRGB(1,.75+.25*Math.max(0,h),.55+.45*Math.max(0,h));hemi.intensity=1.4*Math.max(.12,h*.3+.25);
-     sunDisc.position.copy(sunDir).multiplyScalar(160);moon.position.copy(sunDir).multiplyScalar(-70).add(new THREE.Vector3(0,12,0));
+     const dayL=Math.max(.1,h*.8+.2);sun.intensity=2.2*dayL;sun.color.copy(starCol).lerp(SKY_DUSK,Math.max(0,1-Math.abs(h)/.2)*.35);hemi.intensity=1.4*Math.max(.12,h*.3+.25);
+     sunDisc.position.copy(sunDir).multiplyScalar(160);starMesh.position.copy(sunDisc.position);moon.position.copy(sunDir).multiplyScalar(-70).add(new THREE.Vector3(0,12,0));
      const ground3=spawnRef.current||watchRef.current;const day=ground3?THREE.MathUtils.smoothstep(h,-.12,.35):0;const dusk=ground3?Math.max(0,1-Math.abs(h)/.18)*.7:0;
      (scene.background as any).copy(SKY_NIGHT).lerp(SKY_DAY,day).lerp(SKY_DUSK,dusk*(1-day*.5));if(starMat)starMat.opacity=1-day*.95;
      // wind: heated by the sun, gusts with storms; drives grass sway and fur
@@ -297,16 +303,17 @@ uniform vec3 uPlay[8];
     if(sp){let ix=joy.current.x,iy=joy.current.y;const K=keys.current;if(K.has('w')||K.has('arrowup'))iy=-1;if(K.has('s')||K.has('arrowdown'))iy=1;if(K.has('a')||K.has('arrowleft'))ix=-1;if(K.has('d')||K.has('arrowright'))ix=1;
      const mag=Math.min(1,Math.hypot(ix,iy));exBack=iy>.3;
      if(spawnT>=0){spawnT+=dt;const fr=Math.min(F.traveler_spawn.count-1,Math.floor(spawnT*F.traveler_spawn.fps));trav.visible=true;explorer.visible=false;trav.material.map=tSpawn;setFrame(tSpawn,F.traveler_spawn.cols,1,fr,0);if(spawnT>F.traveler_spawn.count/F.traveler_spawn.fps)spawnT=-1;}
-     else if(mag>.08){turn(pN,pF,-ix*dt*2.2*(iy>.3?-1:1));const fwd=-iy;walkOn(pN,pF,(fwd>=0?1:-1)*Math.max(.25,Math.abs(fwd))*mag*1.8*dt*Math.max(.6,(BIOME_FEEL as any)[biomeOf(pN)]?.speed??1));
+     else if(mag>.08){turn(pN,pF,-ix*dt*2.2*(iy>.3?-1:1));const fwd=-iy;exRun=mag>.85;walkOn(pN,pF,(fwd>=0?1:-1)*Math.max(.25,Math.abs(fwd))*(exRun?3.5:1.2)*(TRAV_H/1.7)*Math.min(1,mag/.85)*dt*Math.max(.6,(BIOME_FEEL as any)[biomeOf(pN)]?.speed??1));
       const ang=Math.atan2(ix,-iy);const oct=((Math.round(ang/(Math.PI/4))%8)+8)%8;const ROW8=['N','NE','E','SE','S','SW','W','NW'][oct];const row=ROWS.indexOf(ROW8);
       trav.material.map=tWalk;setFrame(tWalk,F.traveler_walk.cols,8,Math.floor(t*F.traveler_walk.fps)%F.traveler_walk.cols,row<0?4:row);exWalk=mag;}
      else{trav.material.map=tIdle;setFrame(tIdle,F.traveler_idle.cols,1,Math.floor(t*F.traveler_idle.fps)%F.traveler_idle.cols,0);}
-     if(spawnT<0){trav.visible=false;explorer.visible=true;exPlay(exWalk>.08?'walk':'idle');const sw=Math.sin(t*9)*.6*Math.min(1,exWalk);if(legs.length===2){legs[0].rotation.x=sw;legs[1].rotation.x=-sw;}explorer.position.y=Math.abs(Math.sin(t*9))*.02*Math.min(1,exWalk);
+     if(spawnT<0){trav.visible=false;explorer.visible=true;exPlay(exWalk>.08?(exRun&&exActs.run?'run':'walk'):(greetT>=0&&greetT<2&&exActs.wave?'wave':(Math.sin(t*.13)>.85&&exActs.look?'look':'idle')));const sw=Math.sin(t*9)*.6*Math.min(1,exWalk);if(legs.length===2){legs[0].rotation.x=sw;legs[1].rotation.x=-sw;}explorer.position.y=Math.abs(Math.sin(t*9))*.02*Math.min(1,exWalk);
       // face the way you walk; backwards input turns the body around
-      explorer.rotation.y=exWalk>.08&&exBack?Math.PI:0;}
+      explorer.rotation.y=(exWalk>.08&&exBack?Math.PI:0)+(exMixer?0:0);}
      exMixer?.update(dt);exWalk=0;
      place(travNode,pN,pF);
-     camTarget.copy(pN).multiplyScalar(PR+TRAV_H*.7);const want=pN.clone().multiplyScalar(PR+2.3).addScaledVector(pF,-3.9);camPos.lerp(want,Math.min(1,dt*4));camera.position.copy(camPos);camera.up.copy(pN);camera.lookAt(camTarget);}
+     // over-the-shoulder (art target 08_explore_daynight): behind and right of you, looking ahead
+     const shS=new THREE.Vector3().crossVectors(pN,pF).normalize();camTarget.copy(pN).multiplyScalar(PR+TRAV_H*.9).addScaledVector(pF,1.6);const want=pN.clone().multiplyScalar(PR+TRAV_H*1.9).addScaledVector(pF,-1.9).addScaledVector(shS,-.55);camPos.lerp(want,Math.min(1,dt*4));camera.position.copy(camPos);camera.up.copy(pN);camera.lookAt(camTarget);}
     else if(watchRef.current){// third-person: watch your beast live in its world (never pinned to the screen)
      const side=new THREE.Vector3().crossVectors(bN,bF).normalize();const sw=Math.sin(t*.15);const want=bN.clone().multiplyScalar(PR+1.5).addScaledVector(bF,-2.6*Math.cos(sw)).addScaledVector(side,2.2*sw);
      camPos.lerp(want,Math.min(1,dt*1.5));camera.position.copy(camPos);camera.up.copy(bN);camTarget.lerp(beastNode.position.clone().addScaledVector(bN,TRAV_H*.6),Math.min(1,dt*3));camera.lookAt(camTarget);}
