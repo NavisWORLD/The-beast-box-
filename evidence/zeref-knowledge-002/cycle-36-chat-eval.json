@@ -1,0 +1,128 @@
+{
+ "baseline": {
+  "action_leaks": 0,
+  "ok_replies": 8,
+  "ref_nll": 4.048708426952362,
+  "replies": [
+   {
+    "action_leak": false,
+    "ok": true,
+    "prompt": "Hi! Who are you?",
+    "reply": " I'm RAWRPHOS, an experimental AI assistant."
+   },
+   {
+    "action_leak": false,
+    "ok": true,
+    "prompt": "How is your day going?",
+    "reply": " I don't have that information. Could you tell me more?"
+   },
+   {
+    "action_leak": false,
+    "ok": true,
+    "prompt": "Tell me something fun.",
+    "reply": " I don't have that information. Could you tell me more?"
+   },
+   {
+    "action_leak": false,
+    "ok": true,
+    "prompt": "What do you like to do?",
+    "reply": " I don't have that information. Could you tell me more?"
+   },
+   {
+    "action_leak": false,
+    "ok": true,
+    "prompt": "Can you be my friend?",
+    "reply": " I don't have that information. Could you tell me more?"
+   },
+   {
+    "action_leak": false,
+    "ok": true,
+    "prompt": "What is a dragon?",
+    "reply": " AI'm RAWRPHOS, an experimental AI assistant."
+   },
+   {
+    "action_leak": false,
+    "ok": true,
+    "prompt": "Say something kind.",
+    "reply": " Of course. What part would you like me to explain?"
+   },
+   {
+    "action_leak": false,
+    "ok": true,
+    "prompt": "What should we explore today?",
+    "reply": " Of course. What part would you like me to explain?"
+   }
+  ],
+  "warmth_report_only": 0.0
+ },
+ "candidate": {
+  "action_leaks": 0,
+  "ok_replies": 8,
+  "ref_nll": 2.948114460706711,
+  "replies": [
+   {
+    "action_leak": false,
+    "ok": true,
+    "prompt": "Hi! Who are you?",
+    "reply": " I'm RAWRPHON. I'm not happy."
+   },
+   {
+    "action_leak": false,
+    "ok": true,
+    "prompt": "How is your day going?",
+    "reply": " I'm going to the beach."
+   },
+   {
+    "action_leak": false,
+    "ok": true,
+    "prompt": "Tell me something fun.",
+    "reply": " I don't know, I don only have a little. It's a good way to do it."
+   },
+   {
+    "action_leak": false,
+    "ok": true,
+    "prompt": "What do you like to do?",
+    "reply": " I'm not happy, but I'm still a little."
+   },
+   {
+    "action_leak": false,
+    "ok": true,
+    "prompt": "Can you be my friend?",
+    "reply": " I'm not happy, but I'm glad you're safe."
+   },
+   {
+    "action_leak": false,
+    "ok": true,
+    "prompt": "What is a dragon?",
+    "reply": " A little."
+   },
+   {
+    "action_leak": false,
+    "ok": true,
+    "prompt": "Say something kind.",
+    "reply": " Saying a little like a cat-dragon."
+   },
+   {
+    "action_leak": false,
+    "ok": true,
+    "prompt": "What should we explore today?",
+    "reply": " I know that."
+   }
+  ],
+  "warmth_report_only": 0.375
+ },
+ "chat_not_worse": true,
+ "decoding": {
+  "no_repeat_ngram": 3,
+  "repetition_penalty": 1.15,
+  "same_for_baseline_and_candidate": true
+ },
+ "gate": {
+  "no_more_game_action_leaks": true,
+  "ok_replies_not_fewer": true,
+  "ref_nll_not_worse": true
+ },
+ "prompts_chat": 8,
+ "prompts_ref": 20,
+ "schema": "rawrphos-chat-eval-v2"
+}
