@@ -231,6 +231,7 @@ jobs:
           ZEREF_006_PUBLIC_REF_DIR: build/public-14k
           # 007: train a Hebbian-enabled candidate from the approved pin (zero-output start).
           ZEREF_HEBBIAN: '1'
+          ZEREF_TRINITY: '1'
         run: |
           set -Eeuo pipefail
           python -u scripts/zeref_continuation_006.py
