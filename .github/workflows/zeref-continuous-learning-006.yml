@@ -154,14 +154,18 @@ jobs:
           python3 -m http.server 8765 --bind 127.0.0.1 --directory native-game > build/zeref-006/native-game.log 2>&1 &
           game_pid=$!
           trap 'kill "$web_pid" "$game_pid" 2>/dev/null || true' EXIT
-          for i in $(seq 1 90); do
-            if curl -fsS http://127.0.0.1:3000/spark/index.html >/dev/null && curl -fsS http://127.0.0.1:8765/arcade/sol-spark-gate/handheld.html >/dev/null; then break; fi
+          # 2026-10-22: wait up to 240 s for BOTH servers (quiet curl), and say so if they never come up.
+          ready=0
+          for i in $(seq 1 120); do
+            if curl -fsS -o /dev/null http://127.0.0.1:3000/spark/index.html 2>/dev/null && curl -fsS -o /dev/null http://127.0.0.1:8765/arcade/sol-spark-gate/handheld.html 2>/dev/null; then ready=1; echo "ZEREF_SERVERS_READY after $((i*2))s"; break; fi
             sleep 2
           done
+          [ "$ready" = 1 ] || { echo "ZEREF_SERVERS_NOT_READY after 240s"; tail -n 40 build/zeref-006/app.log || true; exit 1; }
           # Boot-race fix 002: warm the ROM, 4 attempts, longer gameplay wait after the first.
           curl -fsS http://127.0.0.1:8765/arcade/sol-spark-gate/handheld.html >/dev/null || true
-          for attempt in 1 2 3 4; do
-            export ZEREF_GAMEPLAY_WAIT_MS=$([ "$attempt" = 1 ] && echo 90000 || echo 150000)
+          for attempt in 1 2 3 4 5; do
+            export ZEREF_GAMEPLAY_WAIT_MS=$([ "$attempt" = 1 ] && echo 120000 || echo 180000)
+            echo "ZEREF_GAME_BOOT_ATTEMPT=$attempt wait_ms=$ZEREF_GAMEPLAY_WAIT_MS"
             if NODE_PATH=/tmp/zeref-006-browser/node_modules node apps/beastbox-cloud/tests/rawrphos-native-observed-play.cjs http://127.0.0.1:3000 http://127.0.0.1:8765 build/zeref-006/inputs; then
               test -s build/zeref-006/inputs/native-evidence-manifest.json
               test -s build/zeref-006/inputs/native-observation-actions.jsonl
@@ -204,9 +208,13 @@ jobs:
           set -Eeuo pipefail
           : > build/zeref-006/teacher-pairs.jsonl
           # Reads approved lessons straight from Azure (existing secrets) and syncs Zeref's folder.
-          (cd apps/beastbox-cloud && node scripts/zeref-cloud-sync.mjs --pairs-out "$GITHUB_WORKSPACE/build/zeref-006/teacher-pairs.jsonl") \
+          : > build/zeref-006/experiences.jsonl
+          (cd apps/beastbox-cloud && node scripts/zeref-cloud-sync.mjs --pairs-out "$GITHUB_WORKSPACE/build/zeref-006/teacher-pairs.jsonl" --experiences-out "$GITHUB_WORKSPACE/build/zeref-006/experiences.jsonl") \
             || { echo 'ZEREF_CLOUD_SYNC_UNAVAILABLE (continuing with repo-reviewed pairs only)'; : > build/zeref-006/teacher-pairs.jsonl; }
-          python scripts/zeref_teacher_distill.py build/zeref-006/chat-mix.jsonl build/zeref-006/teacher-pairs.jsonl evidence/teacher-distill/approved.jsonl
+          python -u scripts/zeref_teacher_distill.py build/zeref-006/chat-mix.jsonl build/zeref-006/teacher-pairs.jsonl evidence/teacher-distill/approved.jsonl
+          # 2026-10-22: Zeref's own experiences (bb-deada969 diary, training cycles, this capture, universe genesis), capped 5%.
+          python -u scripts/zeref_experience_rows.py build/zeref-006/chat-mix.jsonl build/zeref-006/experiences.jsonl build/zeref-006/inputs/native-evidence-manifest.json
+          python -c "import json;m=json.load(open('build/zeref-006/chat-mix.manifest.json'));print('ZEREF_INGEST_BY_SOURCE='+json.dumps({'rows':m.get('rows'),'teacher_distill':m.get('teacher_distill',{}).get('rows'),'experience':m.get('experience_rows',{}).get('by_kind'),'extra':m.get('extra_sources',{}).get('rows_by_source'),'music_001':m.get('music_rows'),'warm_001':m.get('warm_rows'),'dad_voice':m.get('dad_voice_rows'),'knowledge':m.get('knowledge_rows')}),flush=True)"
       - name: Install pinned PUBLIC 14000 (fixed anti-ratchet chat reference + promotion baseline)
         run: |
           set -Eeuo pipefail
@@ -247,8 +255,8 @@ jobs:
           import json
           pin=json.load(open('apps/beastbox-cloud/lib/rawrphos-public-pin.json'));ev=json.load(open('build/zeref-006/chat-eval.json'))
           bar=(pin.get('promotion') or {}).get('candidate_ref_nll') or ev['baseline']['ref_nll']
-          c=ev['candidate']['ref_nll'];ok=bool(ev['chat_not_worse'] and c<bar)
-          d={'schema':'zeref-promotion-decision-v1','candidate_ref_nll':c,'pin_ref_nll_bar':bar,'chat_not_worse_vs_14000':ev['chat_not_worse'],'promote':ok}
+          c=ev['candidate']['ref_nll'];tol=0.005;ok=bool(ev['chat_not_worse'] and c<=bar*(1+tol))  # 2026-10-22: 0.5% tolerance on the selection set; the strict check is fresh set B in the training gate
+          d={'schema':'zeref-promotion-decision-v1','candidate_ref_nll':c,'pin_ref_nll_bar':bar,'tolerance':tol,'rule':'within 0.5% of pin on set A AND fresh held-out set B not worse (training gate)','chat_not_worse_vs_14000':ev['chat_not_worse'],'promote':ok}
           json.dump(d,open('build/zeref-006/promotion-decision.json','w'),indent=1)
           print('ZEREF_PROMOTION_DECISION='+json.dumps(d),flush=True)
           PY

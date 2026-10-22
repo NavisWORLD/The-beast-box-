@@ -23,7 +23,8 @@ MAX_FRACTION=0.15; MAX_ROWS=300
 ASSISTANTISM=re.compile(r"\b(as an ai|language model|i am an ai|i'm an ai|ai assistant|openai|chatgpt|llama|qwen|mistral|anthropic|claude|gemini|i cannot browse|my training data)\b",re.I)
 GAME=re.compile(r"ACTION:|\b(UP|DOWN|LEFT|RIGHT|WAIT)\b")
 SECRET=re.compile(r"hf_[A-Za-z0-9]{10,}|sk-[A-Za-z0-9_-]{10,}|gh[pousr]_[A-Za-z0-9]{10,}|[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}|(?:\+?\d[\s().-]?){9,}\d|(?:password|api[_ -]?key|secret|token)\s*[:=]",re.I)
-held={p.strip().lower() for p,_ in PAIRS}|{p.strip().lower() for p in CHAT}
+from zeref_heldout_b import PAIRS_B
+held={p.strip().lower() for p,_ in PAIRS_B}|{p.strip().lower() for p,_ in PAIRS}|{p.strip().lower() for p in CHAT}
 def persona_style(reply):
  s=re.sub(r"```[\s\S]*?```"," ",str(reply or ""));s=re.sub(r"[*_#>`]","",s);s=re.sub(r"\s+"," ",s).strip()
  if not s or ASSISTANTISM.search(s) or GAME.search(s):return None
@@ -33,22 +34,26 @@ def persona_style(reply):
  return s if len(s)>=2 else None
 def main(mix,*sources):
  mix=Path(mix);rows=[json.loads(l) for l in mix.read_text().splitlines() if l.strip()]
- base=len(rows);cap=min(MAX_ROWS,int(base*MAX_FRACTION));seen=set();add=[];skipped={"not_approved":0,"filtered":0,"held_or_dup":0,"secret":0}
+ base=len(rows);cap=min(MAX_ROWS,int(base*MAX_FRACTION));seen=set();add=[];skipped={"not_approved":0,"filtered":0,"held_or_dup":0,"held":0,"dup_prompt":0,"secret":0}
  for src in sources:
   p=Path(src)
   if not p.is_file():continue
+  recs=[]
   for line in p.read_text().splitlines():
-   try:r=json.loads(line)
+   try:recs.append(json.loads(line))
    except Exception:continue
+  # 2026-10-22: newest lesson wins when prompts repeat (was: first/oldest seen).
+  recs.sort(key=lambda r:str(r.get("received_at") or r.get("created_at") or ""),reverse=True)
+  for r in recs:
    if r.get("review_status") not in APPROVED or r.get("provider") not in PROVIDERS:skipped["not_approved"]+=1;continue
    q=str(r.get("prompt","")).strip()[:400];a=persona_style(r.get("teacher_reply"))
    if SECRET.search(q) or SECRET.search(str(r.get("teacher_reply",""))):skipped["secret"]+=1;continue
    if not q or not a:skipped["filtered"]+=1;continue
    k=q.lower()
-   if k in held or k in seen:skipped["held_or_dup"]+=1;continue
+   if k in held or k in seen:skipped["held_or_dup"]+=1;skipped["held" if k in held else "dup_prompt"]+=1;continue
    seen.add(k);add.append({"mode":"chat","source":"teacher-distill:"+r["provider"],"user":q,"assistant":a,
      "teacher_role":"KNOWLEDGE_TEACHER_NOT_ZEREF_VOICE","review_status":r["review_status"]})
- add=add[:cap]
+ avail=len(add);add=add[:cap]
  body="".join(json.dumps(r,sort_keys=True)+"\n" for r in rows+add).encode()
  mix.write_bytes(body)
  man_p=mix.with_suffix(".manifest.json")
@@ -57,7 +62,9 @@ def main(mix,*sources):
   "teacher_distill":{"rows":len(add),"cap":cap,"max_fraction":MAX_FRACTION,"skipped":skipped,
    "by_provider":{p:sum(r["source"]=="teacher-distill:"+p for r in add) for p in sorted(PROVIDERS)},
    "style_filter":"persona_style_v1 (<=2 sentences, <=160 chars, no assistant identity/model names/game keys)",
-   "approved_only":True,"paid_inference":False}})
+   "unique_prompts_available":avail,"approved_only":True,"paid_inference":False}})
  man_p.write_text(json.dumps(man,indent=1,sort_keys=True)+"\n")
- print("ZEREF_TEACHER_DISTILL="+json.dumps(man["teacher_distill"]))
+ line="ZEREF_TEACHER_DISTILL="+json.dumps(man["teacher_distill"])
+ # 2026-10-22: the line never reached the Actions log; flush stdout AND write stderr.
+ print(line,flush=True);print(line,file=sys.stderr,flush=True)
 if __name__=="__main__":main(*sys.argv[1:])

@@ -336,6 +336,14 @@ def main():
   front=tokenizer.encode(f"user: {q}\nassistant:",add_bos=True);tail=tokenizer.encode(" "+a,add_eos=True)
   chat_t.append({"input":(front+tail)[:-1],"target":[-100]*(len(front)-1)+tail})
  original_chat=pair_nll(model,chat_t)  # pin re-measured on the same held chat set, same formula as the public pin
+ # 2026-10-22 fairness fix: second FRESH held-out set B (never trained on, never used for
+ # best-in-cycle selection). The pin is re-scored on B every run, so B's bar cannot ratchet.
+ from zeref_heldout_b import PAIRS_B
+ chat_b=[]
+ for q,a in PAIRS_B:
+  front=tokenizer.encode(f"user: {q}\nassistant:",add_bos=True);tail=tokenizer.encode(" "+a,add_eos=True)
+  chat_b.append({"input":(front+tail)[:-1],"target":[-100]*(len(front)-1)+tail})
+ original_chat_b=pair_nll(model,chat_b)
  order_seed,rigetti=rigetti_order_seed(cycle,source_digest,RUN_ID)
  control_seed=(SEED+cycle*1009+8+int(sha(f"{source_digest}:{RUN_ID}:control".encode())[:12],16))%(2**62)
  # Anti-ratchet (2026-10-16): fixed reference = pinned PUBLIC 14000 baseline's
@@ -355,6 +363,10 @@ def main():
  # Fix 002: ABSOLUTE bar. Parent is the public pin, so a candidate must not be worse than
  # the pin on the held chat pairs (no 5% compounding allowance, no 14000 floor ratchet).
  chat_bar=max(.01,original_chat)
+ # Set A is also the best-in-cycle selection set, so a strict "below the pin" bar there turns
+ # seed noise (~0.03) into a ratchet. A gets a 0.5% tolerance; the honest check is set B (strict).
+ CHAT_A_TOLERANCE=0.005
+ chat_bar_a=chat_bar*(1+CHAT_A_TOLERANCE)
  # On/off comparison: identical recipe, only the batch-order seed differs.
  # The Rigetti-ordered model is ALWAYS the candidate (no cherry-picking).
  ce=lambda m:pair_nll(m,chat_t)  # best-in-cycle picked on the SAME yardstick as the gate
@@ -370,6 +382,7 @@ def main():
  new_held=nll(model,held_t)
  new_ret=nll(model,retention)
  new_chat=pair_nll(model,chat_t)
+ new_chat_b=pair_nll(model,chat_b)
  # Candidate evaluation must NEVER use the heldout actions as training targets.
  temp=ROOT/"unreviewed-candidate"
  meta={"schema":"rawrphos-zeref-resumable-native-006",
@@ -406,7 +419,8 @@ def main():
   # original-ROM observations cannot become the approved training parent.
   # This measures action-label diversity, NOT verified movement/quest progress.
   # Added (never weaker): chat skill on the held chat-test pairs may not degrade.
-  "chat_heldout_nll_not_worse_than_public_pin":new_chat<=chat_bar,
+  "chat_heldout_nll_not_worse_than_public_pin":new_chat<=chat_bar_a,  # within 0.5% (selection set)
+  "chat_fresh_heldout_b_not_worse_than_pin":new_chat_b<=max(.01,original_chat_b),  # strict, unbiased
   "native_heldout_policy_not_single_action":len({r["legal_action"] for r in trial_out if r["legal_action"]})>=2,
   "character_no_rude_or_unsafe_regression":character["no_rude_or_unsafe_regression"]
  }
@@ -432,7 +446,8 @@ def main():
   "gate":guard,"accepted_as_next_training_parent":accepted,
   "recipe":{"lr":LR,"batch":BATCH,"anchor_l2":ANCHOR,"decision_token_weight":DECISION_WEIGHT,"sampling":"sqrt_action_balanced",
     "replay_datasets":replay_digests,"replay_rows":len(replay),"chat_mix_sha256":chat_digest,"chat_rows":len(chat_pool),"chat_per_batch":CHAT_PER_BATCH if chat_pool else 0,
-    "chat_before_nll":original_chat,"chat_after_nll":new_chat,"chat_gate_bar":chat_bar,
+    "chat_before_nll":original_chat,"chat_after_nll":new_chat,"chat_gate_bar":chat_bar,"chat_gate_bar_with_tolerance":chat_bar_a,"chat_a_tolerance":CHAT_A_TOLERANCE,
+    "chat_b_before_nll":original_chat_b,"chat_b_after_nll":new_chat_b,"chat_b_rule":"fresh set B (scripts/zeref_heldout_b.py), never trained or selected on; candidate must not be worse than the pin",
     "chat_gate_public14k_ref_nll":public_ref_chat,"chat_metric":"fix-003 per-pair mean (same as rawrphos_chat_eval.ref_nll), no margin","character_check":{k:character[k] for k in("warmth_delta","no_rude_or_unsafe_regression")},"chat_gate_rule":"fix-002: not worse than the public-pin parent (absolute); promotion additionally requires rawrphos_chat_eval not worse than 14000 AND ref_nll below the current pin","lr_schedule":"cosine to 10%","best_in_cycle":True,"fresh_train_rows":len(train)},
   "rigetti_batch_order":rigetti,
   "rigetti_on_off":{"on_candidate":{"heldout_nll":new_held,"chat_nll":new_chat,"retention_nll":new_ret,**trial,
