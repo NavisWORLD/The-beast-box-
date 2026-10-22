@@ -1,5 +1,6 @@
 // Universe of worlds (three side): home trees + clouds + sky dome + parallax haze, distant worlds with
 // atmospheres, moons and gravity wells, and gravity-tunneling trips. Everything instanced and count-capped.
+import {GJ as GJ_BLOCK} from '../geyser/geyser-math.mjs';
 import {LIMITS,WORLDS,cstTree,treeTips,worldAnchor,moonPeriod,tunnelPath,travelPose} from './worlds-math.mjs';
 import {seededRng} from '../physics/cst-integrator.mjs';
 import {groundRay,planetWalk} from './grounding.mjs';
@@ -54,7 +55,7 @@ export function buildWorlds(THREE:T,scene:import('three').Scene,{low,universe=30
   // ---- home trees: one instanced mesh for all branches, one for canopy puffs (CST branching, flow sway)
   const nT=low?LIMITS.homeTreesLow:LIMITS.homeTreesHigh,depth=low?LIMITS.treeDepthLow:LIMITS.treeDepthHigh;
   const trees:{x:number;z:number;s:number;segs:any[]}[]=[];
-  for(let i=0;i<nT;i++){const a=i*2.39996+rnd()*.4,r=7+rnd()*(universe*.4);trees.push({x:Math.cos(a)*r,z:Math.sin(a)*r,s:5.5+rnd()*3,segs:cstTree('home'+i,{depth,scale:1})});}
+  for(let i=0;i<nT;i++){const a=i*2.39996+rnd()*.4,r=7+rnd()*(universe*.4);if(Math.abs(Math.cos(a)*r-GJ_BLOCK.cx)<GJ_BLOCK.half+2&&Math.abs(Math.sin(a)*r-GJ_BLOCK.cz)<GJ_BLOCK.half+2)continue;trees.push({x:Math.cos(a)*r,z:Math.sin(a)*r,s:5.5+rnd()*3,segs:cstTree('home'+i,{depth,scale:1})});}
   const segTotal=Math.min(LIMITS.maxSegments,trees.reduce((n,t)=>n+t.segs.length,0));
   const tips=trees.map(t=>treeTips(t.segs));const CLUMP=low?2:3;const tipTotal=tips.reduce((n,t)=>n+t.length,0)*CLUMP;
   const branchGeo=new THREE.CylinderGeometry(.7,1,1,low?5:7,1,true);branchGeo.translate(0,.5,0);
