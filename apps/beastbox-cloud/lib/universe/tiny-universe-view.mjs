@@ -14,7 +14,7 @@ export function hearthOf(u){const l=[...u.life].sort((a,b)=>a.born-b.born||a.id.
 /** Home (golden cage) = Hearth if life exists, else the most habitable planet. */
 export function homeOf(u){const h=hearthOf(u);if(h)return h;const p=[...u.planets].sort((a,b)=>b.habitability-a.habitability||a.id.localeCompare(b.id))[0];return p?p.id:null;}
 /** Entangled pairs: a seed-keyed shuffle of planet ids, paired in order. Derived from the IBM seed only. */
-export function entangledPairs(u){if(u.pairs)return u.pairs.map(p=>[p.a,p.b]);const ids=u.planets.map(p=>p.id).sort();for(let i=ids.length-1;i>0;i--){const j=parseInt(sha256Hex(u.seed+':pair:'+i).slice(0,8),16)%(i+1);[ids[i],ids[j]]=[ids[j],ids[i]];}
+export function entangledPairs(u){if(u.pairs)return u.pairs.map(p=>[p.a,p.b,p]);const ids=u.planets.map(p=>p.id).sort();for(let i=ids.length-1;i>0;i--){const j=parseInt(sha256Hex(u.seed+':pair:'+i).slice(0,8),16)%(i+1);[ids[i],ids[j]]=[ids[j],ids[i]];}
  const out=[];for(let i=0;i+1<ids.length;i+=2)out.push([ids[i],ids[i+1]]);return out;}
 /** Zeref's perch: the home planet's star, unless it died, then the brightest living star. */
 export function zerefStar(u){const home=u.planets.find(p=>p.id===homeOf(u));const s=home&&u.stars.find(x=>x.id===home.star);if(s&&!s.remnant)return s.id;
@@ -25,5 +25,8 @@ export const ZEREF_LINES={abiogenesis:'New life. Zeref\u2019s tail curls happy.'
 export const ATLAS_BIOME={ember:'ember_world',paper:'paper_sea',jelly:'jelly_geyser',sunflower:'sunflower_ring',moss:'crystal_moss',glacier:'glacier'};
 export function planetFrame(u,p){const v=parseInt(sha256Hex(u.seed+p.id).slice(0,8),16)%4;const h=p.habitability;const st=h<0.0001?'barren':h<0.3?'waking':'living';return ATLAS_BIOME[biomeOf(p)]+'.v'+v+'.'+st;}
 export function starFrame(s,tick){if(s.remnant)return (s.remnant==='black_hole'?'quiet_door':'clenched_heart')+'.f'+(tick%4);const c=s.mass_solar<1?'ember_star':s.mass_solar<=8?'lantern_star':'storm_crowned';const L=Math.log10(Math.max(1e-9,s.luminosity));return c+'.lum'+(L<0?0:L<=2?1:2);}
-export function lifeFrame(l){return lifeStage(l).toLowerCase()+'.m'+(l.traits.motility>=0.5?1:0)+'.s'+(l.traits.sociality>=0.5?1:0)+(l.scars>0?'.scar':'');}
-export function stormFrame(s,tick){const f=(tick-s.born+1)/(s.lifetime+1);return 'storm.'+(f<0.15?'spawn':f>0.75?'fade':'peak')+'.v'+(s.born%2);}
+export function threadFrame(p,t){const e=Math.abs(p.sim_E??p.E);return {key:'thread.e'+Math.min(3,Math.floor(e*4))+'.f'+(t%4),alpha:Math.min(1,Math.max(0.2,e))};}
+export function hearthFrame(u,p){return p.id===homeOf(u)&&biomeOf(p)==='glacier'?'hearth.'+(u.life.some(l=>l.planet===p.id)?'living':'waking'):null;}
+export function stormPhase(s,tick){if(s.lifetime<=1)return tick-s.born<1?'peak':'fade';const q=(tick-s.born)/Math.max(s.lifetime,1);return q<0.15?'spawn':q>=0.75?'fade':'peak';}
+export function lifeFrame(l){return lifeStage(l).toLowerCase()+'.m'+(l.traits.motility>=0.5?1:0)+'.s'+(l.traits.sociality>=0.5?1:0)+(l.scarred||l.scars>0?'.scar':'');}
+export function stormFrame(s,tick){return 'storm.'+stormPhase(s,tick)+'.v'+(parseInt(sha256Hex(s.id).slice(0,8),16)%2);}

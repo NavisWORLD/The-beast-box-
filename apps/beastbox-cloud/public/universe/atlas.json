@@ -1,7 +1,461 @@
 {
- "schema": "tiny-universe-atlas/v1",
+ "schema": "tiny-universe-atlas/v2",
  "source_schema": "tiny-universe/v1",
  "sheets": {
+  "planets_256": {
+   "image": "/universe/sprites/planets_256.webp",
+   "cell": [
+    256,
+    256
+   ],
+   "frames": {
+    "ember_world.v0.barren": [
+     0,
+     0,
+     256,
+     256
+    ],
+    "ember_world.v0.waking": [
+     256,
+     0,
+     256,
+     256
+    ],
+    "ember_world.v0.living": [
+     512,
+     0,
+     256,
+     256
+    ],
+    "ember_world.v1.barren": [
+     768,
+     0,
+     256,
+     256
+    ],
+    "ember_world.v1.waking": [
+     1024,
+     0,
+     256,
+     256
+    ],
+    "ember_world.v1.living": [
+     1280,
+     0,
+     256,
+     256
+    ],
+    "ember_world.v2.barren": [
+     0,
+     256,
+     256,
+     256
+    ],
+    "ember_world.v2.waking": [
+     256,
+     256,
+     256,
+     256
+    ],
+    "ember_world.v2.living": [
+     512,
+     256,
+     256,
+     256
+    ],
+    "ember_world.v3.barren": [
+     768,
+     256,
+     256,
+     256
+    ],
+    "ember_world.v3.waking": [
+     1024,
+     256,
+     256,
+     256
+    ],
+    "ember_world.v3.living": [
+     1280,
+     256,
+     256,
+     256
+    ],
+    "paper_sea.v0.barren": [
+     0,
+     512,
+     256,
+     256
+    ],
+    "paper_sea.v0.waking": [
+     256,
+     512,
+     256,
+     256
+    ],
+    "paper_sea.v0.living": [
+     512,
+     512,
+     256,
+     256
+    ],
+    "paper_sea.v1.barren": [
+     768,
+     512,
+     256,
+     256
+    ],
+    "paper_sea.v1.waking": [
+     1024,
+     512,
+     256,
+     256
+    ],
+    "paper_sea.v1.living": [
+     1280,
+     512,
+     256,
+     256
+    ],
+    "paper_sea.v2.barren": [
+     0,
+     768,
+     256,
+     256
+    ],
+    "paper_sea.v2.waking": [
+     256,
+     768,
+     256,
+     256
+    ],
+    "paper_sea.v2.living": [
+     512,
+     768,
+     256,
+     256
+    ],
+    "paper_sea.v3.barren": [
+     768,
+     768,
+     256,
+     256
+    ],
+    "paper_sea.v3.waking": [
+     1024,
+     768,
+     256,
+     256
+    ],
+    "paper_sea.v3.living": [
+     1280,
+     768,
+     256,
+     256
+    ],
+    "glacier.v0.barren": [
+     0,
+     1024,
+     256,
+     256
+    ],
+    "glacier.v0.waking": [
+     256,
+     1024,
+     256,
+     256
+    ],
+    "glacier.v0.living": [
+     512,
+     1024,
+     256,
+     256
+    ],
+    "glacier.v1.barren": [
+     768,
+     1024,
+     256,
+     256
+    ],
+    "glacier.v1.waking": [
+     1024,
+     1024,
+     256,
+     256
+    ],
+    "glacier.v1.living": [
+     1280,
+     1024,
+     256,
+     256
+    ],
+    "glacier.v2.barren": [
+     0,
+     1280,
+     256,
+     256
+    ],
+    "glacier.v2.waking": [
+     256,
+     1280,
+     256,
+     256
+    ],
+    "glacier.v2.living": [
+     512,
+     1280,
+     256,
+     256
+    ],
+    "glacier.v3.barren": [
+     768,
+     1280,
+     256,
+     256
+    ],
+    "glacier.v3.waking": [
+     1024,
+     1280,
+     256,
+     256
+    ],
+    "glacier.v3.living": [
+     1280,
+     1280,
+     256,
+     256
+    ],
+    "jelly_geyser.v0.barren": [
+     0,
+     1536,
+     256,
+     256
+    ],
+    "jelly_geyser.v0.waking": [
+     256,
+     1536,
+     256,
+     256
+    ],
+    "jelly_geyser.v0.living": [
+     512,
+     1536,
+     256,
+     256
+    ],
+    "jelly_geyser.v1.barren": [
+     768,
+     1536,
+     256,
+     256
+    ],
+    "jelly_geyser.v1.waking": [
+     1024,
+     1536,
+     256,
+     256
+    ],
+    "jelly_geyser.v1.living": [
+     1280,
+     1536,
+     256,
+     256
+    ],
+    "jelly_geyser.v2.barren": [
+     0,
+     1792,
+     256,
+     256
+    ],
+    "jelly_geyser.v2.waking": [
+     256,
+     1792,
+     256,
+     256
+    ],
+    "jelly_geyser.v2.living": [
+     512,
+     1792,
+     256,
+     256
+    ],
+    "jelly_geyser.v3.barren": [
+     768,
+     1792,
+     256,
+     256
+    ],
+    "jelly_geyser.v3.waking": [
+     1024,
+     1792,
+     256,
+     256
+    ],
+    "jelly_geyser.v3.living": [
+     1280,
+     1792,
+     256,
+     256
+    ],
+    "sunflower_ring.v0.barren": [
+     0,
+     2048,
+     256,
+     256
+    ],
+    "sunflower_ring.v0.waking": [
+     256,
+     2048,
+     256,
+     256
+    ],
+    "sunflower_ring.v0.living": [
+     512,
+     2048,
+     256,
+     256
+    ],
+    "sunflower_ring.v1.barren": [
+     768,
+     2048,
+     256,
+     256
+    ],
+    "sunflower_ring.v1.waking": [
+     1024,
+     2048,
+     256,
+     256
+    ],
+    "sunflower_ring.v1.living": [
+     1280,
+     2048,
+     256,
+     256
+    ],
+    "sunflower_ring.v2.barren": [
+     0,
+     2304,
+     256,
+     256
+    ],
+    "sunflower_ring.v2.waking": [
+     256,
+     2304,
+     256,
+     256
+    ],
+    "sunflower_ring.v2.living": [
+     512,
+     2304,
+     256,
+     256
+    ],
+    "sunflower_ring.v3.barren": [
+     768,
+     2304,
+     256,
+     256
+    ],
+    "sunflower_ring.v3.waking": [
+     1024,
+     2304,
+     256,
+     256
+    ],
+    "sunflower_ring.v3.living": [
+     1280,
+     2304,
+     256,
+     256
+    ],
+    "crystal_moss.v0.barren": [
+     0,
+     2560,
+     256,
+     256
+    ],
+    "crystal_moss.v0.waking": [
+     256,
+     2560,
+     256,
+     256
+    ],
+    "crystal_moss.v0.living": [
+     512,
+     2560,
+     256,
+     256
+    ],
+    "crystal_moss.v1.barren": [
+     768,
+     2560,
+     256,
+     256
+    ],
+    "crystal_moss.v1.waking": [
+     1024,
+     2560,
+     256,
+     256
+    ],
+    "crystal_moss.v1.living": [
+     1280,
+     2560,
+     256,
+     256
+    ],
+    "crystal_moss.v2.barren": [
+     0,
+     2816,
+     256,
+     256
+    ],
+    "crystal_moss.v2.waking": [
+     256,
+     2816,
+     256,
+     256
+    ],
+    "crystal_moss.v2.living": [
+     512,
+     2816,
+     256,
+     256
+    ],
+    "crystal_moss.v3.barren": [
+     768,
+     2816,
+     256,
+     256
+    ],
+    "crystal_moss.v3.waking": [
+     1024,
+     2816,
+     256,
+     256
+    ],
+    "crystal_moss.v3.living": [
+     1280,
+     2816,
+     256,
+     256
+    ],
+    "hearth.waking": [
+     0,
+     3072,
+     256,
+     256
+    ],
+    "hearth.living": [
+     256,
+     3072,
+     256,
+     256
+    ]
+   },
+   "fallback": "/universe/sprites/planets_256.q.png"
+  },
   "planets_64": {
    "image": "/universe/sprites/planets_64.png",
    "cell": [
@@ -440,6 +894,18 @@
      512,
      64,
      64
+    ],
+    "hearth.waking": [
+     0,
+     576,
+     64,
+     64
+    ],
+    "hearth.living": [
+     64,
+     576,
+     64,
+     64
     ]
    }
   },
@@ -593,51 +1059,6 @@
      128,
      64,
      64
-    ]
-   }
-  },
-  "storms_256": {
-   "image": "/universe/sprites/storms_256.png",
-   "cell": [
-    256,
-    256
-   ],
-   "frames": {
-    "storm.spawn.v0": [
-     0,
-     0,
-     256,
-     256
-    ],
-    "storm.spawn.v1": [
-     256,
-     0,
-     256,
-     256
-    ],
-    "storm.peak.v0": [
-     512,
-     0,
-     256,
-     256
-    ],
-    "storm.peak.v1": [
-     768,
-     0,
-     256,
-     256
-    ],
-    "storm.fade.v0": [
-     1024,
-     0,
-     256,
-     256
-    ],
-    "storm.fade.v1": [
-     1280,
-     0,
-     256,
-     256
     ]
    }
   },
@@ -842,36 +1263,48 @@
     ]
    }
   },
-  "threads_256x32": {
-   "image": "/universe/sprites/threads_256x32.png",
+  "storms_256": {
+   "image": "/universe/sprites/storms_256.png",
    "cell": [
     256,
-    32
+    256
    ],
    "frames": {
-    "thread.f0": [
+    "storm.spawn.v0": [
      0,
      0,
      256,
-     32
+     256
     ],
-    "thread.f1": [
+    "storm.spawn.v1": [
      256,
      0,
      256,
-     32
+     256
     ],
-    "thread.f2": [
+    "storm.peak.v0": [
      512,
      0,
      256,
-     32
+     256
     ],
-    "thread.f3": [
+    "storm.peak.v1": [
      768,
      0,
      256,
-     32
+     256
+    ],
+    "storm.fade.v0": [
+     1024,
+     0,
+     256,
+     256
+    ],
+    "storm.fade.v1": [
+     1280,
+     0,
+     256,
+     256
     ]
    }
   },
@@ -907,6 +1340,111 @@
      256
     ]
    }
+  },
+  "threads_256x32": {
+   "image": "/universe/sprites/threads_256x32.png",
+   "cell": [
+    256,
+    32
+   ],
+   "frames": {
+    "thread.e0.f0": [
+     0,
+     0,
+     256,
+     32
+    ],
+    "thread.e0.f1": [
+     256,
+     0,
+     256,
+     32
+    ],
+    "thread.e0.f2": [
+     512,
+     0,
+     256,
+     32
+    ],
+    "thread.e0.f3": [
+     768,
+     0,
+     256,
+     32
+    ],
+    "thread.e1.f0": [
+     1024,
+     0,
+     256,
+     32
+    ],
+    "thread.e1.f1": [
+     1280,
+     0,
+     256,
+     32
+    ],
+    "thread.e1.f2": [
+     0,
+     32,
+     256,
+     32
+    ],
+    "thread.e1.f3": [
+     256,
+     32,
+     256,
+     32
+    ],
+    "thread.e2.f0": [
+     512,
+     32,
+     256,
+     32
+    ],
+    "thread.e2.f1": [
+     768,
+     32,
+     256,
+     32
+    ],
+    "thread.e2.f2": [
+     1024,
+     32,
+     256,
+     32
+    ],
+    "thread.e2.f3": [
+     1280,
+     32,
+     256,
+     32
+    ],
+    "thread.e3.f0": [
+     0,
+     64,
+     256,
+     32
+    ],
+    "thread.e3.f1": [
+     256,
+     64,
+     256,
+     32
+    ],
+    "thread.e3.f2": [
+     512,
+     64,
+     256,
+     32
+    ],
+    "thread.e3.f3": [
+     768,
+     64,
+     256,
+     32
+    ]
+   }
   }
  },
  "rules": {
@@ -939,7 +1477,12 @@
    },
    "scale": "draw size px = clamp(18*sqrt(radius_earth),10,64) at map zoom",
    "sky_tint": "tint halo toward host star hue (bible: hue tints skies)",
-   "name": "first planet ever to get a life entry is labelled \"Hearth\""
+   "name": "first planet ever to get a life entry is labelled \"Hearth\" (placeholder)",
+   "hearth": {
+    "key": "hearth.{waking|living}",
+    "when": "home planet (first life world, or most habitable before life) AND biome==glacier; living if it has a life entry else waking",
+    "note": "round glacier world, gold glowing from inside; fallback to glacier.v*.{stage} if home is not a glacier"
+   }
   },
   "star": {
    "key": "{class}.lum{0-2}",
@@ -968,13 +1511,17 @@
    "newborn": "newborn.f0-2 (no face) over a nebula for star births"
   },
   "storm": {
-   "key": "storm.{phase}.v{0-1}",
-   "phase": "spawn first 15% of storm life, peak middle, fade last 25% (storm fields not in samples: storms[] empty at tick 0 and 200)",
-   "attach": "centered on storm.planet, same scale as planet sprite"
+   "source": "universe.storms[] = {id,planet,intensity,lifetime,born}",
+   "key": "storm.{phase}.v{variant}",
+   "phase": "age=tick-born; p=age/max(lifetime,1); p<0.15 spawn, p>=0.75 fade, else peak; lifetime<=1 -> peak on born tick, fade on born+1 (engine keeps storm while born+lifetime>=tick)",
+   "variant": "parseInt(sha256(storm.id).slice(0,8),16)%2 (any stable hash)",
+   "intensity": "sprite alpha = 0.35+0.65*clamp(intensity/0.5,0,1); scale = planet size*(1.05+0.25*clamp(intensity/0.5,0,1)) (intensity = r*atmosphere, so <=1, typically small)",
+   "attach": "centered on planet with id==storm.planet, drawn over the planet sprite"
   },
   "life": {
    "key": "{stage}.m{motility>=0.5}.s{sociality>=0.5}[.scar]",
-   "stage_by_complexity": {
+   "stage": "life.stage.toLowerCase() (Glimmer|Drifters|Choirs|Dreamers); fallback: from life.complexity_norm with bands below; never from raw complexity",
+   "stage_by_complexity_norm": {
     "glimmer": [
      0,
      0.3
@@ -992,14 +1539,19 @@
      99
     ]
    },
-   "complexity_note": "sample has complexity 4.33 (>1): if engine complexity is unbounded, normalise or Hearth is always Dreamers; confirm with Phera",
    "tint": "frames are white; tint with traits.hue (bioluminescence)",
    "diversity": "draw min(diversity,6) copies around the planet limb",
-   "scar": "use .scar frames (scar on creatures) when life survived a storm (lore flag; not in JSON yet)"
+   "scar": "append .scar when life.scarred===true (scars>0); scars live on the creatures, not the land",
+   "scar_count": "optional: life.scars>=3 -> also lower halo alpha 15% (art suggestion only)"
   },
-  "thread": "thread.f0-3 stretched between entangled planet pairs (pair field not in samples)",
-  "comet": "comet.f0-3 ambient",
+  "thread": {
+   "source": "universe.pairs[] = {a,b,E}; draw ONLY between planet a and planet b; never to stars, never to Zeref/his star",
+   "key": "thread.e{tier}.f{0-3}",
+   "tier": "tier=clamp(floor(|sim_E|*4),0,3) (E>=0.75 -> e3 brightest); extra: multiply alpha by clamp(|sim_E|,0.2,1)",
+   "note": "engine currently gives every pair the same hardware E (0.97461), so all threads are e3; per-pair E would make brightness vary"
+  },
+  "comet": "comet.f0-3 ambient (engine has no comets; optional decoration, keep off if view must be engine-only)",
   "nebula": "nebula.v0-3 background, behind newborn stars"
  },
- "credit": "Sprites by Cosmo"
+ "credit": "Sprites by Cosmo (v2)"
 }
