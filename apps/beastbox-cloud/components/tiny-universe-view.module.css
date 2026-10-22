@@ -1,0 +1,12 @@
+.wrap{position:relative;min-height:100dvh;background:#05030f;color:#efe7ff;font-family:system-ui,-apple-system,sans-serif;overflow:hidden}
+.canvas{display:block;width:100%;height:calc(100dvh - 48px);touch-action:manipulation}
+.hud{position:absolute;left:8px;right:8px;top:56px;display:flex;flex-direction:column;gap:4px;pointer-events:none}
+.tag{align-self:flex-start;font-size:11px;padding:3px 8px;border-radius:999px;background:rgba(10,6,30,.72);border:1px solid rgba(190,160,255,.35)}
+.sim{border-color:rgba(255,120,200,.6)}
+.title{font-size:15px;font-weight:700;letter-spacing:.06em;color:#ffd98a}
+.bottom{position:absolute;left:8px;right:84px;bottom:calc(112px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:6px}
+.row{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.btn{font:inherit;font-size:13px;padding:8px 12px;border-radius:12px;border:1px solid rgba(255,217,138,.5);background:rgba(20,12,45,.85);color:#ffe7b0}
+.stat{font-size:11px;opacity:.85}
+.card{font-size:12px;padding:8px 10px;border-radius:12px;background:rgba(12,8,32,.88);border:1px solid rgba(190,160,255,.35);line-height:1.4}
+.zeref{font-size:12px;color:#d9c2ff;min-height:16px}
