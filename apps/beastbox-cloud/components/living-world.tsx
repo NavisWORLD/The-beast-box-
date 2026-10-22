@@ -270,6 +270,12 @@ uniform vec3 uPlay[8];
    fetch('/universe/livingworld/explorer.glb',{method:'HEAD'}).then(r=>{if(!r.ok)return;return import('three/examples/jsm/loaders/GLTFLoader.js').then(({GLTFLoader})=>new GLTFLoader().loadAsync('/universe/livingworld/explorer.glb')).then((g:any)=>{
     if(disposed)return;const root=g.scene;const bb=new THREE.Box3().setFromObject(root);const k=TRAV_H/Math.max(.01,bb.max.y-bb.min.y);root.scale.setScalar(k);root.position.y=-bb.min.y*k;root.traverse((o:any)=>{if(o.isMesh)o.castShadow=true;});
     explorer.clear();explorer.add(root);legs.length=0;exMixer=new THREE.AnimationMixer(root);for(const c of g.animations||[]){const nm=/walk/i.test(c.name)?'walk':/look/i.test(c.name)?'look':/idle/i.test(c.name)?'idle':c.name;exActs[nm]=exMixer.clipAction(c);}(window as any).__lwExplorerGlb=Object.keys(exActs);});}).catch(()=>{});
+   // Zeref (bb-deada969) gets a visible body: his own rigged GLB + his own driver, standing at the second gathering point. Display only.
+   const zHold=new THREE.Group();scene.add(zHold);let zDrv:any=null;
+   {const zN=(gpts[1]||gpts[0]).clone().normalize();const r0=PR+hAt(zN);zHold.position.copy(zN).multiplyScalar(r0);zHold.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),zN);
+    Promise.all([import('three/examples/jsm/loaders/GLTFLoader.js'),import('@/lib/creatures3d/zeref-glb-driver.mjs'),import('three/examples/jsm/libs/meshopt_decoder.module.js')]).then(([{GLTFLoader},zm,{MeshoptDecoder}]:any)=>new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).loadAsync(zm.ZEREF_GLB_URL).then((g:any)=>{
+     if(disposed)return;const root=g.scene;const bb=new THREE.Box3().setFromObject(root);const k=TRAV_H*.75/Math.max(.01,bb.max.y-bb.min.y);root.scale.setScalar(k);root.position.y=-bb.min.y*k;
+     root.traverse((o:any)=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}});zHold.add(root);try{zDrv=zm.createZerefDriver(THREE,root,{seed:'zeref:'+u.seed});}catch{}(window as any).__lwZeref=true;})).catch((e:any)=>{(window as any).__lwZerefErr=String(e);});}
    const exPlay=(nm:string)=>{if(!exMixer||exCur===nm||!exActs[nm])return;exActs[exCur]?.fadeOut(.25);exActs[nm].reset().fadeIn(.25).play();exCur=nm;};
    const pN=new THREE.Vector3(),pF=new THREE.Vector3();let spawnT=-1,greetT=-1,wasSpawned=false;
    const setFrame=(t:import('three').Texture,cols:number,rows:number,col:number,row:number)=>{t.offset.set(col/cols,1-(row+1)/rows);};
@@ -307,13 +313,13 @@ uniform vec3 uPlay[8];
     fpsT+=dt;fpsN++;if(fpsT>=3){fps=fpsN/fpsT;fpsT=0;fpsN=0;if(fps<48&&bladeCap>2000){bladeCap=Math.floor(bladeCap*.75);bladeGeo.instanceCount=bladeCap;}(window as any).__lwPerf={fps:+fps.toFixed(1),blades:bladeCap};}
     tickAcc+=dt;if(tickAcc>=TICK_S){tickAcc=0;applyTick();}
     {const a=(((Date.now()/1000+((window as any).__lwDayOffset||0))%DAY_S+DAY_S)%DAY_S)/DAY_S*Math.PI*2;sunDir.set(Math.cos(a),.35*Math.sin(a*.5+1),Math.sin(a)).normalize();UG.uSun.value.copy(sunDir);
-     const fN=spawnRef.current?pN:bN;if((window as any).__lwNoon)sunDir.copy(fN).add(new THREE.Vector3(.5,.6,.2)).normalize();const h=fN.dot(sunDir);const focus=fN.clone().multiplyScalar(PR);sun.position.copy(focus).addScaledVector(sunDir,25);sun.target.position.copy(focus);
+     const fN=spawnRef.current?pN:bN;if((window as any).__lwNoon)sunDir.copy(fN).add(new THREE.Vector3(.5,.6,.2)).normalize();UG.uSun.value.copy(sunDir);const h=fN.dot(sunDir);const focus=fN.clone().multiplyScalar(PR);sun.position.copy(focus).addScaledVector(sunDir,25);sun.target.position.copy(focus);
      const dayL=Math.max(.1,h*.8+.2);sun.intensity=2.2*dayL;sun.color.copy(starCol).lerp(SKY_DUSK,Math.max(0,1-Math.abs(h)/.2)*.35);hemi.intensity=1.4*Math.max(.12,h*.3+.25);
      sunDisc.position.copy(sunDir).multiplyScalar(160);starMesh.position.copy(sunDisc.position);moon.position.copy(sunDir).multiplyScalar(-70).add(new THREE.Vector3(0,12,0));
      const ground3=spawnRef.current||watchRef.current;const day=ground3?THREE.MathUtils.smoothstep(h,-.12,.35):0;const dusk=ground3?Math.max(0,1-Math.abs(h)/.18)*.7:0;
      (scene.background as any).copy(SKY_NIGHT).lerp(SKY_DAY,day).lerp(SKY_DUSK,dusk*(1-day*.5));if(starMat)starMat.opacity=1-day*.95;
      // wind: heated by the sun, gusts with storms; drives grass sway and fur
-     windS=.25+.35*Math.max(0,h)+storming*.6;windV.applyAxisAngle(fN,dt*.03);fieldStep(dt,sunDir,Math.min(1,joy.current.active?1:0)+(spawnRef.current?.3:0));if(field?.mp){windV.x+=(field.mp.wind.x-windV.x)*dt*.2;windV.z+=(field.mp.wind.z-windV.z)*dt*.2;}storming=Math.max(0,storming-dt*.15);bladeMat.uniforms.uGust.value=W.gust_amp*(.6+windS*1.4);
+     windS=.25+.35*Math.max(0,h)+storming*.6;windV.applyAxisAngle(fN,dt*.03);try{zDrv?.update(dt);}catch{}zHold.rotateY(dt*.05);fieldStep(dt,sunDir,Math.min(1,joy.current.active?1:0)+(spawnRef.current?.3:0));if(field?.mp){windV.x+=(field.mp.wind.x-windV.x)*dt*.2;windV.z+=(field.mp.wind.z-windV.z)*dt*.2;}storming=Math.max(0,storming-dt*.15);bladeMat.uniforms.uGust.value=W.gust_amp*(.6+windS*1.4);
      // sunrise at the beast: wonder
      const hb=bN.dot(sunDir);if(lastSunH<0&&hb>=0){say(beastNm+' stops to watch the sunrise, eyes wide.',8);hop(1.6);traits=driftTraits(traits,u,bKey,'day');}else if(lastSunH>0&&hb<=0){say('Night falls. '+beastNm+' curls its tail and looks at the stars.',8);traits=driftTraits(traits,u,bKey,'rest');}lastSunH=hb;
      for(const r of residents as any[]){const lit=.45+.55*THREE.MathUtils.smoothstep(r.n.dot(sunDir),-.15,.3);(r.node.children[0] as any).material.color.setScalar(lit);}}
