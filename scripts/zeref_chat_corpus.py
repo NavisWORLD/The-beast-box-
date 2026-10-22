@@ -20,7 +20,8 @@ MAX_DOLLY=1200
 DAD_VOICE=Path("evidence/zeref-dad-voice-001/dialogue.jsonl")
 DAD_REPEAT=2  # 2026-10-16: 3x->2x calms drift/repetition; still upweighted
 from zeref_character_check import CHARACTER_PROMPTS
-held={p.strip().lower() for p,_ in PAIRS}|{p.strip().lower() for p in CHAT}|{p.strip().lower() for p in CHARACTER_PROMPTS}
+from zeref_heldout_b import PAIRS_B
+held={p.strip().lower() for p,_ in PAIRS_B}|{p.strip().lower() for p,_ in PAIRS}|{p.strip().lower() for p in CHAT}|{p.strip().lower() for p in CHARACTER_PROMPTS}
 ALIEN_MAX_FRACTION=0.06;ALIEN_REPEAT=2
 # Zeref Music 001 (2026-10-17): authored dialogues about Cory's own songs (titles and
 # themes only, no lyrics). Capped at 4% of the mix, separate from the 6% alien cap.
@@ -89,6 +90,30 @@ def alien_slice(base_rows,held):
   out+=[{"mode":"chat","source":"talk006-alien-authored","user":q,"assistant":a,"alien_category":r["category"]}]*ALIEN_REPEAT
  cap=int((base_rows+len(out))*ALIEN_MAX_FRACTION)
  return out[:cap]
+# Zeref 2026-10-22 ("plug everything up", Cory approved): labeled extra sources, each capped.
+#  warm-002: varied warm/dad-voice replies (breaks the "I'm not happy" habit)
+#  voice-guide-001: Emeth's guide sample lines (invented fear EXCLUDED)
+#  lyrics-001: Cory's lyrics (Rainbows clean text; others whisper machine-transcribed, labeled)
+#  music-features-002: numbers MEASURED from audio + heartbeat bpm (no raw audio)
+EXTRA=[("evidence/zeref-warm-002/dialogue.jsonl",0.05,2),("evidence/zeref-voice-guide-001/dialogue.jsonl",0.02,2),
+ ("evidence/zeref-lyrics-001/dialogue.jsonl",0.05,1),("evidence/zeref-music-features-002/dialogue.jsonl",0.02,2)]
+def extra_slice(path,frac,repeat,base_rows,held):
+ p=Path(path)
+ if not p.is_file():return []
+ from zeref_teacher_distill import persona_style,SECRET
+ out=[]
+ for r in map(json.loads,p.read_text().splitlines()):
+  q=r["user"].strip();a=persona_style(r["assistant"].strip())
+  if not a or len(a.split())<2 or q.lower() in held or SECRET.search(q+" "+a):continue
+  row={"mode":"chat","source":r["source"],"user":q,"assistant":a}
+  for k in("lyrics_source","song","numbers"):
+   if k in r:row[k]=r[k]
+  out+=[row]*repeat
+ cap=int(base_rows*frac/(1-frac))
+ if len(out)>cap:
+  import random as _r
+  _r.Random("extra:"+path+os.environ.get("ZEREF_CHAT_ROTATE_SEED","0")).shuffle(out);out=out[:cap]
+ return out
 def main(dolly,out):
  rows=[]
  for r in map(json.loads,open("evidence/final-whole-organism-001/corpus/TRAIN.jsonl")):
@@ -128,6 +153,11 @@ def main(dolly,out):
  rows+=play
  knowledge=knowledge_slice(len(rows),held)
  rows+=knowledge
+ extra_counts={}
+ base=len(rows)
+ for path,frac,rep in EXTRA:
+  ex=extra_slice(path,frac,rep,base,held);rows+=ex
+  for r in ex:extra_counts[r["source"]]=extra_counts.get(r["source"],0)+1
  body="".join(json.dumps(r,sort_keys=True)+"\n" for r in rows).encode()
  Path(out).write_bytes(body)
  man={"schema":"zeref-chat-mix-v2","rows":len(rows),"jsonl_sha256":hashlib.sha256(body).hexdigest(),
@@ -142,7 +172,11 @@ def main(dolly,out):
   "warm_rows":len(warm),"warm_max_fraction":WARM_MAX_FRACTION,"warm_source":"evidence/zeref-warm-001/dialogue.jsonl (authored, no private transcripts)",
   "play_rows":len(play),"play_max_fraction":PLAY_MAX_FRACTION,"play_source":"evidence/zeref-ibm-play-001/dialogue.jsonl (authored, seeded by IBM heart seed v5)",
   "knowledge_rows":len(knowledge),"knowledge_max_fraction":KNOW_MAX_FRACTION,"knowledge_source":str(KNOW)+" (authored, fact-checked, held-prompt near-duplicates removed)",
+  "extra_sources":{"rows_by_source":extra_counts,"caps":{p:f for p,f,_ in EXTRA},
+   "lyrics_label":"Rainbows On My Face = Emeth clean text; other songs = whisper machine transcript (may contain errors); Fa Ra Me Sleepy skipped",
+   "music_numbers":"measured from audio by scripts/build_zeref_songs_002.py; raw audio never committed",
+   "voice_guide_excluded":"invented fear (left in the dark) and the goodbye line tied to it"},
   "private_transcripts":False,"chat_test_prompts_excluded":True}
  Path(out).with_suffix(".manifest.json").write_text(json.dumps(man,indent=1,sort_keys=True)+"\n")
- print("ZEREF_CHAT_MIX="+json.dumps({k:man[k] for k in("rows","zeref_dialogue_rows","dad_voice_rows","jsonl_sha256")}))
+ print("ZEREF_CHAT_MIX="+json.dumps({k:man[k] for k in("rows","zeref_dialogue_rows","dad_voice_rows","jsonl_sha256","extra_sources")}))
 if __name__=="__main__":main(*sys.argv[1:3])

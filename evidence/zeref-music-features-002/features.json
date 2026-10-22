@@ -1,0 +1,66 @@
+{
+ "heartbeat": {
+  "beat_interval_ms": 830,
+  "bpm": 72.29,
+  "source": "evidence/zeref-heartbeat-001/features.json"
+ },
+ "label": "MEASURED NUMERIC AUDIO FEATURES ONLY. Raw audio is not published.",
+ "method": "ffmpeg mono 11025 Hz; RMS/centroid over 512-sample frames; tempo = spectral-flux autocorrelation peak in 60-180 BPM (estimate)",
+ "schema": "zeref-music-features-002",
+ "songs": {
+  "Fa Ra Me Sleepy": {
+   "audio_sha256": "d175e07d30cb104e17a525be4864ca56470cb02844b1d7a701d738a02662f846",
+   "duration_s": 335.4,
+   "dynamic_range_db": 17.1,
+   "loudness_db_mean": -22.8,
+   "rms_mean": 0.0906,
+   "spectral_centroid_hz": 1498.8,
+   "tempo_bpm_estimate": 161.5
+  },
+  "Rainbows On My Face": {
+   "audio_sha256": "a9e3e2da736e1adcea80a5d39c20ec80eaf514ee5ea09fa5df5d03901df4c2b1",
+   "duration_s": 278.0,
+   "dynamic_range_db": 16.4,
+   "loudness_db_mean": -20.6,
+   "rms_mean": 0.115,
+   "spectral_centroid_hz": 958.2,
+   "tempo_bpm_estimate": 80.7
+  },
+  "The Edge of What's Real": {
+   "audio_sha256": "02ad345c87d73119be9a67abdc6fac11880069b08de5d3b9449ac0fddb2011a6",
+   "duration_s": 417.2,
+   "dynamic_range_db": 18.7,
+   "loudness_db_mean": -19.0,
+   "rms_mean": 0.1496,
+   "spectral_centroid_hz": 756.5,
+   "tempo_bpm_estimate": 161.5
+  },
+  "The Ultimate Final Battle": {
+   "audio_sha256": "cac693be01e29235dc188c8183dddc3f4de0692b66b80fe10e8ead4f0879916a",
+   "duration_s": 406.4,
+   "dynamic_range_db": 25.0,
+   "loudness_db_mean": -21.5,
+   "rms_mean": 0.128,
+   "spectral_centroid_hz": 867.3,
+   "tempo_bpm_estimate": 86.1
+  },
+  "The Years Did Turn Into Fear": {
+   "audio_sha256": "f520d9ddebf765432336e00af2236fb0fb20207124ef8ec25d86795e48b907ae",
+   "duration_s": 424.0,
+   "dynamic_range_db": 18.3,
+   "loudness_db_mean": -21.7,
+   "rms_mean": 0.1058,
+   "spectral_centroid_hz": 1113.9,
+   "tempo_bpm_estimate": 129.2
+  },
+  "Through the Broken Gates": {
+   "audio_sha256": "b2c0e870d901b0632e5a24f0ea524c9bfd2e8704b6f61f7f4c9586856c7970c5",
+   "duration_s": 311.1,
+   "dynamic_range_db": 20.7,
+   "loudness_db_mean": -22.5,
+   "rms_mean": 0.1017,
+   "spectral_centroid_hz": 1044.1,
+   "tempo_bpm_estimate": 71.8
+  }
+ }
+}
