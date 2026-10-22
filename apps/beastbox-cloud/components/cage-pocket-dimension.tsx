@@ -7,7 +7,8 @@ import {buildIsland} from '../lib/geyser/island';
 import {addGeyserEvents} from '../lib/geyser/events';
 import {addIslandLife} from '../lib/geyser/life';
 import {createGeyserSound} from '../lib/geyser/sound';
-import {inBlock as gjInBlock,islandGround} from '../lib/geyser/geyser-math.mjs';
+import {inBlock as gjInBlock,islandGround,GJ as GJ_ALL} from '../lib/geyser/geyser-math.mjs';
+const GJ_V=GJ_ALL.volcano,GJ_G=GJ_ALL.geyser;
 import {addHeaven,HEAVEN} from '../lib/worlds/heaven';
 import {terrainHeight} from '../lib/worlds/terrain-math.mjs';
 import {createCompanions} from '../lib/companions/companions';
@@ -328,7 +329,15 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     const zHolder=new THREE.Group();zHolder.scale.setScalar(.45);zHolder.position.set(0,-.07,0);zHolder.rotation.y=.7;scene.add(zHolder);
     // Universe of worlds: home trees/clouds/sky dome/parallax haze + distant worlds with gravity wells; Zeref travels between them.
     const neonU=neonUniforms();const uw=buildWorlds(THREE,scene,{low,universe:UNIVERSE_R,neon:neonU});const land=(!soft||lcForced)?buildTerrain(THREE,scene,{low}):null;if(lcForced)(window as any).__lcLand=land;const gj=(!soft||lcForced)?buildIsland(THREE,scene,{low}):null;const gjEv=gj?addGeyserEvents(THREE,gj,{low}):null;const gjLife=gj&&gjEv?addIslandLife(THREE,gj,gjEv.puff,{low}):null;const gjSnd=gj?createGeyserSound():null;gjEv?.on(e=>{gjSnd?.event(e==='geyser-tap'?'':e);if(e==='tremor'||e==='erupt')gjLife?.scare();});gjLife?.on(e=>gjSnd?.event(e));if(lcForced){(window as any).__geyser=gj;(window as any).__geyserEv=gjEv;(window as any).__geyserLife=gjLife;}
-    const onGj=(e:any)=>{const a=String(e?.detail?.action||'');if(a==='erupt')gjEv?.erupt();else if(a==='tremor')gjEv?.tremor();else if(a==='geyser')gjEv?.geyser();else if(a==='breach')gjLife?.breach();else if(a==='castoff')gjLife?.castoff();};window.addEventListener('beastbox:geyser',onGj);// Geyser Jelly island diorama behind the cage
+    const onGj=(e:any)=>{const a=String(e?.detail?.action||'');if(a==='erupt')gjEv?.erupt();else if(a==='tremor')gjEv?.tremor();else if(a==='geyser')gjEv?.geyser();else if(a==='breach')gjLife?.breach();else if(a==='castoff')gjLife?.castoff();};window.addEventListener('beastbox:geyser',onGj);if(gj){(window as any).__geyserReady=true;window.dispatchEvent(new Event('beastbox:geyser-ready'));}
+    // tap the geyser, volcano, whale or boat to trigger it (taps only; drags keep orbiting the camera)
+    const gjRay=new THREE.Raycaster(),gjNdc=new THREE.Vector2();let gjDown:{x:number;y:number;t:number}|null=null;
+    const gjPD=(e:PointerEvent)=>{gjDown={x:e.clientX,y:e.clientY,t:performance.now()};};
+    const gjPU=(e:PointerEvent)=>{const d0=gjDown;gjDown=null;if(!gj||!d0||Math.hypot(e.clientX-d0.x,e.clientY-d0.y)>8||performance.now()-d0.t>450)return;const rc=renderer.domElement.getBoundingClientRect();gjNdc.set((e.clientX-rc.left)/rc.width*2-1,-(e.clientY-rc.top)/rc.height*2+1);gjRay.setFromCamera(gjNdc,camera);
+      const objs=[...(gjEv?.pickables()||[]),...(gjLife?.pickables()||[]),gj.land];const hit=gjRay.intersectObjects(objs,false)[0];if(!hit)return;let n=hit.object.name;
+      if(n==='gj-land'){const lp=gj.root.worldToLocal(hit.point.clone());n=Math.hypot(lp.x-GJ_V.x,lp.z-GJ_V.z)<GJ_V.r*.8?'gj-volcano':Math.hypot(lp.x-GJ_G.x,lp.z-GJ_G.z)<.45?'gj-geyser':'';}
+      const act={'gj-geyser':'geyser','gj-volcano':'erupt','gj-whale':'breach','gj-boat':'castoff'}[n];if(act)window.dispatchEvent(new CustomEvent('beastbox:geyser',{detail:{action:act}}));};
+    renderer.domElement.addEventListener('pointerdown',gjPD);renderer.domElement.addEventListener('pointerup',gjPU);// Geyser Jelly island diorama behind the cage
 // software GL (CI) skips the big land; debug handle only with ?livingcore=1
 
     // grounding + contact shadow + jellyfish tail filaments (neon wire language)
@@ -542,7 +551,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     }
     frame=requestAnimationFrame(animate);
     cleanup=()=>{
-     window.removeEventListener('beastbox:beast-chat',onLcChat);window.removeEventListener('beastbox:geyser',onGj);gjSnd?.dispose();window.removeEventListener('beastbox:local-sensor-level',onLcLevel);window.removeEventListener('beastbox:spark-chirp',onLcChirp);renderer.domElement.removeEventListener('pointerdown',onLcTap);
+     window.removeEventListener('beastbox:beast-chat',onLcChat);window.removeEventListener('beastbox:geyser',onGj);renderer.domElement.removeEventListener('pointerdown',gjPD);renderer.domElement.removeEventListener('pointerup',gjPU);(window as any).__geyserReady=false;gjSnd?.dispose();window.removeEventListener('beastbox:local-sensor-level',onLcLevel);window.removeEventListener('beastbox:spark-chirp',onLcChirp);renderer.domElement.removeEventListener('pointerdown',onLcTap);
      lcS.syn?.dispose();if(lcS.g){lcS.g.remove(lcS.LC.group);zActorNode.remove(lcS.g);}extras.dispose();gcam.dispose();lcBus.current=null;
      pickRef.current=null;godRef.current=null;world.dispose();window.removeEventListener('beastbox:genome',syncPlush);window.removeEventListener('beastbox:pixel-mode',syncPlush);window.removeEventListener('beastbox:spark-chirp',onTalk);document.documentElement.removeAttribute('data-beast-3d');life.dispose();plush?.dispose();
      {const ze=(window as any).__zerefEmbed;if(ze?.root?.parent===zActorNode){zActorNode.remove(ze.root);ze.root.position.y=0;ze.claimed=false;}}
