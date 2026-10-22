@@ -22,6 +22,7 @@ export default function HomePocket(){
  const {session}=useBeastSession();const {reduced}=useUniverseMotion();
  const own=session?.beast?.qbeast?.profile?.id?session.beast:null;
  const [zeref,setZeref]=useState<any>(null);
+ const [homeView,setHomeView]=useState<'world'|'pocket'>(()=>{try{return (localStorage.getItem('lw:homeView') as any)||'world';}catch{return 'world';}});const chooseHomeView=(v:'world'|'pocket')=>{setHomeView(v);try{localStorage.setItem('lw:homeView',v);}catch{}};
  useEffect(()=>{if(own||zeref)return;let live=true;fetch(ZEREF_HOME_DEFAULT.src).then(r=>r.ok?r.json():null).then(d=>{const b=d?.beast;if(live&&b?.qbeast?.profile?.id===ZEREF_HOME_DEFAULT.id)setZeref(b);}).catch(()=>{});return()=>{live=false;};},[own,zeref]);
  const beast=own||zeref;const [world,setWorld]=useState(false);
  const game=useChshGame();const sc=stormChaos(deriveEmotions(beast),game);
@@ -29,9 +30,10 @@ export default function HomePocket(){
  const chat=Array.isArray(session?.chat)?session.chat:[];const lastYou=[...chat].reverse().find((m:any)=>m?.role==='you')?.text||null;
  // Oct 16: the same cage look Cory loves; living-core Zeref + life layer live inside it. The ⋯ button tucks sound/game/help on phones.
  return <div className="home-pocket-layer is-roamer" data-home-pocket={own?'saved-beast':zeref?'zeref-bb-deada969':'guide'}>
-  <CagePocketDimension seed={beast?beast.genome?.seed||beast.seed:null} qbeastId={beast?beast.qbeast.profile.id:null}
+  {own&&homeView==='world'&&!world?<LivingWorld embedded genome={own.genome||null} beastKey={own.qbeast?.profile?.id||null} beastName={own.displayName||own.genome?.names?.[String(own.stage)]||null} onExpand={()=>setWorld(true)}/>:<CagePocketDimension seed={beast?beast.genome?.seed||beast.seed:null} qbeastId={beast?beast.qbeast.profile.id:null}
    stage={beast?(beast.nativeStage||1):1} behaviorPosition={beast?beast.behavior?.position||null:null}
-   state={beast?visualStateFromBeast(beast):'idle'} reduced={reduced} onActiveChange={noop} qvmCounts={qvmCounts} autoOrbit chatLine={lastYou}/>
+   state={beast?visualStateFromBeast(beast):'idle'} reduced={reduced} onActiveChange={noop} qvmCounts={qvmCounts} autoOrbit chatLine={lastYou}/>}
+  {own?<button type="button" className="lc-living-world-open" data-home-view-toggle onClick={()=>chooseHomeView(homeView==='world'?'pocket':'world')} style={{position:'absolute',left:10,top:48,zIndex:5,background:'rgba(20,14,50,.85)',color:'#fff',border:0,borderRadius:10,padding:'6px 10px',font:'12px system-ui'}}>{homeView==='world'?'✦ Pocket view':'🌍 Living world'}</button>:null}
   <button type="button" className="lc-roamer-tools" aria-label="Show sound, game and help controls" onClick={()=>document.body.classList.toggle('lc-tools-open')}>⋯</button>
   <button type="button" className="lc-living-world-open" data-open-living-world onClick={()=>setWorld(true)} style={{position:'absolute',left:10,top:10,zIndex:5,background:'rgba(107,70,193,.9)',color:'#fff',border:0,borderRadius:10,padding:'8px 12px',fontWeight:600}}>🌍 Enter the tiny world</button>
   {world&&typeof document!=='undefined'?createPortal(<LivingWorld genome={own?.genome||null} beastKey={own?.qbeast?.profile?.id||null} beastName={own?(own.displayName||own.genome?.names?.[String(own.stage)]||null):null} onClose={()=>setWorld(false)}/>,document.body):null}

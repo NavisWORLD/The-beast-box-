@@ -35,15 +35,15 @@ const WINDOW_LINES=['Your world is loud today. I like it.','*presses nose to the
 const PR=8;           // planet radius (world units)
 const TRAV_H=.5;      // traveler height
 type Traits={curiosity:number;sociality:number;calm:number;joy:number;experiences:number};
-export default function LivingWorld({genome,beastKey,beastName,onClose}:{genome?:PlushGenome|null;beastKey?:string|null;beastName?:string|null;onClose?:()=>void}){
+export default function LivingWorld({genome,beastKey,beastName,onClose,embedded=false,onExpand}:{genome?:PlushGenome|null;beastKey?:string|null;beastName?:string|null;onClose?:()=>void;embedded?:boolean;onExpand?:()=>void}){
  const host=useRef<HTMLDivElement>(null);const hudBiome=useRef<HTMLSpanElement>(null);const canvasRef=useRef<HTMLCanvasElement>(null);
- const [spawned,setSpawned]=useState(()=>{try{return sessionStorage.getItem('lw:spawned')==='1';}catch{return false;}});const [watch,setWatch]=useState(false);const watchRef=useRef(false);watchRef.current=watch;const spawnRef=useRef(false);
+ const [spawned,setSpawned]=useState(()=>{if(embedded)return false;try{return sessionStorage.getItem('lw:spawned')==='1';}catch{return false;}});const [watch,setWatch]=useState(embedded);const watchRef=useRef(false);watchRef.current=watch;const spawnRef=useRef(false);
  const [hud,setHud]=useState<{tick:number;simE:number|null;life:number;storms:number;cover:number;traits:Traits|null;blades:number;fps:number;learned?:Record<string,number>;awake?:number}>({tick:0,simE:null,life:0,storms:0,cover:0,traits:null,blades:0,fps:0});
  const [err,setErr]=useState<string|null>(null);const [line,setLine]=useState<string|null>(null);const lineRef=useRef(setLine);lineRef.current=setLine;
  useEffect(()=>{if(!line)return;const id=setTimeout(()=>setLine(null),4200);return()=>clearTimeout(id);},[line]);
  const joy=useRef({x:0,y:0,active:false,id:-1,cx:0,cy:0});const keys=useRef(new Set<string>());
  const [stick,setStick]=useState<{x:number;y:number}|null>(null);
- useEffect(()=>{try{sessionStorage.setItem('lw:spawned',spawned?'1':'0');}catch{}},[spawned]);
+ useEffect(()=>{if(embedded)return;try{sessionStorage.setItem('lw:spawned',spawned?'1':'0');}catch{}},[spawned,embedded]);
  useEffect(()=>{spawnRef.current=spawned;(window as any).__lwSpawned=spawned;},[spawned]);
  // rebuild only when the beast itself changes, not on every session poll (that rebuild was the ~10s 'respawn')
  const gKey=genome?JSON.stringify(genome):'';
@@ -244,7 +244,7 @@ uniform vec3 uPlay[8];
    const frame=()=>{raf=requestAnimationFrame(frame);const now=performance.now();const dt=Math.min(.05,(now-last)/1000);last=now;t+=dt;UG.uT.value=t;
     fpsT+=dt;fpsN++;if(fpsT>=3){fps=fpsN/fpsT;fpsT=0;fpsN=0;if(fps<48&&bladeCap>2000){bladeCap=Math.floor(bladeCap*.75);bladeGeo.instanceCount=bladeCap;}(window as any).__lwPerf={fps:+fps.toFixed(1),blades:bladeCap};}
     tickAcc+=dt;if(tickAcc>=TICK_S){tickAcc=0;applyTick();}
-    {const a=((Date.now()/1000)%DAY_S)/DAY_S*Math.PI*2;sunDir.set(Math.cos(a),.35*Math.sin(a*.5+1),Math.sin(a)).normalize();UG.uSun.value.copy(sunDir);
+    {const a=(((Date.now()/1000+((window as any).__lwDayOffset||0))%DAY_S+DAY_S)%DAY_S)/DAY_S*Math.PI*2;sunDir.set(Math.cos(a),.35*Math.sin(a*.5+1),Math.sin(a)).normalize();UG.uSun.value.copy(sunDir);
      const fN=spawnRef.current?pN:bN;const h=fN.dot(sunDir);const focus=fN.clone().multiplyScalar(PR);sun.position.copy(focus).addScaledVector(sunDir,25);sun.target.position.copy(focus);
      const dayL=Math.max(.1,h*.8+.2);sun.intensity=2.2*dayL;sun.color.copy(starCol).lerp(SKY_DUSK,Math.max(0,1-Math.abs(h)/.2)*.35);hemi.intensity=1.4*Math.max(.12,h*.3+.25);
      sunDisc.position.copy(sunDir).multiplyScalar(160);starMesh.position.copy(sunDisc.position);moon.position.copy(sunDir).multiplyScalar(-70).add(new THREE.Vector3(0,12,0));
@@ -313,7 +313,7 @@ uniform vec3 uPlay[8];
      exMixer?.update(dt);exWalk=0;
      place(travNode,pN,pF);
      // over-the-shoulder (art target 08_explore_daynight): behind and right of you, looking ahead
-     const shS=new THREE.Vector3().crossVectors(pN,pF).normalize();camTarget.copy(pN).multiplyScalar(PR+TRAV_H*.9).addScaledVector(pF,1.6);const want=pN.clone().multiplyScalar(PR+TRAV_H*1.9).addScaledVector(pF,-1.9).addScaledVector(shS,-.55);camPos.lerp(want,Math.min(1,dt*4));camera.position.copy(camPos);camera.up.copy(pN);camera.lookAt(camTarget);}
+     const shS=new THREE.Vector3().crossVectors(pN,pF).normalize();camTarget.copy(pN).multiplyScalar(PR+TRAV_H*.9).addScaledVector(pF,1.6);const want=pN.clone().multiplyScalar(PR+TRAV_H*2.6).addScaledVector(pF,-2.7).addScaledVector(shS,-.55);camPos.lerp(want,Math.min(1,dt*4));camera.position.copy(camPos);camera.up.copy(pN);camera.lookAt(camTarget);}
     else if(watchRef.current){// third-person: watch your beast live in its world (never pinned to the screen)
      const side=new THREE.Vector3().crossVectors(bN,bF).normalize();const sw=Math.sin(t*.15);const want=bN.clone().multiplyScalar(PR+1.5).addScaledVector(bF,-2.6*Math.cos(sw)).addScaledVector(side,2.2*sw);
      camPos.lerp(want,Math.min(1,dt*1.5));camera.position.copy(camPos);camera.up.copy(bN);camTarget.lerp(beastNode.position.clone().addScaledVector(bN,TRAV_H*.6),Math.min(1,dt*3));camera.lookAt(camTarget);}
@@ -332,13 +332,13 @@ uniform vec3 uPlay[8];
  const jm=(e:React.PointerEvent)=>{const j=joy.current;if(!j.active||e.pointerId!==j.id)return;const dx=(e.clientX-j.cx)/50,dy=(e.clientY-j.cy)/50;const m=Math.max(1,Math.hypot(dx,dy));j.x=dx/m;j.y=dy/m;setStick({x:j.x,y:j.y});};
  const ju=()=>{joy.current={...joy.current,x:0,y:0,active:false};setStick(null);};
  const T=hud.traits;
- return <div ref={host} className="lw-root" data-living-world={spawned?'spawned':'orbit'} style={{position:'fixed',inset:0,zIndex:2147483000,background:'#05030f',touchAction:'none',color:'#efeaff',font:'13px/1.35 system-ui,sans-serif'}}>
+ return <div ref={host} className="lw-root" data-living-world={spawned?'spawned':'orbit'} data-lw-embedded={embedded?'':undefined} style={{pointerEvents:'auto',position:embedded?'absolute':'fixed',inset:0,zIndex:embedded?1:2147483000,borderRadius:embedded?18:0,overflow:'hidden',background:'#05030f',touchAction:embedded&&!spawned?'pan-y':'none',fontSize:embedded?11:13,color:'#efeaff',font:'13px/1.35 system-ui,sans-serif'}}>
   <canvas ref={canvasRef} style={{position:'absolute',inset:0,width:'100%',height:'100%',display:'block'}}/>
   <div style={{position:'absolute',top:'calc(env(safe-area-inset-top) + 10px)',left:10,right:10,display:'flex',flexWrap:'wrap',gap:6,pointerEvents:'none'}}>
    <span style={pill('#2b6cb0')} data-lw-spark>{LW_LABELS.spark}</span><span style={pill('#9b2c2c')} data-lw-growth>{LW_LABELS.growth}</span><span style={pill('#553c9a')} data-lw-model>{LW_LABELS.model}</span><span style={pill('#276749')} data-lw-biome ref={hudBiome}>Biome</span>
   </div>
   <div style={{position:'absolute',left:10,right:10,bottom:'calc(env(safe-area-inset-bottom) + 10px)',display:'flex',justifyContent:'space-between',alignItems:'flex-end',gap:8,pointerEvents:'none'}}>
-   <div style={{background:'rgba(10,6,30,.72)',borderRadius:12,padding:'8px 10px',maxWidth:'62%',pointerEvents:'auto'}}>
+   <div style={{background:'rgba(10,6,30,.72)',borderRadius:12,padding:'8px 10px',maxWidth:'62%',pointerEvents:'auto',display:embedded&&!spawned?'none':undefined}}>
     <b>{beastName||'Your beast'}</b> {genome||(typeof window!=='undefined'&&(window as any).__beastGenome)?'':'(no saved beast yet — hatch one in the Cage)'}<br/>
     tick {hud.tick} · sim E {hud.simE??'—'} · life {hud.life} · storms {hud.storms} · grass {Math.round(hud.cover*100)}%<br/>
     {hud.learned?<>things awake {hud.awake??0} · learned {Object.entries(hud.learned).map(([k,v])=>k+' '+v).join(' · ')||'—'}<br/></>:null}
@@ -347,6 +347,7 @@ uniform vec3 uPlay[8];
    </div>
    <div style={{display:'flex',flexDirection:'column',gap:6,pointerEvents:'auto'}}>
     {!spawned?<><button type="button" data-lw-spawn onClick={()=>setSpawned(true)} style={btn('#6b46c1')}>✦ Spawn in</button><button type="button" data-lw-watch onClick={()=>setWatch(w=>!w)} style={btn('#2c5282')}>{watch?'🌍 Orbit view':'👁 Watch your beast'}</button></>:<button type="button" data-lw-exit onClick={()=>setSpawned(false)} style={btn('#444')}>Exit to orbit</button>}
+    {embedded&&onExpand?<button type="button" data-lw-expand onClick={onExpand} style={btn('#553c9a')}>⤢ Full screen</button>:null}
     {onClose?<button type="button" data-lw-close onClick={onClose} style={btn('#222')}>Close world</button>:null}
    </div>
   </div>

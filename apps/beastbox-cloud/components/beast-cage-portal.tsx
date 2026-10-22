@@ -6,6 +6,7 @@ import SparkBeastCompanion from './spark-beast-companion';
 import dynamic from 'next/dynamic';
 import SparkBeastArena from './spark-beast-arena';
 // Code-split the heavy WebGL/animation scenes so the Beast Cage paints fast on phones.
+const LivingWorld=dynamic(()=>import('./living-world'),{ssr:false});
 const CagePocketDimension=dynamic(()=>import('./cage-pocket-dimension'),{ssr:false,loading:()=><div style={{minHeight:320}} aria-busy="true"/>});
 import GenesisForge from './genesis-forge';
 import BeastCareDeck from './beast-care-deck';
@@ -59,12 +60,12 @@ export default function BeastCagePortal(){
  // The model/persona and the companion starter profile do not override the verified saved QBEAST.
  const savedVisual=sameSpark?creatureVisual({id:session.beast.qbeast.profile.id,genome:session.beast.genome}):null;
  // Default view: the ZEREF rig exploring the dimensional pocket. The original pixel sprite stays one tap away.
- const [view,setView]=useState<'pocket'|'classic'>('pocket');
+ const [view,setView]=useState<'pocket'|'classic'|'world'>('pocket');const [worldFull,setWorldFull]=useState(false);
  const [cageMode,setCageMode]=useState<'friendly'|'advanced'>('friendly');
  useEffect(()=>{try{if(window.localStorage.getItem('beastbox-cage-mode-v1')==='advanced'||/^#(menagerie)/.test(window.location.hash))setCageMode('advanced');}catch{}},[]);
  const chooseMode=(next:'friendly'|'advanced')=>{setCageMode(next);try{window.localStorage.setItem('beastbox-cage-mode-v1',next);}catch{}};
- useEffect(()=>{try{if(window.localStorage.getItem(VIEW_STORAGE)==='classic')setView('classic');}catch{}},[]);
- const chooseView=(next:'pocket'|'classic')=>{setView(next);try{window.localStorage.setItem(VIEW_STORAGE,next);}catch{}};
+ useEffect(()=>{try{const st=window.localStorage.getItem(VIEW_STORAGE);if(st==='classic')setView('classic');else if(st!=='pocket')setView('world');}catch{}},[]);// Oct 22: the shared living world is the default; pocket + classic stay one tap away
+ const chooseView=(next:'pocket'|'classic'|'world')=>{setView(next);try{window.localStorage.setItem(VIEW_STORAGE,next);}catch{}};
  const pocketName=creatureName||'Zeref';
  const cosmosProfile=useMemo<CosmosProfile|null>(()=>{
   if(sameSpark)return publicProfileFromBeast(session.beast,{name:creatureName});
@@ -128,9 +129,12 @@ export default function BeastCagePortal(){
      state={sameSpark?visualStateFromBeast(session.beast):ambient==='rest'?'sleeping':ambient==='orbit'?'celebrating':ambient==='perch'?'observing':'idle'}
      label="Active Spark Beast companion" preferSavedBeast={sameSpark}
      rig={view==='pocket'&&(!savedVisual||savedVisual.renderer==='moonwraith-rig')}/>
+    {view==='world'&&sameSpark&&!worldFull?<LivingWorld embedded genome={session.beast.genome||null} beastKey={session.beast.qbeast.profile.id} beastName={session.beast.displayName||null} onExpand={()=>setWorldFull(true)}/>:null}
+    {worldFull&&sameSpark?<LivingWorld genome={session.beast.genome||null} beastKey={session.beast.qbeast.profile.id} beastName={session.beast.displayName||null} onClose={()=>setWorldFull(false)}/>:null}
     <span className="cage-habitat-caption">✧ YOUR OWN POCKET UNIVERSE</span>
    </div>
    <div className="cage-view-toggle" role="group" aria-label="Habitat view">
+    {sameSpark?<button type="button" aria-pressed={view==='world'} data-cage-view-world onClick={()=>chooseView('world')}>🌍 Living world</button>:null}
     <button type="button" aria-pressed={view==='pocket'} onClick={()=>chooseView('pocket')}>✦ Pocket explorer</button>
     <button type="button" aria-pressed={view==='classic'} onClick={()=>chooseView('classic')}>Classic pixel sprite</button>
     <button type="button" onClick={()=>window.dispatchEvent(new Event(POCKET_3D_CAMERA_RESET))} aria-label="Reset 3D pocket camera">Reset 3D camera</button>
