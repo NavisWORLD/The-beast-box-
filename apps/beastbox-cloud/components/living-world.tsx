@@ -37,13 +37,16 @@ const TRAV_H=.5;      // traveler height
 type Traits={curiosity:number;sociality:number;calm:number;joy:number;experiences:number};
 export default function LivingWorld({genome,beastKey,beastName,onClose}:{genome?:PlushGenome|null;beastKey?:string|null;beastName?:string|null;onClose?:()=>void}){
  const host=useRef<HTMLDivElement>(null);const hudBiome=useRef<HTMLSpanElement>(null);const canvasRef=useRef<HTMLCanvasElement>(null);
- const [spawned,setSpawned]=useState(false);const spawnRef=useRef(false);
+ const [spawned,setSpawned]=useState(()=>{try{return sessionStorage.getItem('lw:spawned')==='1';}catch{return false;}});const [watch,setWatch]=useState(false);const watchRef=useRef(false);watchRef.current=watch;const spawnRef=useRef(false);
  const [hud,setHud]=useState<{tick:number;simE:number|null;life:number;storms:number;cover:number;traits:Traits|null;blades:number;fps:number;learned?:Record<string,number>;awake?:number}>({tick:0,simE:null,life:0,storms:0,cover:0,traits:null,blades:0,fps:0});
  const [err,setErr]=useState<string|null>(null);const [line,setLine]=useState<string|null>(null);const lineRef=useRef(setLine);lineRef.current=setLine;
  useEffect(()=>{if(!line)return;const id=setTimeout(()=>setLine(null),4200);return()=>clearTimeout(id);},[line]);
  const joy=useRef({x:0,y:0,active:false,id:-1,cx:0,cy:0});const keys=useRef(new Set<string>());
  const [stick,setStick]=useState<{x:number;y:number}|null>(null);
+ useEffect(()=>{try{sessionStorage.setItem('lw:spawned',spawned?'1':'0');}catch{}},[spawned]);
  useEffect(()=>{spawnRef.current=spawned;(window as any).__lwSpawned=spawned;},[spawned]);
+ // rebuild only when the beast itself changes, not on every session poll (that rebuild was the ~10s 'respawn')
+ const gKey=genome?JSON.stringify(genome):'';
  useEffect(()=>{
   let disposed=false,raf=0;const cleanup:(()=>void)[]=[];
   (async()=>{
@@ -60,10 +63,17 @@ export default function LivingWorld({genome,beastKey,beastName,onClose}:{genome?
    const scene=new THREE.Scene();scene.background=new THREE.Color(0x05030f);
    const camera=new THREE.PerspectiveCamera(55,1,.05,400);
    const L=new THREE.TextureLoader();const tex=(f:string,rep=false)=>{const t=L.load(ART+f);t.colorSpace=THREE.SRGBColorSpace;if(rep){t.wrapS=t.wrapT=THREE.RepeatWrapping;}return t;};
-   scene.add(new THREE.HemisphereLight(0xb9a8ff,0x223322,1.1));const sun=new THREE.DirectionalLight(0xfff1dd,1.6);sun.position.set(20,14,10);scene.add(sun);
+   const hemi=new THREE.HemisphereLight(0xb9a8ff,0x223322,1.1);scene.add(hemi);const sun=new THREE.DirectionalLight(0xfff1dd,1.6);sun.position.set(20,14,10);scene.add(sun);scene.add(sun.target);
+   // a real sun: day/night from the wall clock (approach from Genesis X env sim: light = max(.1, h*.8+.2), ambient = max(.1, h*.3+.1))
+   renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;sun.castShadow=true;sun.shadow.mapSize.set(phone?512:1024,phone?512:1024);
+   {const c=sun.shadow.camera as any;c.left=c.bottom=-6;c.right=c.top=6;c.near=1;c.far=60;c.updateProjectionMatrix();}sun.shadow.bias=-.002;
+   const DAY_S=240;const sunDir=new THREE.Vector3(1,.3,.2).normalize();const SKY_DAY=new THREE.Color(0x86bfff),SKY_DUSK=new THREE.Color(0xff9a5a),SKY_NIGHT=new THREE.Color(0x05030f);
+   const sunDisc=new THREE.Sprite(new THREE.SpriteMaterial({map:tex('window_glow.png'),color:0xfff0c0,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,fog:false}));sunDisc.scale.setScalar(40);scene.add(sunDisc);
+   const moon=new THREE.Mesh(new THREE.SphereGeometry(2.2,24,16),new THREE.MeshStandardMaterial({color:0xd8dcef,emissive:0x40445a,roughness:1}));scene.add(moon);
+   let starMat:any=null;
    // ---- stars + 12D lattice in the sky
    {const r=lwStream(u.seed+':sky');const n=phone?900:1800,p=new Float32Array(n*3);for(let i=0;i<n;i++){const v=unitFrom(r);const d=120+r()*80;p.set([v[0]!*d,v[1]!*d,v[2]!*d],i*3);}
-    const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(p,3));scene.add(new THREE.Points(g,new THREE.PointsMaterial({color:0xdde6ff,size:.6,sizeAttenuation:true})));}
+    const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(p,3));starMat=new THREE.PointsMaterial({color:0xdde6ff,size:.6,sizeAttenuation:true,transparent:true});scene.add(new THREE.Points(g,starMat));}
    const lat=lattice12D(u.seed,phone?160:256);const lg=new THREE.BufferGeometry();lg.setAttribute('position',new THREE.Float32BufferAttribute(lat.verts.map(v=>v*7),3));lg.setIndex(lat.edges);
    const latObj=new THREE.LineSegments(lg,new THREE.LineBasicMaterial({color:0x8f7bff,transparent:true,opacity:.28,depthWrite:false}));latObj.position.set(0,0,0);
    const latPivot=new THREE.Group();latPivot.add(latObj);latObj.position.set(0,26,-30);scene.add(latPivot);
@@ -84,11 +94,12 @@ export default function LivingWorld({genome,beastKey,beastName,onClose}:{genome?
       vec3 gt=b==5||b==4?vec3(.8,.92,1.0):b==7?vec3(.55,.55,.55):b==3?vec3(.85,.9,.5):b==9?vec3(.75,.6,.9):vec3(1.0);
       if(b!=0&&b!=10)col=mix(col,col*1.1+grassT*gt*.4,g*(b==1||b==2||b==6?1.0:.6));
       if(uUseMap>.5){vec2 eq=vec2(atan(n.z,n.x)/6.2832+.5,asin(clamp(n.y,-1.0,1.0))/3.1416+.5);col=texture2D(uMap,eq).rgb*det*(1.0+.12*g);}
-      vec3 v=normalize(cameraPosition-n*${PR.toFixed(1)});float dif=max(0.0,dot(n,uSun));float l=.62+.9*dif;col*=l;
+      vec3 v=normalize(cameraPosition-n*${PR.toFixed(1)});float dif=max(0.0,dot(n,uSun));float l=.36+1.15*dif;col*=l;
       if(b==7)col+=vec3(.6,.2,.05)*pow(.5+.5*sin(bH(n)*50.0),8.0);if(b==10)col+=vec3(.2,.25,.4)*(1.0-dif);
       if(b==0)col+=vec3(.9,.95,1.0)*pow(max(0.0,dot(reflect(-uSun,n),v)),40.0)*.6;
       float rim=pow(1.0-max(0.0,dot(n,v)),3.0);gl_FragColor=vec4(col+vec3(.35,.55,1.0)*rim*.45,1.0);}`}));
    scene.add(ground);
+   {const sc=new THREE.Mesh(new THREE.SphereGeometry(PR+.012,phone?64:120,phone?40:80),new THREE.ShadowMaterial({opacity:.32}));sc.receiveShadow=true;scene.add(sc);}
    // Cosmo's painted maps swap in when present (2:1 equirect colour map); otherwise the procedural-from-seed biomes stay.
    const mapLoad=(name:string,uni:any)=>new THREE.TextureLoader().load('/universe/livingworld/maps/'+name+'_color.png',t=>{t.colorSpace=THREE.SRGBColorSpace;uni.uMap.value=t;uni.uUseMap.value=1;},undefined,()=>{});
    mapLoad('home',UG);
@@ -167,6 +178,12 @@ uniform vec3 uPlay[8];
    const gen=genome||((window as any).__beastGenome as PlushGenome|null);
    if(gen){try{plush=buildPlush(THREE,gen,{low:phone});const bb=new THREE.Box3().setFromObject(plush.root);const h=Math.max(.01,bb.max.y-bb.min.y);const k=TRAV_H*1.5/h;const holder=new THREE.Group();holder.scale.setScalar(k);holder.position.y=-bb.min.y*k;holder.add(plush.root);beastNode.add(holder);(window as any).__lwBeast={h,k};}catch(e){plush=null;(window as any).__lwBeastErr=String(e);}}
    beastNode.add(mkShadow(TRAV_H*1.4));
+   let bodyDrive:((dt:number,l:any,mp:any,look:any)=>void)|null=plush?(dt,l,mp,look)=>plush!.drive(dt,l,mp,look):null;let glbDispose=()=>{};
+   if(gen)import('./creature-glb-beast').then(({loadBeastGlb})=>loadBeastGlb(THREE,gen,{tier:phone?'low':'med'})).then(gb=>{if(!gb||disposed){gb?.dispose();return;}
+    const bb=new THREE.Box3().setFromObject(gb.root);const h=Math.max(.01,bb.max.y-bb.min.y);const k=TRAV_H*1.5/h;const holder=new THREE.Group();holder.scale.setScalar(k);holder.position.y=-bb.min.y*k;holder.add(gb.root);
+    gb.root.traverse((o:any)=>{if(o.isMesh)o.castShadow=true;});if(plush)plush.root.visible=false;beastNode.add(holder);bodyDrive=(dt,l,mp,look)=>gb.drive(dt,l,mp,look);glbDispose=()=>gb.dispose();(window as any).__lwBeastGlb={plan:gb.plan,h,k};}).catch(e=>{(window as any).__lwBeastGlbErr=String(e);});
+   cleanup.push(()=>glbDispose());
+   plush?.root.traverse((o:any)=>{if(o.isMesh)o.castShadow=true;});
    const bN=gpts[0].clone(),bF=new THREE.Vector3(...unitFrom(lwStream(u.seed+':bf'))).addScaledVector(gpts[0],-1).normalize();bF.addScaledVector(bN,-bF.dot(bN)).normalize();
    const brain={speed:0,mode:'walk',sleep:0,lookCam:0,bob:0,heading:0,startle:0};
    const glow=new THREE.Sprite(new THREE.SpriteMaterial({map:tex('window_glow.png'),transparent:true,blending:THREE.AdditiveBlending,depthWrite:false}));glow.scale.setScalar(TRAV_H*1.5*.6);scene.add(glow);let glowBoost=0;
@@ -175,13 +192,27 @@ uniform vec3 uPlay[8];
    const tWalk=sheet(F.traveler_walk.file,F.traveler_walk.cols,8),tIdle=sheet(F.traveler_idle.file,F.traveler_idle.cols,1),tSpawn=sheet(F.traveler_spawn.file,F.traveler_spawn.cols,1);
    const trav=new THREE.Sprite(new THREE.SpriteMaterial({map:tIdle,transparent:true,depthWrite:false}));trav.scale.set(TRAV_H*1.15,TRAV_H*1.15,1);trav.center.set(F.anchor_px[0]/F.frame_size[0],1-F.anchor_px[1]/F.frame_size[1]);
    const travNode=new THREE.Group();travNode.add(trav);travNode.add(mkShadow(TRAV_H*.8));travNode.visible=false;scene.add(travNode);
+   const explorer=new THREE.Group();travNode.add(explorer);let exMixer:any=null,exActs:Record<string,any>={},exCur='';const legs:any[]=[];
+   {const M=(c:number,em=0)=>new THREE.MeshStandardMaterial({color:c,emissive:c,emissiveIntensity:em,roughness:.75});const H=TRAV_H;
+    const add=(geo:any,mat:any,y:number,x=0,z=0)=>{const m=new THREE.Mesh(geo,mat);m.position.set(x,y,z);m.castShadow=true;explorer.add(m);return m;};
+    for(const sx of [-1,1]){const lg=new THREE.Group();lg.position.set(sx*H*.08,H*.34,0);const m=new THREE.Mesh(new THREE.CylinderGeometry(H*.045,H*.04,H*.34,6),M(0x2a2238));m.position.y=-H*.17;m.castShadow=true;lg.add(m);explorer.add(lg);legs.push(lg);}
+    add(new THREE.ConeGeometry(H*.2,H*.5,8),M(0x4b2f86),H*.58);add(new THREE.SphereGeometry(H*.13,12,10),M(0x1c1630),H*.86);
+    add(new THREE.ConeGeometry(H*.15,H*.22,8),M(0x5b3aa0),H*1.02);for(const sx of [-1,1])add(new THREE.SphereGeometry(H*.025,6,6),M(0xffd75a,1.5),H*.87,sx*H*.05,H*.11);
+    const lan=add(new THREE.OctahedronGeometry(H*.05,0),M(0x7ff3ff,1.8),H*.5,H*.22,H*.05);lan.castShadow=false;}
+   fetch('/universe/livingworld/explorer.glb',{method:'HEAD'}).then(r=>{if(!r.ok)return;return import('three/examples/jsm/loaders/GLTFLoader.js').then(({GLTFLoader})=>new GLTFLoader().loadAsync('/universe/livingworld/explorer.glb')).then((g:any)=>{
+    if(disposed)return;const root=g.scene;const bb=new THREE.Box3().setFromObject(root);const k=TRAV_H/Math.max(.01,bb.max.y-bb.min.y);root.scale.setScalar(k);root.position.y=-bb.min.y*k;root.traverse((o:any)=>{if(o.isMesh)o.castShadow=true;});
+    explorer.clear();explorer.add(root);legs.length=0;exMixer=new THREE.AnimationMixer(root);for(const c of g.animations||[]){const nm=/walk/i.test(c.name)?'walk':/look/i.test(c.name)?'look':/idle/i.test(c.name)?'idle':c.name;exActs[nm]=exMixer.clipAction(c);}(window as any).__lwExplorerGlb=Object.keys(exActs);});}).catch(()=>{});
+   const exPlay=(nm:string)=>{if(!exMixer||exCur===nm||!exActs[nm])return;exActs[exCur]?.fadeOut(.25);exActs[nm].reset().fadeIn(.25).play();exCur=nm;};
    const pN=new THREE.Vector3(),pF=new THREE.Vector3();let spawnT=-1,greetT=-1,wasSpawned=false;
    const setFrame=(t:import('three').Texture,cols:number,rows:number,col:number,row:number)=>{t.offset.set(col/cols,1-(row+1)/rows);};
    const ROWS=F.traveler_walk.rows as string[];const RG=frames.beast_run_to_greet;
    // ---- growth: SIMULATED ticks client-side
    let tickAcc=0;const TICK_S=2;
    const applyTick=()=>{if(u.tick>=4000)return;const prev=u;u=grow(u,1);const ev=u.history[u.history.length-1]?.events||[];let exp=ev[0]?.kind||null;if(!exp&&u.storms.length>prev.storms.length)exp='storm';
-    traits=driftTraits(traits,u,bKey,exp||'day');glowBoost=1;if(!spawnRef.current&&u.tick%15===0)lineRef.current(WINDOW_LINES[(u.tick/15)%WINDOW_LINES.length]);UG.uSpread.value=spreadAngle(u);
+    if(exp==='storm'){storming=1;puff=1;say(beastNm+' puffs up at the storm!',4);}
+    // growth spreads faster where there is light and water (sunlit home, wet biome) — still SIMULATED
+    {const hl=Math.max(0,gpts[0].dot(sunDir));const wet=({ocean:1,beach:.9,papersea:1,mushroom:1,plains:.8,heartwood:.9,pine:.7,tundra:.5,glacier:.3,ember:.2,peaks:.3} as any)[biomeOf(gpts[0])]??.6;growLW=Math.min(1.2,growLW+.004*hl*wet);try{localStorage.setItem('lw:growLW:'+bKey,String(growLW));}catch{}}
+    traits=driftTraits(traits,u,bKey,exp||'day');glowBoost=1;if(!spawnRef.current&&u.tick%15===0)lineRef.current(WINDOW_LINES[(u.tick/15)%WINDOW_LINES.length]);UG.uSpread.value=Math.min(Math.PI,spreadAngle(u)+growLW);
     try{localStorage.setItem('lw:universe',JSON.stringify(u));localStorage.setItem('lw:traits:'+bKey,JSON.stringify(traits));}catch{}};
    // ---- input
    const kd=(e:KeyboardEvent)=>{keys.current.add(e.key.toLowerCase());},ku=(e:KeyboardEvent)=>{keys.current.delete(e.key.toLowerCase());};
@@ -195,11 +226,31 @@ uniform vec3 uPlay[8];
    // perf: measure fps for 3s windows and shrink the blade count if the phone can't hold ~50fps
    // test/debug hook: walk the traveler to the first seeded spot of a biome (used for screenshots)
    (window as any).__lwGoBiome=(b:string)=>{const r=lwS(u.seed+':goto');for(let i=0;i<4000;i++){const v=unitFrom(r) as number[];if(biomeAt(BP,v)===b){pN.set(v[0],v[1],v[2]);pF.set(1,0,0).addScaledVector(pN,-pN.x).normalize();return true;}}return false;};
+   // physics + events state: gravity hop on the sphere, wind, storm puff, sunrise, meetings; greeting once per visit
+   let exWalk=0,exBack=false;
+   let bY=0,bVY=0,puff=0,storming=0,windS=.3,greeted=false,lastSunH=0,evCool=0;const G_SURF=4.2;const windV=new THREE.Vector3(1,0,.4).normalize();const metCool:Record<string,number>={};
+   const beastNm=beastName||'Your beast';const say=(s:string,cd=6)=>{if(evCool>0)return;evCool=cd;lineRef.current(s);};
+   const hop=(v:number)=>{if(bY<=0.001)bVY=v;};
+   let growLW=(()=>{try{return +(localStorage.getItem('lw:growLW:'+bKey)||0)||0;}catch{return 0;}})();
+   const TKEY='lw:trav:'+bKey;let travSaveT=0;
    let biomeT=0,curBiome='plains';const bFeel=()=>(BIOME_FEEL as any)[curBiome]?.speed??1;
    let fpsT=0,fpsN=0,fps=0,last=performance.now(),t=0,hudT=0;const camTarget=new THREE.Vector3(),camPos=new THREE.Vector3(0,6,22);
    const frame=()=>{raf=requestAnimationFrame(frame);const now=performance.now();const dt=Math.min(.05,(now-last)/1000);last=now;t+=dt;UG.uT.value=t;
     fpsT+=dt;fpsN++;if(fpsT>=3){fps=fpsN/fpsT;fpsT=0;fpsN=0;if(fps<48&&bladeCap>2000){bladeCap=Math.floor(bladeCap*.75);bladeGeo.instanceCount=bladeCap;}(window as any).__lwPerf={fps:+fps.toFixed(1),blades:bladeCap};}
     tickAcc+=dt;if(tickAcc>=TICK_S){tickAcc=0;applyTick();}
+    {const a=((Date.now()/1000)%DAY_S)/DAY_S*Math.PI*2;sunDir.set(Math.cos(a),.35*Math.sin(a*.5+1),Math.sin(a)).normalize();UG.uSun.value.copy(sunDir);
+     const fN=spawnRef.current?pN:bN;const h=fN.dot(sunDir);const focus=fN.clone().multiplyScalar(PR);sun.position.copy(focus).addScaledVector(sunDir,25);sun.target.position.copy(focus);
+     const dayL=Math.max(.1,h*.8+.2);sun.intensity=2.2*dayL;sun.color.setRGB(1,.75+.25*Math.max(0,h),.55+.45*Math.max(0,h));hemi.intensity=1.4*Math.max(.12,h*.3+.25);
+     sunDisc.position.copy(sunDir).multiplyScalar(160);moon.position.copy(sunDir).multiplyScalar(-70).add(new THREE.Vector3(0,12,0));
+     const ground3=spawnRef.current||watchRef.current;const day=ground3?THREE.MathUtils.smoothstep(h,-.12,.35):0;const dusk=ground3?Math.max(0,1-Math.abs(h)/.18)*.7:0;
+     (scene.background as any).copy(SKY_NIGHT).lerp(SKY_DAY,day).lerp(SKY_DUSK,dusk*(1-day*.5));if(starMat)starMat.opacity=1-day*.95;
+     // wind: heated by the sun, gusts with storms; drives grass sway and fur
+     windS=.25+.35*Math.max(0,h)+storming*.6;windV.applyAxisAngle(fN,dt*.03);storming=Math.max(0,storming-dt*.15);bladeMat.uniforms.uGust.value=W.gust_amp*(.6+windS*1.4);
+     // sunrise at the beast: wonder
+     const hb=bN.dot(sunDir);if(lastSunH<0&&hb>=0){say(beastNm+' stops to watch the sunrise, eyes wide.',8);hop(1.6);traits=driftTraits(traits,u,bKey,'day');}else if(lastSunH>0&&hb<=0){say('Night falls. '+beastNm+' curls its tail and looks at the stars.',8);traits=driftTraits(traits,u,bKey,'rest');}lastSunH=hb;
+     for(const r of residents as any[]){const lit=.45+.55*THREE.MathUtils.smoothstep(r.n.dot(sunDir),-.15,.3);(r.node.children[0] as any).material.color.setScalar(lit);}}
+    // gravity on the sphere: hops fall back under surface gravity
+    evCool=Math.max(0,evCool-dt);puff=Math.max(0,puff-dt*.6);bVY-=G_SURF*dt;bY=Math.max(0,bY+bVY*dt);if(bY<=0&&bVY<0)bVY=0;
     // creatures learn from each new biome they enter (beast: persisted with its learned things)
     biomeT-=dt;if(biomeT<=0){biomeT=.5;const bb=biomeOf(bN);curBiome=bb;if(!learned['biome:'+bb]){learned['biome:'+bb]=1;const ls=(BIOME_FEEL as any)[bb]?.lesson;if(ls)traits=driftTraits(traits,u,bKey,ls);try{localStorage.setItem('lw:learned:'+bKey,JSON.stringify(learned));}catch{}lineRef.current((beastName||'Your beast')+' entered the '+(BIOME_NAMES as any)[bb]+' for the first time, and learned from it.');}
      if(hudBiome.current)hudBiome.current.textContent='Biome: '+(BIOME_NAMES as any)[spawnRef.current?biomeOf(pN):bb];(window as any).__lwBiome={beast:bb,you:biomeOf(pN),home:biomeOf(gpts[0]),bN:bN.toArray(),g0:gpts[0].toArray()};}
@@ -215,37 +266,50 @@ uniform vec3 uPlay[8];
      const nt=nearestThing(r.n);if(nt&&nt.d<.35&&r.pause<=0){if(touch(nt.t,r.name))r.pause=1.5;}
      else if(nt&&nt.d<4&&Math.sin(t*.2+r.wob)>0)steerTo(r.n,r.f,nt.t.n,dt*1.5);else turn(r.n,r.f,Math.sin(t*.4+r.wob)*dt*.8);
      for(const o of residents as any[])if(o!==r&&ang(r.n,o.n)<.5){steerTo(r.n,r.f,r.n.clone().multiplyScalar(2).sub(o.n),dt*2);if(socialCool<=0&&!spawnRef.current){socialCool=25;lineRef.current(r.name+' and '+o.name+' bumped noses.');}}
-     if(ang(r.n,bN)<.6){steerTo(r.n,r.f,r.n.clone().multiplyScalar(2).sub(bN),dt*2);}
+     if(ang(r.n,bN)<.6){steerTo(r.n,r.f,r.n.clone().multiplyScalar(2).sub(bN),dt*2);if(!(metCool[r.name]>t)){metCool[r.name]=t+40;say(beastNm+' met '+r.name+' and sniffed hello.',5);hop(1.2);traits=driftTraits(traits,u,bKey,'greet');}}
      if(r.pause<=0){const rb=biomeOf(r.n);walkOn(r.n,r.f,r.spd*dt*((BIOME_FEEL as any)[rb]?.speed??1));if(rb==='ocean')steerTo(r.n,r.f,gpts[0],dt*2);}place(r.node,r.n,r.f);}
     // beast: wander by traits; when you're spawned in, run to greet (timing from JSON)
-    const sp=spawnRef.current;if(sp&&!wasSpawned){pN.copy(bN).applyAxisAngle(bF,.0).addScaledVector(bF,-3/PR).normalize();pF.copy(bF);pF.addScaledVector(pN,-pF.dot(pN)).normalize();spawnT=0;greetT=-1;travNode.visible=true;}
-    if(sp&&!wasSpawned)lineRef.current('A new traveler on the grass.');
+    const sp=spawnRef.current;let restored=false;if(sp&&!wasSpawned){try{const st=JSON.parse(localStorage.getItem(TKEY)||'null');if(st&&st.n&&st.f){pN.fromArray(st.n).normalize();pF.fromArray(st.f);pF.addScaledVector(pN,-pF.dot(pN)).normalize();restored=pF.lengthSq()>.5;}}catch{}}
+    if(sp&&!wasSpawned&&!restored){pN.copy(bN).applyAxisAngle(bF,.0).addScaledVector(bF,-3/PR).normalize();pF.copy(bF);pF.addScaledVector(pN,-pF.dot(pN)).normalize();spawnT=0;greetT=-1;travNode.visible=true;}
+    if(sp&&!wasSpawned&&restored){travNode.visible=true;spawnT=-1;lineRef.current('Back where you left off.');}
+    else if(sp&&!wasSpawned)lineRef.current('A new traveler on the grass.');
+    if(sp){travSaveT-=dt;if(travSaveT<=0){travSaveT=1;try{localStorage.setItem(TKEY,JSON.stringify({n:pN.toArray(),f:pF.toArray()}));}catch{}}}
     if(!sp&&wasSpawned){travNode.visible=false;lineRef.current('Grass will keep growing while you’re gone.');}wasSpawned=sp;
     let bSpeed=0;
     if(sp&&spawnT>=0){bSpeed=0;}// your beast spots you and freezes while you arrive
     else if(sp){const side=new THREE.Vector3().crossVectors(pN,pF).normalize();const goal=pN.clone().addScaledVector(pF,.9/PR).addScaledVector(side,.5/PR).normalize();const toP=goal.clone().sub(bN);const dist=Math.acos(Math.min(1,bN.dot(goal)))*PR+1.5*TRAV_H-.05;const dir=toP.addScaledVector(bN,-toP.dot(bN));
-     if(dist>1.5*TRAV_H){if(dir.lengthSq()>1e-8){bF.copy(dir.normalize());}const v=1.6*Math.max(.7,bFeel());walkOn(bN,bF,v*dt);bSpeed=1;greetT=-1;}
-     else if(greetT<0){greetT=0;lineRef.current('YOU’RE HERE. Rawr! Come see what I built.');traits=driftTraits(traits,u,bKey,'greet');brain.mode='glance';}
+     if((!greeted||dist>6)&&dist>1.5*TRAV_H){if(dir.lengthSq()>1e-8){bF.copy(dir.normalize());}const v=1.6*Math.max(.7,bFeel());walkOn(bN,bF,v*dt);bSpeed=1;if(!greeted)greetT=-1;}
+     else if(!greeted){greeted=true;greetT=0;lineRef.current('YOU’RE HERE. Rawr! Come see what I built.');traits=driftTraits(traits,u,bKey,'greet');brain.mode='glance';hop(1.4);}
+     else if(greetT<0||greetT>2){bSpeed=wander();}
      if(greetT>=0)greetT+=dt;}
-    else{const nt=nearestThing(bN);if(nt&&nt.d<.4){if(touch(nt.t,'beast')){const k=nt.t.kind;learned[k]=(learned[k]||0)+1;traits=driftTraits(traits,u,bKey,(THING_LESSON as any)[k]||'day');try{localStorage.setItem('lw:learned:'+bKey,JSON.stringify(learned));}catch{}}}
-     if(nt&&nt.d<5*(.3+traits.curiosity))steerTo(bN,bF,nt.t.n,dt*1.2);const v=(.2+.35*traits.curiosity)*bFeel();walkOn(bN,bF,v*dt);if(curBiome==='ocean')steerTo(bN,bF,gpts[0],dt*3);bSpeed=.35;}
+    else{bSpeed=wander();}
+    function wander(){const nt=nearestThing(bN);if(nt&&nt.d<.4){if(touch(nt.t,'beast')){const k=nt.t.kind;learned[k]=(learned[k]||0)+1;traits=driftTraits(traits,u,bKey,(THING_LESSON as any)[k]||'day');try{localStorage.setItem('lw:learned:'+bKey,JSON.stringify(learned));}catch{}}}
+     if(nt&&nt.d<5*(.3+traits.curiosity))steerTo(bN,bF,nt.t.n,dt*1.2);const v=(.2+.35*traits.curiosity)*bFeel();walkOn(bN,bF,v*dt);if(curBiome==='ocean')steerTo(bN,bF,gpts[0],dt*3);return .35;}
     if(sp&&spawnT<0){const nt=nearestThing(pN);if(nt&&nt.d<.5&&touch(nt.t,'you'))lineRef.current('You touched a '+nt.t.kind+'. It answers.');}
     brain.speed+=(bSpeed-brain.speed)*Math.min(1,dt*4);brain.bob+=dt*(4+brain.speed*8);brain.mode=brain.speed>.5?'run':greetT>=0&&greetT<RG.count/RG.fps?'glance':'walk';
     place(beastNode,bN,bF);
-    if(plush){const greetHop=greetT>=0&&greetT<(RG.segments.greet[1]-RG.segments.greet[0]+1)/RG.fps?Math.sin(greetT/((RG.segments.greet[1]-RG.segments.greet[0]+1)/RG.fps)*Math.PI)*.15:0;beastNode.position.addScaledVector(bN,greetHop);
-     plush.drive(dt,brain,{stiffness:.7+traits.calm*.6,damping:1,turbulence:0,wind:{x:.2,z:.1},mood:{joy:traits.joy,fear:1-traits.calm,curiosity:traits.curiosity,calm:traits.calm,mischief:.3}},sp?{x:travNode.position.x,y:travNode.position.y+TRAV_H*.8,z:travNode.position.z}:null);}
+    if(bodyDrive){const greetHop=greetT>=0&&greetT<(RG.segments.greet[1]-RG.segments.greet[0]+1)/RG.fps?Math.sin(greetT/((RG.segments.greet[1]-RG.segments.greet[0]+1)/RG.fps)*Math.PI)*.15:0;beastNode.position.addScaledVector(bN,greetHop);
+     beastNode.position.addScaledVector(bN,bY);beastNode.scale.setScalar(1+puff*.18);
+     bodyDrive(dt,brain,{stiffness:.7+traits.calm*.6,damping:1,turbulence:storming*.4,wind:{x:windV.x*windS,z:windV.z*windS},mood:{joy:traits.joy,fear:1-traits.calm,curiosity:traits.curiosity,calm:traits.calm,mischief:.3}},sp?{x:travNode.position.x,y:travNode.position.y+TRAV_H*.8,z:travNode.position.z}:null);}
     glowBoost=Math.max(0,glowBoost-dt*.8);(glow.material as any).opacity=.35+.35*(.5+.5*Math.sin(t*6.2831*.25))+glowBoost*.3;
     glow.position.copy(beastNode.position).addScaledVector(bN,TRAV_H*1.6).addScaledVector(new THREE.Vector3().crossVectors(bN,bF).normalize(),-TRAV_H*.6);
     // traveler + camera
     if(sp){let ix=joy.current.x,iy=joy.current.y;const K=keys.current;if(K.has('w')||K.has('arrowup'))iy=-1;if(K.has('s')||K.has('arrowdown'))iy=1;if(K.has('a')||K.has('arrowleft'))ix=-1;if(K.has('d')||K.has('arrowright'))ix=1;
-     const mag=Math.min(1,Math.hypot(ix,iy));
-     if(spawnT>=0){spawnT+=dt;const fr=Math.min(F.traveler_spawn.count-1,Math.floor(spawnT*F.traveler_spawn.fps));trav.material.map=tSpawn;setFrame(tSpawn,F.traveler_spawn.cols,1,fr,0);if(spawnT>F.traveler_spawn.count/F.traveler_spawn.fps)spawnT=-1;}
+     const mag=Math.min(1,Math.hypot(ix,iy));exBack=iy>.3;
+     if(spawnT>=0){spawnT+=dt;const fr=Math.min(F.traveler_spawn.count-1,Math.floor(spawnT*F.traveler_spawn.fps));trav.visible=true;explorer.visible=false;trav.material.map=tSpawn;setFrame(tSpawn,F.traveler_spawn.cols,1,fr,0);if(spawnT>F.traveler_spawn.count/F.traveler_spawn.fps)spawnT=-1;}
      else if(mag>.08){turn(pN,pF,-ix*dt*2.2*(iy>.3?-1:1));const fwd=-iy;walkOn(pN,pF,(fwd>=0?1:-1)*Math.max(.25,Math.abs(fwd))*mag*1.8*dt*Math.max(.6,(BIOME_FEEL as any)[biomeOf(pN)]?.speed??1));
       const ang=Math.atan2(ix,-iy);const oct=((Math.round(ang/(Math.PI/4))%8)+8)%8;const ROW8=['N','NE','E','SE','S','SW','W','NW'][oct];const row=ROWS.indexOf(ROW8);
-      trav.material.map=tWalk;setFrame(tWalk,F.traveler_walk.cols,8,Math.floor(t*F.traveler_walk.fps)%F.traveler_walk.cols,row<0?4:row);}
+      trav.material.map=tWalk;setFrame(tWalk,F.traveler_walk.cols,8,Math.floor(t*F.traveler_walk.fps)%F.traveler_walk.cols,row<0?4:row);exWalk=mag;}
      else{trav.material.map=tIdle;setFrame(tIdle,F.traveler_idle.cols,1,Math.floor(t*F.traveler_idle.fps)%F.traveler_idle.cols,0);}
+     if(spawnT<0){trav.visible=false;explorer.visible=true;exPlay(exWalk>.08?'walk':'idle');const sw=Math.sin(t*9)*.6*Math.min(1,exWalk);if(legs.length===2){legs[0].rotation.x=sw;legs[1].rotation.x=-sw;}explorer.position.y=Math.abs(Math.sin(t*9))*.02*Math.min(1,exWalk);
+      // face the way you walk; backwards input turns the body around
+      explorer.rotation.y=exWalk>.08&&exBack?Math.PI:0;}
+     exMixer?.update(dt);exWalk=0;
      place(travNode,pN,pF);
-     camTarget.copy(pN).multiplyScalar(PR+TRAV_H*.7);const want=pN.clone().multiplyScalar(PR+1.9).addScaledVector(pF,-3.2);camPos.lerp(want,Math.min(1,dt*5));camera.position.copy(camPos);camera.up.copy(pN);camera.lookAt(camTarget);}
+     camTarget.copy(pN).multiplyScalar(PR+TRAV_H*.7);const want=pN.clone().multiplyScalar(PR+2.3).addScaledVector(pF,-3.9);camPos.lerp(want,Math.min(1,dt*4));camera.position.copy(camPos);camera.up.copy(pN);camera.lookAt(camTarget);}
+    else if(watchRef.current){// third-person: watch your beast live in its world (never pinned to the screen)
+     const side=new THREE.Vector3().crossVectors(bN,bF).normalize();const sw=Math.sin(t*.15);const want=bN.clone().multiplyScalar(PR+1.5).addScaledVector(bF,-2.6*Math.cos(sw)).addScaledVector(side,2.2*sw);
+     camPos.lerp(want,Math.min(1,dt*1.5));camera.position.copy(camPos);camera.up.copy(bN);camTarget.lerp(beastNode.position.clone().addScaledVector(bN,TRAV_H*.6),Math.min(1,dt*3));camera.lookAt(camTarget);}
     else{const target=bN.clone().multiplyScalar(PR);const d=PR*4.3;const want=bN.clone().multiplyScalar(1.2).add(new THREE.Vector3(Math.cos(oy)*Math.sin(ox),Math.sin(oy),Math.cos(oy)*Math.cos(ox))).normalize().multiplyScalar(d);
      camPos.lerp(want,Math.min(1,dt*3));camera.position.copy(camPos);camera.up.set(0,1,0);camera.lookAt(target.multiplyScalar(.15));}
     renderer.render(scene,camera);
@@ -255,7 +319,7 @@ uniform vec3 uPlay[8];
    cleanup.push(()=>{renderer.dispose();plush?.dispose();scene.traverse((o:any)=>{o.geometry?.dispose?.();o.material?.dispose?.();});});
   })().catch(e=>{if(!disposed)setErr(String(e?.message||e));});
   return()=>{disposed=true;cancelAnimationFrame(raf);cleanup.forEach(f=>{try{f();}catch{}});};
- },[genome,beastKey]);
+ },[gKey,beastKey]);// eslint-disable-line react-hooks/exhaustive-deps
  // touch joystick
  const jd=(e:React.PointerEvent)=>{(e.target as Element).setPointerCapture(e.pointerId);joy.current={x:0,y:0,active:true,id:e.pointerId,cx:e.clientX,cy:e.clientY};setStick({x:0,y:0});};
  const jm=(e:React.PointerEvent)=>{const j=joy.current;if(!j.active||e.pointerId!==j.id)return;const dx=(e.clientX-j.cx)/50,dy=(e.clientY-j.cy)/50;const m=Math.max(1,Math.hypot(dx,dy));j.x=dx/m;j.y=dy/m;setStick({x:j.x,y:j.y});};
@@ -275,7 +339,7 @@ uniform vec3 uPlay[8];
     {err?<div style={{color:'#ffb4b4'}}>Couldn’t load the world: {err}</div>:null}
    </div>
    <div style={{display:'flex',flexDirection:'column',gap:6,pointerEvents:'auto'}}>
-    {!spawned?<button type="button" data-lw-spawn onClick={()=>setSpawned(true)} style={btn('#6b46c1')}>✦ Spawn in</button>:<button type="button" data-lw-exit onClick={()=>setSpawned(false)} style={btn('#444')}>Exit to orbit</button>}
+    {!spawned?<><button type="button" data-lw-spawn onClick={()=>setSpawned(true)} style={btn('#6b46c1')}>✦ Spawn in</button><button type="button" data-lw-watch onClick={()=>setWatch(w=>!w)} style={btn('#2c5282')}>{watch?'🌍 Orbit view':'👁 Watch your beast'}</button></>:<button type="button" data-lw-exit onClick={()=>setSpawned(false)} style={btn('#444')}>Exit to orbit</button>}
     {onClose?<button type="button" data-lw-close onClick={onClose} style={btn('#222')}>Close world</button>:null}
    </div>
   </div>
