@@ -9,8 +9,10 @@ function write(k:string,v:string){try{localStorage.setItem(k,v);}catch{/* option
 
 /** Which creature the guest is talking to: their own companion or Zeref (bb-deada969). Shared across all talk surfaces. */
 export function useTalkTarget(){
- const [target,setTarget]=useState<TalkTarget>('companion');
- useEffect(()=>{const sync=()=>setTarget(read(TARGET_KEY)==='zeref'?'zeref':'companion');sync();window.addEventListener(EVT,sync);window.addEventListener('storage',sync);return()=>{window.removeEventListener(EVT,sync);window.removeEventListener('storage',sync);};},[]);
+ // Default is Zeref (bb-deada969): "Talk to Zeref" must meet Zeref. A guest's own creature is
+ // only addressed after they explicitly pick it (stored as 'companion').
+ const [target,setTarget]=useState<TalkTarget>('zeref');
+ useEffect(()=>{const sync=()=>setTarget(read(TARGET_KEY)==='companion'?'companion':'zeref');sync();window.addEventListener(EVT,sync);window.addEventListener('storage',sync);return()=>{window.removeEventListener(EVT,sync);window.removeEventListener('storage',sync);};},[]);
  const choose=(t:TalkTarget)=>{write(TARGET_KEY,t);setTarget(t);window.dispatchEvent(new Event(EVT));};
  return [target,choose] as const;
 }

@@ -23,6 +23,7 @@ import {useCompanion} from './companion-provider';
 import {generateCreature,type BaseLook,type AmbientAction} from '../lib/creature-profile';
 import BrandCrest from '@/components/brand-crest';
 import ZerefDiaryPanel from './zeref-diary-panel';
+import MetaMusePanel from './meta-muse-panel';
 import {ZEREF_PROFILE} from '../lib/zeref/zeref-mind.mjs';
 import {creatureVisual} from '../public/spark/creature-assets.mjs';
 import {POCKET_3D_CAMERA_RESET} from '../lib/companion/pocket-3d-settings.mjs';
@@ -136,6 +137,7 @@ export default function BeastCagePortal(){
   </section>
   {sameSpark?<CreatureDashboard beast={session.beast} cosmosProfile={cosmosProfile}/>:null}
   <ZerefDiaryPanel journalId={sameSpark?session.beast.qbeast.profile.id:creature?creature.id:ZEREF_PROFILE.id} beastName={pocketName} cosmosProfile={cosmosProfile} showGrow={!sameSpark}/>
+  <details id="meta-muse" data-meta-muse-entry="beast-cage" className="cage-meta-muse"><summary>Pair with Meta Muse</summary><MetaMusePanel/></details>
   {!sameSpark?<GenesisForge value={creature} onChange={next=>{selectProfile(next);setLook(next.baseLook);}}
    onAmbient={setAmbient}/>:<div className="cage-generated-status"><span>{creatureName} · same recorded genome and QBEAST</span><Link href="/sol-game">Play this Beast in LOST COSMOS 🎮</Link></div>}
   {creature?<div className="cage-generated-status" role="status">

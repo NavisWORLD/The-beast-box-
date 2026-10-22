@@ -1,4 +1,5 @@
 'use client';
+import {RAWRPHOS_PUBLIC_PIN} from '../lib/companion/brain.mjs';
 import {useEffect,useState} from 'react';
 import {readJournal,type Journal} from '../lib/zeref/pocket-journal';
 import styles from './zeref-diary-panel.module.css';
@@ -65,7 +66,8 @@ export default function ZerefDiaryPanel({journalId,beastName,cosmosProfile=null,
    <div className={styles.card}>
     <h3>Latest thought</h3>
     {latest?<><blockquote className={styles.thought}>“{latest.thought.text}”</blockquote>
-     <p className={styles.small}>Tick {latest.tick} · {when(latest.at)} · mood {latest.mood}{latest.place?` · ${latest.place}`:''}<br/>Line by: {latest.thought.by==='deterministic-template'?'deterministic template (no model)':latest.thought.by}</p>
+     <p className={styles.small}>Tick {latest.tick} · {when(latest.at)} · mood {latest.mood}{latest.place?` · ${latest.place}`:''}<br/>Line by: {latest.thought.by==='deterministic-template'?'deterministic template (no model)':latest.thought.by}
+     <br/><span data-diary-step-note>Chat pin: RAWRPHØS step {RAWRPHOS_PUBLIC_PIN.step}. {(()=>{const m=/step-(\d+)/.exec(latest.thought.by||'');return m?(Number(m[1])===RAWRPHOS_PUBLIC_PIN.step?'This diary line came from the same step as chat.':`This diary line came from step ${m[1]}, written before the chat pin moved to ${RAWRPHOS_PUBLIC_PIN.step}; past entries are hash-chained and never rewritten.`):'This line used no model, because the verified step-'+RAWRPHOS_PUBLIC_PIN.step+' host did not answer the diary loop; the loop only ever accepts lines from the current chat pin.';})()}</span></p>
      <p className={styles.badges}><span className={styles.badgeBirth} data-birth-spark="ibm-recorded">✦ birth spark: IBM recorded</span><GrowthBadge g={latest.growth_source}/></p>
      {latest.growth_source?.kind==='rigetti-qvm-simulated'?<p className={styles.small}>Job {latest.growth_source.job_id} · {latest.growth_source.shots} shots · counts {Object.entries(latest.growth_source.counts||{}).map(([k,v])=>`${k}:${v}`).join(' ')}</p>
       :latest.growth_source?.error?<p className={styles.small}>Simulator note: {latest.growth_source.error}</p>:null}</>
