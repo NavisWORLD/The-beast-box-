@@ -1,3 +1,4 @@
+import {islandSpots} from '../geyser/geyser-math.mjs';
 import {caveSpots} from '../worlds/terrain-math.mjs';
 /**
  * Living-core roam brain (Oct 16). Pure logic, no three.js: where the creature goes next,
@@ -22,6 +23,7 @@ export const SPOTS=Object.freeze([
  {id:'far-dream-reef',kind:'far',label:'Dream reef',x:-16,z:36,color:'#ff9ad8'},
  {id:'far-edge-lantern',kind:'far',label:'Edge lantern',x:4,z:-46,color:'#9a7cff'},
  // Caves carved into the home-world hills: creatures roam inside the tunnels.
+ ...islandSpots(),
  ...caveSpots().map(c=>({id:c.id,kind:'far',label:c.label,x:c.x,z:c.z,color:c.color,cave:true})),
 ]);
 export const SHAPES=Object.freeze(['spiral','ring','star','heart','helix','bloom']);

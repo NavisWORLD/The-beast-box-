@@ -3,6 +3,8 @@ import {flowStars,flowGrid} from '../lib/living-core/river-flow';
 import {capScenePoints,pushCameraOut} from '../lib/living-core/near-lens';
 import {buildWorlds} from '../lib/worlds/worlds';
 import {buildTerrain} from '../lib/worlds/terrain';
+import {buildIsland} from '../lib/geyser/island';
+import {inBlock as gjInBlock,islandGround} from '../lib/geyser/geyser-math.mjs';
 import {addHeaven,HEAVEN} from '../lib/worlds/heaven';
 import {terrainHeight} from '../lib/worlds/terrain-math.mjs';
 import {createCompanions} from '../lib/companions/companions';
@@ -234,7 +236,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     ground.position.y=-.17;scene.add(ground);
     // Feet on the world: a real downward raycast against the habitat floor (cached on a coarse grid; the floor is static).
     const gRay=new THREE.Raycaster(),gO=new THREE.Vector3(),gD=new THREE.Vector3(0,-1,0),gCache=new Map<number,number>();
-    const groundAt=(x:number,z:number)=>{const k=Math.round(x*20)*4096+Math.round(z*20);let y=gCache.get(k);if(y===undefined){ground.updateMatrixWorld();gO.set(x,5,z);gRay.set(gO,gD);const h=gRay.intersectObject(ground,false)[0];y=h?h.point.y+.02:terrainHeight(x,z)+.02;gCache.set(k,y);}return y;};
+    const groundAt=(x:number,z:number)=>{const k=Math.round(x*20)*4096+Math.round(z*20);let y=gCache.get(k);if(y===undefined){ground.updateMatrixWorld();gO.set(x,5,z);gRay.set(gO,gD);const h=gRay.intersectObject(ground,false)[0];y=h?h.point.y+.02:(gjInBlock(x,z)?islandGround(x,z):terrainHeight(x,z))+.02;gCache.set(k,y);}return y;};
     const flowU={uTime:{value:0}};// gentle river drift for stars + grid glow (look unchanged)
     const grid=new THREE.GridHelper(9,12,0x4983a4,0x284c74);
     grid.position.y=-.05;scene.add(grid);
@@ -322,7 +324,8 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     // Home: the sprite-built 3D Zeref lives here, standing on the habitat floor (one world, one camera).
     const zHolder=new THREE.Group();zHolder.scale.setScalar(.45);zHolder.position.set(0,-.07,0);zHolder.rotation.y=.7;scene.add(zHolder);
     // Universe of worlds: home trees/clouds/sky dome/parallax haze + distant worlds with gravity wells; Zeref travels between them.
-    const neonU=neonUniforms();const uw=buildWorlds(THREE,scene,{low,universe:UNIVERSE_R,neon:neonU});const land=(!soft||lcForced)?buildTerrain(THREE,scene,{low}):null;if(lcForced)(window as any).__lcLand=land;// software GL (CI) skips the big land; debug handle only with ?livingcore=1
+    const neonU=neonUniforms();const uw=buildWorlds(THREE,scene,{low,universe:UNIVERSE_R,neon:neonU});const land=(!soft||lcForced)?buildTerrain(THREE,scene,{low}):null;if(lcForced)(window as any).__lcLand=land;const gj=(!soft||lcForced)?buildIsland(THREE,scene,{low}):null;if(lcForced)(window as any).__geyser=gj;// Geyser Jelly island diorama behind the cage
+// software GL (CI) skips the big land; debug handle only with ?livingcore=1
 
     // grounding + contact shadow + jellyfish tail filaments (neon wire language)
     const shadowTex=(()=>{const c=document.createElement('canvas');c.width=c.height=64;const x=c.getContext('2d')!;const g=x.createRadialGradient(32,32,2,32,32,32);g.addColorStop(0,'rgba(0,0,0,.75)');g.addColorStop(1,'rgba(0,0,0,0)');x.fillStyle=g;x.fillRect(0,0,64,64);return new THREE.CanvasTexture(c);})();
@@ -456,7 +459,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
       if(lcS.goal)(zActor as any).target={x:lcS.goal.x,z:lcS.goal.z};
       stepLivingCore(lcS.LC,reduced?0:dt);lcS.syn?.step(reduced?0:dt);}
      flowU.uTime.value+=reduced?0:dt*HEAVEN.flow;heaven.update(elapsed);
-     land?.update(elapsed,camera);uwPose=uw.update(reduced?0:dt,elapsed,camera,{x:zHolder.position.x,y:zHolder.position.y,z:zHolder.position.z},!reduced&&!!(ze?.claimed||lcS.LC));
+     land?.update(elapsed,camera);gj?.update(reduced?0:dt,elapsed);uwPose=uw.update(reduced?0:dt,elapsed,camera,{x:zHolder.position.x,y:zHolder.position.y,z:zHolder.position.z},!reduced&&!!(ze?.claimed||lcS.LC));
      extras.step(reduced?0:dt*HEAVEN.flow,{x:zHolder.position.x,z:zHolder.position.z});
      if(ze?.claimed||lcS.LC){
       const zp=stepActor(zActor,reduced?0:dt,{lookAt:{x:camera.position.x,z:camera.position.z},reduced});

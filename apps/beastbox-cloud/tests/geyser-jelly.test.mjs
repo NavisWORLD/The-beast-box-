@@ -1,0 +1,14 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {readFileSync} from 'node:fs';
+import {GJ,islandHeight,islandGround,inBlock,springStep,waterStep,waterDrop,geyserCycle,GEYSER_PERIOD,islandSpots,boatPose,whalePose,bombAt} from '../lib/geyser/geyser-math.mjs';
+import {terrainHeight} from '../lib/worlds/terrain-math.mjs';
+import {SPOTS} from '../lib/living-core/roam-brain.mjs';
+const fin=v=>Number.isFinite(v);
+test('island: volcano, crater, shore, seabed; block keeps the cage clear',()=>{assert.ok(islandHeight(GJ.volcano.x+.8,GJ.volcano.z)>1.5);assert.ok(islandHeight(GJ.volcano.x,GJ.volcano.z)<GJ.volcano.h+.3);assert.ok(islandHeight(7,7)<0);assert.ok(islandHeight(0,1)>0);assert.ok(!inBlock(0,0)&&!inBlock(4.6,4.6));assert.ok(inBlock(GJ.cx,GJ.cz));assert.ok(terrainHeight(GJ.cx,GJ.cz)<GJ.bed);});
+test('creatures can reach and stand on the island',()=>{for(const s of islandSpots()){assert.ok(inBlock(s.x,s.z));assert.ok(islandGround(s.x,s.z)>0);assert.ok(Math.hypot(s.x,s.z)<30);assert.ok(SPOTS.some(p=>p.id===s.id));}});
+test('stress: no NaN from spring, water sim, geyser, poses under hostile dt',()=>{let s={a:0,v:0};const n=24,h=new Float32Array(n*n),p=new Float32Array(n*n),m=new Uint8Array(n*n).fill(1);
+ for(const dt of [NaN,-1,0,1e-9,1/60,.5,10,Infinity]){s=springStep({a:s.a,v:s.v+50},dt);assert.ok(fin(s.a)&&fin(s.v));waterDrop(h,n,Math.random(),Math.random(),5);waterStep(h,p,m,n,dt);assert.ok(h.every(fin));}
+ for(let i=0;i<5000;i++){waterDrop(h,n,Math.random(),Math.random(),3);waterStep(h,p,m,n,1/30);}assert.ok(h.every(v=>fin(v)&&Math.abs(v)<=2.01));
+ for(const t of [0,1e9,-5,NaN,GEYSER_PERIOD*3.3]){const g=geyserCycle(t);assert.ok(fin(g.jet)&&fin(g.dome)&&fin(g.pool));const b=boatPose(t||0),w=whalePose(t||0,.5);assert.ok(fin(b.x)&&fin(w.y));}
+ assert.ok(fin(bombAt({x:0,y:3,z:0,vx:1,vy:4,vz:1},2).y));});
+test('geyser cycle visits every Strokkur phase in order',()=>{const seen=[];for(let t=0;t<GEYSER_PERIOD;t+=.05){const ph=geyserCycle(t).phase;if(seen[seen.length-1]!==ph)seen.push(ph);}assert.deepEqual(seen,['refill','rest','surge','dome','burst','drain']);});
+test('wired into the cage: island built off software GL, groundAt uses island ground',()=>{const c=readFileSync(new URL('../components/cage-pocket-dimension.tsx',import.meta.url),'utf8'),s=readFileSync(new URL('../lib/geyser/island.ts',import.meta.url),'utf8');assert.match(c,/buildIsland\(THREE,scene,\{low\}\)/);assert.match(c,/islandGround\(x,z\)/);assert.match(s,/springStep/);assert.match(s,/waterStep/);assert.match(s,/WireframeGeometry/);});
