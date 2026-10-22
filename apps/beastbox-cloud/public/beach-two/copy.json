@@ -1,0 +1,41 @@
+{
+ "synapse_panel": {
+  "title": "Synapse",
+  "label_verbatim": "Seeded from recorded IBM Quantum outcomes. Recorded, not live. The physics is classical math; the quantum is the seed.",
+  "fields": {"injection":"Injection","job":"Job ID","rounds":"Rounds","win_rate":"Win rate","stream":"Stream used"},
+  "switcher": "Reseed from",
+  "unavailable": "Outcomes not found. Can't seed from this one.",
+  "failed_run_note": "No violation in this run. It still counts as a seed."
+ },
+ "how_its_drawn": [
+  "The 3D world renders small, then each pixel is scaled up whole.",
+  "Colors snap to a 65-color palette, matched by how bright they look.",
+  "Edges darken where depth jumps more than half a meter.",
+  "Water mirrors the beach and wobbles on its own waves.",
+  "Wind, waves, serves and mistakes all draw from one recorded quantum stream, in order. Replay it and you get the same world."
+ ],
+ "status": {
+  "serve":"{team} to serve","rally":"Rally!","point":"Point {team}","ace":"Ace!","stuff":"Stuffed!",
+  "net":"Into the net","out":"Out","antenna":"Antenna fault","seam":"Both left it!",
+  "set_point":"Set point","match_point":"Match point","set_won":"{team} takes the set","match_won":"{team} wins!",
+  "fetch":"Ball's in the sea. Fetching...","paused":"Paused"
+ },
+ "teams": {
+  "CORAL": [
+   {"name":"Juno","style":"big hitter, loves the line shot, high-fives everyone"},
+   {"name":"Pip","style":"tiny setter in a bun, dives for everything"}
+  ],
+  "TEAL": [
+   {"name":"Rook","style":"tall blocker in glasses, very calm"},
+   {"name":"Sunny","style":"cap backward, float-serve trickster"}
+  ]
+ },
+ "beachgoers": [
+  {"who":"Towel sunbather","name":"Mara","note":"never wakes, even for aces"},
+  {"who":"Deck chair","name":"Old Gus","note":"slow claps only on long rallies"},
+  {"who":"Cheering pair","name":"Bea & Tam","note":"cheer timing comes from the seed"},
+  {"who":"Sandcastle kid","name":"Lolo","note":"pats the castle after every point"},
+  {"who":"Fire pit pair","name":"Wren & Ash","note":"toast marshmallows at night"}
+ ],
+ "ui": {"time":["Day","Sunset","Night"],"wind":["Calm","Breeze","Gusty"],"attack":["Auto","Spike","Shots"],"new_match":"New match","pause":"Pause","view":"View","raw":"Raw 3D","call_shot":"Tap the sand to call the next attack"}
+}
