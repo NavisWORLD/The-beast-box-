@@ -23,6 +23,8 @@ export function driftTraits(tr,u,beastKey,exp){const r=lwStream(u.seed+':drift:'
  if(exp==='storm'){n.calm=cl(n.calm-Math.abs(d()));n.curiosity=cl(n.curiosity+d());}
  else if(exp==='abiogenesis'){n.curiosity=cl(n.curiosity+Math.abs(d()));n.joy=cl(n.joy+Math.abs(d()));}
  else if(exp==='supernova'){n.calm=cl(n.calm+d());n.curiosity=cl(n.curiosity+Math.abs(d()));}
+ else if(exp==='build'){n.curiosity=cl(n.curiosity+Math.abs(d())*.5);n.sociality=cl(n.sociality+d());}
+ else if(exp==='calm'||exp==='rest'){n.calm=cl(n.calm+Math.abs(d()));}
  else if(exp==='greet'){n.sociality=cl(n.sociality+Math.abs(d()));n.joy=cl(n.joy+Math.abs(d())*.5);}
  else {for(const k of ['curiosity','sociality','calm','joy'])n[k]=cl(n[k]+d()*.3);}
  n.experiences=(tr.experiences||0)+1;return n;}
@@ -30,3 +32,9 @@ export function driftTraits(tr,u,beastKey,exp){const r=lwStream(u.seed+':drift:'
 export function lattice12D(seed,maxV=256){const r=lwStream(seed+':12d');const P=Array.from({length:3},()=>Array.from({length:12},()=>r()*2-1));
  const verts=[],ids=[];for(let i=0;i<maxV;i++){const v=Math.floor(r()*4096);ids.push(v);const x=[0,0,0];for(let d=0;d<12;d++){const b=((v>>d)&1)*2-1;for(let k=0;k<3;k++)x[k]+=P[k][d]*b;}verts.push(...x);}
  const edges=[];for(let i=0;i<ids.length;i++)for(let j=i+1;j<ids.length;j++){const x=ids[i]^ids[j];if(x&&!(x&(x-1)))edges.push(i,j);}return {verts,edges};}
+// ---- Fuller world (Oct 22 2026): seeded things creatures can explore, learn from, and change.
+export const THING_KINDS=Object.freeze(['flower','crystal','cairn','pond','burrow','tree']);
+/** Things on the planet: positions and kinds from the seed stream; how many are "awake" grows with coverage. */
+export function worldThings(u,max=48){const r=lwStream(u.seed+':things');return Array.from({length:max},(_,i)=>({id:'thing-'+i,kind:THING_KINDS[Math.floor(r()*THING_KINDS.length)],n:unitFrom(r),size:+(0.6+r()*0.8).toFixed(3),level:0}));}
+/** What a creature takes from touching a thing (trait channel); the amount is drawn from a seeded stream inside driftTraits. */
+export const THING_LESSON=Object.freeze({flower:'abiogenesis',crystal:'supernova',cairn:'build',pond:'calm',burrow:'rest',tree:'abiogenesis'});

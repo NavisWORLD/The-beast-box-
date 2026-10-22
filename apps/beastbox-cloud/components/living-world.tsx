@@ -8,6 +8,7 @@
  */
 import {useEffect,useRef,useState} from 'react';
 import {grow} from '@/lib/universe/tiny-universe.mjs';
+import {worldThings,THING_LESSON} from '@/lib/universe/living-world.mjs';
 import {LW_LABELS,gatheringPoints,spreadAngle,initialTraits,driftTraits,lattice12D,lwStream,unitFrom} from '@/lib/universe/living-world.mjs';
 import {ARTIST_RESIDENTS} from '@/lib/companion/artist-residents.mjs';
 import {buildPlush,type PlushGenome} from './creature-plush-3d';
@@ -20,7 +21,7 @@ type Traits={curiosity:number;sociality:number;calm:number;joy:number;experience
 export default function LivingWorld({genome,beastKey,beastName,onClose}:{genome?:PlushGenome|null;beastKey?:string|null;beastName?:string|null;onClose?:()=>void}){
  const host=useRef<HTMLDivElement>(null);const canvasRef=useRef<HTMLCanvasElement>(null);
  const [spawned,setSpawned]=useState(false);const spawnRef=useRef(false);
- const [hud,setHud]=useState<{tick:number;simE:number|null;life:number;storms:number;cover:number;traits:Traits|null;blades:number;fps:number}>({tick:0,simE:null,life:0,storms:0,cover:0,traits:null,blades:0,fps:0});
+ const [hud,setHud]=useState<{tick:number;simE:number|null;life:number;storms:number;cover:number;traits:Traits|null;blades:number;fps:number;learned?:Record<string,number>;awake?:number}>({tick:0,simE:null,life:0,storms:0,cover:0,traits:null,blades:0,fps:0});
  const [err,setErr]=useState<string|null>(null);const [line,setLine]=useState<string|null>(null);const lineRef=useRef(setLine);lineRef.current=setLine;
  useEffect(()=>{if(!line)return;const id=setTimeout(()=>setLine(null),4200);return()=>clearTimeout(id);},[line]);
  const joy=useRef({x:0,y:0,active:false,id:-1,cx:0,cy:0});const keys=useRef(new Set<string>());
@@ -95,6 +96,23 @@ uniform vec3 uPlay[8];
     (sp.material.map as any).colorSpace=THREE.SRGBColorSpace;const h=.75*r.scale;sp.scale.set(h,h,1);sp.center.set(.5,.05);node.add(sp);node.add(mkShadow(h*.9));scene.add(node);
     const n=new THREE.Vector3(...(unitFrom(rr) as [number,number,number]));const f=new THREE.Vector3(...(unitFrom(rr) as [number,number,number]));f.addScaledVector(n,-f.dot(n)).normalize();return {node,n,f,spd:.25+rr()*.35,wob:rr()*10,name:r.name};});
    residents.slice(0,7).forEach((r,i)=>gpts[i+1].copy(r.n));// grass starts under the beasts' feet
+   // ---- things to explore: seeded flowers, crystals, cairns, ponds, burrows, trees; they wake as the grass reaches them
+   const COL:Record<string,number>={flower:0xff7ad9,crystal:0x7fe8ff,cairn:0xb9b0c8,pond:0x3a7bd5,burrow:0x2a1c14,tree:0x2f8f5b};
+   const mkThing=(kind:string)=>{const g=new THREE.Group();const m=(geo:any,c:number,em=0)=>{const x=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({color:c,emissive:c,emissiveIntensity:em,roughness:.7}));g.add(x);return x;};
+    if(kind==='flower'){m(new THREE.CylinderGeometry(.015,.02,.25,5),0x3b9b4b).position.y=.125;m(new THREE.IcosahedronGeometry(.07,0),COL.flower,.4).position.y=.27;}
+    else if(kind==='crystal'){const c=m(new THREE.OctahedronGeometry(.13,0),COL.crystal,.8);c.scale.y=2;c.position.y=.2;}
+    else if(kind==='cairn'){for(let i=0;i<3;i++){const st=m(new THREE.DodecahedronGeometry(.09-i*.02,0),COL.cairn);st.position.y=.08+i*.12;}}
+    else if(kind==='pond'){const c=m(new THREE.CircleGeometry(.4,20),COL.pond,.25);c.rotation.x=-Math.PI/2;c.position.y=.02;}
+    else if(kind==='burrow'){const c=m(new THREE.CircleGeometry(.16,16),COL.burrow);c.rotation.x=-Math.PI/2;c.position.y=.015;const t=m(new THREE.TorusGeometry(.17,.04,6,16),0x5a4030);t.rotation.x=-Math.PI/2;t.position.y=.03;}
+    else {m(new THREE.CylinderGeometry(.04,.06,.4,6),0x5a3a22).position.y=.2;m(new THREE.ConeGeometry(.22,.5,7),COL.tree,.1).position.y=.6;}
+    return g;};
+   const things=worldThings(u,phone?36:56).map((t:any)=>{const node=mkThing(t.kind);const n=new THREE.Vector3(...(t.n as [number,number,number]));const f=new THREE.Vector3(1,0,0).addScaledVector(n,-n.x).normalize();place(node,n,f);node.scale.setScalar(0.001);scene.add(node);return {...t,n,node,awake:false,grow:0,pulse:0,cool:0};});
+   const learned:Record<string,number>=(()=>{try{return JSON.parse(localStorage.getItem('lw:learned:'+bKey)||'{}');}catch{return {};}})();
+   const ang=(a:import('three').Vector3,b:import('three').Vector3)=>Math.acos(Math.max(-1,Math.min(1,a.dot(b))))*PR;
+   const nearestThing=(n:import('three').Vector3)=>{let best:any=null,bd=1e9;for(const t of things)if(t.awake){const d=ang(n,t.n);if(d<bd){bd=d;best=t;}}return best?{t:best,d:bd}:null;};
+   const touch=(t:any,who:string)=>{if(t.cool>0)return false;t.cool=2.5;t.level++;t.pulse=1;t.grow=Math.min(1.8,1+t.level*.08);return true;};
+   const steerTo=(n:import('three').Vector3,f:import('three').Vector3,goal:import('three').Vector3,k:number)=>{const d=goal.clone().sub(n);d.addScaledVector(n,-d.dot(n));if(d.lengthSq()<1e-10)return;d.normalize();f.lerp(d,Math.min(1,k)).addScaledVector(n,-f.dot(n)).normalize();};
+   let socialCool=0;
    // ---- the user's beast (real 3D plush from its genome), ~1.5x traveler height, on the ground with contact shadow
    const beastNode=new THREE.Group();scene.add(beastNode);let plush:ReturnType<typeof buildPlush>|null=null;
    const gen=genome||((window as any).__beastGenome as PlushGenome|null);
@@ -133,7 +151,17 @@ uniform vec3 uPlay[8];
     latPivot.rotation.y+=dt*.02;latObj.rotation.x+=dt*.03;latObj.rotation.z+=dt*.017;
     // residents wander
     const play=UG.uPlay.value;play[0].copy(bN);residents.slice(0,6).forEach((r,i)=>play[i+1].copy(r.n));play[7].copy(spawnRef.current?pN:bN);
-    for(const r of residents){turn(r.n,r.f,Math.sin(t*.4+r.wob)*dt*.8);walkOn(r.n,r.f,r.spd*dt);place(r.node,r.n,r.f);}
+    // things wake when the spreading grass reaches them; touched things grow / pulse
+    for(const th of things){if(!th.awake){const c=gpts.some(g=>ang(th.n,g)/PR<UG.uSpread.value-.2);if(c){th.awake=true;th.grow=1;}}
+     th.cool=Math.max(0,th.cool-dt);th.pulse=Math.max(0,th.pulse-dt*.8);const s0=th.node.scale.x,tg=th.awake?th.size*th.grow*(1+th.pulse*.25):0.001;th.node.scale.setScalar(s0+(tg-s0)*Math.min(1,dt*2));}
+    // residents explore things and each other; everything can touch everything
+    socialCool=Math.max(0,socialCool-dt);
+    for(const r of residents as any[]){r.pause=Math.max(0,(r.pause||0)-dt);
+     const nt=nearestThing(r.n);if(nt&&nt.d<.35&&r.pause<=0){if(touch(nt.t,r.name))r.pause=1.5;}
+     else if(nt&&nt.d<4&&Math.sin(t*.2+r.wob)>0)steerTo(r.n,r.f,nt.t.n,dt*1.5);else turn(r.n,r.f,Math.sin(t*.4+r.wob)*dt*.8);
+     for(const o of residents as any[])if(o!==r&&ang(r.n,o.n)<.5){steerTo(r.n,r.f,r.n.clone().multiplyScalar(2).sub(o.n),dt*2);if(socialCool<=0&&!spawnRef.current){socialCool=25;lineRef.current(r.name+' and '+o.name+' bumped noses.');}}
+     if(ang(r.n,bN)<.6){steerTo(r.n,r.f,r.n.clone().multiplyScalar(2).sub(bN),dt*2);}
+     if(r.pause<=0)walkOn(r.n,r.f,r.spd*dt);place(r.node,r.n,r.f);}
     // beast: wander by traits; when you're spawned in, run to greet (timing from JSON)
     const sp=spawnRef.current;if(sp&&!wasSpawned){pN.copy(bN).applyAxisAngle(bF,.0).addScaledVector(bF,-3/PR).normalize();pF.copy(bF);pF.addScaledVector(pN,-pF.dot(pN)).normalize();spawnT=0;greetT=-1;travNode.visible=true;}
     if(sp&&!wasSpawned)lineRef.current('A new traveler on the grass.');
@@ -144,7 +172,9 @@ uniform vec3 uPlay[8];
      if(dist>1.5*TRAV_H){if(dir.lengthSq()>1e-8){bF.copy(dir.normalize());}const v=1.6;walkOn(bN,bF,v*dt);bSpeed=1;greetT=-1;}
      else if(greetT<0){greetT=0;lineRef.current('YOU’RE HERE. Rawr! Come see what I built.');traits=driftTraits(traits,u,bKey,'greet');brain.mode='glance';}
      if(greetT>=0)greetT+=dt;}
-    else{turn(bN,bF,Math.sin(t*.3)*dt*(.3+traits.curiosity));const v=.2+.35*traits.curiosity;walkOn(bN,bF,v*dt);bSpeed=.35;}
+    else{const nt=nearestThing(bN);if(nt&&nt.d<.4){if(touch(nt.t,'beast')){const k=nt.t.kind;learned[k]=(learned[k]||0)+1;traits=driftTraits(traits,u,bKey,(THING_LESSON as any)[k]||'day');try{localStorage.setItem('lw:learned:'+bKey,JSON.stringify(learned));}catch{}}}
+     if(nt&&nt.d<5*(.3+traits.curiosity))steerTo(bN,bF,nt.t.n,dt*1.2);const v=.2+.35*traits.curiosity;walkOn(bN,bF,v*dt);bSpeed=.35;}
+    if(sp&&spawnT<0){const nt=nearestThing(pN);if(nt&&nt.d<.5&&touch(nt.t,'you'))lineRef.current('You touched a '+nt.t.kind+'. It answers.');}
     brain.speed+=(bSpeed-brain.speed)*Math.min(1,dt*4);brain.bob+=dt*(4+brain.speed*8);brain.mode=brain.speed>.5?'run':greetT>=0&&greetT<RG.count/RG.fps?'glance':'walk';
     place(beastNode,bN,bF);
     if(plush){const greetHop=greetT>=0&&greetT<(RG.segments.greet[1]-RG.segments.greet[0]+1)/RG.fps?Math.sin(greetT/((RG.segments.greet[1]-RG.segments.greet[0]+1)/RG.fps)*Math.PI)*.15:0;beastNode.position.addScaledVector(bN,greetHop);
@@ -164,7 +194,7 @@ uniform vec3 uPlay[8];
     else{const target=bN.clone().multiplyScalar(PR);const d=PR*4.3;const want=bN.clone().multiplyScalar(1.2).add(new THREE.Vector3(Math.cos(oy)*Math.sin(ox),Math.sin(oy),Math.cos(oy)*Math.cos(ox))).normalize().multiplyScalar(d);
      camPos.lerp(want,Math.min(1,dt*3));camera.position.copy(camPos);camera.up.set(0,1,0);camera.lookAt(target.multiplyScalar(.15));}
     renderer.render(scene,camera);
-    hudT+=dt;if(hudT>.5){hudT=0;const last=u.history?.[u.history.length-1];setHud({tick:u.tick,simE:last?.sim_E??null,life:u.life.length,storms:u.storms.length,cover:Math.min(1,UG.uSpread.value/Math.PI),traits,blades:bladeCap,fps:+fps.toFixed(0)});}
+    hudT+=dt;if(hudT>.5){hudT=0;const last=u.history?.[u.history.length-1];setHud({tick:u.tick,simE:last?.sim_E??null,life:u.life.length,storms:u.storms.length,cover:Math.min(1,UG.uSpread.value/Math.PI),traits,learned:{...learned},awake:things.filter((x:any)=>x.awake).length,blades:bladeCap,fps:+fps.toFixed(0)});}
    };
    frame();(window as any).__lw={spawn:()=>setSpawned(true)};
    cleanup.push(()=>{renderer.dispose();plush?.dispose();scene.traverse((o:any)=>{o.geometry?.dispose?.();o.material?.dispose?.();});});
@@ -185,6 +215,7 @@ uniform vec3 uPlay[8];
    <div style={{background:'rgba(10,6,30,.72)',borderRadius:12,padding:'8px 10px',maxWidth:'62%',pointerEvents:'auto'}}>
     <b>{beastName||'Your beast'}</b> {genome||(typeof window!=='undefined'&&(window as any).__beastGenome)?'':'(no saved beast yet — hatch one in the Cage)'}<br/>
     tick {hud.tick} · sim E {hud.simE??'—'} · life {hud.life} · storms {hud.storms} · grass {Math.round(hud.cover*100)}%<br/>
+    {hud.learned?<>things awake {hud.awake??0} · learned {Object.entries(hud.learned).map(([k,v])=>k+' '+v).join(' · ')||'—'}<br/></>:null}
     {T?<>curious {T.curiosity.toFixed(2)} · social {T.sociality.toFixed(2)} · calm {T.calm.toFixed(2)} · joy {T.joy.toFixed(2)} · {T.experiences} experiences</>:null}
     {err?<div style={{color:'#ffb4b4'}}>Couldn’t load the world: {err}</div>:null}
    </div>
