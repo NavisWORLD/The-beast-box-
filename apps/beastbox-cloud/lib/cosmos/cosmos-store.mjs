@@ -112,3 +112,22 @@ export async function mirrorZeref(cfg,{profile,stateText,logText,latestText}){
  await putBlob(cfg,base+'/diary.jsonl',logText,{contentType:'application/x-ndjson'});
  await putBlob(cfg,base+'/latest.json',latestText);
 }
+
+/* V12.3: persist Lost COSMOS game experience (LCE1 from /api/gba-experience) into the beast's
+ * cosmos folder: beasts/<id>/game-experience.jsonl (append-only, each line hash-chained to the
+ * previous) and beasts/<id>/game-latest.json. Only for registered beasts; identity never rewritten.
+ * Re-sending the same save (same cst_steps + heartbeats) is a no-op. */
+import {createHash} from 'node:crypto';
+export async function recordGameExperience(cfg,entry){
+ const id=cosmosIdFor(entry?.beast_id);if(!id)return {ok:false,status:400,error:'Invalid beast id.'};
+ if(!await getBlob(cfg,dir(id)+'/profile.json'))return {ok:true,persisted:false,reason:'beast not registered in the cosmos',id};
+ const log=await getBlob(cfg,dir(id)+'/game-experience.jsonl');
+ const lines=log?log.text.split('\n').filter(Boolean):[];
+ let last=null;try{last=lines.length?JSON.parse(lines[lines.length-1]):null;}catch{}
+ if(last&&last.cst_steps===entry.cst_steps&&last.heartbeats===entry.heartbeats)return {ok:true,persisted:false,duplicate:true,id,count:lines.length};
+ const prev=last?.hash||null;const body={...entry,beast_id:id,prev};
+ const hash=createHash('sha256').update(JSON.stringify(body)).digest('hex');const rec={...body,hash};
+ await putBlob(cfg,dir(id)+'/game-experience.jsonl',(log?log.text.replace(/\n?$/,'\n'):'')+JSON.stringify(rec)+'\n',{contentType:'application/x-ndjson',...(log?.etag?{ifMatch:log.etag}:{ifNoneMatch:'*'})});
+ await putBlob(cfg,dir(id)+'/game-latest.json',J(rec));
+ return {ok:true,persisted:true,id,count:lines.length+1,hash};
+}

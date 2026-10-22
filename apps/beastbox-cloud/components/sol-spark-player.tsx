@@ -162,9 +162,14 @@ export default function SolSparkPlayer({active=true,stage=true}:{active?:boolean
   raf=window.requestAnimationFrame(poll);window.addEventListener('gamepaddisconnected',reset);window.addEventListener('beastbox:gba-release',reset);
   return()=>{window.cancelAnimationFrame(raf);reset();window.removeEventListener('gamepaddisconnected',reset);window.removeEventListener('beastbox:gba-release',reset);};
  },[inputEnabled]);
+ // V12.3: the beast's latest cosmos diary ticks, so the handoff can carry its SIMULATED Rigetti growth (LCQ1).
+ const growthRecent=useRef<any[]|null>(null);
+ useEffect(()=>{const id=bound?.qbeast?.profile?.id;growthRecent.current=null;if(!id)return;let live=true;
+  fetch('/api/cosmos/beasts/'+encodeURIComponent(id)).then(r=>r.ok?r.json():null).then(d=>{if(live&&d?.verified&&Array.isArray(d?.diary?.recent))growthRecent.current=d.diary.recent;}).catch(()=>{});
+  return()=>{live=false;};},[bound]);
  const send=useCallback(()=>{
   if(!bound||sent.current)return;
-  try{post(createGameHandoff(bound));post({type:'sol-spark-player-state',active:active&&!document.hidden});}
+  try{post(createGameHandoff(bound,{growthRecent:growthRecent.current}));post({type:'sol-spark-player-state',active:active&&!document.hidden});}
   catch(error){setNote(error instanceof Error?error.message:'Your Beast could not be verified.');}
  },[bound,active,post]);
  useEffect(()=>{

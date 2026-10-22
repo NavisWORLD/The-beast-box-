@@ -37,3 +37,34 @@ export function parseLCE1(sav){
     needs:{trust:r[30],energy:r[31],curiosity:r[32],avoid:r[33]},quests_touched:r[34],mood_history:hist,cst_steps:v.getUint32(68,true),
     label:'Classical CST-12 simulation on the cartridge; any Rigetti input was SIMULATED (QVM).'};
 }
+
+/* ---------- V12.3: finish the bridge ----------
+ * Site -> game: pick the beast's latest growth tick whose source is the Rigetti QVM SIMULATOR
+ * (growth_source.kind 'rigetti-qvm-simulated', simulated:true) and fold its 3-bit counts to the
+ * four 2-bit counts LCQ1 carries (marginal over the first two measured bits: '00x','01x','10x','11x').
+ * Deterministic-fallback ticks are never used: no simulated counts, no LCQ1. */
+export function countsTo2Bit(counts){
+ if(!counts||typeof counts!=='object')return null;const out=[0,0,0,0];let n=0;
+ for(const [k,v] of Object.entries(counts)){if(!/^[01]{2,3}$/.test(k)||!Number.isInteger(v)||v<0)return null;out[parseInt(k.slice(0,2),2)]+=v;n+=v;}
+ return n>0?out:null;
+}
+export function latestSimulatedGrowth(recent){
+ const list=Array.isArray(recent)?[...recent]:[];
+ list.sort((a,b)=>(Number(b?.tick)||0)-(Number(a?.tick)||0));
+ for(const e of list){const g=e?.growth_source;if(!g||g.kind!=='rigetti-qvm-simulated'||g.simulated!==true)continue;
+  const c=countsTo2Bit(g.counts);if(c)return {counts:c,cycle:Number(e.tick)>>>0,job_id:g.job_id?String(g.job_id):null,simulated:true};}
+ return null;
+}
+/** Returns {save, lcq1} where save has LCQ1 attached (or is unchanged and lcq1 is null). */
+export function injectLatestGrowth(sav,publicId,recent){
+ const g=latestSimulatedGrowth(recent);if(!g||!publicId||!sav||sav.length!==SRAM_SIZE)return {save:sav,lcq1:null};
+ const rec=buildLCQ1(publicId>>>0,g.counts,g.cycle);
+ return {save:attachLCQ1(sav,rec),lcq1:{cycle:g.cycle,job_id:g.job_id,counts:g.counts,simulated:true,label:'Rigetti QVM growth (SIMULATED)'}};
+}
+/* Game -> site: one ecosystem entry from a parsed LCE1 record. The beast id is 'bb-' + identity. */
+export function ecosystemEntryFromLCE1(lce,{now=new Date().toISOString()}={}){
+ if(!lce||lce.format!=='LCE1')throw Error('not an LCE1 record');
+ return {schema:'lost-cosmos-game-experience/v1',beast_id:'bb-'+lce.identity,received_at:now,
+  heartbeats:lce.heartbeats,cst_steps:lce.cst_steps,lcq_applied:lce.lcq_applied,quests_touched:lce.quests_touched,
+  channels:lce.channels,mood:lce.mood,needs:lce.needs,mood_history:lce.mood_history,label:lce.label};
+}
