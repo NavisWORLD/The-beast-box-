@@ -26,7 +26,7 @@ def create_app(checkpoint,api_key,max_new_tokens=256,threads=4,expected_sha256=N
     @app.get('/health')
     def health(): return {'status':'alive'}
     @app.get('/ready')
-    def ready(): return {'ready':True,'model_id':'rawrphos-native','checkpoint_sha256':engine.metadata['checkpoint_sha256']}
+    def ready(): return {'ready':True,'model_id':'rawrphos-native','checkpoint_sha256':engine.metadata['checkpoint_sha256'],'hebbian':bool(engine.model.config.hebbian)}
     @app.get('/model/info')
     def info(): return engine.info()
     @app.get('/v1/models')
