@@ -1,0 +1,21 @@
+# Beast Box bridge: links a Beast Box browser tab to this Muse gadget so Muse
+# commands reach the live beast. Runs as the same account as Muse's commands.
+# Installed by integrations/muse-gadget/install.sh.
+
+[Unit]
+Description=Beast Box bridge for the Muse gadget
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+User=@RUN_AS@
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/opt/musegadget/venv/bin/python -m beastbox_musegadget bridge serve
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+
+[Install]
+WantedBy=multi-user.target
