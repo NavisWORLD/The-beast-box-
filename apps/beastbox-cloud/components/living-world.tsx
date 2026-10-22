@@ -17,10 +17,10 @@ function biomeGLSL(bp:any){const f=(ws:any[])=>ws.map(w=>`${w.a.toFixed(4)}*sin(
   if(c<0.02)return 4;if(h<${F(bp.sea)})return 0;if(h>0.56)return 10;if(h<${F(bp.sea+0.1)}&&c>0.45)return 3;if(c>0.86)return 7;
   if(h<${F(bp.sea+0.26)}&&m>0.08)return c>0.5?9:8;if(c<0.36)return m>0.0?6:5;return h>0.22?2:1;}
  vec3 bCol(int b,vec3 n){float h=bH(n),k=bM(n);
-  if(b==0)return mix(vec3(.05,.2,.5),vec3(.2,.6,.85),smoothstep(-.7,${F(bp.sea)},h))+vec3(.25,.05,.3)*pow(max(0.0,sin(k*40.0)),12.0);
+  if(b==0)return mix(vec3(.05,.2,.5),vec3(.2,.6,.85),smoothstep(-.7,${F(bp.sea)},h))+vec3(.15,.05,.2)*pow(max(0.0,sin(k*90.0+h*70.0)),24.0);
   if(b==1)return mix(vec3(.45,.75,.3),vec3(.95,.8,.25),.25*step(.8,sin(h*60.0)));if(b==2)return vec3(.2,.45,.18);if(b==3)return vec3(.95,.86,.62);
   if(b==4)return mix(vec3(.85,.93,1.0),vec3(.55,.8,1.0),.3*sin(k*25.0)+.3);if(b==5)return mix(vec3(.55,.75,.72),vec3(.6,.5,.9),.5+.5*sin(k*35.0));
-  if(b==6)return vec3(.1,.28,.2);if(b==7)return mix(vec3(.3,.15,.12),vec3(1.0,.42,.12),pow(.5+.5*sin(h*50.0+k*20.0),6.0));
+  if(b==6)return vec3(.1,.28,.2);if(b==7)return mix(vec3(.3,.15,.12),vec3(1.0,.42,.12),pow(.5+.5*sin(h*23.0+k*61.0+n.x*40.0),5.0));
   if(b==8)return mix(vec3(.85,.85,.78),vec3(.55,.7,.65),.5+.5*sin(k*30.0));if(b==9)return mix(vec3(.35,.25,.45),vec3(.75,.35,.6),.5+.5*sin(h*45.0));
   return mix(vec3(.55,.55,.62),vec3(.9,.9,1.0),smoothstep(.56,.9,h));}
  // borders blend: average the biome colour over a small neighbourhood
@@ -72,7 +72,8 @@ export default function LivingWorld({genome,beastKey,beastName,onClose}:{genome?
    const UG:any={uMap:{value:null},uUseMap:{value:0},uGrass:{value:tex('ground_grass_tile_256.jpg',true)},uSoil:{value:tex('ground_soil_tile_256.jpg',true)},uMask:{value:tex('grass_edge_edge_mask.png',true)},
     uPts:{value:gpts},uPlay:{value:Array.from({length:8},()=>new THREE.Vector3())},uSpread:{value:spreadAngle(u)},uT:{value:0},uSun:{value:sun.position.clone().normalize()}};
    const COVER=`uniform vec3 uPts[8];uniform float uSpread;float cover(vec3 n){float c=0.0;for(int i=0;i<8;i++){float a=acos(clamp(dot(n,uPts[i]),-1.0,1.0));c=max(c,smoothstep(uSpread,uSpread-0.35,a));}return c;}`;
-   const BP=biomeParams(u.seed);const BGL=biomeGLSL(BP);const biomeOf=(n:import('three').Vector3)=>biomeAt(BP,[n.x,n.y,n.z]) as string;
+   // beasts gather first on living land (plains/forest; tundra or pine near the poles), so pick the first seeded layout variant that puts the gathering point there
+   const BP=(()=>{const g0=gpts[0];for(let i=0;i<64;i++){const bp=biomeParams(i?u.seed+':v'+i:u.seed);if(['plains','heartwood','pine','tundra'].includes(biomeAt(bp,[g0.x,g0.y,g0.z]) as string))return bp;}return biomeParams(u.seed);})();const BGL=biomeGLSL(BP);const biomeOf=(n:import('three').Vector3)=>biomeAt(BP,[n.x,n.y,n.z]) as string;
    const ground=new THREE.Mesh(new THREE.SphereGeometry(PR,phone?96:160,phone?64:110),new THREE.ShaderMaterial({uniforms:UG,
     vertexShader:`varying vec3 vN;varying vec2 vUv;void main(){vN=normalize(position);vUv=uv*vec2(48.0,24.0);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`,
     fragmentShader:`uniform sampler2D uGrass,uSoil,uMask,uMap;uniform float uUseMap;uniform vec3 uSun;varying vec3 vN;varying vec2 vUv;${COVER}${BGL}
@@ -192,6 +193,8 @@ uniform vec3 uPlay[8];
    const resize=()=>{const r=host.current!.getBoundingClientRect();renderer.setSize(r.width,r.height,false);camera.aspect=r.width/Math.max(1,r.height);camera.updateProjectionMatrix();};
    const ro=new ResizeObserver(resize);ro.observe(host.current!);resize();cleanup.push(()=>ro.disconnect());
    // perf: measure fps for 3s windows and shrink the blade count if the phone can't hold ~50fps
+   // test/debug hook: walk the traveler to the first seeded spot of a biome (used for screenshots)
+   (window as any).__lwGoBiome=(b:string)=>{const r=lwS(u.seed+':goto');for(let i=0;i<4000;i++){const v=unitFrom(r) as number[];if(biomeAt(BP,v)===b){pN.set(v[0],v[1],v[2]);pF.set(1,0,0).addScaledVector(pN,-pN.x).normalize();return true;}}return false;};
    let biomeT=0,curBiome='plains';const bFeel=()=>(BIOME_FEEL as any)[curBiome]?.speed??1;
    let fpsT=0,fpsN=0,fps=0,last=performance.now(),t=0,hudT=0;const camTarget=new THREE.Vector3(),camPos=new THREE.Vector3(0,6,22);
    const frame=()=>{raf=requestAnimationFrame(frame);const now=performance.now();const dt=Math.min(.05,(now-last)/1000);last=now;t+=dt;UG.uT.value=t;
@@ -199,7 +202,7 @@ uniform vec3 uPlay[8];
     tickAcc+=dt;if(tickAcc>=TICK_S){tickAcc=0;applyTick();}
     // creatures learn from each new biome they enter (beast: persisted with its learned things)
     biomeT-=dt;if(biomeT<=0){biomeT=.5;const bb=biomeOf(bN);curBiome=bb;if(!learned['biome:'+bb]){learned['biome:'+bb]=1;const ls=(BIOME_FEEL as any)[bb]?.lesson;if(ls)traits=driftTraits(traits,u,bKey,ls);try{localStorage.setItem('lw:learned:'+bKey,JSON.stringify(learned));}catch{}lineRef.current((beastName||'Your beast')+' entered the '+(BIOME_NAMES as any)[bb]+' for the first time, and learned from it.');}
-     if(hudBiome.current)hudBiome.current.textContent='Biome: '+(BIOME_NAMES as any)[spawnRef.current?biomeOf(pN):bb];(window as any).__lwBiome={beast:bb,you:biomeOf(pN)};}
+     if(hudBiome.current)hudBiome.current.textContent='Biome: '+(BIOME_NAMES as any)[spawnRef.current?biomeOf(pN):bb];(window as any).__lwBiome={beast:bb,you:biomeOf(pN),home:biomeOf(gpts[0]),bN:bN.toArray(),g0:gpts[0].toArray()};}
     latPivot.rotation.y+=dt*.02;latObj.rotation.x+=dt*.03;latObj.rotation.z+=dt*.017;
     // residents wander
     const play=UG.uPlay.value;play[0].copy(bN);residents.slice(0,6).forEach((r,i)=>play[i+1].copy(r.n));play[7].copy(spawnRef.current?pN:bN);
@@ -213,7 +216,7 @@ uniform vec3 uPlay[8];
      else if(nt&&nt.d<4&&Math.sin(t*.2+r.wob)>0)steerTo(r.n,r.f,nt.t.n,dt*1.5);else turn(r.n,r.f,Math.sin(t*.4+r.wob)*dt*.8);
      for(const o of residents as any[])if(o!==r&&ang(r.n,o.n)<.5){steerTo(r.n,r.f,r.n.clone().multiplyScalar(2).sub(o.n),dt*2);if(socialCool<=0&&!spawnRef.current){socialCool=25;lineRef.current(r.name+' and '+o.name+' bumped noses.');}}
      if(ang(r.n,bN)<.6){steerTo(r.n,r.f,r.n.clone().multiplyScalar(2).sub(bN),dt*2);}
-     if(r.pause<=0){const rb=biomeOf(r.n);walkOn(r.n,r.f,r.spd*dt*((BIOME_FEEL as any)[rb]?.speed??1));}place(r.node,r.n,r.f);}
+     if(r.pause<=0){const rb=biomeOf(r.n);walkOn(r.n,r.f,r.spd*dt*((BIOME_FEEL as any)[rb]?.speed??1));if(rb==='ocean')steerTo(r.n,r.f,gpts[0],dt*2);}place(r.node,r.n,r.f);}
     // beast: wander by traits; when you're spawned in, run to greet (timing from JSON)
     const sp=spawnRef.current;if(sp&&!wasSpawned){pN.copy(bN).applyAxisAngle(bF,.0).addScaledVector(bF,-3/PR).normalize();pF.copy(bF);pF.addScaledVector(pN,-pF.dot(pN)).normalize();spawnT=0;greetT=-1;travNode.visible=true;}
     if(sp&&!wasSpawned)lineRef.current('A new traveler on the grass.');
@@ -225,7 +228,7 @@ uniform vec3 uPlay[8];
      else if(greetT<0){greetT=0;lineRef.current('YOU’RE HERE. Rawr! Come see what I built.');traits=driftTraits(traits,u,bKey,'greet');brain.mode='glance';}
      if(greetT>=0)greetT+=dt;}
     else{const nt=nearestThing(bN);if(nt&&nt.d<.4){if(touch(nt.t,'beast')){const k=nt.t.kind;learned[k]=(learned[k]||0)+1;traits=driftTraits(traits,u,bKey,(THING_LESSON as any)[k]||'day');try{localStorage.setItem('lw:learned:'+bKey,JSON.stringify(learned));}catch{}}}
-     if(nt&&nt.d<5*(.3+traits.curiosity))steerTo(bN,bF,nt.t.n,dt*1.2);const v=(.2+.35*traits.curiosity)*bFeel();walkOn(bN,bF,v*dt);bSpeed=.35;}
+     if(nt&&nt.d<5*(.3+traits.curiosity))steerTo(bN,bF,nt.t.n,dt*1.2);const v=(.2+.35*traits.curiosity)*bFeel();walkOn(bN,bF,v*dt);if(curBiome==='ocean')steerTo(bN,bF,gpts[0],dt*3);bSpeed=.35;}
     if(sp&&spawnT<0){const nt=nearestThing(pN);if(nt&&nt.d<.5&&touch(nt.t,'you'))lineRef.current('You touched a '+nt.t.kind+'. It answers.');}
     brain.speed+=(bSpeed-brain.speed)*Math.min(1,dt*4);brain.bob+=dt*(4+brain.speed*8);brain.mode=brain.speed>.5?'run':greetT>=0&&greetT<RG.count/RG.fps?'glance':'walk';
     place(beastNode,bN,bF);
