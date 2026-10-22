@@ -188,6 +188,7 @@ def rigetti_order_seed(cycle,fresh_digest=None,run_id=None):
 # Upgrading copies every approved tensor exactly and adds zero-output hebbian.* params.
 HEBBIAN=os.environ.get("ZEREF_HEBBIAN","0")=="1"
 HEBBIAN_DIM=int(os.environ.get("ZEREF_HEBBIAN_DIM","32"))
+TRINITY=os.environ.get("ZEREF_TRINITY","0")=="1"  # original-kit Trinity 12D+42D state (QC67_cosmo)
 HEBBIAN_LR=float(os.environ.get("ZEREF_HEBBIAN_LR","0.0003"))  # new params start from zero; base LR unchanged
 def extend_optimizer_state(sd,n_base,n_hebb):
  """Parent AdamW state (1 group) -> [base, hebbian] groups; new params get fresh moments."""
@@ -222,6 +223,9 @@ def train_variant(parent_path,tokenizer,pool,seed,chat_pool=(),chat_eval=None):
  if HEBBIAN and not model.config.hebbian:
   from rawrphos.architecture.model import upgrade_to_hebbian
   torch.manual_seed(seed);model=upgrade_to_hebbian(model,HEBBIAN_DIM)  # zero-output start: identical logits
+ if TRINITY and model.config.state_mode!="tri":
+  from rawrphos.architecture.model import upgrade_to_trinity
+  model=upgrade_to_trinity(model)  # zeroed drive: identical logits at upgrade
  base=model.base_parameters();hebb=model.hebbian_parameters()
  anchor=[p.detach().clone() for p in base]  # L2 anchor on the approved parent's weights only
  groups=[{"params":base}]+([{"params":hebb}] if hebb else [])
@@ -496,7 +500,7 @@ def main():
   "parent_literal_heldout_replies":parent_out,
   "gate":guard,"accepted_as_next_training_parent":accepted,
   "recipe":{"lr":LR,"batch":BATCH,"anchor_l2":ANCHOR,"decision_token_weight":DECISION_WEIGHT,"sampling":"sqrt_action_balanced",
-    "replay_datasets":replay_digests,"replay_rows":len(replay),"chat_mix_sha256":chat_digest,"chat_rows":len(chat_pool),"pretrain_rows":len(PRETRAIN_POOL),"pretrain_sha256":pretrain_digest,"pretrain_per_batch":PRETRAIN_PER_BATCH if PRETRAIN_POOL else 0,"hebbian":bool(model.config.hebbian),"chat_per_batch":CHAT_PER_BATCH if chat_pool else 0,
+    "replay_datasets":replay_digests,"replay_rows":len(replay),"chat_mix_sha256":chat_digest,"chat_rows":len(chat_pool),"pretrain_rows":len(PRETRAIN_POOL),"pretrain_sha256":pretrain_digest,"pretrain_per_batch":PRETRAIN_PER_BATCH if PRETRAIN_POOL else 0,"hebbian":bool(model.config.hebbian),"state_mode":model.config.state_mode,"chat_per_batch":CHAT_PER_BATCH if chat_pool else 0,
     "chat_before_nll":original_chat,"chat_after_nll":new_chat,"chat_gate_bar":chat_bar,"chat_gate_bar_with_tolerance":chat_bar_a,"chat_a_tolerance":CHAT_A_TOLERANCE,
     "chat_b_before_nll":original_chat_b,"chat_b_after_nll":new_chat_b,"chat_b_rule":"fresh set B (scripts/zeref_heldout_b.py), never trained or selected on; candidate must not be worse than the pin",
     "chat_gate_public14k_ref_nll":public_ref_chat,"chat_metric":"fix-003 per-pair mean (same as rawrphos_chat_eval.ref_nll), no margin","character_check":{k:character[k] for k in("warmth_delta","no_rude_or_unsafe_regression")},"chat_gate_rule":"fix-002: not worse than the public-pin parent (absolute); promotion additionally requires rawrphos_chat_eval not worse than 14000 AND ref_nll below the current pin","lr_schedule":"cosine to 10%","best_in_cycle":True,"fresh_train_rows":len(train)},

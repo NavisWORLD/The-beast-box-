@@ -32,7 +32,7 @@ class Engine:
     def info(self):
         m=self.metadata
         return {'model_id':'rawrphos-native','display_name':'RAWRPHØS','family':'RAWRPHOS',
-            'architecture':self.model.config.to_dict(),'hebbian':bool(self.model.config.hebbian),'parameter_count':self.model.parameter_count(),
+            'architecture':self.model.config.to_dict(),'hebbian':bool(self.model.config.hebbian),'state_mode':self.model.config.state_mode,'parameter_count':self.model.parameter_count(),
             'checkpoint_sha256':m['checkpoint_sha256'],'tokenizer_sha256':m['tokenizer_sha256'],
             'context_limit':self.model.config.max_seq_len,'training_seq_len':m.get('training_seq_len'),
             'context_extrapolation_validated':False,'training_steps':m['training_steps'],
