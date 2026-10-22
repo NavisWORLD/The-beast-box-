@@ -8,4 +8,5 @@
 /* Phones: a bottom sheet pinned to the viewport (never scrolls the page). */
 @media(max-width:600px){.panel{left:6px;right:6px;bottom:calc(64px + env(safe-area-inset-bottom));width:auto;border-radius:18px;padding:8px 12px 12px;max-height:40vh;overflow:hidden}
  .panel::before{content:'';display:block;width:36px;height:4px;border-radius:2px;background:#fff4;margin:0 auto 8px}}
-@media(max-width:600px){.tab{bottom:calc(214px + env(safe-area-inset-bottom))}}
+/* Oct 22: on phones the closed-state tab sits on the right edge, above the chat bubble, so it no longer covers 'Talk to My Beast'. */
+@media(max-width:600px){.tab{left:auto;right:0;bottom:calc(290px + env(safe-area-inset-bottom));border-radius:12px 0 0 12px;border-left:1px solid #9beffd8a;border-right:0}}
