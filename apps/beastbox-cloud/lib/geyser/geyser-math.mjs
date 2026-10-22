@@ -15,7 +15,7 @@ export function islandHeight(lx,lz){const V=GJ.volcano;const a=Math.atan2(lz,lx)
  const shore=GJ.R*(1+.12*Math.sin(a*3+.7)+.07*Math.sin(a*7-1.1));const r=Math.hypot(lx,lz);
  let h=r<shore?.28+.22*sm(shore,shore*.55,r)+.08*n2(lx,lz):GJ.bed+(GJ.bed*-1+.1)*sm(shore+1.6,shore,r);
  if(r<shore&&r>shore-.35)h+=.35*sm(shore-.35,shore-.12,r);// cliff lip (columnar basalt)
- const dv=Math.hypot(lx-V.x,lz-V.z);const cone=V.h*Math.max(0,1-dv/V.r)**1.4;h=Math.max(h,cone>0?.3+cone:h);
+ const dv=Math.hypot(lx-V.x,lz-V.z);const av=Math.atan2(lz-V.z,lx-V.x);const cone=V.h*Math.max(0,1-dv/(V.r*(1+.1*Math.sin(av*5+1)+.05*Math.sin(av*11))))**1.4*(1+.06*Math.sin(av*9)*Math.min(1,dv));h=Math.max(h,cone>0?.3+cone:h);
  if(dv<V.crater)h=Math.min(h,V.h*.78+.3);// crater floor (lava lake)
  const L=GJ.lagoon;const dl=Math.hypot(lx-L.x,lz-L.z);if(dl<L.r)h=Math.min(h,.05-.12*(1-dl/L.r));
  return Number.isFinite(h)?h:0;}

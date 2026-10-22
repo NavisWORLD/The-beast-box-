@@ -7,7 +7,7 @@ export function buildIsland(THREE:T,scene:import('three').Scene,{low}:{low:boole
   const U={uT:{value:0},uSea:{value:GJ.sea}};const r=rng('geyser-jelly');const S=GJ.half*2;
   // ---- island terrain (vertex colours: black sand, moss, scoria, basalt) + caustics on the seabed
   const seg=low?72:128;const g=new THREE.PlaneGeometry(S,S,seg,seg);g.rotateX(-Math.PI/2);const P=g.attributes.position as any;const col=new Float32Array(P.count*3);
-  const sand=new THREE.Color(0x1a1820),moss=new THREE.Color(0x3d6b3a),scoria=new THREE.Color(0x6b2e22),rock=new THREE.Color(0x2a2a33),bed=new THREE.Color(0x2b4a5a),c=new THREE.Color();
+  const sand=new THREE.Color(0x1a1820),moss=new THREE.Color(0x2c4630),scoria=new THREE.Color(0x4a2219),rock=new THREE.Color(0x2a2a33),bed=new THREE.Color(0x2b4a5a),c=new THREE.Color();
   for(let i=0;i<P.count;i++){const x=P.getX(i),z=P.getZ(i),h=islandHeight(x,z);P.setY(i,h);const dv=Math.hypot(x-GJ.volcano.x,z-GJ.volcano.z);
     if(h<.02)c.copy(bed).lerp(sand,Math.max(0,Math.min(1,(h-GJ.bed)/(.02-GJ.bed))));else if(dv<GJ.volcano.r)c.copy(moss).lerp(scoria,Math.min(1,(1-dv/GJ.volcano.r)*1.6));else if(h<.36)c.copy(sand).lerp(moss,Math.min(1,(h-.02)/.3));else c.copy(moss).lerp(rock,Math.min(1,(h-.5)*1.2));
     col.set([c.r,c.g,c.b],i*3);}
@@ -20,7 +20,7 @@ export function buildIsland(THREE:T,scene:import('three').Scene,{low}:{low:boole
   // neon wireframe light layer over the island
   const wireG=new THREE.WireframeGeometry(new THREE.PlaneGeometry(S,S,low?20:36,low?20:36).rotateX(-Math.PI/2).applyMatrix4(new THREE.Matrix4()));
   {const wp=wireG.attributes.position as any;for(let i=0;i<wp.count;i++)wp.setY(i,islandHeight(wp.getX(i),wp.getZ(i))+.03);}
-  const wire=new THREE.LineSegments(wireG,new THREE.LineBasicMaterial({color:0x7af0ff,transparent:true,opacity:.22,blending:THREE.AdditiveBlending,depthWrite:false}));root.add(wire);
+  const wire=new THREE.LineSegments(wireG,new THREE.LineBasicMaterial({color:0x7af0ff,transparent:true,opacity:.11,blending:THREE.AdditiveBlending,depthWrite:false}));root.add(wire);
   // ---- columnar basalt cliffs (instanced hex prisms) along the NW shore + sea stacks
   const colG=new THREE.CylinderGeometry(.075,.075,1,6);colG.translate(0,.5,0);const basalt=new THREE.MeshStandardMaterial({color:0x26262e,roughness:.85,flatShading:true,emissive:0x0a0a14});
   const nC=low?90:220;const cols=new THREE.InstancedMesh(colG,basalt,nC+STACKS.length*(low?6:12));const m4=new THREE.Matrix4(),q=new THREE.Quaternion(),v=new THREE.Vector3(),s=new THREE.Vector3();let k=0;
