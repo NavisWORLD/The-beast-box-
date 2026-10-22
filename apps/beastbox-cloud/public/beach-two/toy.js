@@ -108,8 +108,8 @@ function buildProps(){
  const tex=new THREE.CanvasTexture((()=>{const c=document.createElement('canvas');c.width=64;c.height=16;const g=c.getContext('2d');g.strokeStyle='#d6e2e8';g.lineWidth=1;for(let i=0;i<=64;i+=8){g.beginPath();g.moveTo(i+.5,0);g.lineTo(i+.5,16);g.stroke();}for(let j=0;j<=16;j+=8){g.beginPath();g.moveTo(0,j+.5);g.lineTo(64,j+.5);g.stroke();}return c;})());
  tex.magFilter=THREE.NearestFilter;tex.wrapS=tex.wrapT=THREE.RepeatWrapping;tex.repeat.set(4,1);
  const net=new THREE.Mesh(new THREE.PlaneGeometry(8.5,1),new THREE.MeshBasicMaterial({map:tex,transparent:true,alphaTest:0.4,side:THREE.DoubleSide}));net.rotation.y=Math.PI/2;net.position.set(0,sandY+COURT.netH-0.5,0);world.add(net);props.net=net;
- box(0.05,0.07,8.6,0xffffff,0,sandY+COURT.netH,0);box(0.04,0.05,8.6,0xffffff,0,sandY+COURT.netH-1,0);
- for(const z of [-4,4]){for(let i=0;i<8;i++)box(0.03,0.11,0.03,i%2?0xffffff:0xe23c3c,0,sandY+COURT.netH-0.3+i*0.11,z);}
+ const tape=lam(0xffffff,0xffffff);box(0.08,0.13,8.6,tape,0,sandY+COURT.netH-0.03,0);box(0.08,0.12,8.6,tape,0,sandY+COURT.netH-1,0);
+ for(const z of [-4,4]){for(let i=0;i<6;i++)box(0.09,0.2,0.09,i%2?lam(0xffffff,0xffffff):lam(0xe23c3c,0xe23c3c),0,sandY+COURT.netH-0.9+i*0.2,z);}
  for(const z of [-4.9,4.9]){box(0.12,2.6,0.12,0xd6e2e8,0,sandY+1.3,z);box(0.26,1.4,0.26,0x1c4cb0,0,sandY+0.7,z);
   const rope=new THREE.Mesh(BOX,lam(0xeef4f6));const a=new THREE.Vector3(0,sandY+2.5,z),b=new THREE.Vector3(0,sandY,z+Math.sign(z)*1.6);bone(rope,a,b,0.02);world.add(rope);}
  // palms
@@ -155,7 +155,7 @@ function bone(m,a,b,t,w){const d=b.clone().sub(a),L=d.length();m.position.copy(a
 function ik2(root,target,l1,l2,pole){const d=target.clone().sub(root);let L=d.length();L=Math.min(Math.max(L,Math.abs(l1-l2)+1e-3),l1+l2-1e-3);d.normalize();
  const a=Math.acos(THREE.MathUtils.clamp((l1*l1+L*L-l2*l2)/(2*l1*L),-1,1));const side=pole.clone().sub(d.clone().multiplyScalar(pole.dot(d))).normalize();
  const mid=root.clone().add(d.clone().multiplyScalar(Math.cos(a)*l1)).add(side.multiplyScalar(Math.sin(a)*l1));const end=root.clone().add(d.multiplyScalar(L));return [mid,end];}
-class Rig{constructor(shirt,shorts,skin,opts={}){this.g=new THREE.Group();world.add(this.g);const m=c=>new THREE.Mesh(BOX,lam(c));
+class Rig{constructor(shirt,shorts,skin,opts={}){this.g=new THREE.Group();world.add(this.g);this.k=opts.k||1;const m=c=>{const mt=lam(c);if(opts.tag){mt.transparent=true;mt.opacity=0.98;}return new THREE.Mesh(BOX,mt);};
   this.p={torso:m(shirt),pelvis:m(shorts),head:m(skin),uaL:m(skin),faL:m(skin),uaR:m(skin),faR:m(skin),thL:m(shorts),shL:m(skin),thR:m(shorts),shR:m(skin),ftL:m(0xffffff),ftR:m(0xffffff),neck:m(skin)};
   for(const k in this.p)this.g.add(this.p[k]);
   if(opts.cap){this.cap=m(opts.cap);this.brim=m(opts.cap);this.g.add(this.cap,this.brim);}if(opts.bun){this.bun=m(0x5c3a28);this.g.add(this.bun);}if(opts.glasses){this.gl=m(0x0e1834);this.g.add(this.gl);}
@@ -175,13 +175,14 @@ class Rig{constructor(shirt,shorts,skin,opts={}){this.g=new THREE.Group();world.
   for(const [s,ua,fa,tgt] of [[1,'uaL','faL',this.handL],[-1,'uaR','faR',this.handR]]){const S=sh(s);const [e,h]=ik2(S,tgt||def(s),0.3,0.3,fw.clone().multiplyScalar(-1).add(new THREE.Vector3(0,-0.5,0)));bone(this.p[ua],S,e,0.09);bone(this.p[fa],e,h,0.08);}
   const hp=s=>hip.clone().add(rt.clone().multiplyScalar(0.11*s));
   for(const [s,th,shn,ft,tgt] of [[1,'thL','shL','ftL',this.footL],[-1,'thR','shR','ftR',this.footR]]){const H=hp(s);const tg=tgt||H.clone().setY(this.pos.y+0.06);const [k,a]=ik2(H,tg,0.46,0.46,fw.clone().add(new THREE.Vector3(0,0.2,0)));
-   bone(this.p[th],H,k,0.14);bone(this.p[shn],k,a,0.11);this.p[ft].position.copy(a).add(fw.clone().multiplyScalar(0.07)).setY(a.y-0.03);this.p[ft].quaternion.setFromAxisAngle(up,this.yaw);this.p[ft].scale.set(0.12,0.06,0.26);}}}
+   bone(this.p[th],H,k,0.14);bone(this.p[shn],k,a,0.11);this.p[ft].position.copy(a).add(fw.clone().multiplyScalar(0.07)).setY(a.y-0.03);this.p[ft].quaternion.setFromAxisAngle(up,this.yaw);this.p[ft].scale.set(0.12,0.06,0.26);}
+  if(this.k!==1){const o=this.pos;for(const c of this.g.children){c.position.sub(o).multiplyScalar(this.k).add(o);c.scale.multiplyScalar(this.k);}}}}
 
 const players=[];const TEAMS=['CORAL','TEAL'];
 function buildPeople(){
  const names=[T('teams.CORAL',[{name:'Juno'},{name:'Pip'}]),T('teams.TEAL',[{name:'Rook'},{name:'Sunny'}])];
- const look=[[0xff8a6c,0xc4486e,0xe0a880,{cap:0xffe04a}],[0xff8a6c,0xc4486e,0xc08060,{bun:true}],[0x26b8c0,0x0e5c5c,0x8c5a3c,{glasses:true}],[0x26b8c0,0x0e5c5c,0xf4d8bc,{cap:0xffffff,glasses:true}]];
- for(let t=0;t<2;t++)for(let i=0;i<2;i++){const L=look[t*2+i];const r=new Rig(L[0],L[1],L[2],L[3]);r.team=t;r.idx=i;r.name=names[t][i]?.name||'P';r.side=t===0?-1:1;
+ const look=[[0xff7a5c,0xd84c3c,0xe0a880,{cap:0xff7a5c}],[0xff7a5c,0xd84c3c,0xc08060,{cap:0xff7a5c,bun:true}],[0x26b8c0,0x1c9888,0x8c5a3c,{cap:0x26b8c0,glasses:true}],[0x26b8c0,0x1c9888,0xf4d8bc,{cap:0x26b8c0,glasses:true}]];
+ for(let t=0;t<2;t++)for(let i=0;i<2;i++){const L=look[t*2+i];const r=new Rig(L[0],L[1],L[2],{...L[3],k:1.3,tag:true});r.team=t;r.idx=i;r.name=names[t][i]?.name||'P';r.side=t===0?-1:1;
   r.home=new THREE.Vector3(r.side*4.5,0.6,i?2:-2);r.pos.copy(r.home);r.vel=new THREE.Vector3();r.target=r.home.clone();r.state='ready';r.st=0;r.y0=0;r.vy=0;r.air=false;players.push(r);}
  // beachgoers
  const bg=[];const mk=(c,s,k,o)=>{const r=new Rig(c,s,k,o);bg.push(r);return r;};
@@ -194,7 +195,7 @@ function buildPeople(){
  for(const r of bg){r.yaw=Math.atan2(-r.pos.x,-r.pos.z);if(r.kid)r.yaw=Math.atan2(props.castle.position.x-r.pos.x,props.castle.position.z-r.pos.z);r.cheerT=-1;}
  // gulls
  props.gulls=[];for(let i=0;i<4;i++){const g=new THREE.Group();world.add(g);const body=box(0.15,0.12,0.4,0xffffff,0,0,0,g);const wl=box(0.6,0.03,0.18,0xd6e2e8,-0.32,0,0,g),wr=box(0.6,0.03,0.18,0xd6e2e8,0.32,0,0,g);
-  const sh=new THREE.Mesh(new THREE.PlaneGeometry(0.8,0.4),new THREE.MeshBasicMaterial({color:0x000000,transparent:true,opacity:0.25,depthWrite:false}));sh.rotation.x=-Math.PI/2;world.add(sh);reflHide.push(sh);
+  const sh=new THREE.Mesh(BOX,new THREE.MeshLambertMaterial({color:0xc9a46c}));sh.scale.set(0.7,0.01,0.3);world.add(sh);reflHide.push(sh);
   props.gulls.push({g,wl,wr,sh,cx:R.range(-12,12),cz:R.range(-4,10),r:R.range(5,10),h:R.range(7,11),a:R.angle(),sp:R.range(0.25,0.45),flap:true,mode:0,ph:0});}
 }
 function poseBeachgoers(t){for(const r of props.bg){r.handL=r.handR=r.footL=r.footR=null;r.lean=0;r.hipH=0.95*(r.kid?1:1);
@@ -411,6 +412,8 @@ const post=new THREE.RawShaderMaterial({glslVersion:THREE.GLSL3,uniforms:{tCol:{
   bool sky=d>=0.99999;if(sky){float t=float(p.y)/art.y;float q=floor(t*7.+bayer(p))/7.;c=toLin(mix(skyBot,skyTop,q));}
   if(raw>0.5){o=vec4(pow(c,vec3(1./2.2)),1.);return;}
   if(!sky){float z=lin(p);float dmax=0.;dmax=max(dmax,lin(p+ivec2(1,0))-z);dmax=max(dmax,lin(p-ivec2(1,0))-z);dmax=max(dmax,lin(p+ivec2(0,1))-z);dmax=max(dmax,lin(p-ivec2(0,1))-z);if(dmax>0.5)c*=0.45;}
+  float ta=texelFetch(tCol,p,0).a;bool me=ta>0.97&&ta<0.99;if(!me){for(int k=0;k<4;k++){ivec2 q=p+ivec2(k==0?1:k==1?-1:0,k==2?1:k==3?-1:0);q=clamp(q,ivec2(0),ivec2(art)-1);float a=texelFetch(tCol,q,0).a;if(a>0.97&&a<0.99){o=vec4(14./255.,24./255.,52./255.,1.);return;}}}
+  if(sky){}
   vec3 L=toLab(c);float best=1e9;vec3 outc=vec3(0);for(int i=0;i<${PALETTE.length};i++){vec3 e=L-palL[i];e.x*=lw;float dd=dot(e,e);if(dd<best){best=dd;outc=palR[i];}}
   o=vec4(outc,1.);}`});
 const postScene=new THREE.Scene();postScene.add(new THREE.Mesh(new THREE.PlaneGeometry(2,2),post));const postCam=new THREE.Camera();
@@ -429,9 +432,9 @@ function fitAndSnap(){const dir=new THREE.Vector3(Math.cos(view.el)*Math.sin(vie
  const ox=-ccx,oy=-ccy;const sx=Math.round(ox/pw)*pw-ox,sy=Math.round(oy/pw)*pw-oy;
  camera.left=ccx-w/2-sx;camera.right=ccx+w/2-sx;camera.top=ccy+h/2-sy;camera.bottom=ccy-h/2-sy;camera.updateProjectionMatrix();}
 
-function resize(){const r=stage.getBoundingClientRect();const W=Math.max(1,Math.floor(r.width)),H=Math.max(1,Math.floor(r.height));PIX=W>900?3:2;ART_W=Math.max(120,Math.min(480,Math.floor(W/PIX)));ART_H=Math.max(90,Math.min(300,Math.floor(H/PIX)));
+function resize(){const r=stage.getBoundingClientRect();const W=Math.max(1,Math.floor(r.width)),H=Math.max(1,Math.floor(r.height));PIX=Math.max(3,Math.ceil(W/480));ART_W=Math.max(1,Math.ceil(W/PIX));ART_H=Math.max(1,Math.ceil(H/PIX));
  const cw=ART_W*PIX,ch=ART_H*PIX;renderer.setSize(W,H,false);canvas.width=W;canvas.height=H;rtMain.dispose();rtRefl.dispose();rtMain=mkRT();rtRefl=mkRT();
- post.uniforms.art.value.set(ART_W,ART_H);post.uniforms.pix.value=PIX;post.uniforms.off.value.set(Math.floor((W-cw)/2),Math.floor((H-ch)/2));seaMat.uniforms.res.value.set(ART_W,ART_H);}
+ post.uniforms.art.value.set(ART_W,ART_H);post.uniforms.pix.value=PIX;post.uniforms.off.value.set(0,H-ch);seaMat.uniforms.res.value.set(ART_W,ART_H);}
 new ResizeObserver(resize).observe(stage);
 
 function render(){fitAndSnap();
