@@ -19,7 +19,8 @@ export function setPublicBrain(session,provider){
 }
 function pattern(session,text,failure=''){
  return {ok:true,reply:replyFromMind(session.mind,text,shownName(session.beast)),source:'local-mind',
-  label:failure?'On-device pattern fallback · not a model answer.':'On-device pattern memory · no language model connected.',
+  speaker:'on-device-pattern-memory',notZerefVoice:true,
+  label:failure?"Zeref's model is offline · on-device pattern-memory fallback, not Zeref's voice and not a model answer.":"On-device pattern memory · not Zeref's voice · no language model connected.",
   moduleReady:!failure,fallback:Boolean(failure),failure};
 }
 async function boundedJson(response){

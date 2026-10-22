@@ -21,11 +21,15 @@ import {speakSeeded,speakableText,voiceProfile,ZEREF_VOICE_SEED,REACH_OUT_LABEL}
 import {isTeacherRoute,makePair,rememberPair,readContribute,writeContribute,contributionBody,readPairs} from '../lib/companion/teacher-distill.mjs';
 import styles from './beast-talk-panel.module.css';
 import {useTalkPersona} from './use-talk-target';
+import {RAWRPHOS_PUBLIC_PIN} from '../lib/companion/brain.mjs';
 
 export type TalkState='idle'|'thinking'|'listening'|'speaking'|'replied'|'offline';
 type Route=TalkRoute;
 type TeacherHint={text:string;label:string;model?:string;route:string};
-type Turn={role:'you'|'beast';text:string;model?:string;route?:string;at?:number;id?:string;cloudImported?:boolean;verified?:boolean;teacher?:TeacherHint;beastMissing?:string;coachedBy?:string;reachOut?:string};
+type Turn={role:'you'|'beast'|'system';text:string;model?:string;route?:string;at?:number;id?:string;cloudImported?:boolean;verified?:boolean;teacher?:TeacherHint;beastMissing?:string;coachedBy?:string;reachOut?:string};
+type ChatTurn=Turn&{role:'you'|'beast'};
+/** System notices (model offline) are shown in the log but never sent to a model or saved as chat. */
+const chatOnly=(l:Turn[]):ChatTurn[]=>l.filter((t):t is ChatTurn=>t.role!=='system');
 type Offline={error:string;help:string[];route:string};
 type Prefs={route:Route;ollamaUrl:string;ollamaModel:string;hfModel:string};
 type Status={routes?:Record<string,{configured:boolean|string}>;default?:string};
@@ -148,7 +152,7 @@ function BeastTalkContent({onState,compact=false,title,gameBridge}:PanelProps){
  async function send(event:FormEvent<HTMLFormElement>){
   event.preventDefault();
   const saying=text.trim();
-  if(pending.current||busy||cloudRestoring||!conversationReady||!saying||saying.length>MAX_MESSAGE)return;
+  if((pending.current&&!pending.current.signal.aborted)||cloudRestoring||!conversationReady||!saying||saying.length>MAX_MESSAGE)return;
   speech.current?.stop();window.speechSynthesis?.cancel();setSpeaking(false);
   const controller=new AbortController();pending.current=controller;
   // A model on the visitor's own CPU can take minutes on a slow or busy computer; Cancel is always shown.
@@ -158,7 +162,7 @@ function BeastTalkContent({onState,compact=false,title,gameBridge}:PanelProps){
   try{
    const observation=includeGame&&gameBridge?.key===gameBeastKey(session)?await gameBridge.observeGame?.():null;
    if(controller.signal.aborted||personaKey.current!==forKey||privateSelection.current!==forSelection)return;
-   const ask={persona,history:log,text:saying,shareHistory,observation,context:[knownGameContext(session,gameBridge?.key),shareGrowth?growthModelContext(growth):''].filter(Boolean).join('\n'),signal:controller.signal,
+   const ask={persona,history:chatOnly(log),text:saying,shareHistory,observation,context:[knownGameContext(session,gameBridge?.key),shareGrowth?growthModelContext(growth):''].filter(Boolean).join('\n'),signal:controller.signal,
     ollama:{url:prefs.ollamaUrl,model:prefs.ollamaModel},hf:{key:hfKey,model:prefs.hfModel,spendConfirmed:spend}};
    // Teacher design: any non-RAWRPHOS brain is a TEACHER. RAWRPHOS still writes the
    // Beast's own reply; the teacher's answer is shown separately and labeled.
@@ -170,20 +174,25 @@ function BeastTalkContent({onState,compact=false,title,gameBridge}:PanelProps){
    if(teacherResult&&teacherResult.ok&&teacherResult.route!=='shared-ollama')recordTeacherPair(saying,{text:teacherResult.reply,label:TEACHER_LABEL[teacherResult.route]||teacherResult.label,model:teacherResult.model,route:teacherResult.route});
    // A teacher that couldn't connect is reported honestly (with setup help) but never blocks Zeref's own reply.
    const teacherDown=teacherResult&&!teacherResult.ok?{error:'Teacher not connected: '+teacherResult.error,help:teacherResult.help,route:teacherResult.route}:null;
-   if(!result.ok){setOffline({error:`${persona.name} is resting, try again.`+(teacherDown?' '+teacherDown.error:''),help:teacherDown?.help||[],route:'guest-rawrphos'});return;}
+   if(!result.ok){
+    // Honest, visible, in the conversation: no reply was produced and nothing is shown as Zeref's voice.
+    // The message stays in the box so Send/Retry works again without reloading.
+    const at=Date.now();
+    setLog(prev=>[...prev,{role:'you',text:saying,at,id:'failed-'+at+'-you'},{role:'system',text:`${persona.name}'s model is offline (${result.error||'no verified reply'}). No reply was shown as ${persona.name}. Your message is still in the box; tap Retry.`,at,id:'failed-'+at+'-sys'}]);
+    setOffline({error:`${persona.name}'s verified RAWRPHØS model did not answer: ${result.error||'no verified reply'}`+(teacherDown?' '+teacherDown.error:''),help:teacherDown?.help||[],route:'guest-rawrphos'});return;}
    if(teacherDown)setOffline(teacherDown);
    const exchangeId=crypto.randomUUID(),at=Date.now();
    const coachedBy=teacherResult&&teacherResult.ok?TEACHER_LABEL[teacherResult.route]||teacherResult.label:undefined;
    const youTurn={role:'you' as const,text:saying,at,id:exchangeId+'-you'};
-   const next=[...log,youTurn,{role:'beast' as const,text:result.reply,model:result.model,route:result.route,at:result.at,id:exchangeId+'-beast',coachedBy}];
-   setLog(next);writeTalkLog(storage.current,forKey,next);setVerifiedAt(result.ok?result.at:at);editText('');
+   const next=[...log.filter(t=>!String(t.id||'').startsWith('failed-')),youTurn,{role:'beast' as const,text:result.reply,model:result.model,route:result.route,at:result.at,id:exchangeId+'-beast',coachedBy}];
+   setLog(next);writeTalkLog(storage.current,forKey,chatOnly(next));setVerifiedAt(result.ok?result.at:at);editText('');
    if(visitorId&&storage.current){const prior=growth?.beastKey===forKey?growth:freshGrowth(visitorId,forKey);const updated=advanceVisitorGrowth(prior,{text:saying,reply:result.reply,verified:true});writeVisitorGrowth(storage.current,updated);setGrowth(updated);}
    if(boundForCloud){try{privateQueue.current?.enqueue({...boundForCloud,exchange:{eventId:exchangeId,text:saying,reply:result.reply,provider:result.route,model:result.model,at}});}catch(error){setCloudStatus((error instanceof Error?error.message:'Private queue unavailable.')+' The completed reply remains in local storage.');}}
    // Same Beast, same growth: a verified exchange adds to the saved Beast's chat and bond.
    if(retention==='device'&&beastId&&session?.beast&&persona.source==='spark')void change(draft=>{if(beastIdentity(draft.beast)===beastId)rememberExchange(draft,saying,result.reply);});
   }finally{
    window.clearTimeout(timeout);
-   if(pending.current===controller){pending.current=null;setBusy(false);}
+   if(pending.current===controller||!pending.current||pending.current.signal.aborted){pending.current=null;setBusy(false);}
   }
  }
  function recordTeacherPair(prompt:string,teacher:TeacherHint){
@@ -237,6 +246,7 @@ function BeastTalkContent({onState,compact=false,title,gameBridge}:PanelProps){
     </div>:null}
     <h2>{ready?title||`Talk to ${persona.name}`:'Finding your Beast…'}</h2>
     <p><strong>{persona.name}</strong> · {persona.kind}. {persona.traits.join(', ')}.</p>
+    {persona.source==='zeref'?<small data-chat-identity data-chat-step={RAWRPHOS_PUBLIC_PIN.step}>Zeref · bb-deada969 · voice: RAWRPHØS step {RAWRPHOS_PUBLIC_PIN.step} (public chat pin; each reply is checked against it)</small>:null}
     <small>{persona.source==='zeref'?'Showing Zeref, the site Beast. Meet your own Beast in My Beast and it will talk here instead.':persona.source==='spark'?'Your saved Beast. Its name, personality and memories stay the same whichever brain answers.':'Your Beast Cage creature. Its personality stays the same whichever brain answers.'}</small>
    </div>
   </header>
@@ -284,7 +294,7 @@ function BeastTalkContent({onState,compact=false,title,gameBridge}:PanelProps){
 
   <div className={styles.log} aria-label={`Conversation with ${persona.name}`} aria-live="polite">
    {log.length===0?<p className={styles.empty}>Say hi to {persona.name}! 👋 Type below, then tap Send.<small> {persona.name}&apos;s replies come from RAWRPHØS, never from a script. Teachers coach RAWRPHØS in the background; their words are never shown as {persona.name}&apos;s.</small></p>:
-    log.map((turn,i)=><div key={i} style={{display:'contents'}}><div className={turn.role==='you'?styles.you:styles.beast}>
+    log.map((turn,i)=>turn.role==='system'?<div key={i} className={styles.offline} role="status" data-model-offline-turn><strong>⚠ Model offline · not {persona.name}&apos;s voice</strong><p>{turn.text}</p></div>:<div key={i} style={{display:'contents'}}><div className={turn.role==='you'?styles.you:styles.beast}>
      <span className={styles.speaker}>{turn.role==='you'?'You':persona.name}{turn.role==='beast'&&turn.model?<em> · via {turn.model}</em>:null}</span>
      <p>{turn.text}</p>
      {turn.reachOut?<small data-reach-out>💬 {REACH_OUT_LABEL} · {turn.reachOut}</small>:null}
@@ -299,6 +309,7 @@ function BeastTalkContent({onState,compact=false,title,gameBridge}:PanelProps){
    <strong>Model offline: no reply was received</strong>
    <p>{offline.error}</p>
    {offline.help.length?<><span>How to connect a brain:</span><ul>{offline.help.map(line=><li key={line}>{line}</li>)}</ul></>:null}
+   <button type="button" className={styles.ghost} data-chat-retry disabled={busy||!text.trim()} onClick={()=>document.querySelector<HTMLFormElement>('form[data-companion-chat-form]')?.requestSubmit()}>Retry</button>
    {!showBrains&&offline.help.length?<button type="button" className={styles.ghost} onClick={()=>setShowBrains(true)}>Pick another teacher</button>:null}
   </div>:null}
 
@@ -306,7 +317,7 @@ function BeastTalkContent({onState,compact=false,title,gameBridge}:PanelProps){
    <p role="status">{cloudStatus}</p><button type="button" disabled={busy||cloudBusy||!conversationReady||!session?.beast} onClick={()=>void restorePrivate()}>Restore my private cloud conversation</button>
    <label><input type="checkbox" checked={cloudSync} disabled={!cloudOwner||!cloudConsented||cloudBusy} onChange={e=>togglePrivateSync(e.target.checked)}/> Save new verified exchanges to my private cloud. Requires this Beast’s separate cloud consent in Settings.</label>
    {queueState.pending>0?<button type="button" disabled={cloudBusy||!cloudSync||!cloudConsented} onClick={()=>void privateQueue.current?.retry()}>Retry private save ({queueState.pending})</button>:null}
-   <label>Keep this conversation <select value={retention} onChange={e=>{const next=e.target.value==='session'?'session':'device';const target=next==='session'?sessionStorage:localStorage;writeTalkLog(target,persona.key,log);writeTalkDraft(target,persona.key,text);if(next==='session'){localStorage.removeItem(LOG_PREFIX+persona.key);localStorage.removeItem(DRAFT_PREFIX+persona.key);}setRetention(next);try{localStorage.setItem(TALK_RETENTION_KEY,next);}catch{/* optional */}}}><option value="device">On this device</option><option value="session">In this tab only</option></select></label>
+   <label>Keep this conversation <select value={retention} onChange={e=>{const next=e.target.value==='session'?'session':'device';const target=next==='session'?sessionStorage:localStorage;writeTalkLog(target,persona.key,chatOnly(log));writeTalkDraft(target,persona.key,text);if(next==='session'){localStorage.removeItem(LOG_PREFIX+persona.key);localStorage.removeItem(DRAFT_PREFIX+persona.key);}setRetention(next);try{localStorage.setItem(TALK_RETENTION_KEY,next);}catch{/* optional */}}}><option value="device">On this device</option><option value="session">In this tab only</option></select></label>
    <label><input type="checkbox" checked={shareHistory} onChange={e=>setShareHistory(e.target.checked)}/> Share recent conversation with the selected provider</label>
    {gameBridge&&gameBridge.key===gameBeastKey(session)?<><label><input type="checkbox" checked={includeGame} onChange={e=>setIncludeGame(e.target.checked)}/> Include measured game screen brightness, contrast and color</label><GameChatTools bridge={gameBridge} busy={busy} route={route} optedIn={includeGame}/></>:<p>Observation mode: creature identity and your message. No live game vision bridge is connected.</p>}
    <p>Voice typing starts only on your tap and may use your browser’s speech service. Speech playback follows your sound settings.</p>

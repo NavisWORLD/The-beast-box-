@@ -23,6 +23,7 @@ import {useCompanion} from './companion-provider';
 import {generateCreature,type BaseLook,type AmbientAction} from '../lib/creature-profile';
 import BrandCrest from '@/components/brand-crest';
 import ZerefDiaryPanel from './zeref-diary-panel';
+import MetaMusePanel from './meta-muse-panel';
 import {ZEREF_PROFILE} from '../lib/zeref/zeref-mind.mjs';
 import {creatureVisual} from '../public/spark/creature-assets.mjs';
 import {POCKET_3D_CAMERA_RESET} from '../lib/companion/pocket-3d-settings.mjs';
@@ -136,6 +137,7 @@ export default function BeastCagePortal(){
   </section>
   {sameSpark?<CreatureDashboard beast={session.beast} cosmosProfile={cosmosProfile}/>:null}
   <ZerefDiaryPanel journalId={sameSpark?session.beast.qbeast.profile.id:creature?creature.id:ZEREF_PROFILE.id} beastName={pocketName} cosmosProfile={cosmosProfile} showGrow={!sameSpark}/>
+  <MetaMuseCageEntry/>
   {!sameSpark?<GenesisForge value={creature} onChange={next=>{selectProfile(next);setLook(next.baseLook);}}
    onAmbient={setAmbient}/>:<div className="cage-generated-status"><span>{creatureName} · same recorded genome and QBEAST</span><Link href="/sol-game">Play this Beast in LOST COSMOS 🎮</Link></div>}
   {creature?<div className="cage-generated-status" role="status">
@@ -173,4 +175,13 @@ export default function BeastCagePortal(){
    {expanded?<p>The active companion uses the local Spark pixel renderer and recorded game-seed distributions. Reduced motion disables roaming transforms. Sound starts only after your tap. It never records sensor media or starts model inference on this public page.</p>:null}
   </footer>
  </main>;
+}
+
+/** Pair with Meta Muse on the Beast Cage. The panel mounts only after the guest opens it,
+ * so its browser-only connector URL never differs between server and client render. */
+function MetaMuseCageEntry(){
+ const [open,setOpen]=useState(false);
+ return <details id="meta-muse" data-meta-muse-entry="beast-cage" className="cage-meta-muse" onToggle={event=>setOpen((event.currentTarget as HTMLDetailsElement).open)}>
+  <summary>Pair with Meta Muse</summary>{open?<MetaMusePanel/>:null}
+ </details>;
 }

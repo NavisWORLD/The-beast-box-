@@ -828,7 +828,7 @@ class Handler(BaseHTTPRequestHandler):
         # The only unauthenticated path: bounded, non-sensitive runtime readiness
         # for a managed HTTPS reverse proxy. No model or owner state is returned.
         if method == "GET" and self.path == "/healthz":
-            self._emit(200, {"ready": True, "service": "beastbox-owner-bridge"})
+            self._emit(200, served_pin_health())
             return
         auth = self.headers.get("Authorization", "")
         if method == "POST":
@@ -861,6 +861,28 @@ class Handler(BaseHTTPRequestHandler):
     def log_message(self, format: str, *args: object) -> None:
         # Never log user prompts, bearer values, record text, raw paths or credentials.
         return
+
+
+def served_pin_health() -> dict:
+    """Public, non-secret readiness: which public pin this image was built for and
+    which checkpoint the private loopback model is actually serving right now.
+    Step and sha are public pin data; no owner state, keys or prompts are returned."""
+    from beastbox.rawrphos_local import STEP as PIN_STEP, SHA as PIN_SHA, status as native_pin_status
+    body = {"ready": True, "service": "beastbox-owner-bridge", "schema": "beastbox-bridge-health-v2",
+            "pin_step": PIN_STEP, "pin_checkpoint_sha256": PIN_SHA,
+            "served_step": None, "served_checkpoint_sha256": None,
+            "served_readiness": "UNKNOWN", "serving_pin": False}
+    try:
+        ready = native_pin_status()
+        body["served_readiness"] = str(ready.get("readiness"))
+        if ready.get("readiness") == "INSTALLED_AND_READY":
+            body["served_step"] = ready.get("loaded_step")
+            body["served_checkpoint_sha256"] = ready.get("checkpoint_sha256")
+        body["serving_pin"] = (body["served_step"] == PIN_STEP
+                               and body["served_checkpoint_sha256"] == PIN_SHA)
+    except Exception:  # health must never crash the bridge
+        body["served_readiness"] = "STATUS_ERROR"
+    return body
 
 
 class Server(ThreadingHTTPServer):

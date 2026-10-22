@@ -21,6 +21,7 @@ jobs:
           want=$(python -c "import json;print(json.load(open('apps/beastbox-cloud/lib/rawrphos-public-pin.json'))['training_steps'])")
           for i in $(seq 1 50); do
             got=$(curl -s -m 60 -X POST https://www.beastboxcosmos.xyz/api/guest -H 'content-type: application/json' -H 'origin: https://www.beastboxcosmos.xyz' -H 'referer: https://www.beastboxcosmos.xyz/' -H 'sec-fetch-site: same-origin' -d '{"provider":"rawrphos-local","text":"Say hi."}' | python -c "import json,sys;print(json.load(sys.stdin).get('step',''))" 2>/dev/null || true)
-            echo "attempt $i: live step=$got want=$want"; [ "$got" = "$want" ] && { echo BRIDGE_IN_SYNC; exit 0; }; sleep 30
+            health=$(curl -s -m 20 https://cosmos-owner-bridge-production.up.railway.app/healthz | head -c 600 || true)
+            echo "attempt $i: live step=$got want=$want bridge_health=$health"; [ "$got" = "$want" ] && { echo BRIDGE_IN_SYNC; exit 0; }; sleep 30
           done
           echo "::error::Live bridge never served pin step $want. Reconnect cosmos-owner-bridge to NavisWORLD/The-beast-box- main in Railway and redeploy."; exit 1
