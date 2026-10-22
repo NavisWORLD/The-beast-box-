@@ -206,7 +206,7 @@ uniform vec3 uPlay[8];
  const jm=(e:React.PointerEvent)=>{const j=joy.current;if(!j.active||e.pointerId!==j.id)return;const dx=(e.clientX-j.cx)/50,dy=(e.clientY-j.cy)/50;const m=Math.max(1,Math.hypot(dx,dy));j.x=dx/m;j.y=dy/m;setStick({x:j.x,y:j.y});};
  const ju=()=>{joy.current={...joy.current,x:0,y:0,active:false};setStick(null);};
  const T=hud.traits;
- return <div ref={host} className="lw-root" data-living-world={spawned?'spawned':'orbit'} style={{position:'fixed',inset:0,zIndex:1000,background:'#05030f',touchAction:'none',color:'#efeaff',font:'13px/1.35 system-ui,sans-serif'}}>
+ return <div ref={host} className="lw-root" data-living-world={spawned?'spawned':'orbit'} style={{position:'fixed',inset:0,zIndex:2147483000,background:'#05030f',touchAction:'none',color:'#efeaff',font:'13px/1.35 system-ui,sans-serif'}}>
   <canvas ref={canvasRef} style={{position:'absolute',inset:0,width:'100%',height:'100%',display:'block'}}/>
   <div style={{position:'absolute',top:'calc(env(safe-area-inset-top) + 10px)',left:10,right:10,display:'flex',flexWrap:'wrap',gap:6,pointerEvents:'none'}}>
    <span style={pill('#2b6cb0')} data-lw-spark>{LW_LABELS.spark}</span><span style={pill('#9b2c2c')} data-lw-growth>{LW_LABELS.growth}</span><span style={pill('#553c9a')} data-lw-model>{LW_LABELS.model}</span>
