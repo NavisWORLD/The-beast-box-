@@ -29,7 +29,7 @@ export function addGeyserEvents(THREE:T,isl:Island,{low}:{low:boolean}){
   const channel=new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),low?24:48,.07,6,false),lavaM);root.add(channel);
   const glow=new THREE.PointLight(0xff6a2a,low?0:2.2,5,2);glow.position.set(V.x,lake.position.y+.6,V.z);root.add(glow);
   // ---- lava bombs
-  const NB=low?8:16;const bombs=new THREE.InstancedMesh(new THREE.IcosahedronGeometry(.06,0),new THREE.MeshBasicMaterial({color:0xff7a2a,toneMapped:false}),NB);bombs.frustumCulled=false;root.add(bombs);
+  const NB=low?8:16;const bombs=new THREE.InstancedMesh(new THREE.IcosahedronGeometry(.1,0),new THREE.MeshBasicMaterial({color:0xff7a2a,toneMapped:false}),NB);bombs.frustumCulled=false;root.add(bombs);
   const B:{x:number;y:number;z:number;vx:number;vy:number;vz:number;t:number;on:boolean}[]=Array.from({length:NB},()=>({x:0,y:0,z:0,vx:0,vy:0,vz:0,t:0,on:false}));const hide=new THREE.Matrix4().makeScale(0,0,0);for(let i=0;i<NB;i++)bombs.setMatrixAt(i,hide);
   function launch(n:number){let k=0;for(const b of B){if(b.on||k>=n)continue;const a=r()*6.283,s=.6+r()*1.4;Object.assign(b,{x:V.x,y:lake.position.y+.1,z:V.z,vx:Math.cos(a)*s,vy:3+r()*2.5,vz:Math.sin(a)*s,t:0,on:true});k++;}}
   let erupt=0,shake=0,manualGeyser=-1,lastPhase='';
@@ -57,6 +57,6 @@ export function addGeyserEvents(THREE:T,isl:Island,{low}:{low:boolean}){
         m.makeTranslation(p.x,p.y,p.z);bombs.setMatrixAt(i,m);if(r()<.3)puff(p.x,p.y,p.z,1,0,.1,0,.3);});bombs.instanceMatrix.needsUpdate=true;
       for(let i=0;i<N;i++){if(pl[i]<=0)continue;const k=pk[i];pl[i]-=d*(k===2?.9:.45);const j=i*3;pv[j+1]+=k===2?-9.8*d*.5:.1*d;pp[j]+=pv[j]*d;pp[j+1]+=pv[j+1]*d;pp[j+2]+=pv[j+2]*d;if(!Number.isFinite(pp[j+1]))pl[i]=0;}
       (pg.attributes.position as any).needsUpdate=true;(pg.attributes.aL as any).needsUpdate=true;(pg.attributes.aK as any).needsUpdate=true;(pg.attributes.aS as any).needsUpdate=true;},
-    pickables:()=>[pool,dome,lake]};
+    pickables:()=>[pool,dome,lake],puff};
   return api;
 }
