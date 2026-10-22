@@ -33,8 +33,8 @@ export default function HomePocket(){
    stage={beast?(beast.nativeStage||1):1} behaviorPosition={beast?beast.behavior?.position||null:null}
    state={beast?visualStateFromBeast(beast):'idle'} reduced={reduced} onActiveChange={noop} qvmCounts={qvmCounts} autoOrbit chatLine={lastYou}/>
   <button type="button" className="lc-roamer-tools" aria-label="Show sound, game and help controls" onClick={()=>document.body.classList.toggle('lc-tools-open')}>⋯</button>
-  <button type="button" className="lc-living-world-open" data-open-living-world onClick={()=>setWorld(true)} style={{position:'absolute',left:10,bottom:10,zIndex:5,background:'rgba(107,70,193,.9)',color:'#fff',border:0,borderRadius:10,padding:'8px 12px',fontWeight:600}}>🌍 Enter the tiny world</button>
-  {world&&typeof document!=='undefined'?createPortal(<LivingWorld genome={own?.genome||null} beastKey={beast?.qbeast?.profile?.id||null} beastName={beast?.displayName||beast?.genome?.names?.[String(beast?.stage)]||null} onClose={()=>setWorld(false)}/>,document.body):null}
+  <button type="button" className="lc-living-world-open" data-open-living-world onClick={()=>setWorld(true)} style={{position:'absolute',left:10,top:10,zIndex:5,background:'rgba(107,70,193,.9)',color:'#fff',border:0,borderRadius:10,padding:'8px 12px',fontWeight:600}}>🌍 Enter the tiny world</button>
+  {world&&typeof document!=='undefined'?createPortal(<LivingWorld genome={own?.genome||null} beastKey={own?.qbeast?.profile?.id||null} beastName={own?(own.displayName||own.genome?.names?.[String(own.stage)]||null):null} onClose={()=>setWorld(false)}/>,document.body):null}
   {reduced?null:<FluidSwirlLayer storm={sc.storm} chaos={sc.chaos} count={60}/>}
  </div>;
 }
