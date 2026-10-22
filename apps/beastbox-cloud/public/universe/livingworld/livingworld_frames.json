@@ -1,0 +1,156 @@
+{
+ "frame_size": [
+  128,
+  128
+ ],
+ "anchor_px": [
+  64,
+  112
+ ],
+ "note": "anchor = ground contact (feet). Scale so traveler ~1.2% of planet radius.",
+ "traveler_walk": {
+  "file": "traveler_walk_8dir.png",
+  "frame": [
+   128,
+   128
+  ],
+  "cols": 8,
+  "count": 64,
+  "rows": [
+   "S",
+   "SE",
+   "E",
+   "NE",
+   "N",
+   "SW",
+   "W",
+   "NW"
+  ],
+  "fps": 10
+ },
+ "traveler_idle": {
+  "file": "traveler_idle.png",
+  "frame": [
+   128,
+   128
+  ],
+  "cols": 6,
+  "count": 6,
+  "fps": 6
+ },
+ "traveler_spawn": {
+  "file": "traveler_spawn.png",
+  "frame": [
+   128,
+   128
+  ],
+  "cols": 10,
+  "count": 10,
+  "fps": 14,
+  "loop": false
+ },
+ "beast_idle": {
+  "file": "beast_idle.png",
+  "frame": [
+   128,
+   128
+  ],
+  "cols": 6,
+  "count": 6,
+  "fps": 6
+ },
+ "beast_walk": {
+  "file": "beast_walk.png",
+  "frame": [
+   128,
+   128
+  ],
+  "cols": 8,
+  "count": 8,
+  "fps": 10
+ },
+ "beast_run_to_greet": {
+  "file": "beast_run_to_greet.png",
+  "frame": [
+   128,
+   128
+  ],
+  "cols": 12,
+  "count": 12,
+  "fps": 12,
+  "segments": {
+   "run_loop": [
+    0,
+    7
+   ],
+   "greet": [
+    8,
+    11
+   ]
+  },
+  "note": "loop run 0-7 while distance>1.5 traveler heights, then play greet once facing traveler. Art faces E; mirror for W."
+ },
+ "beast_contact_shadow": {
+  "file": "beast_contact_shadow.png",
+  "size": [
+   128,
+   32
+  ],
+  "note": "place under anchor, multiply blend, align to surface normal"
+ },
+ "ground": {
+  "grass_tile": "ground_grass_tile_256.jpg",
+  "soil_tile": "ground_soil_tile_256.jpg",
+  "edge_tiles": {
+   "edge": [
+    "grass_edge_edge.png",
+    "grass_edge_edge_mask.png"
+   ],
+   "outer": [
+    "grass_edge_outer.png",
+    "grass_edge_outer_mask.png"
+   ],
+   "inner": [
+    "grass_edge_inner.png",
+    "grass_edge_inner_mask.png"
+   ]
+  },
+  "note": "Tileable 256. Edges: grass at bottom (edge), bottom-right (outer), all but top-left (inner); rotate 90\u00b0 for other sides. Simpler on a sphere: drive a 0-1 coverage field (spread from beast gathering points) and use the edge mask noise as a threshold."
+ },
+ "grass_blades": {
+  "file": "grass_blade_atlas.png",
+  "cols": 8,
+  "rows": 1,
+  "cell": [
+   32,
+   128
+  ],
+  "pivot_uv": [
+   0.5,
+   0.0
+  ],
+  "wind": {
+   "sway_amp_rad": 0.35,
+   "freq_hz": 0.6,
+   "wave_len_world": 3.0,
+   "gust_amp": 0.15,
+   "gust_freq_hz": 0.11,
+   "weight": "pow(uv.y,1.6)",
+   "shader_hint": "angle = amp*weight*sin(t*2pi*freq + dot(worldPos,windDir)/waveLen) ; bend about pivot in tangent plane"
+  },
+  "tips_glowing": [
+   2,
+   6
+  ],
+  "instances_phone": "<=6k, cross-quad, alphaTest 0.5, no shadows"
+ },
+ "window_glow": {
+  "file": "window_glow.png",
+  "size": [
+   128,
+   128
+  ],
+  "blend": "additive",
+  "note": "billboard ~0.6 beast height, offset up-left of beast; pulse opacity 0.35-0.7 at 0.25 Hz; brighten when env state updates. It's the beast peeking into its person's reality."
+ }
+}

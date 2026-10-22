@@ -10,6 +10,8 @@ import FluidSwirlLayer from './fluid-swirl-layer';
 import {stormChaos} from '../lib/companion/fluid-swirl.mjs';
 import {deriveEmotions} from '../lib/companion/emotion.mjs';
 import {useChshGame} from './use-chsh-game';
+import dynamic from 'next/dynamic';
+const LivingWorld=dynamic(()=>import('./living-world'),{ssr:false});
 /** Guest default: Zeref bb-deada969's own recorded session record (display only; never adopted, never merged with the Moonwraith display guide). */
 export const ZEREF_HOME_DEFAULT={id:'bb-deada969',src:'/spark/zeref-live-20261010/unsigned-session.json'};
 /** Home shows the same dimensional pocket as the Cage, view-only (explore it in the Cage).
@@ -20,7 +22,7 @@ export default function HomePocket(){
  const own=session?.beast?.qbeast?.profile?.id?session.beast:null;
  const [zeref,setZeref]=useState<any>(null);
  useEffect(()=>{if(own||zeref)return;let live=true;fetch(ZEREF_HOME_DEFAULT.src).then(r=>r.ok?r.json():null).then(d=>{const b=d?.beast;if(live&&b?.qbeast?.profile?.id===ZEREF_HOME_DEFAULT.id)setZeref(b);}).catch(()=>{});return()=>{live=false;};},[own,zeref]);
- const beast=own||zeref;
+ const beast=own||zeref;const [world,setWorld]=useState(false);
  const game=useChshGame();const sc=stormChaos(deriveEmotions(beast),game);
  const qvmCounts=useOwnQvmCounts(beast?recordedQvmStimulusPath(beast):null);
  const chat=Array.isArray(session?.chat)?session.chat:[];const lastYou=[...chat].reverse().find((m:any)=>m?.role==='you')?.text||null;
@@ -30,6 +32,8 @@ export default function HomePocket(){
    stage={beast?(beast.nativeStage||1):1} behaviorPosition={beast?beast.behavior?.position||null:null}
    state={beast?visualStateFromBeast(beast):'idle'} reduced={reduced} onActiveChange={noop} qvmCounts={qvmCounts} autoOrbit chatLine={lastYou}/>
   <button type="button" className="lc-roamer-tools" aria-label="Show sound, game and help controls" onClick={()=>document.body.classList.toggle('lc-tools-open')}>⋯</button>
+  <button type="button" className="lc-living-world-open" data-open-living-world onClick={()=>setWorld(true)} style={{position:'absolute',left:10,bottom:10,zIndex:5,background:'rgba(107,70,193,.9)',color:'#fff',border:0,borderRadius:10,padding:'8px 12px',fontWeight:600}}>🌍 Enter the tiny world</button>
+  {world?<LivingWorld genome={own?.genome||null} beastKey={beast?.qbeast?.profile?.id||null} beastName={beast?.displayName||beast?.genome?.names?.[String(beast?.stage)]||null} onClose={()=>setWorld(false)}/>:null}
   {reduced?null:<FluidSwirlLayer storm={sc.storm} chaos={sc.chaos} count={60}/>}
  </div>;
 }
