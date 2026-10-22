@@ -1,0 +1,150 @@
+name: R12 Physics Probe 001
+
+on:
+  push:
+    branches: [r12-physics-probe-001]
+    paths:
+      - '.github/workflows/r12-physics-probe-001.yml'
+      - 'beastbox/r12_physics_probe.py'
+      - 'scripts/run_r12_physics_probe_ibm.py'
+      - 'scripts/analyze_r12_physics_probe.py'
+      - 'scripts/make_r12_physics_preregistration.py'
+      - 'scripts/preflight_r12_physics_probe.py'
+      - 'tests/test_r12_physics_probe*.py'
+      - 'docs/superpowers/specs/2026-08-23-r12-physics-probe-001*.md'
+      - 'docs/superpowers/plans/2026-08-23-r12-physics-probe-001.md'
+      - 'experiments/r12-physics-probe-001/preregistered/**'
+      - 'experiments/r12-physics-probe-001/RUN_APPROVED'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: r12-physics-probe-001-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Probe 001 dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e '.[dev,quantum]'
+
+      - name: Run Probe 001 contracts
+        run: |
+          pytest -q \
+            tests/test_r12_physics_probe.py \
+            tests/test_r12_physics_probe_ibm_contract.py \
+            tests/test_r12_physics_probe_prereg.py \
+            tests/test_r12_physics_probe_analysis.py
+
+      - name: Detect hardware approval
+        id: gate
+        shell: bash
+        run: |
+          if test -f experiments/r12-physics-probe-001/RUN_APPROVED; then
+            echo 'approved=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'approved=false' >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Verify frozen source commit and preregistration exist
+        if: steps.gate.outputs.approved == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f experiments/r12-physics-probe-001/preregistered/preregistration.json
+          test -f experiments/r12-physics-probe-001/preregistered/PREREGISTRATION_SHA256
+          test -f experiments/r12-physics-probe-001/preregistered/protected-inputs.json
+          SOURCE_COMMIT="$(python - <<'PY'
+          import json
+          p=json.load(open('experiments/r12-physics-probe-001/preregistered/preregistration.json'))
+          print(p['source_commit'])
+          PY
+          )"
+          git merge-base --is-ancestor "$SOURCE_COMMIT" HEAD
+          git diff --exit-code "$SOURCE_COMMIT"..HEAD -- \
+            beastbox/r12_physics_probe.py \
+            scripts/run_r12_physics_probe_ibm.py \
+            scripts/analyze_r12_physics_probe.py \
+            scripts/make_r12_physics_preregistration.py \
+            scripts/preflight_r12_physics_probe.py \
+            .github/workflows/r12-physics-probe-001.yml
+
+      - name: Run frozen exact-QM and 1000-dataset null preflight
+        if: steps.gate.outputs.approved == 'true'
+        run: |
+          rm -rf experiments/r12-physics-probe-001/synthetic
+          python scripts/preflight_r12_physics_probe.py \
+            --prereg experiments/r12-physics-probe-001/preregistered/preregistration.json \
+            --prereg-sha experiments/r12-physics-probe-001/preregistered/PREREGISTRATION_SHA256 \
+            --datasets 1000 \
+            --out experiments/r12-physics-probe-001/synthetic
+          cat experiments/r12-physics-probe-001/synthetic/preflight-receipt.json
+
+      - name: Run full preregistered IBM workload
+        if: steps.gate.outputs.approved == 'true'
+        env:
+          IBM_QUANTUM_TOKEN: ${{ secrets.IBM_QUANTUM_TOKEN }}
+          IBM_QUANTUM_INSTANCE: ${{ secrets.IBM_QUANTUM_INSTANCE }}
+        run: |
+          set -euo pipefail
+          test -n "$IBM_QUANTUM_TOKEN"
+          rm -rf experiments/r12-physics-probe-001/measured experiments/r12-physics-probe-001/derived
+          python scripts/run_r12_physics_probe_ibm.py \
+            --prereg experiments/r12-physics-probe-001/preregistered/preregistration.json \
+            --prereg-sha experiments/r12-physics-probe-001/preregistered/PREREGISTRATION_SHA256 \
+            --out experiments/r12-physics-probe-001
+
+      - name: Analyze sealed discovery and replication evidence
+        if: steps.gate.outputs.approved == 'true'
+        run: |
+          python scripts/analyze_r12_physics_probe.py \
+            --root experiments/r12-physics-probe-001 \
+            --prereg experiments/r12-physics-probe-001/preregistered/preregistration.json \
+            --prereg-sha experiments/r12-physics-probe-001/preregistered/PREREGISTRATION_SHA256 \
+            --repo-root .
+          cat experiments/r12-physics-probe-001/derived/final-verdict.json
+
+      - name: Verify final evidence checksum manifest
+        if: steps.gate.outputs.approved == 'true'
+        run: |
+          cd experiments/r12-physics-probe-001
+          sha256sum -c SHA256SUMS
+
+      - name: Upload Probe 001 evidence
+        if: always() && steps.gate.outputs.approved == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: r12-physics-probe-001-${{ github.run_id }}
+          path: experiments/r12-physics-probe-001
+          if-no-files-found: warn
+
+      - name: Seal verified Probe 001 evidence to feature branch
+        if: success() && steps.gate.outputs.approved == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add experiments/r12-physics-probe-001
+          if git diff --cached --quiet; then
+            echo 'No new evidence to seal.'
+            exit 0
+          fi
+          git commit -m "evidence: seal R12 Physics Probe 001 run ${GITHUB_RUN_ID} [skip ci]"
+          git pull --rebase origin r12-physics-probe-001
+          git push origin HEAD:r12-physics-probe-001
