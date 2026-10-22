@@ -1,0 +1,81 @@
+{
+  "block_count": 48,
+  "effect": -0.0007260640462239584,
+  "effect_floor_abs": 0.005,
+  "effect_gate": false,
+  "leave_one_job_out": {
+    "key": "job_id",
+    "passed": false,
+    "rows": [
+      {
+        "effect": -0.0014373779296875,
+        "omitted": "da680fk86m6s738vgm00",
+        "passes": true
+      },
+      {
+        "effect": -0.001044464111328125,
+        "omitted": "da69153sq5js73bidsa0",
+        "passes": true
+      },
+      {
+        "effect": 7.8582763671875e-05,
+        "omitted": "da69g1c6l22c73dm1mf0",
+        "passes": false
+      },
+      {
+        "effect": -0.000205230712890625,
+        "omitted": "da69hqrsq5js73biedug",
+        "passes": false
+      },
+      {
+        "effect": -0.001160430908203125,
+        "omitted": "da69jhjsq5js73biefs0",
+        "passes": true
+      },
+      {
+        "effect": -0.00058746337890625,
+        "omitted": "da69lbjsq5js73biehn0",
+        "passes": true
+      }
+    ]
+  },
+  "leave_one_qubit_out": {
+    "key": "physical_qubit",
+    "passed": false,
+    "rows": [
+      {
+        "effect": -0.0008121066623263889,
+        "omitted": "10",
+        "passes": true
+      },
+      {
+        "effect": -0.0013131035698784722,
+        "omitted": "117",
+        "passes": true
+      },
+      {
+        "effect": -0.0008138020833333334,
+        "omitted": "134",
+        "passes": true
+      },
+      {
+        "effect": 3.475613064236111e-05,
+        "omitted": "148",
+        "passes": false
+      }
+    ]
+  },
+  "p_gate": false,
+  "p_value_max": 0.001,
+  "passed": false,
+  "randomization": {
+    "extreme_count": 45158,
+    "p_value": 0.45158548414515853,
+    "randomizations": 100000,
+    "seed": 15506072657163334169,
+    "two_sided": true
+  },
+  "sign": -1,
+  "specificity_gate": false,
+  "uniform_diagnostic": -0.004370117187500004
+}
