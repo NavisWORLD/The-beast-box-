@@ -30,3 +30,5 @@ None of these draw from the growth stream, so stars/planets/storms are byte-iden
 
 ## View (/universe)
 `components/tiny-universe-view.tsx` + `lib/universe/tiny-universe-view.mjs`. Renders only engine bodies with Cosmo's atlas (`public/universe/atlas.json`, sprites in `public/universe/sprites/`). Home cage = Hearth (first life world; placeholder name) or the most habitable planet before life; Zeref perches on the home planet's star. No comets are drawn (the engine has none).
+- `pairs[].E` stays the measured hardware value (`E_source: RECORDED_IBM_HARDWARE`). `pairs[].sim_E` is re-sampled every tick from that pair's own seeded 256-shot Bell simulator stream `sha256(seed:pair:tick:i)` (`sim_source: SIMULATED`); it drives thread brightness: level = min(3, floor(|sim_E|·4)), alpha = clamp(|sim_E|, 0.2, 1).
+- Art v2 (Cosmo): planets_256.webp with planets_256.q.png fallback (master never shipped), hearth.{waking|living} when the home planet is a glacier, `.scar` life frames when scarred, storm phase = (tick−born)/lifetime, alpha from intensity.

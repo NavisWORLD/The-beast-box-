@@ -29,7 +29,9 @@ function decorateLife(L){L.complexity_norm=+(1-Math.exp(-L.complexity/COMPLEXITY
 // Entangled planet pairs: Fisher-Yates over sorted planet ids, keyed by sha256(seed+':pairs:'+i); consecutive ids pair.
 // E on each pair is the measured hardware entanglement_E (one recorded run set, shared by every pair).
 export function derivePairs(u){const ids=u.planets.map(p=>p.id).sort();for(let i=ids.length-1;i>0;i--){const j=parseInt(sha(u.seed+':pairs:'+i).slice(0,8),16)%(i+1);[ids[i],ids[j]]=[ids[j],ids[i]];}
- const out=[];for(let i=0;i+1<ids.length;i+=2)out.push({a:ids[i],b:ids[i+1],E:u.entanglement_E});return out;}
+ const out=[];for(let i=0;i+1<ids.length;i+=2)out.push({a:ids[i],b:ids[i+1],E:u.entanglement_E,E_source:'RECORDED_IBM_HARDWARE',sim_E:null,sim_source:'SIMULATED'});return out;}
+// Per-pair SIMULATED Bell sample each tick (256 shots, own seeded stream sha256(seed:pair:tick:i)); never touches the growth stream.
+function samplePairs(u){u.pairs.forEach((p,i)=>{const r=stream(sha(u.seed+':pair:'+u.tick+':'+i));p.sim_E=+correlation(simulatedBellCounts(r,p.E,256)).toFixed(5);p.sim_tick=u.tick;p.sim_source='SIMULATED';if(!p.E_source)p.E_source='RECORDED_IBM_HARDWARE';});}
 export function genesis(shard){
  const g=seedFromShard(shard);const r=stream(g.seed);const E=Math.max(0.05,Math.abs(g.runs.reduce((a,x)=>a+x.E,0)/g.runs.length));
  const stars=Array.from({length:3+Math.floor(r()*6)},(_,i)=>makeStar(r,i,E));
@@ -52,6 +54,7 @@ export function grow(u,steps=1){
    if(!L&&r()<p.habitability*0.08){u.life.push({id:'life-'+p.id,type:'life',planet:p.id,complexity:0,diversity:1,born:u.tick,traits:{hue:+r().toFixed(4),motility:+r().toFixed(4),sociality:+r().toFixed(4)}});events.push({kind:'abiogenesis',planet:p.id});}
    else if(L){const storm=u.storms.some(st=>st.planet===p.id);L.complexity=+Math.max(0,L.complexity+(p.habitability*r()*e)-(storm?0.05:0)-(p.habitability===0?0.5:0)).toFixed(4);if(storm)L.scars=(L.scars||0)+1;L.diversity=Math.max(0,L.diversity+(r()<p.habitability*0.3?1:0)-(r()<0.05?1:0));}}
   u.life=u.life.filter(l=>l.diversity>0);u.life.forEach(decorateLife);
+  samplePairs(u);
   u.growth_label='SIMULATED (Rigetti Bell simulator, not hardware)';
   u.history.push({tick:u.tick,source:'SIMULATED',sim_E:+e.toFixed(5),counts,events});if(u.history.length>64)u.history.shift();
  }
