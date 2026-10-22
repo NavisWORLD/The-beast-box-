@@ -2,9 +2,9 @@
 // Genesis is derived ONLY from recorded IBM hardware counts. Every number comes from
 // a hash stream over those counts: nothing hand-picked. Growth ticks use a seeded
 // Rigetti-style Bell SIMULATOR and are always labeled SIMULATED.
-import {createHash} from 'node:crypto';
+import {sha256Hex} from './sha256.mjs';
 export const SCHEMA='tiny-universe/v1';
-const sha=s=>createHash('sha256').update(s).digest('hex');
+const sha=s=>sha256Hex(s);
 function stream(seedHex){let ctr=0,buf=[];return()=>{if(!buf.length){const h=sha(seedHex+':'+(ctr++));for(let i=0;i<64;i+=8)buf.push(parseInt(h.slice(i,i+8),16)/2**32);}return buf.shift();};}
 export function parseCounts(c){const o={};for(const p of String(c).split(',')){const[k,v]=p.split(':');o[k]=Number(v);}return o;}
 // Entanglement correlation E = P(same) - P(diff) for a 2-qubit run.

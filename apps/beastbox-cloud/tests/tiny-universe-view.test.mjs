@@ -1,0 +1,12 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {readFileSync} from 'node:fs';
+import {grow} from '../lib/universe/tiny-universe.mjs';
+import {biomeOf,starClass,lifeStage,entangledPairs,homeOf,hearthOf,zerefStar} from '../lib/universe/tiny-universe-view.mjs';
+const g=JSON.parse(readFileSync(new URL('../public/universe/tiny-universe-genesis.json',import.meta.url),'utf8'));
+test('bible mappings',()=>{assert.equal(biomeOf({temperature_k:900,water:0.2}),'ember');assert.equal(biomeOf({temperature_k:900,water:0.8}),'paper');assert.equal(biomeOf({temperature_k:200,water:0.5}),'glacier');assert.equal(biomeOf({temperature_k:300,water:0.9}),'jelly');assert.equal(biomeOf({temperature_k:300,water:0.5}),'sunflower');assert.equal(biomeOf({temperature_k:300,water:0.1}),'moss');
+ assert.equal(starClass({mass_solar:0.5}),'Ember star');assert.equal(starClass({mass_solar:5}),'Lantern star');assert.equal(starClass({mass_solar:9}),'Storm-crowned star');assert.equal(starClass({mass_solar:9,remnant:'neutron_star'}),'the Clenched Heart');assert.equal(starClass({mass_solar:20,remnant:'black_hole'}),'the Quiet Door');
+ assert.deepEqual([0.1,0.4,0.7,0.95].map(c=>lifeStage({complexity:c})),['Glimmer','Drifters','Choirs','Dreamers']);});
+test('view picks only engine bodies, deterministic',()=>{const u=grow(g,200);const ids=new Set(u.planets.map(p=>p.id));
+ for(const[a,b]of entangledPairs(u)){assert.ok(ids.has(a)&&ids.has(b));}assert.deepEqual(entangledPairs(u),entangledPairs(grow(g,200)));
+ assert.ok(ids.has(homeOf(u)));if(u.life.length)assert.equal(homeOf(u),hearthOf(u));assert.ok(u.stars.some(s=>s.id===zerefStar(u)));assert.equal(u.growth_label.startsWith('SIMULATED'),true);});
+test('universe page labels and nav',()=>{const c=readFileSync(new URL('../components/tiny-universe-view.tsx',import.meta.url),'utf8');assert.match(c,/GENESIS_LABEL/);assert.match(c,/GROWTH_LABEL/);assert.doesNotMatch(c,/\bAI\b/);
+ assert.match(readFileSync(new URL('../lib/site-nav.ts',import.meta.url),'utf8'),/href:'\/universe'/);});
