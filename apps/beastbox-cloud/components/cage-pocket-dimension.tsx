@@ -4,6 +4,7 @@ import {capScenePoints,pushCameraOut} from '../lib/living-core/near-lens';
 import {buildWorlds} from '../lib/worlds/worlds';
 import {buildTerrain} from '../lib/worlds/terrain';
 import {buildIsland} from '../lib/geyser/island';
+import {addGeyserEvents} from '../lib/geyser/events';
 import {inBlock as gjInBlock,islandGround} from '../lib/geyser/geyser-math.mjs';
 import {addHeaven,HEAVEN} from '../lib/worlds/heaven';
 import {terrainHeight} from '../lib/worlds/terrain-math.mjs';
@@ -324,7 +325,8 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     // Home: the sprite-built 3D Zeref lives here, standing on the habitat floor (one world, one camera).
     const zHolder=new THREE.Group();zHolder.scale.setScalar(.45);zHolder.position.set(0,-.07,0);zHolder.rotation.y=.7;scene.add(zHolder);
     // Universe of worlds: home trees/clouds/sky dome/parallax haze + distant worlds with gravity wells; Zeref travels between them.
-    const neonU=neonUniforms();const uw=buildWorlds(THREE,scene,{low,universe:UNIVERSE_R,neon:neonU});const land=(!soft||lcForced)?buildTerrain(THREE,scene,{low}):null;if(lcForced)(window as any).__lcLand=land;const gj=(!soft||lcForced)?buildIsland(THREE,scene,{low}):null;if(lcForced)(window as any).__geyser=gj;// Geyser Jelly island diorama behind the cage
+    const neonU=neonUniforms();const uw=buildWorlds(THREE,scene,{low,universe:UNIVERSE_R,neon:neonU});const land=(!soft||lcForced)?buildTerrain(THREE,scene,{low}):null;if(lcForced)(window as any).__lcLand=land;const gj=(!soft||lcForced)?buildIsland(THREE,scene,{low}):null;const gjEv=gj?addGeyserEvents(THREE,gj,{low}):null;if(lcForced){(window as any).__geyser=gj;(window as any).__geyserEv=gjEv;}
+    const onGj=(e:any)=>{const a=String(e?.detail?.action||'');if(a==='erupt')gjEv?.erupt();else if(a==='tremor')gjEv?.tremor();else if(a==='geyser')gjEv?.geyser();};window.addEventListener('beastbox:geyser',onGj);// Geyser Jelly island diorama behind the cage
 // software GL (CI) skips the big land; debug handle only with ?livingcore=1
 
     // grounding + contact shadow + jellyfish tail filaments (neon wire language)
@@ -459,7 +461,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
       if(lcS.goal)(zActor as any).target={x:lcS.goal.x,z:lcS.goal.z};
       stepLivingCore(lcS.LC,reduced?0:dt);lcS.syn?.step(reduced?0:dt);}
      flowU.uTime.value+=reduced?0:dt*HEAVEN.flow;heaven.update(elapsed);
-     land?.update(elapsed,camera);gj?.update(reduced?0:dt,elapsed);uwPose=uw.update(reduced?0:dt,elapsed,camera,{x:zHolder.position.x,y:zHolder.position.y,z:zHolder.position.z},!reduced&&!!(ze?.claimed||lcS.LC));
+     land?.update(elapsed,camera);gj?.update(reduced?0:dt,elapsed);gjEv?.update(reduced?0:dt,elapsed);uwPose=uw.update(reduced?0:dt,elapsed,camera,{x:zHolder.position.x,y:zHolder.position.y,z:zHolder.position.z},!reduced&&!!(ze?.claimed||lcS.LC));
      extras.step(reduced?0:dt*HEAVEN.flow,{x:zHolder.position.x,z:zHolder.position.z});
      if(ze?.claimed||lcS.LC){
       const zp=stepActor(zActor,reduced?0:dt,{lookAt:{x:camera.position.x,z:camera.position.z},reduced});
@@ -493,6 +495,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
      {zr=Math.hypot(zHolder.position.x,zHolder.position.z);const capZ=lcForced&&(window as any).__lcFocusZeref;const pull=focused?0:capZ||(lcS.camEase??0)>.05?Math.max(capZ?1:0,lcS.camEase??0):(now-lastDragAt.current>2500?Math.min(1,Math.max(0,(zr-3)/4)):0);
       homeFocus.copy(gcam.focus(reduced?0:dt,homeFocus,{x:zHolder.position.x,z:zHolder.position.z},extras.spots,pull));}
      if(uwPose&&!focused)homeFocus.set(zHolder.position.x,zHolder.position.y+.6,zHolder.position.z);// camera rides the gravity tunnel with Zeref// gravity-well follow across the universe
+     {const fp=lcForced&&(window as any).__lcFocusPoint;if(fp&&!focused)homeFocus.set(fp.x,fp.y,fp.z);}// capture hook only with ?livingcore=1
      if(focused){focused.obj.getWorldPosition(tgt);tgt.y+=.35;focus.lerp(tgt,Math.min(1,dt*4));}else focus.lerp(homeFocus,Math.min(1,dt*3));
      const f0=god.update(elapsed,v.zoom,focus,godFocus);const f=new THREE.Vector3(f0.x,f0.y,f0.z);
      (scene.fog as import('three').FogExp2).density=.012*Math.min(1.6,12/v.zoom)*(uwPose?.45:1);// cage-purple fog, tuned for the expanded universe
@@ -537,7 +540,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     }
     frame=requestAnimationFrame(animate);
     cleanup=()=>{
-     window.removeEventListener('beastbox:beast-chat',onLcChat);window.removeEventListener('beastbox:local-sensor-level',onLcLevel);window.removeEventListener('beastbox:spark-chirp',onLcChirp);renderer.domElement.removeEventListener('pointerdown',onLcTap);
+     window.removeEventListener('beastbox:beast-chat',onLcChat);window.removeEventListener('beastbox:geyser',onGj);window.removeEventListener('beastbox:local-sensor-level',onLcLevel);window.removeEventListener('beastbox:spark-chirp',onLcChirp);renderer.domElement.removeEventListener('pointerdown',onLcTap);
      lcS.syn?.dispose();if(lcS.g){lcS.g.remove(lcS.LC.group);zActorNode.remove(lcS.g);}extras.dispose();gcam.dispose();lcBus.current=null;
      pickRef.current=null;godRef.current=null;world.dispose();window.removeEventListener('beastbox:genome',syncPlush);window.removeEventListener('beastbox:pixel-mode',syncPlush);window.removeEventListener('beastbox:spark-chirp',onTalk);document.documentElement.removeAttribute('data-beast-3d');life.dispose();plush?.dispose();
      {const ze=(window as any).__zerefEmbed;if(ze?.root?.parent===zActorNode){zActorNode.remove(ze.root);ze.root.position.y=0;ze.claimed=false;}}
