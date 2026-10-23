@@ -231,7 +231,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     const moonlight=new THREE.PointLight(0xa8eaff,24,12);
     moonlight.position.set(0,4,1);scene.add(moonlight);
     const glow=new THREE.PointLight(0xba82f4,13,11);glow.position.set(-2,2,-3);scene.add(glow);
-    const heaven=addHeaven(THREE,scene,{low,rand:randomFor(key+':heaven'),far:(()=>{const r=randomFor(key+':sun');const a=r()*6.283,el=.42+r()*.35;return {dir:[Math.cos(a)*Math.cos(el),Math.sin(el),Math.sin(a)*Math.cos(el)] as [number,number,number],dist:70};})()});// the user's heaven: warm divine light, endless depth, serene flow
+    const heaven=addHeaven(THREE,scene,{low,rand:randomFor(key+':heaven'),far:soft?undefined:(()=>{const r=randomFor(key+':sun');const a=r()*6.283,el=.42+r()*.35;return {dir:[Math.cos(a)*Math.cos(el),Math.sin(el),Math.sin(a)*Math.cos(el)] as [number,number,number],dist:70};})()});// the user's heaven: warm divine light, endless depth, serene flow
     // Lost COSMOS look: dark cosmic sand floor instead of blue stone.
     const stone=new THREE.MeshStandardMaterial({color:0x1c1530,emissive:0x0a0618,roughness:1,metalness:.02});
     const floraMat=new THREE.MeshStandardMaterial({color:0x6fe7ff,emissive:0x2aa6d6,emissiveIntensity:.9,metalness:.3,roughness:.18,transparent:true,opacity:.9});
