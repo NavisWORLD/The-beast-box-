@@ -15,9 +15,12 @@ export default function SiteDock(){
  useEffect(()=>{document.body.dataset.dock=open?'open':'closed';},[open]);
  const toggle=()=>setOpen(o=>{const n=!o;try{localStorage.setItem(KEY,n?'1':'0');}catch{}return n;});
  // Under automation the dock itself is not drawn, so it never sits over the original controls the suites click.
+ // One floating control: the dock also opens the site menu, so the separate Menu tab / ☰ pill step aside (not under automation).
+ useEffect(()=>{if(auto)return;document.body.dataset.oneDock='1';return()=>{delete document.body.dataset.oneDock;};},[auto]);
  if(auto)return null;
  return <nav className="site-dock" aria-label="Quick dock" data-site-dock={open?'open':'closed'}>
   <button type="button" onClick={e=>window.dispatchEvent(new CustomEvent('beastbox:open-chat',{detail:{opener:e.currentTarget}}))} aria-label={`Talk to ${name||'your beast'}`}>💬<span>{name&&name!=='your beast'?`Talk to ${name}`:'Talk'}</span></button>
+  <button type="button" data-dock-menu aria-controls="site-nav-sheet" onClick={()=>window.dispatchEvent(new Event('beastbox:open-site-nav'))} aria-label="Open site menu">☰<span>Menu</span></button>
   <Link prefetch={false} href="/sol-game" aria-label="Lost COSMOS game">🎮<span>Lost COSMOS</span></Link>
   <button type="button" aria-pressed={open} onClick={toggle} aria-label={open?'Tuck the extra controls away':'Show sound, Zeref and the game card'}>{open?'✕':'⋯'}<span>{open?'Less':'More'}</span></button>
  </nav>;
