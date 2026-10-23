@@ -121,7 +121,7 @@ export default function Universe3D({u,onSelect,onAlive}:{u:any;onSelect?:(id:str
    <span data-zoom-stage style={{fontSize:11,color:'#d8c8ff',textAlign:'center',background:'rgba(10,6,30,.7)',borderRadius:8,padding:'3px 4px'}}>{stage}</span>
    <button type="button" aria-label="Zoom out" onClick={()=>api.current?.zoom(0.5)} style={zbtn}>－</button>
    <button type="button" aria-label="Fly home" onClick={()=>api.current?.home()} style={zbtn}>⌂</button>
-   <button type="button" aria-label={threadsOn?'Hide the One Mind threads':'Show the One Mind threads'} aria-pressed={threadsOn} data-threads-toggle onClick={toggleThreads} style={{...zbtn,fontSize:14,opacity:threadsOn?1:.55}}>✺</button>
+   <button type="button" aria-label={threadsOn?'Hide the One Mind threads':'Show the One Mind threads'} aria-pressed={threadsOn} data-threads-toggle onClick={toggleThreads} style={{...zbtn,fontSize:14,opacity:threadsOn?1:.55}}>⟡</button>
   </div>
   {threadsOn&&threadsShown?<div data-threads-label style={{position:'absolute',left:'50%',top:'calc(50% - 230px)',transform:'translateX(-50%)',zIndex:2,fontSize:11,color:'#d8c8ff',background:'rgba(10,6,30,.7)',borderRadius:10,padding:'4px 10px',textAlign:'center',maxWidth:'80%',pointerEvents:'none'}}>One Mind, Refracted · {activityNote||'reading loop activity…'}</div>:null}
  </div>;
