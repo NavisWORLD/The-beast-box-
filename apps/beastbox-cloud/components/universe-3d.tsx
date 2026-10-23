@@ -37,7 +37,7 @@ export default function Universe3D({u,onSelect,onAlive}:{u:any;onSelect?:(id:str
   scene.add(new THREE.AmbientLight(0x8877bb,0.55));
   // E5b (Cosmo): screen-space gravitational lensing around a real black-hole remnant. Port of deepspace/lensing.glsl (art approximation,
   // not GR). WebGL1-safe; skipped on CPU-rendered WebGL, and any shader error turns it off for good so the plain render stays.
-  let lensOn=!isSoftwareGL();const prevErr=renderer.debug.onShaderError;renderer.debug.onShaderError=(...a:any[])=>{lensOn=false;(prevErr as any)?.(...a);};
+  let lensOn=!isSoftwareGL()||/[?&]lens=1/.test(location.search);const prevErr=renderer.debug.onShaderError;renderer.debug.onShaderError=(...a:any[])=>{lensOn=false;(prevErr as any)?.(...a);};
   const rt=new THREE.WebGLRenderTarget(2,2);const lensCam=new THREE.OrthographicCamera(-1,1,1,-1,0,1);const lensScene=new THREE.Scene();
   const lensMat=new THREE.ShaderMaterial({uniforms:{tScene:{value:rt.texture},bhScreen:{value:new THREE.Vector2(.5,.5)},rs:{value:0},aspect:{value:1},strength:{value:1}},depthTest:false,depthWrite:false,
    vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=vec4(position.xy,0.,1.);}',
