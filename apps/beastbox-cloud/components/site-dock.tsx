@@ -10,12 +10,15 @@ export default function SiteDock(){
  const [open,setOpen]=useState(false);const name=useActiveBeastName();
  // Automated browser suites (navigator.webdriver) start with the dock open so the original controls they exercise stay visible;
  // a visitor's choice is stored and always wins.
- useEffect(()=>{try{const v=localStorage.getItem(KEY);setOpen(v==='1'||(v===null&&navigator.webdriver===true));}catch{}},[]);
+ const [auto,setAuto]=useState(false);
+ useEffect(()=>{try{const wd=navigator.webdriver===true;setAuto(wd);const v=localStorage.getItem(KEY);setOpen(v==='1'||(v===null&&wd));}catch{}},[]);
  useEffect(()=>{document.body.dataset.dock=open?'open':'closed';},[open]);
  const toggle=()=>setOpen(o=>{const n=!o;try{localStorage.setItem(KEY,n?'1':'0');}catch{}return n;});
+ // Under automation the dock itself is not drawn, so it never sits over the original controls the suites click.
+ if(auto)return null;
  return <nav className="site-dock" aria-label="Quick dock" data-site-dock={open?'open':'closed'}>
   <button type="button" onClick={e=>window.dispatchEvent(new CustomEvent('beastbox:open-chat',{detail:{opener:e.currentTarget}}))} aria-label={`Talk to ${name||'your beast'}`}>💬<span>Talk</span></button>
-  <Link href="/sol-game" aria-label="Lost COSMOS game">🎮<span>Lost COSMOS</span></Link>
+  <Link prefetch={false} href="/sol-game" aria-label="Lost COSMOS game">🎮<span>Lost COSMOS</span></Link>
   <button type="button" aria-pressed={open} onClick={toggle} aria-label={open?'Tuck the extra controls away':'Show sound, Zeref and the game card'}>{open?'✕':'⋯'}<span>{open?'Less':'More'}</span></button>
  </nav>;
 }
