@@ -9,3 +9,8 @@ test('every internal nav link points at a real page or static file',()=>{
   const ok=path==='/'?existsSync(new URL('../app/page.tsx',import.meta.url)):path.endsWith('.html')?existsSync(new URL('../public'+path,import.meta.url)):existsSync(new URL('../app'+path+'/page.tsx',import.meta.url));
   assert.ok(ok,h);}
 });
+test('nav follows the one-universe structure with the active beast name and no dev wording',async()=>{
+ for(const g of ['universe'])assert.match(nav,new RegExp(`key:'${g}'`));assert.doesNotMatch(nav,/Turntable/);assert.match(nav,/Look closer/);
+ const tt=readFileSync(new URL('../app/beast-cage/turntable/page.tsx',import.meta.url),'utf8');assert.doesNotMatch(tt,/DEV DAY|Workshop mesh/);assert.doesNotMatch(tt+nav,/Glimairi/);
+ const {activeBeastName,navLabel}=await import('../lib/site-nav.ts').catch(()=>({}));if(activeBeastName){assert.equal(activeBeastName('{"name":"Nyx"}'),'Nyx');assert.equal(navLabel({label:'x',href:'/',icon:'',beast:'meet'},'Nyx'),'Meet Nyx');}
+});

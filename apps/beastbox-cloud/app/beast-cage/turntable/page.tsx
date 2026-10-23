@@ -45,11 +45,12 @@ export default function CreatureTurntable(){
   <header className={styles.header}><Link href="/beast-cage">← BEAST CAGE</Link><span>CORY DAVIS / NAVISWORLD</span><Link href="/beast-cage/talk">TALK TO THE BEAST ↗</Link></header>
   <div className="room-strip"><JourneyLinks current="cage" label="Beast Box rooms"/></div>
   <section className={styles.intro}>
-   <span>DEV DAY SIDE QUEST // ORIGINAL PROCEDURAL MESH</span>
-   <h1>Meet {subject==='workshop'?(profile?.name||'the Beast'):'Zeref'} <em>in 3D.</em></h1>
+   <span>LOOK CLOSER // 360° VIEW</span>
+   <h1>Look closer at {subject==='workshop'?(profile?.name||'your beast'):'Zeref'} <em>in 3D.</em></h1>
    <p>{attribution?attribution.label:'The active browser Beast drives the original procedural Three.js rig: saved hue, glow, fin pattern, halo pattern and constellation seed.'}</p>
   </section>
-  <div className={styles.stage} data-stage="real-3d-turntable" data-subject={subject} data-view-angle={spin?'spinning':angle} aria-label="Actual rotating Three.js creature">
+  {/* Cosmo's tap-to-inspect art (select ring, pedestal, info card) mounts here: data-look-closer-hook */}
+  <div className={styles.stage} data-look-closer-hook data-stage="real-3d-turntable" data-subject={subject} data-view-angle={spin?'spinning':angle} aria-label="Actual rotating Three.js creature">
     <span className={styles.star} aria-hidden="true">✧</span>
     {glb?<ZerefGlb3D spin={spin} angle={angle} mood={mood}/>:<><CosmicCompanion3D profile={subject==='workshop'?profile:null} dimensionalId={dimensionalId} look={look} state={pose} speaking={speaking&&pose==='listening'} turntable={spin} turntableAngle={spin?null:angle} quality="auto" className={styles.model} label={(attribution?attribution.label:'Real 3D '+(profile?.name||'companion'))+(spin?' · rotating':' · '+angle+' degrees')}/></>}
     <div className={styles.stageLabel}>{spin?'LIVE GEOMETRY • FULL 360° ROTATION':'LIVE GEOMETRY • '+angle+'° VIEW'}</div>
@@ -58,7 +59,7 @@ export default function CreatureTurntable(){
     <div className={styles.buttons} role="group" aria-label="Choose which creature is on the turntable">
       <button type="button" className={subject==='moonwraith'?styles.active:''} aria-pressed={subject==='moonwraith'} onClick={()=>setSubject('moonwraith')}>Moonwraith 3D</button>
       <button type="button" className={subject==='dragonling'?styles.active:''} aria-pressed={subject==='dragonling'} onClick={()=>setSubject('dragonling')}>Saved Zeref 3D</button>
-      <button type="button" className={subject==='workshop'?styles.active:''} aria-pressed={subject==='workshop'} onClick={()=>setSubject('workshop')}>Workshop mesh</button>
+      <button type="button" className={subject==='workshop'?styles.active:''} aria-pressed={subject==='workshop'} onClick={()=>setSubject('workshop')}>{profile?.name||'Your beast'}</button>
     </div>
     <div className={styles.buttons}>
       <button className={spin?styles.active:''} aria-pressed={spin} onClick={()=>setSpin(true)}>↻ Rotate 360°</button>
