@@ -1,4 +1,5 @@
 'use client';
+import {WORLD_SCENE_BG} from '@/lib/world-scene';
 import {useEffect,useRef,useState} from 'react';
 import {useCompanion} from './companion-provider';
 import {useBeastSession} from './beast-session';
@@ -59,7 +60,7 @@ function stop(){stream.current?.getTracks().forEach(t=>t.stop());stream.current=
  }
  const live=phase==='live';
  return <section aria-label="Open Field camera" data-open-field data-camera-field={phase} style={{position:fullscreen?'fixed':'relative',inset:fullscreen?0:undefined,zIndex:fullscreen?0:undefined,margin:fullscreen?0:'12px auto',maxWidth:fullscreen?undefined:560,color:'#e8f4ff'}}>
-  <div ref={stage} onPointerDown={onTap} data-field-stage style={{position:'relative',width:'100%',height:fullscreen?'100dvh':'min(70dvh,620px)',borderRadius:fullscreen?0:18,overflow:'hidden',touchAction:'manipulation',background:'radial-gradient(circle at 50% 30%,#2a1d55,#050914 70%)'}}>
+  <div ref={stage} onPointerDown={onTap} data-field-stage style={{position:'relative',width:'100%',height:fullscreen?'100dvh':'min(70dvh,620px)',borderRadius:fullscreen?0:18,overflow:'hidden',touchAction:'manipulation',background:live?'#000':WORLD_SCENE_BG}}>
    <video ref={video} playsInline muted autoPlay aria-label="Live camera preview (not recorded)" style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover',opacity:live?1:0}}/>
    <div aria-hidden style={{position:'absolute',left:0,right:0,bottom:0,height:'26%',background:'linear-gradient(transparent,#0006)',pointerEvents:'none'}}/>
    <div ref={host} data-field-creature data-ar-host data-live={live?'1':'0'} role="img" aria-label={`${name} in 3D on your floor`} style={{display:'block',position:'absolute',inset:0,bottom:floorPx}}/>
@@ -69,7 +70,7 @@ function stop(){stream.current?.getTracks().forEach(t=>t.stop());stream.current=
    </div>
    {react?<p role="status" style={{position:'absolute',left:12,right:12,bottom:`calc(${floorPx}px + 12px)`,margin:0,padding:'6px 10px',borderRadius:12,background:'#0c1228d9',fontSize:13,textAlign:'center',pointerEvents:'none'}}>{react}</p>:null}
    {!beast&&!live?<div data-field-no-creature style={{position:'absolute',left:'50%',bottom:`calc(${floorPx}px + 8%)`,transform:'translateX(-50%)',width:'min(300px,84%)',padding:12,borderRadius:16,background:'#0c1228ee',border:'1px solid #7dd9ea66',textAlign:'center',fontSize:13}} onPointerDown={e=>e.stopPropagation()}>Zeref is here. Want your own companion too? <a href="/spark/index.html#catalog-picker" style={{color:'#9aefff',fontWeight:700}}>Pick one in the Spark Lab catalogue</a> and it will join him.</div>:null}
-   {!live?<div data-camera-prompt style={{position:'absolute',left:'50%',top:'40%',transform:'translate(-50%,-50%)',width:'min(320px,86%)',padding:14,borderRadius:18,background:'#0c1228ee',border:'1px solid #7dd9ea66',textAlign:'center',boxShadow:'0 12px 36px #0008'}} onPointerDown={e=>e.stopPropagation()}>
+   {!live?<div data-camera-prompt style={{position:'absolute',left:'50%',top:44,transform:'translateX(-50%)',width:'min(320px,86%)',padding:14,borderRadius:18,background:'#0c1228ee',border:'1px solid #7dd9ea66',textAlign:'center',boxShadow:'0 12px 36px #0008'}} onPointerDown={e=>e.stopPropagation()}>
     <strong style={{display:'block',fontSize:15}}>📷 Let {name} explore your world</strong>
     <p style={{fontSize:12,color:'#c6d2ee',margin:'6px 0 10px'}}>Your camera becomes the open field. The picture stays on this phone: nothing is recorded or uploaded, and the camera turns off when you leave.</p>
     <button type="button" data-start-camera onClick={()=>void start()} disabled={phase==='asking'} style={{minHeight:44,width:'100%',borderRadius:12,border:'1px solid #78ddea88',background:'#17364a',color:'#d7faff',fontWeight:800}}>{phase==='asking'?'Waiting for permission…':phase==='denied'||phase==='error'?'Try camera again':'Start camera'}</button>
