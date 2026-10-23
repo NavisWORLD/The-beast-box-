@@ -197,7 +197,7 @@ jobs:
         run: |
           set -Eeuo pipefail
           curl -fsSL --retry 3 -o build/zeref-006/dolly.jsonl "https://huggingface.co/datasets/databricks/databricks-dolly-15k/resolve/bdd27f4d94b9c1f951818a7da7fd7aeea5dbff1a/databricks-dolly-15k.jsonl"
-          ZEREF_CHAT_ROTATE_SEED="${{ github.run_id }}" python scripts/zeref_chat_corpus.py build/zeref-006/dolly.jsonl build/zeref-006/chat-mix.jsonl
+          ZEREF_CHAT_ROTATE_SEED="zeref-gate-v2-20261023" python scripts/zeref_chat_corpus.py build/zeref-006/dolly.jsonl build/zeref-006/chat-mix.jsonl
       - name: Teacher distillation stage (approved teacher pairs only; teachers inform knowledge, not Zeref's voice)
         env:
           AZURE_STORAGE_CONTAINER_SAS_URL: ${{ secrets.AZURE_STORAGE_CONTAINER_SAS_URL }}
@@ -286,7 +286,10 @@ jobs:
           python - <<'PY'
           import json
           pin=json.load(open('apps/beastbox-cloud/lib/rawrphos-public-pin.json'));ev=json.load(open('build/zeref-006/chat-eval.json'))
-          bar=(pin.get('promotion') or {}).get('candidate_ref_nll') or ev['baseline']['ref_nll']
+          # Gate v2 (2026-10-23): the bar is the PIN re-scored in THIS run on the 100-item set A by the
+          # training gate (same pair_nll formula as the candidate), not a stored number from the old 20-item set.
+          rep=json.load(open('build/zeref-006/report.json'));g=rep.get('recipe') or {}
+          bar=g.get('chat_before_nll') or (pin.get('promotion') or {}).get('candidate_ref_nll') or ev['baseline']['ref_nll']
           c=ev['candidate']['ref_nll'];tol=0.005;ok=bool(ev['chat_not_worse'] and c<=bar*(1+tol))  # 2026-10-22: 0.5% tolerance on the selection set; the strict check is fresh set B in the training gate
           d={'schema':'zeref-promotion-decision-v1','candidate_ref_nll':c,'pin_ref_nll_bar':bar,'tolerance':tol,'rule':'within 0.5% of pin on set A AND fresh held-out set B not worse (training gate)','chat_not_worse_vs_14000':ev['chat_not_worse'],'promote':ok}
           json.dump(d,open('build/zeref-006/promotion-decision.json','w'),indent=1)

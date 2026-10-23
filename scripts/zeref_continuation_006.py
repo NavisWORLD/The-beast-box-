@@ -8,7 +8,7 @@ gate controls whether the candidate becomes the NEXT TRAINING PARENT.
 Absolutely no live model promotion, QPU submission or invented game rewards.
 """
 from __future__ import annotations
-import hashlib,json,math,os,random,time
+import hashlib,json,math,os,random,statistics,time
 from pathlib import Path
 import torch
 from rawrphos.inference.engine import Engine
@@ -29,10 +29,14 @@ ZEREF="bb-deada969"
 IBM="db4q484vf2bc73cuuuag"
 LEGACY_UPDATES=64      # cycles 1..5 used 64 updates each (14000+128+64*cycle)
 LEGACY_CYCLES=5
-UPDATES=int(os.environ.get("ZEREF_006_UPDATES","512"))  # bounded growth-fix cycle size
+# Gate v2 (2026-10-23, Cory approved): shorter rounds. Cycles 6..38 used 512 updates; from
+# cycle 39 on each round is SHORT_UPDATES (local replicas peaked at step 64-96, then drifted).
+SHORT_FROM_CYCLE=39;SHORT_UPDATES=160
+UPDATES=int(os.environ.get("ZEREF_006_UPDATES",str(SHORT_UPDATES)))  # bounded cycle size
 def expected_steps(cycle):
  if cycle<=LEGACY_CYCLES:return 14000+128+LEGACY_UPDATES*cycle
- return 14000+128+LEGACY_UPDATES*LEGACY_CYCLES+512*(cycle-LEGACY_CYCLES)
+ if cycle<SHORT_FROM_CYCLE:return 14000+128+LEGACY_UPDATES*LEGACY_CYCLES+512*(cycle-LEGACY_CYCLES)
+ return expected_steps(SHORT_FROM_CYCLE-1)+SHORT_UPDATES*(cycle-SHORT_FROM_CYCLE+1)
 # Growth-fix (2026-10-15): the 9e-6 LR with uniform sampling over a RIGHT-heavy
 # (539/840) history could never move the RIGHT-only parent. Labels are now
 # sampled action-balanced, older real captures are replayed, and an L2 anchor
@@ -43,7 +47,8 @@ def expected_steps(cycle):
 # best in-cycle checkpoint by held chat NLL; chat gate is ABSOLUTE vs the pin.
 LR=float(os.environ.get("ZEREF_006_LR","0.00001"))
 LR_MIN_FRACTION=0.1
-EVAL_EVERY=64
+SPIKE_X=float(os.environ.get("ZEREF_006_SPIKE_X","10"));SKIPPED=[]
+EVAL_EVERY=int(os.environ.get("ZEREF_006_EVAL_EVERY","32"))  # gate v2: 5 evals in a 160-step round
 BATCH=int(os.environ.get("ZEREF_006_BATCH","16"))  # 008 larger batches (was 8): 4 game + 12 chat
 TEACHER_VERSION="visible-signals-v2"
 CHAT_MIX=Path(os.environ.get("ZEREF_006_CHAT_MIX","build/zeref-006/chat-mix.jsonl"))
@@ -263,7 +268,7 @@ def train_variant(parent_path,tokenizer,pool,seed,chat_pool=(),chat_eval=None):
  classes=sorted(by)
  class_w=torch.tensor([len(by[c])**0.5 for c in classes],dtype=torch.float)
  g=torch.Generator().manual_seed(seed)
- logs=[];best=None
+ logs=[];best=None;gnorms=[];SKIPPED.clear()
  ema={k:v.detach().clone() for k,v in model.state_dict().items()} if EMA_DECAY>0 else None  # 008 running average
  t0=time.perf_counter()
  for n in range(UPDATES):
@@ -274,7 +279,7 @@ def train_variant(parent_path,tokenizer,pool,seed,chat_pool=(),chat_eval=None):
    print("ZEREF_GROWTH_LIMIT_HIT="+json.dumps(LIMITS_HIT[-1]),flush=True);break
   for gi,group in enumerate(opt.param_groups):group["lr"]=(HEBBIAN_LR if gi==1 else LR)*(LR_MIN_FRACTION+(1-LR_MIN_FRACTION)*.5*(1+math.cos(math.pi*n/UPDATES)))
   opt.zero_grad(set_to_none=True)
-  idx=[]
+  idx=[];src=defaultdict(int)
   for _ in range(BATCH):
    # sqrt-balanced: rare keys are up-weighted (count**0.5) without letting
    # a 2-example key dominate, which flipped the policy to that key.
@@ -283,11 +288,12 @@ def train_variant(parent_path,tokenizer,pool,seed,chat_pool=(),chat_eval=None):
   game_n=len(idx)
   if chat_pool:
    idx=idx[:BATCH-CHAT_PER_BATCH];game_n=len(idx)
-  batch=[pool[i][1] for i in idx]
+  batch=[pool[i][1] for i in idx];src["game"]+=len(idx)
   if chat_pool:
-   batch+=[chat_pool[int(torch.randint(len(chat_pool),(1,),generator=g))] for _ in range(CHAT_PER_BATCH)]
+   cb=[chat_pool[int(torch.randint(len(chat_pool),(1,),generator=g))] for _ in range(CHAT_PER_BATCH)];batch+=cb
+   for r in cb:src[r.get("source","chat")]+=1
   if PRETRAIN_POOL and PRETRAIN_PER_BATCH>0:
-   batch+=[PRETRAIN_POOL[int(torch.randint(len(PRETRAIN_POOL),(1,),generator=g))] for _ in range(PRETRAIN_PER_BATCH)]
+   batch+=[PRETRAIN_POOL[int(torch.randint(len(PRETRAIN_POOL),(1,),generator=g))] for _ in range(PRETRAIN_PER_BATCH)];src["pretrain"]+=PRETRAIN_PER_BATCH
   x,y,m=collate(batch)
   out=model(x,targets=y,attention_mask=m);loss=out["loss"]
   # Decision-token loss: the shared "ACTION: " prefix dominated the mean
@@ -305,6 +311,15 @@ def train_variant(parent_path,tokenizer,pool,seed,chat_pool=(),chat_eval=None):
   if not bool(torch.isfinite(total)):raise FloatingPointError("Nonfinite Zeref CPU training loss")
   total.backward()
   grad=torch.nn.utils.clip_grad_norm_(model.parameters(),1.,error_if_nonfinite=True)
+  gn=float(grad);med=statistics.median(gnorms) if len(gnorms)>=8 else None
+  # Gate v2 spike guard: a batch whose PRE-clip norm is >SPIKE_X x the running median is
+  # skipped (no optimizer step) and logged with its source ids. Clipping stays on.
+  print("ZEREF_006_BATCH="+json.dumps({"step":n+1,"grad_norm":gn,"sources":dict(src)},sort_keys=True),flush=True)
+  if med is not None and gn>SPIKE_X*med:
+   SKIPPED.append({"step":n+1,"grad_norm":gn,"median":med,"sources":dict(src)})
+   print("ZEREF_006_SKIPPED_BATCH="+json.dumps(SKIPPED[-1],sort_keys=True),flush=True)
+   opt.zero_grad(set_to_none=True);continue
+  gnorms.append(gn)
   opt.step()
   if ema is not None:
    with torch.no_grad():
@@ -325,6 +340,7 @@ def train_variant(parent_path,tokenizer,pool,seed,chat_pool=(),chat_eval=None):
    print("ZEREF_006_INCYCLE_CHAT="+json.dumps({"step":n+1,"chat_nll":c,"lr":opt.param_groups[0]["lr"]}),flush=True)
  if best is not None:
   model.load_state_dict(best[2]);logs.append({"best_in_cycle_step":best[1],"best_in_cycle_chat_nll":best[0]})
+ logs.append({"skipped_batches":list(SKIPPED),"spike_x":SPIKE_X,"grad_norm_median":statistics.median(gnorms) if gnorms else None})
  return model,opt,g,logs
 def pair_nll(model,rows):
  """Fix 003: per-pair mean NLL, the EXACT formula of rawrphos_chat_eval.ref_nll
@@ -413,7 +429,7 @@ def main():
   for r in map(json.loads,raw_chat.splitlines()):
    if r.get("mode")!="chat":continue
    front=tokenizer.encode(f"user: {r['user']}\nassistant:",add_bos=True);tail=tokenizer.encode(" "+r["assistant"],add_eos=True)
-   if len(front)+len(tail)<=256:chat_pool.append({"input":(front+tail)[:-1],"target":[-100]*(len(front)-1)+tail})
+   if len(front)+len(tail)<=256:chat_pool.append({"input":(front+tail)[:-1],"target":[-100]*(len(front)-1)+tail,"source":r.get("source","chat")})
  PRETRAIN_POOL.clear();pretrain_digest=None
  if PRETRAIN.is_file():
   raw_pre=PRETRAIN.read_bytes();pretrain_digest=sha(raw_pre)
@@ -557,7 +573,7 @@ def main():
   "native_game_progress_demonstrated":False,
   "teacher_is_scripted_not_human":True,
   "candidate_action_diversity_not_navigation_progress":True,
-  "growth_limits_hit":LIMITS_HIT,"training_logs":logs,"elapsed_seconds":round(time.perf_counter()-now,3)}
+  "growth_limits_hit":LIMITS_HIT,"skipped_batches":list(SKIPPED),"training_logs":logs,"elapsed_seconds":round(time.perf_counter()-now,3)}
  save_json(ROOT/"report.json",report)
  print("ZEREF_006_REAL_TRAINING_GATE="+json.dumps({"approved":accepted,"cycle":cycle+1,
    "canonical_root":CANONICAL_APPROVED_ROOT,

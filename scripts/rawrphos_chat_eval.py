@@ -23,6 +23,11 @@ PAIRS=[("Say hello.","Hello."),("What is two plus two?","Four."),
  ("How are you?","I am doing well, thank you."),("What is your favorite color?","I like blue."),
  ("Can you help me?","Yes, I can help."),("Say goodbye.","Goodbye."),
  ("What is three plus three?","Six."),("Where do fish live?","In water.")]
+# Gate v2 (2026-10-23, Cory approved): 100 items. The original 20 stay; 80 fixed-seed held-out
+# rows come from scripts/zeref_gate_sets_v2.json (built by build_zeref_gate_sets_v2.py).
+PAIRS_V1=list(PAIRS)
+_V2=Path(__file__).with_name("zeref_gate_sets_v2.json")
+if _V2.is_file():PAIRS=PAIRS_V1+[(r["user"],r["assistant"]) for r in json.loads(_V2.read_text())["set_a_added"]]
 CHAT=["Hi! Who are you?","How is your day going?","Tell me something fun.",
  "What do you like to do?","Can you be my friend?","What is a dragon?",
  "Say something kind.","What should we explore today?"]

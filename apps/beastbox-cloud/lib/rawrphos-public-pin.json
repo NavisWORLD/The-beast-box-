@@ -24,5 +24,16 @@
   },
   "rollback": "set promotion to null and training_steps/checkpoint_sha256 back to 14000"
  },
- "rule": "Changes ONLY through a reviewed PR whose promotion block cites an approved checkpoint release and a rawrphos-chat-eval-v1/v2 report with chat_not_worse=true versus 14000. Otherwise the 14000 pin stays."
+ "rule": "Changes ONLY through a reviewed PR whose promotion block cites an approved checkpoint release and a rawrphos-chat-eval-v1/v2 report with chat_not_worse=true versus 14000. Otherwise the 14000 pin stays.",
+ "gate_v2": {
+  "schema": "zeref-gate-v2",
+  "sets": "scripts/zeref_gate_sets_v2.json",
+  "n_a": 100,
+  "n_b": 100,
+  "set_a_pin_nll": 3.8245065069198607,
+  "set_b_pin_nll": 3.8485333776474,
+  "set_a_tolerance": 0.005,
+  "set_b_tolerance": 0.0,
+  "note": "pin 7ebc9cb2 re-scored on the 100-item sets (same pair_nll formula); every run re-scores the pin again and uses that as the bar"
+ }
 }
