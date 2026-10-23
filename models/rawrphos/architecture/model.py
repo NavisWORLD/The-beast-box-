@@ -318,3 +318,27 @@ def upgrade_to_trinity(model):
     for k in tgt:
         if k.startswith('state_init42.') or '.transition.drive.' in k: tgt[k]=torch.zeros_like(tgt[k])
     new.load_state_dict(tgt); return new
+
+
+def grow_depth(model,add=2):
+    """Function-preserving (Net2Net-style) depth growth for repeatable capacity expansion.
+    Every existing tensor is copied exactly; `add` new blocks are appended whose attention
+    output projection and MLP output layer are zero, so each new block is an identity residual
+    and logits are IDENTICAL at growth time. The old final block gains a state transition
+    (copied from block 0); its state only feeds the zero-output new blocks. Returns
+    (grown_model, new_parameter_ids) so trainers can give new params fresh optimizer moments."""
+    if type(add) is not int or not 1<=add<=8: raise ValueError('grow_depth adds 1..8 blocks')
+    c=model.config; n=c.n_layers
+    new=RawrphosLM(RawrphosConfig.from_dict(dict(asdict(c),n_layers=n+add)))
+    sd=model.state_dict(); tgt=new.state_dict()
+    for k,v in sd.items():
+        if k not in tgt or tgt[k].shape!=v.shape: raise ValueError(f'growth may only add parameters ({k})')
+        tgt[k]=v.clone()
+    for k in tgt:
+        if k.startswith(f'blocks.{n-1}.transition.'): tgt[k]=sd[k.replace(f'blocks.{n-1}.','blocks.0.',1)].clone()
+        if any(k.startswith(f'blocks.{i}.') for i in range(n,n+add)) and ('.attn.proj.' in k or '.ffn.2.' in k):
+            tgt[k]=torch.zeros_like(tgt[k])
+    new.load_state_dict(tgt)
+    fresh={id(p) for name,p in new.named_parameters()
+           if name.startswith(f'blocks.{n-1}.transition.') or any(name.startswith(f'blocks.{i}.') for i in range(n,n+add))}
+    return new,fresh
