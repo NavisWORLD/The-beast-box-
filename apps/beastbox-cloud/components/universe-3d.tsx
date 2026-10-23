@@ -6,6 +6,7 @@
 // Seeded only (string hash LCG from the universe seed); no Math.random.
 import {useEffect,useRef,useState} from 'react';
 import * as THREE from 'three';
+import {isSoftwareGL} from '@/lib/three/soft-gl';
 import {homeOf,biomeOf} from '@/lib/universe/tiny-universe-view.mjs';
 import {threadFade,threadBrightness,creatureHome,threadBend} from '@/lib/universe/alive-props.mjs';
 // One Mind, Refracted (Cosmo's concept 09): faint threads from one origin to every creature (brightness = how recently its
@@ -36,6 +37,26 @@ export default function Universe3D({u,onSelect,onAlive}:{u:any;onSelect?:(id:str
   const scene=new THREE.Scene();scene.background=new THREE.Color(0x05030f);
   const cam=new THREE.PerspectiveCamera(55,1,0.05,6000);
   scene.add(new THREE.AmbientLight(0x8877bb,0.55));
+  // E5b (Cosmo): screen-space gravitational lensing around a real black-hole remnant. Port of deepspace/lensing.glsl (art approximation,
+  // not GR). WebGL1-safe; skipped on CPU-rendered WebGL, and any shader error turns it off for good so the plain render stays.
+  let lensOn=!isSoftwareGL()||/[?&]lens=1/.test(location.search);const prevErr=renderer.debug.onShaderError;renderer.debug.onShaderError=(...a:any[])=>{lensOn=false;(prevErr as any)?.(...a);};
+  const rt=new THREE.WebGLRenderTarget(2,2);const lensCam=new THREE.OrthographicCamera(-1,1,1,-1,0,1);const lensScene=new THREE.Scene();
+  const lensMat=new THREE.ShaderMaterial({uniforms:{tScene:{value:rt.texture},bhScreen:{value:new THREE.Vector2(.5,.5)},rs:{value:0},aspect:{value:1},strength:{value:1}},depthTest:false,depthWrite:false,
+   vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=vec4(position.xy,0.,1.);}',
+   fragmentShader:`uniform sampler2D tScene;uniform vec2 bhScreen;uniform float rs,aspect,strength;varying vec2 vUv;
+void main(){vec2 d=vUv-bhScreen;d.x*=aspect;float r=length(d);float bend=strength*rs*rs/max(r,rs*0.5);vec2 dir=d/max(r,1e-5);vec2 s=d-dir*bend;s.x/=aspect;
+vec3 c=texture2D(tScene,bhScreen+s).rgb;float ring=exp(-pow((r-1.5*rs)/(0.08*rs+1e-5),2.0));c+=ring*vec3(1.0,0.85,1.0)*0.6*strength;c*=mix(1.0,smoothstep(rs*0.98,rs*1.02,r),step(1e-4,rs));gl_FragColor=vec4(c,1.0);
+#include <colorspace_fragment>
+}`});
+  lensScene.add(new THREE.Mesh(new THREE.PlaneGeometry(2,2),lensMat));const bhV=new THREE.Vector3(),bhC=new THREE.Vector3();
+  const renderLensed=()=>{let best:THREE.Object3D|null=null,bd=1e9;for(const g of starObj.values()){if(!g.userData.bh)continue;g.getWorldPosition(bhV);const dd=bhV.distanceTo(cam.position);if(dd<bd){bd=dd;best=g;}}
+   if(!lensOn||!best){renderer.render(scene,cam);return;}
+   best.getWorldPosition(bhC);const p=bhC.clone().project(cam);const on=p.z<1&&Math.abs(p.x)<1.3&&Math.abs(p.y)<1.3;if(!on){renderer.render(scene,cam);return;}
+   const sz=renderer.getDrawingBufferSize(new THREE.Vector2());if(rt.width!==sz.x||rt.height!==sz.y)rt.setSize(sz.x,sz.y);
+   const rsS=(2.2/Math.max(.01,bd))/Math.tan(cam.fov*Math.PI/360)*0.5;lensMat.uniforms.bhScreen.value.set((p.x+1)/2,(p.y+1)/2);lensMat.uniforms.rs.value=Math.min(.25,rsS);
+   lensMat.uniforms.aspect.value=cam.aspect;lensMat.uniforms.strength.value=Math.min(1,Math.max(0,(1.3-Math.max(Math.abs(p.x),Math.abs(p.y)))/0.3));
+   renderer.setRenderTarget(rt);renderer.render(scene,cam);renderer.setRenderTarget(null);renderer.render(lensScene,lensCam);};
+
   const tl=new THREE.TextureLoader();const tex=(n:string)=>{const t=tl.load('/universe/deepspace/'+n);t.colorSpace=THREE.SRGBColorSpace;return t;};
   // seeded background stars
   {const r=rand(String(uRef.current?.seed||'tiny'));const n=1800,p=new Float32Array(n*3);for(let i=0;i<n;i++){const th=r()*Math.PI*2,ph=Math.acos(2*r()-1),R=2500+r()*800;p[i*3]=R*Math.sin(ph)*Math.cos(th);p[i*3+1]=R*Math.cos(ph);p[i*3+2]=R*Math.sin(ph)*Math.sin(th);}
@@ -93,7 +114,7 @@ export default function Universe3D({u,onSelect,onAlive}:{u:any;onSelect?:(id:str
   const biomeTex=(k:string,kind:'color'|'glow')=>{const key=k+'_'+kind;let t=bioCache.get(key);if(!t){t=bioLoader.load('/universe/livingworld/biomes/'+key+'.webp');if(kind==='color')t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=4;bioCache.set(key,t);}return t;};
   function build(){const U=uRef.current;if(!U)return;
    for(const st of U.stars){if(starObj.has(st.id))continue;const g=new THREE.Group();g.position.copy(starPos(st));
-    if(st.remnant==='black_hole'){g.add(new THREE.Mesh(new THREE.SphereGeometry(2.2,32,16),new THREE.MeshBasicMaterial({color:0x000000})));
+    if(st.remnant==='black_hole'){g.userData.bh=true;g.add(new THREE.Mesh(new THREE.SphereGeometry(2.2,32,16),new THREE.MeshBasicMaterial({color:0x000000})));
      const disk=new THREE.Mesh(new THREE.PlaneGeometry(16,16),new THREE.MeshBasicMaterial({map:diskTex,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide}));disk.rotation.x=-Math.PI/2+0.25;disk.name='disk';g.add(disk);
      const ring=new THREE.Sprite(new THREE.SpriteMaterial({map:ringTex,blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));ring.scale.setScalar(7.2);g.add(ring);}
     else{const rr=1.2+0.9*Math.log10(1+st.mass_solar*3);const m=new THREE.Mesh(sphere,new THREE.MeshBasicMaterial({color:starHex(st.temperature_k)}));m.scale.setScalar(rr);g.add(m);
@@ -140,9 +161,9 @@ export default function Universe3D({u,onSelect,onAlive}:{u:any;onSelect?:(id:str
     if(s==='Planet'&&wider&&targetId)aliveRef.current?.(starObj.has(targetId)?'zoom_star':'zoom_planet');}
    {const f=threadsRef.current?threadFade(d):0;const on=f>.02;threads.visible=on;origin.visible=on;if(on)drawThreads(f);
     if(on!==wasShown){wasShown=on;setThreadsShown(on);el.dataset.threads=on?'shown':'hidden';if(on&&f>0)aliveRef.current?.('threads_visible');}}
-   renderer.render(scene,cam);raf=requestAnimationFrame(frame);};
+   renderLensed();raf=requestAnimationFrame(frame);};
   raf=requestAnimationFrame(frame);
-  return()=>{cancelAnimationFrame(raf);cv.removeEventListener('wheel',wheel);renderer.dispose();el.removeChild(cv);};
+  return()=>{cancelAnimationFrame(raf);cv.removeEventListener('wheel',wheel);rt.dispose();lensMat.dispose();renderer.dispose();el.removeChild(cv);};
  },[]);
  return <div ref={host} data-universe-3d style={{position:'absolute',inset:0}}>
   <div data-u3d-zoom style={{position:'absolute',right:56,top:'calc(50% - 200px)',display:'flex',flexDirection:'column',gap:6,zIndex:2}}>
