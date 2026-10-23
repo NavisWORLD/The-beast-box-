@@ -16,7 +16,7 @@ export function gatheringPoints(u,beastKey='guest'){const r=lwStream(u.seed+':ga
 /** Spread angle (radians) of grass coverage: grows with SIMULATED growth tick and life; reaches the whole planet (PI). */
 export function spreadAngle(u){const life=(u.life||[]).reduce((a,l)=>a+(l.complexity_norm||0),0);return Math.min(Math.PI,0.35+u.tick*0.018+life*0.08);}
 /** Initial beast traits: seeded from the beast's own key + universe seed (no hand-picked values). */
-export function initialTraits(u,beastKey){const r=lwStream(u.seed+':traits:'+beastKey);return {curiosity:+r().toFixed(4),sociality:+r().toFixed(4),calm:+r().toFixed(4),joy:+r().toFixed(4),experiences:0};}
+export function initialTraits(u,beastKey){const r=lwStream(u.seed+':traits:'+beastKey);return {curiosity:+r().toFixed(4),sociality:+r().toFixed(4),calm:+r().toFixed(4),joy:+r().toFixed(4),experiences:0,wonder:+lwStream(u.seed+':wonder:'+beastKey)().toFixed(4)};}
 /** Traits drift from experiences (growth events, storms, greetings). Drift size is drawn from a seeded stream keyed by the event; never locked. */
 export function driftTraits(tr,u,beastKey,exp){const r=lwStream(u.seed+':drift:'+beastKey+':'+u.tick+':'+exp);const n={...tr};const d=()=> (r()-.5)*0.06;
  const cl=x=>+Math.min(1,Math.max(0,x)).toFixed(4);
@@ -27,6 +27,9 @@ export function driftTraits(tr,u,beastKey,exp){const r=lwStream(u.seed+':drift:'
  else if(exp==='calm'||exp==='rest'){n.calm=cl(n.calm+Math.abs(d()));}
  else if(exp==='greet'){n.sociality=cl(n.sociality+Math.abs(d()));n.joy=cl(n.joy+Math.abs(d())*.5);}
  else {for(const k of ['curiosity','sociality','calm','joy'])n[k]=cl(n[k]+d()*.3);}
+ // wonder (Cosmo's mood row): seeded on first use for saved traits, lifted by sky events and first-time places
+ if(!Number.isFinite(n.wonder))n.wonder=+lwStream(u.seed+':wonder:'+beastKey)().toFixed(4);
+ if(exp==='supernova'||exp==='abiogenesis'||exp==='wonder')n.wonder=cl(n.wonder+Math.abs(d()));
  n.experiences=(tr.experiences||0)+1;return n;}
 /** 12D hypercube vertices (subset) projected to 3D with a seeded projection matrix; returns flat xyz array and edge index pairs. */
 export function lattice12D(seed,maxV=256){const r=lwStream(seed+':12d');const P=Array.from({length:3},()=>Array.from({length:12},()=>r()*2-1));

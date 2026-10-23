@@ -30,10 +30,11 @@ import * as WFmod from '@/lib/universe/world-field.mjs';
 const {createWorldField,stepWorldField,legendAt,fieldRGBA,createCreatureLoop,stepCreature,cellOf,LEGEND}=WFmod as any;
 import {LW_LABELS,gatheringPoints,spreadAngle,initialTraits,driftTraits,lattice12D,lwStream,unitFrom} from '@/lib/universe/living-world.mjs';
 import {ARTIST_RESIDENTS} from '@/lib/companion/artist-residents.mjs';
+import {cosmicEvents,cosmicLine,createWindow,stepWindow,windowLine,seededMood,spreadMood,napGroup,buildKind,advanceBuild,coexistLine,learnBiome,worldRecord,toJsonl,windowEmissive,traitIcon,MOOD_ICON,ZEREF_ID} from '@/lib/universe/living-alive.mjs';
 import {buildPlush,type PlushGenome} from './creature-plush-3d';
 const ART='/universe/livingworld/';
-// Lines from Cosmic Emeth's 'Shared World' chapter (lost_cosmos tiny_universe_bible.md).
-const WINDOW_LINES=['Your world is loud today. I like it.','*presses nose to the window* Are you okay out there?'];
+// All event lines are Cosmic Emeth's (lib/universe/data/living_world_lines.json + biome_lore.json via living-alive.mjs).
+const CX=ART+'coexist/'; // Cosmo's coexist art: models/{cairn,flower_ring,burrow}_stage{1,2,3}.glb, sprites/, moods.json
 const PR=8;           // planet radius (world units)
 const TRAV_H=.5;      // traveler height
 type Traits={curiosity:number;sociality:number;calm:number;joy:number;experiences:number};
@@ -286,7 +287,7 @@ uniform vec3 uPlay[8];
     if(exp==='storm'){storming=1;puff=1;say(beastNm+' puffs up at the storm!',4);}
     // growth spreads faster where there is light and water (sunlit home, wet biome) — still SIMULATED
     {const hl=Math.max(0,gpts[0].dot(sunDir));const wet=({ocean:1,beach:.9,papersea:1,mushroom:1,plains:.8,heartwood:.9,pine:.7,tundra:.5,glacier:.3,ember:.2,peaks:.3} as any)[biomeOf(gpts[0])]??.6;growLW=Math.min(1.2,growLW+.004*hl*wet);try{localStorage.setItem('lw:growLW:'+bKey,String(growLW));}catch{}}
-    traits=driftTraits(traits,u,bKey,exp||'day');glowBoost=1;if(!spawnRef.current&&u.tick%15===0)lineRef.current(WINDOW_LINES[(u.tick/15)%WINDOW_LINES.length]);UG.uSpread.value=Math.min(Math.PI,spreadAngle(u)+growLW);
+    traits=driftTraits(traits,u,bKey,exp||'day');glowBoost=1;alive.onTick(prev,u);UG.uSpread.value=Math.min(Math.PI,spreadAngle(u)+growLW);
     try{localStorage.setItem('lw:universe',JSON.stringify(u));localStorage.setItem('lw:traits:'+bKey,JSON.stringify(traits));}catch{}};
    // ---- input
    const kd=(e:KeyboardEvent)=>{keys.current.add(e.key.toLowerCase());},ku=(e:KeyboardEvent)=>{keys.current.delete(e.key.toLowerCase());};
@@ -308,6 +309,89 @@ uniform vec3 uPlay[8];
    let growLW=(()=>{try{return +(localStorage.getItem('lw:growLW:'+bKey)||0)||0;}catch{return 0;}})();
    const TKEY='lw:trav:'+bKey;let travSaveT=0;
    let biomeT=0,curBiome='plains';const bFeel=()=>(BIOME_FEEL as any)[curBiome]?.speed??1;
+   // ================= fuller + more alive (Oct 22 2026): event lines, window, coexisting, biome lore, Zeref records
+   const alive=(()=>{
+    const seed=u.seed;let nLine=0;
+    // ---- Zeref's experience stream (bb-deada969 only): canonical zeref-experience/v1, chained, kept on this device
+    const ZKEY='lw:exp:world:'+ZEREF_ID;let zLog:any[]=(()=>{try{return JSON.parse(localStorage.getItem(ZKEY)||'[]');}catch{return [];}})();
+    const zN0=(gpts[1]||gpts[0]).clone().normalize();
+    const zBiome=()=>field?legendAt(field,[zN0.x,zN0.y,zN0.z]):null;
+    const zRec=(ev:any)=>{try{const prev=zLog.length?zLog[zLog.length-1].hash:null;const rec=worldRecord(ev,{step:zLog.length+1,world_tick:u.tick,biome:zBiome(),mood:null,prev});zLog.push(rec);if(zLog.length>2000)zLog=zLog.slice(-2000);
+     localStorage.setItem(ZKEY,JSON.stringify(zLog));}catch{}(window as any).__lwZerefExperiences=zLog;};
+    (window as any).__lwZerefExperiences=zLog;(window as any).__lwZerefJsonl=()=>toJsonl(zLog);
+    const zLore:Record<string,number>=(()=>{try{return JSON.parse(localStorage.getItem('lw:lore:zeref')||'{}');}catch{return {};}})();
+    // ---- Cosmo's sprites
+    const sheet=(f:string,cols:number,rows:number)=>{const tx=L.load(CX+'sprites/'+f);tx.colorSpace=THREE.SRGBColorSpace;tx.repeat.set(1/cols,1/rows);tx.magFilter=THREE.NearestFilter;return tx;};
+    const iconBase=sheet('mood_icons.png',4,6),ringBase=sheet('mood_spread_ring.png',8,1),zzzBase=sheet('nap_zzz.png',4,1);
+    let moods:any=null;fetch(CX+'moods.json').then(r=>r.ok?r.json():null).then(j=>{moods=j;}).catch(()=>{});
+    const moodRow=(id:string|null)=>moods?.moods?.find((m:any)=>m.id===id)?.row??null;
+    const moodCol=(id:string|null)=>new THREE.Color(moods?.moods?.find((m:any)=>m.id===id)?.color||'#ffffff');
+    const mkIcon=()=>{const tx=iconBase.clone();tx.needsUpdate=true;const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tx,transparent:true,depthWrite:false}));sp.scale.setScalar(.22);sp.visible=false;return sp;};
+    const setIcon=(sp:any,id:string|null,tt:number)=>{const row=moodRow(id);if(row==null){sp.visible=false;return;}sp.visible=true;const m=sp.material.map;m.offset.set((Math.floor(tt*6)%4)/4,1-(row+1)/6);};
+    // residents: seeded mood, icon, lore memory, nap zzz
+    for(const r of residents as any[]){r.mood=seededMood(seed,r.name);r.icon=mkIcon();r.icon.position.y=.75*((ARTIST_RESIDENTS as any[]).find((a:any)=>a.name===r.name)?.scale||1)+.15;r.node.add(r.icon);
+     r.lore=(()=>{try{return JSON.parse(localStorage.getItem('lw:lore:res:'+r.name)||'{}');}catch{return {};}})();r.nap=0;
+     const zt=zzzBase.clone();zt.needsUpdate=true;r.zzz=new THREE.Sprite(new THREE.SpriteMaterial({map:zt,transparent:true,depthWrite:false}));r.zzz.scale.setScalar(.25);r.zzz.position.y=r.icon.position.y+.12;r.zzz.visible=false;r.node.add(r.zzz);}
+    const beastIcon=mkIcon();beastIcon.position.y=TRAV_H*1.5+.2;beastNode.add(beastIcon);
+    const beastLore:Record<string,number>=(()=>{try{return JSON.parse(localStorage.getItem('lw:lore:'+bKey)||'{}');}catch{return {};}})();
+    // spread rings (additive, tinted by the mood colour, grow from source toward receiver)
+    const rings:any[]=[];
+    const ring=(from:any,to:any,moodId:string)=>{const tx=ringBase.clone();tx.needsUpdate=true;const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tx,color:moodCol((MOOD_ICON as any)[moodId]||moodId),transparent:true,depthWrite:false,blending:THREE.AdditiveBlending}));
+     scene.add(sp);rings.push({sp,from:from.clone(),to:to.clone(),t:0});};
+    // ---- builds with Cosmo's staged models (swap at progress .33/.66, 0.5 s scale lerp)
+    const MODEL_K=TRAV_H/1.7; // models are metres; explorer is 1.70 m = TRAV_H
+    const proto:Record<string,any>={};const clips:Record<string,any>={};
+    import('three/examples/jsm/loaders/GLTFLoader.js').then(({GLTFLoader})=>{const gl=new GLTFLoader();
+     for(const k of ['cairn','flower_ring','burrow'])for(let st=1;st<=3;st++)gl.loadAsync(CX+'models/'+k+'_stage'+st+'.glb').then((g:any)=>{if(disposed)return;proto[k+st]=g.scene;clips[k+st]=g.animations;for(const b of builds)if(b.kind===k&&b.stage+1===st)showStage(b);}).catch(()=>{});}).catch(()=>{});
+    const builds:any[]=[];const mixers:any[]=[];
+    const showStage=(b:any)=>{const pr=proto[b.kind+(b.stage+1)];if(!pr)return;if(b.model)b.node.remove(b.model);b.model=pr.clone(true);b.model.scale.setScalar(MODEL_K);b.node.add(b.model);b.grow=.4;
+     b.win=null;b.model.traverse((o:any)=>{if(o.name==='window'&&o.isMesh){o.material=o.material.clone();b.win=o;}});
+     const cl=(clips[b.kind+(b.stage+1)]||[]).find((c:any)=>c.name==='window_pulse');if(cl){const mx=new THREE.AnimationMixer(b.model);mx.clipAction(cl).play();b.mixer=mx;mixers.push(mx);}};
+    const geo=(a:any,c:any)=>Math.acos(Math.max(-1,Math.min(1,a.dot(c))))*PR;
+    const say2=(who:string|null,l:string|null,cd=5)=>{if(l)say(who?who+': '+l:l,cd);};
+    // ---- window: real signals only (opt-in mic loudness number, pointer near the beast, coming back to the page). No timer.
+    const win=createWindow();let mic:any=null,pointerNear=false,returned=0,hiddenAt=0,winBoost=0;
+    const onMic=(e:any)=>{const d=e?.detail;if(d&&d.kind==='microphone')mic={level:Math.max(0,Math.min(1,Number(d.level)||0)),active:!!d.active};};
+    const onMove=(e:PointerEvent)=>{const rc=canvas.getBoundingClientRect();const v=beastNode.position.clone().project(camera);const sx=rc.left+(v.x*.5+.5)*rc.width,sy=rc.top+(-v.y*.5+.5)*rc.height;pointerNear=v.z<1&&Math.hypot(e.clientX-sx,e.clientY-sy)<90;};
+    const onVis=()=>{if(document.hidden)hiddenAt=performance.now();else if(hiddenAt){returned=(performance.now()-hiddenAt)/1000;hiddenAt=0;}};
+    addEventListener('beastbox:local-sensor-level',onMic as any);canvas.addEventListener('pointermove',onMove);document.addEventListener('visibilitychange',onVis);
+    cleanup.push(()=>{removeEventListener('beastbox:local-sensor-level',onMic as any);canvas.removeEventListener('pointermove',onMove);document.removeEventListener('visibilitychange',onVis);});
+    const metAt:Record<string,number>={};let napT=0,meetN=0;
+    return {
+     // 1) cosmic: same grow() events as the traits; Zeref says Emeth's line; 5) Zeref records each one
+     onTick(prev:any,next:any){const cev=cosmicEvents(prev,next);if(!cev.length)return;const cl=cosmicLine(cev,seed,next.tick);if(cl){lineRef.current('Zeref: '+cl.line);evCool=6;}
+      for(const e of cev){zRec(e);if(e.type!=='storm_born')traits=driftTraits(traits,u,bKey,'wonder');}},
+     // 3) two residents are close: meet (once per pair per 40 s), maybe spread a mood
+     meet(r:any,o:any,tt:number){const k=[r.name,o.name].sort().join('|');if(metAt[k]>tt)return;metAt[k]=tt+40;meetN++;
+      const ev={type:'meet',a:r.name,b:o.name};zRec(ev);say2(r.name,coexistLine(ev,seed,meetN),5);
+      const sp=spreadMood(r,o,seed,meetN);if(sp){zRec(sp);ring(r.n,o.n,sp.mood);say2(r.name,coexistLine(sp,seed,meetN),4);if(sp.gather)o.pause=Math.max(o.pause||0,3);}},
+     // 3) a resident works on something where it touched a thing
+     build(r:any){if(!field)return;const lg=legendAt(field,[r.n.x,r.n.y,r.n.z]);const kind=buildKind(seed,r.name,lg);
+      const ev=advanceBuild(builds,{builder:r.name,kind,at:r.n.clone(),dist:geo,tick:u.tick});if(!ev)return;
+      const b=builds.find(x=>x.id===ev.id)!;if(!b.node){b.node=new THREE.Group();const f=new THREE.Vector3(1,0,0).addScaledVector(b.at,-b.at.x).normalize();place(b.node,b.at,f);b.node.position.copy(b.at).multiplyScalar(PR+hAt(b.at));scene.add(b.node);}
+      showStage(b);zRec(ev);if(ev.stage===0||ev.finished)say2(r.name,coexistLine(ev,seed,builds.length),5);},
+     frame(dt:number,tt:number){
+      // 2) window
+      const kind=stepWindow(win,dt,{mic,pointerNear,returned});returned=0;if(kind){say2(beastNm,windowLine(kind,seed,win.n),3);winBoost=1;glowBoost=1;}
+      winBoost=Math.max(0,winBoost-dt*.4);
+      for(const b of builds){if(b.model){b.grow=Math.min(1,(b.grow??1)+dt*1.2);b.model.scale.setScalar(MODEL_K*b.grow);}if(b.win?.material)b.win.material.emissiveIntensity=windowEmissive(tt,winBoost);}
+      for(const mx of mixers)mx.update(dt);
+      // 3) icons, naps, rings
+      for(const r of residents as any[]){setIcon(r.icon,r.nap>0?null:(MOOD_ICON as any)[r.mood],tt+r.wob);if(r.nap>0){r.nap-=dt;r.pause=Math.max(r.pause||0,.2);r.zzz.visible=true;r.zzz.material.map.offset.x=(Math.floor(tt*4)%4)/4;}else r.zzz.visible=false;}
+      setIcon(beastIcon,traitIcon(traits),tt);
+      for(let i=rings.length-1;i>=0;i--){const g=rings[i];g.t+=dt;const fr=Math.floor(g.t*12);if(fr>=8){scene.remove(g.sp);rings.splice(i,1);continue;}g.sp.material.map.offset.x=fr/8;
+       const pos=g.from.clone().lerp(g.to,g.t*12/8).normalize();g.sp.position.copy(pos).multiplyScalar(PR+.35);g.sp.scale.setScalar(.4+.8*fr/8);}
+      napT-=dt;if(napT<=0){napT=2;const R=residents as any[];const night=R.map(r=>r.n.dot(sunDir)<-.05&&r.nap<=0);const d=R.map(a=>R.map(b=>geo(a.n,b.n)));const g=napGroup(d,night,{reach:1.2,min:3});
+       if(g){for(const i of g){R[i].nap=20;}const ev={type:'group_nap',who:g.map(i=>R[i].name)};zRec(ev);say2(null,coexistLine(ev,seed,u.tick),6);}}
+      // 4) biome lore on first entry: beast, residents, Zeref
+      if(field&&Math.floor(tt*2)!==Math.floor((tt-dt)*2)){
+       const lb=learnBiome(beastLore,legendAt(field,[bN.x,bN.y,bN.z]));if(lb){traits=driftTraits(traits,u,bKey,lb.trait);traits=driftTraits(traits,u,bKey,'wonder');try{localStorage.setItem('lw:lore:'+bKey,JSON.stringify(beastLore));}catch{}lineRef.current(beastNm+': '+lb.line);evCool=6;}
+       for(const r of residents as any[]){const lr=learnBiome(r.lore,legendAt(field,[r.n.x,r.n.y,r.n.z]));if(lr){try{localStorage.setItem('lw:lore:res:'+r.name,JSON.stringify(r.lore));}catch{}say2(r.name,lr.line,4);}}
+       const lz=learnBiome(zLore,legendAt(field,[zN0.x,zN0.y,zN0.z]));if(lz){try{localStorage.setItem('lw:lore:zeref',JSON.stringify(zLore));}catch{}zRec({type:'biome_first_entry',lore:lz.lore,lesson:lz.lesson});}
+      }
+      (window as any).__lwAlive={builds:builds.map(b=>({kind:b.kind,stage:b.stage,progress:b.progress,model:!!b.model,window:!!b.win,emissive:b.win?.material?.emissiveIntensity??null})),moods:(residents as any[]).map(r=>({name:r.name,mood:r.mood,nap:r.nap>0})),rings:rings.length,zerefRecords:zLog.length,window:{...win}};
+     }};
+   })();
    let fpsT=0,fpsN=0,fps=0,last=performance.now(),t=0,hudT=0;const camTarget=new THREE.Vector3(),camPos=new THREE.Vector3(0,6,22);
    const frame=()=>{raf=requestAnimationFrame(frame);const now=performance.now();const dt=Math.min(.05,(now-last)/1000);last=now;t+=dt;UG.uT.value=t;
     fpsT+=dt;fpsN++;if(fpsT>=3){fps=fpsN/fpsT;fpsT=0;fpsN=0;if(fps<48&&bladeCap>2000){bladeCap=Math.floor(bladeCap*.75);bladeGeo.instanceCount=bladeCap;}(window as any).__lwPerf={fps:+fps.toFixed(1),blades:bladeCap};}
@@ -326,7 +410,7 @@ uniform vec3 uPlay[8];
     // gravity on the sphere: hops fall back under surface gravity
     evCool=Math.max(0,evCool-dt);puff=Math.max(0,puff-dt*.6);bVY-=G_SURF*dt;bY=Math.max(0,bY+bVY*dt);if(bY<=0&&bVY<0)bVY=0;
     // creatures learn from each new biome they enter (beast: persisted with its learned things)
-    biomeT-=dt;if(biomeT<=0){biomeT=.5;const bb=biomeOf(bN);curBiome=bb;if(!learned['biome:'+bb]){learned['biome:'+bb]=1;const ls=(BIOME_FEEL as any)[bb]?.lesson;if(ls)traits=driftTraits(traits,u,bKey,ls);try{localStorage.setItem('lw:learned:'+bKey,JSON.stringify(learned));}catch{}lineRef.current((beastName||'Your beast')+' entered the '+(BIOME_NAMES as any)[bb]+' for the first time, and learned from it.');}
+    biomeT-=dt;if(biomeT<=0){biomeT=.5;const bb=biomeOf(bN);curBiome=bb;if(!learned['biome:'+bb]){learned['biome:'+bb]=1;const ls=(BIOME_FEEL as any)[bb]?.lesson;if(ls)traits=driftTraits(traits,u,bKey,ls);try{localStorage.setItem('lw:learned:'+bKey,JSON.stringify(learned));}catch{}/* the first-entry line now comes from Emeth's biome lore (alive.frame) */}
      if(hudBiome.current)hudBiome.current.textContent='Biome: '+(cosmoNameOf(spawnRef.current?pN:bN)||(BIOME_NAMES as any)[spawnRef.current?biomeOf(pN):bb]);(window as any).__lwBiome={beast:bb,you:biomeOf(pN),home:biomeOf(gpts[0]),bN:bN.toArray(),g0:gpts[0].toArray()};}
     latPivot.rotation.y+=dt*.02;latObj.rotation.x+=dt*.03;latObj.rotation.z+=dt*.017;
     // residents wander
@@ -337,11 +421,12 @@ uniform vec3 uPlay[8];
     // residents explore things and each other; everything can touch everything
     socialCool=Math.max(0,socialCool-dt);
     for(const r of residents as any[]){r.pause=Math.max(0,(r.pause||0)-dt);
-     const nt=nearestThing(r.n);if(nt&&nt.d<.35&&r.pause<=0){if(touch(nt.t,r.name))r.pause=1.5;}
+     const nt=nearestThing(r.n);if(nt&&nt.d<.35&&r.pause<=0){if(touch(nt.t,r.name)){r.pause=1.5;alive.build(r);}}
      else if(nt&&nt.d<4&&Math.sin(t*.2+r.wob)>0)steerTo(r.n,r.f,nt.t.n,dt*1.5);else turn(r.n,r.f,Math.sin(t*.4+r.wob)*dt*.8);
-     for(const o of residents as any[])if(o!==r&&ang(r.n,o.n)<.5){steerTo(r.n,r.f,r.n.clone().multiplyScalar(2).sub(o.n),dt*2);if(socialCool<=0&&!spawnRef.current){socialCool=25;lineRef.current(r.name+' and '+o.name+' bumped noses.');}}
+     for(const o of residents as any[])if(o!==r&&ang(r.n,o.n)<.5){steerTo(r.n,r.f,r.n.clone().multiplyScalar(2).sub(o.n),dt*2);if(socialCool<=0&&!spawnRef.current){socialCool=25;lineRef.current(r.name+' and '+o.name+' bumped noses.');}alive.meet(r,o,t);}
      if(ang(r.n,bN)<.6){steerTo(r.n,r.f,r.n.clone().multiplyScalar(2).sub(bN),dt*2);if(!(metCool[r.name]>t)){metCool[r.name]=t+40;say(beastNm+' met '+r.name+' and sniffed hello.',5);hop(1.2);traits=driftTraits(traits,u,bKey,'greet');}}
      if(r.pause<=0){const rb=biomeOf(r.n);walkOn(r.n,r.f,r.spd*dt*((BIOME_FEEL as any)[rb]?.speed??1));if(rb==='ocean')steerTo(r.n,r.f,gpts[0],dt*2);}place(r.node,r.n,r.f);}
+    alive.frame(dt,t);
     // beast: wander by traits; when you're spawned in, run to greet (timing from JSON)
     const sp=spawnRef.current;let restored=false;if(sp&&!wasSpawned){try{const st=JSON.parse(localStorage.getItem(TKEY)||'null');if(st&&st.n&&st.f){pN.fromArray(st.n).normalize();pF.fromArray(st.f);pF.addScaledVector(pN,-pF.dot(pN)).normalize();restored=pF.lengthSq()>.5;}}catch{}}
     if(sp&&!wasSpawned&&!restored){pN.copy(bN).applyAxisAngle(bF,.0).addScaledVector(bF,-3/PR).normalize();pF.copy(bF);pF.addScaledVector(pN,-pF.dot(pN)).normalize();spawnT=0;greetT=-1;travNode.visible=true;}
