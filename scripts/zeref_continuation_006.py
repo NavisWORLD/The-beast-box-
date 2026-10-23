@@ -189,9 +189,9 @@ def rigetti_order_seed(cycle,fresh_digest=None,run_id=None):
    "seed_mix":sorted(mix),"backend":"rigetti.sim.qvm (SIMULATED, not QPU)"}
 # 2026-10-22 (007): optional in-context Hebbian fast weights, trained end-to-end.
 # Upgrading copies every approved tensor exactly and adds zero-output hebbian.* params.
-HEBBIAN=os.environ.get("ZEREF_HEBBIAN","0")=="1"
+HEBBIAN=os.environ.get("ZEREF_HEBBIAN","1")=="1"
 HEBBIAN_DIM=int(os.environ.get("ZEREF_HEBBIAN_DIM","32"))
-TRINITY=os.environ.get("ZEREF_TRINITY","0")=="1"  # original-kit Trinity 12D+42D state (QC67_cosmo)
+TRINITY=os.environ.get("ZEREF_TRINITY","1")=="1"  # original-kit Trinity 12D+42D state (QC67_cosmo)
 HEBBIAN_LR=float(os.environ.get("ZEREF_HEBBIAN_LR","0.0003"))  # new params start from zero; base LR unchanged
 def extend_optimizer_state(sd,n_base,n_hebb):
  """Parent AdamW state (1 group) -> [base, hebbian] groups; new params get fresh moments."""

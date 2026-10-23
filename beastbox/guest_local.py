@@ -150,6 +150,7 @@ def guest_local_infer(root: Path, payload: dict, *, owner_jobs_busy: bool = Fals
                      "checkpoint_sha256": SHA, "reply": text, "memory_used": False,
                      # In-context fast weights only; reset per request, never persisted.
                      "hebbian": result.get("hebbian") is True,
+                     "state_mode": result.get("state_mode") if result.get("state_mode") in ("dyn12", "tri") else None,
                      "owner_tools_used": False, "provider_key_shared": False}
     except (OSError, TimeoutError, ValueError, TypeError, KeyError, IndexError, urllib.error.HTTPError):
         return 502, {"error": "Native guest inference unavailable; no fallback"}
