@@ -790,6 +790,11 @@ body[data-dock=closed] :is([data-lost-cosmos-dock][data-dock-state=mini],[data-l
  [data-u3d-zoom] button{width:34px!important;height:34px!important;min-height:0!important}
  [data-threads-label]{top:178px!important;left:12px!important;transform:none!important;max-width:calc(100% - 24px)!important;text-align:left!important}
 }
+/* PR E2 (Cosmo): the beast's name card docks under the creature instead of over it; the box behind it is see-through. */
+.cage-habitat-visual [data-spark-beast="true"] figcaption{position:absolute!important;top:100%;left:50%;transform:translateX(-50%);width:max-content;max-width:min(320px,86vw);padding:5px 10px!important;border-radius:12px;background:#0b0820d9;border:1px solid #b48cff44}
+.cage-habitat-visual [data-spark-beast="true"] figcaption small:not([class*="seedLine"]){display:none}
+.cage-habitat-visual [data-spark-beast="true"]{background:none!important;border-color:transparent!important;box-shadow:none!important}
+.cage-habitat-visual [data-spark-beast="true"] [class*="aura"]{display:none}
 
 /* PR E3 (Cosmo) narrow widths: room navs wrap (Workstation stays visible), chips wrap instead of clipping, the world beast card shrinks. */
 @media(max-width:700px){

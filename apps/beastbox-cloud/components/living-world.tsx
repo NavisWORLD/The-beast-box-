@@ -345,6 +345,13 @@ uniform vec3 uPlay[8];
    (window as any).__lwSetZoom=(z:number)=>{zT=Math.max(0,Math.min(1,z));};
    const pd=(e:PointerEvent)=>{if((!spawnRef.current||zC>.55)&&ptrs.size<2)drag={x:e.clientX,y:e.clientY};},pm=(e:PointerEvent)=>{if(drag&&ptrs.size<2){ox-=(e.clientX-drag.x)*.006;oy=Math.max(-1.3,Math.min(1.3,oy+(e.clientY-drag.y)*.006));drag={x:e.clientX,y:e.clientY};}},pu=()=>{drag=null;};
    canvas.addEventListener('pointerdown',pd);addEventListener('pointermove',pm);addEventListener('pointerup',pu);cleanup.push(()=>{canvas.removeEventListener('pointerdown',pd);removeEventListener('pointermove',pm);removeEventListener('pointerup',pu);});
+   // E2 (Cosmo): a TAP (not a drag) on your beast opens Look Closer. Only the beast mesh counts; drags keep rotating.
+   {const tapRay=new THREE.Raycaster(),tapNdc=new THREE.Vector2();let t0:{x:number;y:number;t:number}|null=null;
+    const tpd=(e:PointerEvent)=>{t0={x:e.clientX,y:e.clientY,t:performance.now()};};
+    const tpu=(e:PointerEvent)=>{const d=t0;t0=null;if(!d||!plush||Math.hypot(e.clientX-d.x,e.clientY-d.y)>8||performance.now()-d.t>450)return;
+     const rc=canvas.getBoundingClientRect();tapNdc.set((e.clientX-rc.left)/rc.width*2-1,-(e.clientY-rc.top)/rc.height*2+1);tapRay.setFromCamera(tapNdc,camera);
+     if(tapRay.intersectObject(beastNode,true).length)window.dispatchEvent(new CustomEvent('beastbox:look-closer',{detail:{id:'beast'}}));};
+    canvas.addEventListener('pointerdown',tpd);canvas.addEventListener('pointerup',tpu);cleanup.push(()=>{canvas.removeEventListener('pointerdown',tpd);canvas.removeEventListener('pointerup',tpu);});}
    const resize=()=>{if(!host.current)return;const r=host.current.getBoundingClientRect();renderer.setSize(r.width,r.height,false);camera.aspect=r.width/Math.max(1,r.height);camera.updateProjectionMatrix();};
    const ro=new ResizeObserver(resize);ro.observe(host.current!);resize();cleanup.push(()=>ro.disconnect());
    // perf: measure fps for 3s windows and shrink the blade count if the phone can't hold ~50fps

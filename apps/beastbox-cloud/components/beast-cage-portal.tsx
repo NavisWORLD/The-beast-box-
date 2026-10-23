@@ -7,6 +7,7 @@ import TalkBeastLabel from './talk-beast-label'; // Talk to My Beast fallback
 import {ArrowRight,BrainCircuit,DatabaseZap,LockKeyhole,Orbit,ShieldCheck,SlidersHorizontal,Sparkles,Volume2} from 'lucide-react';
 import SparkBeastCompanion from './spark-beast-companion';
 import dynamic from 'next/dynamic';
+import {isSoftwareGL} from '../lib/three/soft-gl';
 import SparkBeastArena from './spark-beast-arena';
 // Code-split the heavy WebGL/animation scenes so the Beast Cage paints fast on phones.
 const LivingWorld=dynamic(()=>import('./living-world'),{ssr:false});
@@ -65,7 +66,9 @@ export default function BeastCagePortal(){
  // Default view: the ZEREF rig exploring the dimensional pocket. The original pixel sprite stays one tap away.
  // Tapping the Beast (or Zeref) in the pocket offers Look Closer; other creatures just get the camera focus.
  const [lookId,setLookId]=useState<string|null>(null);
- useEffect(()=>{let t=0;const on=(e:Event)=>{const id=(e as CustomEvent).detail?.id;setLookId(id==='beast'||id==='zeref'?id:null);clearTimeout(t);t=window.setTimeout(()=>setLookId(null),7000);};window.addEventListener('beastbox:look-closer',on);return()=>{window.removeEventListener('beastbox:look-closer',on);clearTimeout(t);};},[]);
+ /* E2 fallback: on CPU-rendered WebGL the 3D tap pick is unreliable, so a fixed Look Closer tap target stays on screen there. */
+  const [softTap,setSoftTap]=useState(false);useEffect(()=>{setSoftTap(isSoftwareGL());},[]);
+  useEffect(()=>{let t=0;const on=(e:Event)=>{const id=(e as CustomEvent).detail?.id;const ok=id==='beast'||id==='zeref';setLookId(ok?id:null);if(ok){/* E2: a tap on your creature opens Look Closer */window.location.assign('/beast-cage/look'+(id==='zeref'?'?with=zeref':''));}clearTimeout(t);t=window.setTimeout(()=>setLookId(null),7000);};window.addEventListener('beastbox:look-closer',on);return()=>{window.removeEventListener('beastbox:look-closer',on);clearTimeout(t);};},[]);
  const [view0,setView0]=useState<'pocket'|'classic'>('pocket');const [worldOn,setWorldOn]=useState(true);const view:'pocket'|'classic'|'world'=worldOn?'world':view0;const setView=(v:'pocket'|'classic'|'world')=>{if(v==='world')setWorldOn(true);else{setWorldOn(false);setView0(v);}};const [worldFull,setWorldFull]=useState(false);
  const [cageMode,setCageMode]=useState<'friendly'|'advanced'>('friendly');
  useEffect(()=>{try{if(window.localStorage.getItem('beastbox-cage-mode-v1')==='advanced'||/^#(menagerie)/.test(window.location.hash))setCageMode('advanced');}catch{}},[]);
@@ -123,7 +126,7 @@ export default function BeastCagePortal(){
    <div data-cage-view={view} className={'cage-habitat-visual'+(pocketReady?' cage-pocket-active':'')} role="group" aria-label="Circular dimensional world behind the original Spark Beast; drag or pinch to explore, or focus and use arrow keys and plus/minus to move the view" tabIndex={0}>
     <div className="cage-orbit cage-orbit-one" aria-hidden="true"/><div className="cage-orbit cage-orbit-two" aria-hidden="true"/>
     <GeyserControls/>
-    {lookId?<Link className="cage-look-pill" href="/beast-cage/look" data-cage-look-closer={lookId}>🔍 Look Closer at {lookId==='zeref'?'Zeref':pocketName}</Link>:null}
+    {lookId?<Link className="cage-look-pill" href="/beast-cage/look" data-cage-look-closer={lookId}>🔍 Look Closer at {lookId==='zeref'?'Zeref':pocketName}</Link>:softTap?<Link className="cage-look-pill" href={creatureName?"/beast-cage/look":"/beast-cage/look?with=zeref"} data-cage-look-fallback="true">🔍 Look Closer at {pocketName}</Link>:null}
     <CagePocketDimension
      seed={sameSpark?session.beast.genome?.seed||session.beast.seed:null}
      qbeastId={sameSpark?session.beast.qbeast.profile.id:null}
