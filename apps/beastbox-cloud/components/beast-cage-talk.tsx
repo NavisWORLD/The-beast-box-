@@ -42,7 +42,8 @@ export default function BeastCageTalk(){
    <span className={styles.eyebrow}>BEAST BOX // REAL MODEL CONVERSATION</span>
    <h1 id="talk-title" data-talk-with={talkingToZeref?'zeref':'beast'}>Talk to <em>{persona.name}.</em></h1>
    {askedBeast&&!companion?<p data-talk-no-beast>You haven’t met your own beast yet, so Zeref is answering. <Link href="/beast-cage">Find your beast in the Cage</Link>.</p>:null}
-   {talkingToZeref?<p data-talk-subtitle>He's still learning to speak. Some replies come out strange.</p>:null}
+   {/* site_labels.json (Emeth): each creature thinks with its own brain on the shared RAWRPHØS model, never as Zeref */}
+   {talkingToZeref?<p data-talk-subtitle>He's still learning to speak. Some replies come out strange.</p>:<p data-talk-subtitle>{persona.name} thinks with its own brain, built on Zeref (RAWRPHØS). It's still learning, so some replies come out strange.</p>}
    <p>Your Beast keeps its own name, personality and memories. Pick a brain to give it a voice: the free RAWRPHØS guest model, a model on your own computer, or your own key. Every reply comes from that model, and if it is offline you will see that instead of a made-up answer.</p>
   </section>
   <div className={styles.main}>
