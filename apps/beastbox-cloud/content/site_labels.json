@@ -1,0 +1,61 @@
+{
+  "_note": "Menu label and page title should match. Wording by Cosmic Emeth; titles are proposals, Cory has final say.",
+  "beast_name_rule": "Always show the active beast's own name from the single source of truth. Never hardcode Yewling, Zorion, Gearray or Zeref.",
+  "pages": [
+    {
+      "route_hint": "field",
+      "menu": "Lost Cosmos Field",
+      "title": "Lost Cosmos Field"
+    },
+    {
+      "route_hint": "talk",
+      "menu": "Talk to {beast}",
+      "title": "Talk to {beast}",
+      "subtitle": "{beast} thinks with its own brain, built on Zeref (RAWRPHOS). It's still learning, so some replies come out strange."
+    },
+    {
+      "route_hint": "coming-soon",
+      "menu": "Coming Soon",
+      "title": "Coming Soon",
+      "subtitle": "The gadget and the watch."
+    },
+    {
+      "route_hint": "guest-cage",
+      "menu": "Catch a Star",
+      "title": "Catch a Star"
+    },
+    {
+      "route_hint": "universe",
+      "menu": "Tiny Universe",
+      "title": "Tiny Universe"
+    },
+    {
+      "route_hint": "spark",
+      "menu": "Spark Beasts",
+      "title": "Spark Beasts"
+    },
+    {
+      "route_hint": "look-closer",
+      "menu": "Look Closer at {beast}",
+      "title": "Look Closer at {beast}"
+    },
+    {
+      "route_hint": "meet",
+      "menu": "Meet {beast}",
+      "title": "Meet {beast}"
+    }
+  ],
+  "replace_dev_wording": {
+    "Hearth* placeholder \u00b7 art Cosmo": "Hearth",
+    "no connector storage configured": "Saving isn't switched on yet.",
+    "Azure Blob": "Cloud save",
+    "Open the research PR": "Read how it works",
+    "raw model output, unedited": "His own words, unedited",
+    "Reply verified": "{beast}'s reply",
+    "tick / sim E HUD numbers": "hide by default; show under a 'Details' toggle"
+  },
+  "beach_two_injections": "Show one line: 'Seeded by four real IBM quantum runs.' Keep names and hashes behind a 'Details' toggle.",
+  "diary_latest_thought_prefix": "Something {beast} said:",
+  "honesty": "Keep 'recorded' on the IBM spark and 'SIMULATED' on growth.",
+  "zeref_rule": "Zeref is RAWRPHOS, the shared model. Each creature has its own brain logic in Azure, so a creature speaks as itself and is never called Zeref."
+}
