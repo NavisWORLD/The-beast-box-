@@ -192,7 +192,7 @@ def rigetti_order_seed(cycle,fresh_digest=None,run_id=None):
 HEBBIAN=os.environ.get("ZEREF_HEBBIAN","1")=="1"
 HEBBIAN_DIM=int(os.environ.get("ZEREF_HEBBIAN_DIM","32"))
 TRINITY=os.environ.get("ZEREF_TRINITY","1")=="1"  # original-kit Trinity 12D+42D state (QC67_cosmo)
-HEBBIAN_LR=float(os.environ.get("ZEREF_HEBBIAN_LR","0.0001"))  # 008: 3e-4 coincided with in-cycle chat NLL ~3.02-3.05 (cycle 39) vs ~2.91-2.97 (cycle 38); base LR unchanged
+HEBBIAN_LR=float(os.environ.get("ZEREF_HEBBIAN_LR","0.0003"))  # new params start from zero; base LR unchanged
 def extend_optimizer_state(sd,n_base,n_hebb):
  """Parent AdamW state (1 group) -> [base, hebbian] groups; new params get fresh moments."""
  import copy;sd=copy.deepcopy(sd);groups=sd["param_groups"]
