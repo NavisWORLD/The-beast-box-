@@ -238,6 +238,7 @@ jobs:
           # 007: train a Hebbian-enabled candidate from the approved pin (zero-output start).
           ZEREF_HEBBIAN: '1'
           ZEREF_TRINITY: '1'
+          ZEREF_006_LR: '0.00005'  # 008: local EMA trial passed chat A/B at 5e-5 step 64 (A 2.842, B 2.897)
           ZEREF_GROW_LAYERS: ${{ steps.growth.outputs.add_layers || '0' }}
         run: |
           set -Eeuo pipefail
