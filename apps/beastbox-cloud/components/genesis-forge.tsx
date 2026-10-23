@@ -13,6 +13,7 @@ const MAX_SAVES=8;
  * Guest-safe game character generator. Saved browser characters are not a
  * model, server-side COSMOS identity, memory or permission grant.
  */
+let forgeSeedMemo='cosmos-first-contact';
 export default function GenesisForge({
  value,onChange,onAmbient
 }:{
@@ -20,7 +21,9 @@ export default function GenesisForge({
  onChange:(creature:CreatureProfile)=>void;
  onAmbient?:(action:AmbientAction)=>void;
 }){
- const [seed,setSeed]=useState('cosmos-first-contact');
+ // A seed typed before hydration, or before a remount of this panel, is kept (module memory for this page session + the live DOM value on mount).
+ const [seed,setSeedRaw]=useState(()=>forgeSeedMemo);const setSeed=(v:string)=>{forgeSeedMemo=v;setSeedRaw(v);};
+ const seedInput=useRef<HTMLInputElement>(null);useEffect(()=>{const v=seedInput.current?.value;if(v&&v!==forgeSeedMemo)setSeed(v);},[]);
  const [family,setFamily]=useState<Family|'surprise'>('surprise');
  const [saved,setSaved]=useState<CreatureProfile[]>([]);
  const [action,setAction]=useState<AmbientAction>('hover');
@@ -84,7 +87,7 @@ export default function GenesisForge({
   </div>
   <div className={css.creator}>
    <label>Character seed
-    <input value={seed} maxLength={64} aria-label="Character seed"
+    <input ref={seedInput} value={seed} maxLength={64} aria-label="Character seed"
       onChange={e=>setSeed(e.target.value)} placeholder="Choose a seed" />
    </label>
    <label>Cosmic family
