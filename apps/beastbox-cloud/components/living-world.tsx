@@ -29,11 +29,12 @@ function biomeGLSL(bp:any){const f=(ws:any[])=>ws.map(w=>`${w.a.toFixed(4)}*sin(
 import * as WFmod from '@/lib/universe/world-field.mjs';
 const {createWorldField,stepWorldField,legendAt,fieldRGBA,createCreatureLoop,stepCreature,cellOf,LEGEND}=WFmod as any;
 import {addVolcanoIsland,addCosmoSky,sheet as lfSheet,LF as LANDF} from '@/lib/universe/landforms-three';
+import {createWorldCues,stepWorldCues} from '@/lib/universe/world-mechanics.mjs';
 import {addMechanics,createAsciiPass,underwaterColor} from '@/lib/universe/mechanics-three';
 import {weatherFrom,createMover,stepMover,createWater,stepWater,waterTotal} from '@/lib/universe/world-mechanics.mjs';
 import {LW_LABELS,gatheringPoints,spreadAngle,initialTraits,driftTraits,lattice12D,lwStream,unitFrom} from '@/lib/universe/living-world.mjs';
 import {ARTIST_RESIDENTS} from '@/lib/companion/artist-residents.mjs';
-import {cosmicEvents,cosmicLine,createWindow,stepWindow,windowLine,seededMood,spreadMood,napGroup,buildKind,advanceBuild,coexistLine,learnBiome,worldRecord,toJsonl,windowEmissive,traitIcon,MOOD_ICON,ZEREF_ID} from '@/lib/universe/living-alive.mjs';
+import {cosmicEvents,cosmicLine,createWindow,stepWindow,windowLine,seededMood,spreadMood,napGroup,buildKind,advanceBuild,coexistLine,worldLine,learnBiome,worldRecord,toJsonl,windowEmissive,traitIcon,MOOD_ICON,ZEREF_ID} from '@/lib/universe/living-alive.mjs';
 import {addCageSurface} from '@/lib/universe/surface-three';
 import {zoomBlend,zoomDistance,stepZoom,clampAboveGround,isMeadow} from '@/lib/universe/groundcover.mjs';
 import {addHeaven} from '@/lib/worlds/heaven';
@@ -317,9 +318,10 @@ uniform vec3 uPlay[8];
    const ROWS=F.traveler_walk.rows as string[];const RG=frames.beast_run_to_greet;
    // ---- growth: SIMULATED ticks client-side
    let tickAcc=0;const TICK_S=2;
+   let lwWet=0;const cues=createWorldCues();let cueN=0;
    const applyTick=()=>{if(field){let mo=0;for(let k=0;k<field.N;k+=7)mo+=field.moist[k];weather=weatherFrom(field,{moist:mo/Math.ceil(field.N/7)});
      if(water){stepWater(water,{rain:weather.rain});for(let k=0;k<field.N;k++)if(water.w[k]>.05)field.moist[k]=Math.min(1,field.moist[k]+.01*water.w[k]);
-      (window as any).__lwWater={total:+waterTotal(water).toFixed(3),steps:water.steps,pooled:(Array.from(water.w) as number[]).filter((x:number)=>x>.05).length};}(window as any).__lwWeather=weather;}
+      lwWet=(Array.from(water.w) as number[]).filter((x:number)=>x>.05).length;(window as any).__lwWater={total:+waterTotal(water).toFixed(3),steps:water.steps,pooled:(Array.from(water.w) as number[]).filter((x:number)=>x>.05).length};}(window as any).__lwWeather=weather;}
     if(u.tick>=4000)return;const prev=u;u=grow(u,1);const ev=u.history[u.history.length-1]?.events||[];let exp=ev[0]?.kind||null;if(!exp&&u.storms.length>prev.storms.length)exp='storm';
     if(exp==='storm'){storming=1;puff=1;say(beastNm+' puffs up at the storm!',4);}
     // growth spreads faster where there is light and water (sunlit home, wet biome) — still SIMULATED
@@ -539,6 +541,8 @@ uniform vec3 uPlay[8];
      const sw=sp?mover.w.swim:0;if(sw>.4){const dM=Math.max(0,-mover.y)/(TRAV_H/1.7);const tD=Math.min(1,dM/60+.15);const uc=underwaterColor(THREE,tD);
       if(!(scene.fog as any)?.isFogExp2)scene.fog=new THREE.FogExp2(uc.getHex(),.1);(scene.fog as any).color.copy(uc);(scene.fog as any).density=THREE.MathUtils.lerp(.035,.09,tD)/(TRAV_H/1.7)*sw*.5;(scene.background as any).lerp(uc,sw);}
      else if((scene.fog as any)?.isFogExp2)scene.fog=null;(window as any).__lwUnder=sw>.4;}
+     // Emeth's world lines, fired by the real loop's state edges (sun height, weather, swim/fly, lava, water paths)
+     {const ck=stepWorldCues(cues,{sunH:(spawnRef.current?pN:bN).dot(sunDir),rain:weather.rain,under:(window as any).__lwUnder===true,fly:sp?mover.w.fly:0,bursts:island?.state?.().bursts||0,wet:lwWet});if(ck){cueN++;const wl=worldLine(ck,u.seed,cueN);if(wl)say(beastNm+': '+wl,5);(window as any).__lwCue={kind:ck,n:cueN};}}
     if(asciiRef.current)ascii.render(scene,camera);else renderer.render(scene,camera);
     hudT+=dt;if(hudT>.5){hudT=0;const last=u.history?.[u.history.length-1];setHud({tick:u.tick,simE:last?.sim_E??null,life:u.life.length,storms:u.storms.length,cover:Math.min(1,UG.uSpread.value/Math.PI),traits,learned:{...learned},awake:things.filter((x:any)=>x.awake).length,blades:bladeCap,fps:+fps.toFixed(0)});}
    };

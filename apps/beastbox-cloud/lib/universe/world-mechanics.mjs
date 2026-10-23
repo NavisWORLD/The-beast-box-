@@ -27,3 +27,16 @@ export function stepMover(M,{dt,inWater=false,ground=0,mpu=1}){const g=MOVE.g*mp
 /** seeded layouts (cloud puffs, rain streaks, kelp, mountain profile) */
 export function seededCloudPuffs(seed,n,unitFrom){const r=lwStream(seed+':clouds');return Array.from({length:n},()=>{const d=unitFrom(r);return {d,puffs:3+Math.floor(r()*4),size:.6+r()*.9,alt:.9+r()*.6,spin:r()*6.283};});}
 export function mountainProfile(seed,n=256){const r=lwStream(seed+':mountains');const o=[...Array(5)].map(()=>[r()*6.283,1+Math.floor(r()*6)]);return Array.from({length:n},(_,i)=>{const a=i/n*6.283;let h=0;o.forEach(([p,f],j)=>{h+=Math.abs(Math.sin(a*f+p))/(j+1);});return +(h/2.3).toFixed(4);});}
+
+// World cues (Emeth's "world" lines): edge-detect real loop states (sun height, rain, swim/fly weights, lava bursts, newly wet cells).
+// Returns the cue kind that just happened, or null. No randomness; the line itself is picked by the seeded pickLine.
+export function createWorldCues(){return {phase:null,rain:false,under:false,fly:false,bursts:0,wet:-1};}
+export function stepWorldCues(C,{sunH=0,rain=0,under=false,fly=0,bursts=0,wet=0}={}){
+ const out=[];const ph=sunH>.12?'day':sunH<-.12?'night':(C.phase==='day'||C.phase==='sunset'?'sunset':C.phase==='night'||C.phase==='sunrise'?'sunrise':C.phase);
+ if(C.phase!==null&&ph!==C.phase&&ph)out.push(ph==='day'?null:ph);if(ph)C.phase=ph;
+ const r=rain>.1;if(r&&!C.rain)out.push('rain_start');C.rain=r;
+ if(under&&!C.under)out.push('dive');if(!under&&C.under)out.push('surface');C.under=under;
+ const f=fly>.5;if(f&&!C.fly)out.push('fly');C.fly=f;
+ if(bursts>C.bursts)out.push('lava_burst');C.bursts=bursts;
+ if(C.wet>=0&&wet>C.wet)out.push('water_flows');C.wet=wet;
+ return out.filter(Boolean)[0]||null;}

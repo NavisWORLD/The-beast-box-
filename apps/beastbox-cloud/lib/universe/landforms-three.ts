@@ -39,12 +39,12 @@ export function addVolcanoIsland(THREE:T,scene:import('three').Scene,o:{seed:str
  const embers=sheet(THREE,LF+'vfx/embers_4x4_256.png',{fps:12,loop:true});embers.sp.scale.setScalar(30*unit);embers.sp.position.copy(at([0,60,0]));
  const plume=sheet(THREE,LF+'vfx/geyser_plume_4x4_256.png',{fps:12,loop:false,additive:false});plume.sp.scale.setScalar(26*unit);plume.sp.position.copy(at([18.85,36,-28.3]));
  for(const f of [burst,embers,plume]){group.add(f.sp);fx.push(f);}
- let nextBurst=2+r()*6,nextPlume=4+r()*8,clock=0;
+ let bursts=0;let nextBurst=2+r()*6,nextPlume=4+r()*8,clock=0;
  return {group,ready,anchor:(name:string)=>at(ISLAND_ANCHORS[name]||[0,0,0]),
-  update(dt:number,camPos:V3){clock+=dt;if(clock>nextBurst){burst.play();nextBurst=clock+6+r()*14;}if(clock>nextPlume){plume.play();nextPlume=clock+9+r()*12;}for(const f of fx)f.update(dt);
+  update(dt:number,camPos:V3){clock+=dt;if(clock>nextBurst){burst.play();bursts++;nextBurst=clock+6+r()*14;}if(clock>nextPlume){plume.play();nextPlume=clock+9+r()*12;}for(const f of fx)f.update(dt);
    // LOD: near within 400 m (scaled), far beyond (README)
    if(near&&far){const dM=camPos.distanceTo(at([0,0,0]))/o.mpu/o.scale;near.visible=dM<400;far.visible=!near.visible;}},
-  state:()=>({near:!!near,far:!!far,nextBurst:+nextBurst.toFixed(2)})};
+  state:()=>({bursts,near:!!near,far:!!far,nextBurst:+nextBurst.toFixed(2)})};
 }
 
 /** Cosmo's sky: equirect nebula sphere + 1,500 twinkling stars (positions match the webp) */
