@@ -11,7 +11,7 @@ import SparkBeastArena from './spark-beast-arena';
 // Code-split the heavy WebGL/animation scenes so the Beast Cage paints fast on phones.
 const LivingWorld=dynamic(()=>import('./living-world'),{ssr:false});
 const CagePocketDimension=dynamic(()=>import('./cage-pocket-dimension'),{ssr:false,loading:()=><div style={{minHeight:320}} aria-busy="true"/>});
-const GenesisForge=dynamic(()=>import('./genesis-forge')); // E3: below-the-fold, split out of the first Cage bundle
+import GenesisForge from './genesis-forge'; // stays in the first bundle: tests and users type a seed into it right after load
 import BeastCareDeck from './beast-care-deck';
 import CreatureHabitat from './creature-habitat';
 import {visualStateFromBeast} from '../lib/companion/creature-visual-state.mjs';
