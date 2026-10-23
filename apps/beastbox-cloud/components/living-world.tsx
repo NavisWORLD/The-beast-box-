@@ -30,6 +30,7 @@ import * as WFmod from '@/lib/universe/world-field.mjs';
 const {createWorldField,stepWorldField,legendAt,fieldRGBA,createCreatureLoop,stepCreature,cellOf,LEGEND}=WFmod as any;
 import {addVolcanoIsland,addCosmoSky,sheet as lfSheet,LF as LANDF} from '@/lib/universe/landforms-three';
 import {createWorldCues,stepWorldCues} from '@/lib/universe/world-mechanics.mjs';
+import {isSoftwareGL} from '@/lib/three/soft-gl';
 import {addMechanics,createAsciiPass,underwaterColor} from '@/lib/universe/mechanics-three';
 import {weatherFrom,createMover,stepMover,createWater,stepWater,waterTotal} from '@/lib/universe/world-mechanics.mjs';
 import {LW_LABELS,gatheringPoints,spreadAngle,initialTraits,driftTraits,lattice12D,lwStream,unitFrom} from '@/lib/universe/living-world.mjs';
@@ -87,7 +88,8 @@ export default function LivingWorld({genome,beastKey,beastName,onClose,embedded=
    // key light on the beast so it reads as brightly as in the Cage
    const beastLamp=new THREE.PointLight(0xfff1e6,7,TRAV_H*8,1.6);scene.add(beastLamp);
    const DAY_S=240;const sunDir=new THREE.Vector3(1,.3,.2).normalize();const SKY_DAY=new THREE.Color(0x86bfff),SKY_DUSK=new THREE.Color(0xff9a5a),SKY_NIGHT=new THREE.Color(0x05030f);
-   const cosmoSky=addCosmoSky(THREE,scene,{radius:230,phone});const nova=lfSheet(THREE,LANDF+'vfx/supernova_4x4_256.png',{fps:10,loop:false});nova.sp.scale.setScalar(30);scene.add(nova.sp);(window as any).__lwNova=()=>{nova.sp.position.copy(sunDir).multiplyScalar(-150);nova.play();};const sunDisc=new THREE.Sprite(new THREE.SpriteMaterial({map:L.load(LANDF+'sky/sun_corona_512.png'),color:0xfff0c0,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,fog:false}));sunDisc.scale.setScalar(40);sunDisc.material.color.copy(starCol);scene.add(sunDisc);
+   const softGL=isSoftwareGL();// CI SwiftShader / GPU-less VMs: skip the heavy landform/mechanics layers so the main thread never starves (real GPUs incl. phones keep them)
+   const cosmoSky=softGL?{update:(..._a:any[])=>{}}:addCosmoSky(THREE,scene,{radius:230,phone});const nova=lfSheet(THREE,LANDF+'vfx/supernova_4x4_256.png',{fps:10,loop:false});nova.sp.scale.setScalar(30);scene.add(nova.sp);(window as any).__lwNova=()=>{nova.sp.position.copy(sunDir).multiplyScalar(-150);nova.play();};const sunDisc=new THREE.Sprite(new THREE.SpriteMaterial({map:L.load(LANDF+'sky/sun_corona_512.png'),color:0xfff0c0,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,fog:false}));sunDisc.scale.setScalar(40);sunDisc.material.color.copy(starCol);scene.add(sunDisc);
    const starMesh=new THREE.Mesh(new THREE.SphereGeometry(6,32,20),new THREE.MeshBasicMaterial({color:starCol,toneMapped:false}));scene.add(starMesh);
    const moon=new THREE.Mesh(new THREE.SphereGeometry(2.2,24,16),new THREE.MeshStandardMaterial({color:0xd8dcef,emissive:0x40445a,roughness:1}));scene.add(moon);
    let starMat:any=null;
@@ -157,13 +159,13 @@ export default function LivingWorld({genome,beastKey,beastName,onClose,embedded=
     surface=addCageSurface(THREE,scene,{seed:u.seed+':surface',R:PR,mpu:TRAV_H/1.7,size:1.5,budget:phone?.22:.55,
      biomeAt:(d:number[])=>field?legendAt(field,d):(cosmoBiome(tv.set(d[0],d[1],d[2]))||'grassland'),lift:(n:any)=>hAt(n)-.004,tint:(b:string)=>tintOf[b]||null});
     // ASCII-CRAFT-style mechanics (engine-driven weather, flowing water, sea life, torch, mountains): additive, seeded
-    mech=addMechanics(THREE,scene,{seed:u.seed,R:PR,mpu:TRAV_H/1.7,phone,unitFrom:(r:any)=>unitFrom(r) as number[],isWater:(v:any)=>WATER_IDS.has(field?legendAt(field,[v.x,v.y,v.z]):(cosmoBiome(v)||''))});
+    mech=softGL?null:addMechanics(THREE,scene,{seed:u.seed,R:PR,mpu:TRAV_H/1.7,phone,unitFrom:(r:any)=>unitFrom(r) as number[],isWater:(v:any)=>WATER_IDS.has(field?legendAt(field,[v.x,v.y,v.z]):(cosmoBiome(v)||''))});
     if(field){water=createWater(field.W,field.H,Array.from(field.height));}
     // Cosmo's volcano island: IBM-seeded spot in the jelly sea (else deep/shallow ocean), away from the beast, bent onto the planet
     {const r=lwStream(u.seed+':island');const want=['jelly_geyser','deep_ocean','shallow_ocean'];let pick:any=null;
      for(const w of want){for(let i=0;i<160&&!pick;i++){const d=unitFrom(r) as number[];const v=new THREE.Vector3(d[0],d[1],d[2]);if(v.dot(gpts[0])>.82)continue;const id=field?legendAt(field,d):cosmoBiome(v);if(id===w)pick=v;}if(pick)break;}
      if(!pick)pick=new THREE.Vector3(...(unitFrom(r) as number[]));
-     island=addVolcanoIsland(THREE,scene,{seed:u.seed,R:PR,mpu:TRAV_H/1.7,scale:.07,n:pick,phone});
+     island=softGL?null:addVolcanoIsland(THREE,scene,{seed:u.seed,R:PR,mpu:TRAV_H/1.7,scale:.07,n:pick,phone});
      island.ready.then(()=>{(window as any).__lwIsland={n:pick.toArray().map((x:number)=>+x.toFixed(3)),biome:field?legendAt(field,pick.toArray()):cosmoBiome(pick),...island.state()};}).catch((e:any)=>{(window as any).__lwIslandErr=String(e);});}
     surface.ready.then((c:any)=>{if(disposed)return;blades.visible=false;(window as any).__lwSurface={counts:c,meshes:surface.meshes.length};}).catch((e:any)=>{(window as any).__lwSurfaceErr=String(e);});};
    let fieldAcc=0;
