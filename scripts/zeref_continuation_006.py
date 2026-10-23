@@ -194,6 +194,12 @@ HEBBIAN_DIM=int(os.environ.get("ZEREF_HEBBIAN_DIM","32"))
 TRINITY=os.environ.get("ZEREF_TRINITY","1")=="1"  # original-kit Trinity 12D+42D state (QC67_cosmo)
 EMA_DECAY=float(os.environ.get("ZEREF_006_EMA_DECAY","0.98"))  # 008 steadier training (0 = off)
 GROW_LAYERS=int(os.environ.get("ZEREF_GROW_LAYERS","0"))  # set by scripts/zeref_growth_trigger.py on plateau
+# 009 unbounded growth: the only limits are physical. Time budget is detected at runtime; when hit,
+# training stops early, the best-so-far still faces the SAME gate, and the grown weights are saved
+# as a work-in-progress (WIP) resume point for the next round (never a pin, never a gate input).
+TIME_BUDGET_S=float(os.environ.get("ZEREF_006_TIME_BUDGET_S","0"))  # 0 = no budget
+WIP_IN=os.environ.get("ZEREF_GROWTH_WIP_IN","");WIP_OUT=os.environ.get("ZEREF_GROWTH_WIP_OUT","build/zeref-006/growth-wip.pt")
+LIMITS_HIT=[]
 HEBBIAN_LR=float(os.environ.get("ZEREF_HEBBIAN_LR","0.0003"))  # new params start from zero; base LR unchanged
 def extend_optimizer_state(sd,n_base,n_hebb):
  """Parent AdamW state (1 group) -> [base, hebbian] groups; new params get fresh moments."""
@@ -239,6 +245,13 @@ def train_variant(parent_path,tokenizer,pool,seed,chat_pool=(),chat_eval=None):
   model,fresh=grow_depth(model,GROW_LAYERS)
   hebb=model.hebbian_parameters()+[p for p in model.parameters() if id(p) in fresh]
   hid={id(p) for p in hebb};base=[p for p in model.parameters() if id(p) not in hid]
+ if WIP_IN and os.path.isfile(WIP_IN):
+  # 009: continue a grown-but-unfinished round (saved when a physical limit was hit). Only if it
+  # descends from THIS approved parent and matches the grown shape; otherwise ignored.
+  w=torch.load(WIP_IN,map_location="cpu",weights_only=False)
+  if w.get("parent_checkpoint_sha256")==parent["metadata"]["checkpoint_sha256"] and w.get("n_layers")==model.config.n_layers:
+   model.load_state_dict(w["model"]);print("ZEREF_GROWTH_WIP_RESUMED="+json.dumps({"n_layers":w["n_layers"],"steps_done":w.get("steps_done")}),flush=True)
+  else:print("ZEREF_GROWTH_WIP_IGNORED (different parent or shape)",flush=True)
  anchor=[p.detach().clone() for p in base]  # L2 anchor on the approved parent's weights only
  groups=[{"params":base}]+([{"params":hebb}] if hebb else [])
  opt=torch.optim.AdamW(groups,lr=LR,weight_decay=.01)
@@ -252,7 +265,13 @@ def train_variant(parent_path,tokenizer,pool,seed,chat_pool=(),chat_eval=None):
  g=torch.Generator().manual_seed(seed)
  logs=[];best=None
  ema={k:v.detach().clone() for k,v in model.state_dict().items()} if EMA_DECAY>0 else None  # 008 running average
+ t0=time.perf_counter()
  for n in range(UPDATES):
+  if TIME_BUDGET_S and time.perf_counter()-t0>TIME_BUDGET_S:
+   LIMITS_HIT.append({"limit":"time","at_step":n,"budget_s":TIME_BUDGET_S})
+   torch.save({"model":{k:v.detach().clone() for k,v in model.state_dict().items()},"n_layers":model.config.n_layers,
+    "parent_checkpoint_sha256":parent["metadata"]["checkpoint_sha256"],"steps_done":n},WIP_OUT)
+   print("ZEREF_GROWTH_LIMIT_HIT="+json.dumps(LIMITS_HIT[-1]),flush=True);break
   for gi,group in enumerate(opt.param_groups):group["lr"]=(HEBBIAN_LR if gi==1 else LR)*(LR_MIN_FRACTION+(1-LR_MIN_FRACTION)*.5*(1+math.cos(math.pi*n/UPDATES)))
   opt.zero_grad(set_to_none=True)
   idx=[]
@@ -470,6 +489,7 @@ def main():
   "teacher":"OBSERVATION_CONDITIONED_SCRIPTED_HEURISTIC_NOT_HUMAN_NOT_MODEL",
   "production_promoted":False,"learned_game_progress_proven":False,
   "growth_recipe":"sqrt_balanced+replay+l2_anchor+rigetti_sim_order+chat_mix",
+  "growth_limits_hit":LIMITS_HIT,
   "capacity_growth_lineage":list(parent["metadata"].get("capacity_growth_lineage",[]))+([{"from_layers":parent["model"].config.n_layers,
    "to_layers":parent["model"].config.n_layers+GROW_LAYERS,"method":"grow_depth_function_preserving","parent_checkpoint_sha256":parent["metadata"]["checkpoint_sha256"]}] if GROW_LAYERS else [])}
  saved=save_checkpoint(temp,model,tokenizer,meta,
@@ -537,7 +557,7 @@ def main():
   "native_game_progress_demonstrated":False,
   "teacher_is_scripted_not_human":True,
   "candidate_action_diversity_not_navigation_progress":True,
-  "training_logs":logs,"elapsed_seconds":round(time.perf_counter()-now,3)}
+  "growth_limits_hit":LIMITS_HIT,"training_logs":logs,"elapsed_seconds":round(time.perf_counter()-now,3)}
  save_json(ROOT/"report.json",report)
  print("ZEREF_006_REAL_TRAINING_GATE="+json.dumps({"approved":accepted,"cycle":cycle+1,
    "canonical_root":CANONICAL_APPROVED_ROOT,

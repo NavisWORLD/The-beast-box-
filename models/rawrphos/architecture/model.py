@@ -327,7 +327,7 @@ def grow_depth(model,add=2):
     and logits are IDENTICAL at growth time. The old final block gains a state transition
     (copied from block 0); its state only feeds the zero-output new blocks. Returns
     (grown_model, new_parameter_ids) so trainers can give new params fresh optimizer moments."""
-    if type(add) is not int or not 1<=add<=8: raise ValueError('grow_depth adds 1..8 blocks')
+    if type(add) is not int or add<1: raise ValueError('grow_depth adds >=1 blocks (no size cap; physical limits are checked by the trigger)')
     c=model.config; n=c.n_layers
     new=RawrphosLM(RawrphosConfig.from_dict(dict(asdict(c),n_layers=n+add)))
     sd=model.state_dict(); tgt=new.state_dict()

@@ -227,6 +227,9 @@ export function stepDiary(prev,{now,care=0,thought=null,growth=null}={}){
  state.stage=st.stage;state.stage_name=st.name;
  state.combos_known=[...prev.combos_known,...fresh.map(c=>c.key)];
  state.tick=tick;state.last_tick_at=now;
+ // 009: each Azure Rigetti SIMULATED growth event (seeded counts) also grows Zeref's world/universe:
+ // +1 universe growth unit (the world view and the model-growth trigger both read this counter).
+ if(q)state.universe_growth=(prev.universe_growth||0)+1;
  const line=thought&&typeof thought.text==='string'&&thought.text.trim()&&thought.by
   ?{text:thought.text.trim().slice(0,280),by:String(thought.by)}
   :{text:templateThought({mood,place,newCombos:fresh.length,stage:st.stage,grew,rng,spark:q,learning}),by:'deterministic-template'};
@@ -236,6 +239,7 @@ export function stepDiary(prev,{now,care=0,thought=null,growth=null}={}){
   discovered_combos:fresh.slice(0,5),new_combo_count:fresh.length,combos_total:state.combos_known.length,
   xp_gain:xpGain,xp:state.xp,stage:st.stage,stage_name:st.name,grew:Boolean(grew),care:careN,
   birth_spark:identity.birth_spark||BIRTH_SPARK,growth_source:growthSource,learning,
+  ...(q?{universe_growth:state.universe_growth}:{}),
   thought:line,prev_hash:prev.last_entry_hash,hash:''
  };
  entry.hash=entryHash(entry);
