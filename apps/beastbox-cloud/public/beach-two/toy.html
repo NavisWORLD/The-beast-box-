@@ -23,9 +23,13 @@ dl{display:grid;grid-template-columns:auto 1fr;gap:2px 8px;font-size:12px;margin
 #hint{position:absolute;left:8px;bottom:8px;font-size:11px;background:#000a;color:#fff;padding:3px 7px;border-radius:6px;pointer-events:none}
 #err{position:absolute;inset:auto 8px 40px 8px;color:#ffb4a8;font-size:12px}
 @media (max-width:760px){#app{flex-direction:column}#stage{flex:none;height:62vh}#rail{width:auto;border-left:0;border-top:1px solid var(--line);flex:1}}
+#railToggle{display:none}
+/* E3 (Cosmo): on phones the control panel collapses to one bar so the beach gets the screen. */
+@media (max-width:760px){#railToggle{display:block;width:100%;margin:0 0 6px}#rail.collapsed>*:not(#railToggle):not(#seedline){display:none}#rail.collapsed{flex:none}#app.railc #stage{height:calc(100dvh - 96px)}}
 </style></head><body>
-<div id="app"><div id="stage"><canvas id="c"></canvas><canvas id="score"></canvas><div id="hint"></div><div id="err"></div></div>
-<aside id="rail" aria-label="Beach Two controls">
+<div id="app" class="railc"><div id="stage"><canvas id="c"></canvas><canvas id="score"></canvas><div id="hint"></div><div id="err"></div></div>
+<aside id="rail" class="collapsed" aria-label="Beach Two controls">
+<button id="railToggle" type="button" aria-expanded="false" aria-controls="rail">Controls ▾</button>
 <div class="row"><b>Time</b><div class="seg" id="time"></div></div>
 <div class="row"><b>Wind <span id="wms"></span></b><div class="seg" id="wind"></div></div>
 <div class="row"><b>Attack style</b><div class="seg" id="attack"></div></div>
@@ -39,5 +43,6 @@ dl{display:grid;grid-template-columns:auto 1fr;gap:2px 8px;font-size:12px;margin
 <div id="signals" aria-live="off"></div></details>
 <details id="how"><summary>How it's drawn</summary><ul id="howl" style="padding-left:18px;font-size:12px"></ul></details>
 </aside></div>
+<script>(function(){var r=document.getElementById("rail"),a=document.getElementById("app"),b=document.getElementById("railToggle");b.addEventListener("click",function(){var c=r.classList.toggle("collapsed");a.classList.toggle("railc",c);b.setAttribute("aria-expanded",String(!c));b.textContent=c?"Controls ▾":"Hide controls ▴";setTimeout(function(){dispatchEvent(new Event("resize"));},30);});})();</script>
 <script type="module" src="./toy.js"></script>
 </body></html>

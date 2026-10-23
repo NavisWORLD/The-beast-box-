@@ -562,11 +562,11 @@ uniform vec3 uPlay[8];
  const T=hud.traits;
  return <div ref={host} className="lw-root" data-living-world={spawned?'spawned':'orbit'} data-lw-embedded={embedded?'':undefined} style={{pointerEvents:'auto',position:embedded?'absolute':'fixed',inset:0,zIndex:embedded?1:2147483000,borderRadius:embedded?18:0,overflow:'hidden',background:'#05030f',touchAction:embedded&&!spawned?'pan-y':'none',fontSize:embedded?11:13,color:'#efeaff',font:'13px/1.35 system-ui,sans-serif'}}>
   <canvas ref={canvasRef} style={{position:'absolute',inset:0,width:'100%',height:'100%',display:'block',touchAction:'none'}}/>
-  <div style={{position:'absolute',top:'calc(env(safe-area-inset-top) + 10px)',left:10,right:10,display:'flex',flexWrap:'wrap',gap:6,pointerEvents:'none'}}>
+  <div data-lw-chips style={{position:'absolute',top:'calc(env(safe-area-inset-top) + 10px)',left:10,right:10,display:'flex',flexWrap:'wrap',gap:6,pointerEvents:'none'}}>
    <span style={pill('#2b6cb0')} data-lw-spark>{LW_LABELS.spark}</span><span style={pill('#9b2c2c')} data-lw-growth>{LW_LABELS.growth}</span><span style={pill('#553c9a')} data-lw-model>{LW_LABELS.model}</span><span style={pill('#276749')} data-lw-biome ref={hudBiome}>Biome</span>
   </div>
   <div style={{position:'absolute',left:10,right:10,bottom:'calc(env(safe-area-inset-bottom) + 10px)',display:'flex',justifyContent:'space-between',alignItems:'flex-end',gap:8,pointerEvents:'none'}}>
-   <div style={{background:'rgba(10,6,30,.72)',borderRadius:12,padding:'8px 10px',maxWidth:'62%',pointerEvents:'auto',display:embedded&&!spawned?'none':undefined}}>
+   <div data-lw-card style={{background:'rgba(10,6,30,.72)',borderRadius:12,padding:'8px 10px',maxWidth:'62%',pointerEvents:'auto',display:embedded&&!spawned?'none':undefined}}>
     <b>{beastName||'Your beast'}</b> {genome||(typeof window!=='undefined'&&(window as any).__beastGenome)?'':'(no saved beast yet — hatch one in the Cage)'}<br/>
     <details data-lw-details style={{fontSize:12}}><summary style={{cursor:'pointer',opacity:.8}}>Details</summary>
     tick {hud.tick} · sim E {hud.simE??'—'} · life {hud.life} · storms {hud.storms} · grass {Math.round(hud.cover*100)}%<br/>
