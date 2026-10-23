@@ -268,9 +268,9 @@ class RawrphosLM(nn.Module):
         if control_vector is not None:
             if control_vector.shape!=(b,12) or not bool(torch.isfinite(control_vector).all()) or bool((control_vector.abs()>1).any()):
                 raise ValueError('external state must be finite [batch,12] in [-1,1]')
-            cv=control_vector.to(state)
-            if c.state_mode=='tri': cv=torch.cat([cv,cv.new_zeros(b,42)],-1)
-            state=torch.tanh(state_logits+cv[:,None,:])
+            # tri: the 12 control scalars drive x12 only; x42 gets zero external input.
+            if c.state_mode=='tri': control_vector=torch.cat([control_vector,control_vector.new_zeros(b,42)],-1)
+            state=torch.tanh(state_logits+control_vector.to(state)[:,None,:])
         if c.attention_mode=='frozen_state': state=state.detach()
         caches=[]; telemetry=[]
         for i,block in enumerate(self.blocks):
