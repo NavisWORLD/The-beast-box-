@@ -215,7 +215,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,low?(phoneGpu?1.25:1):1.5));
     // Software GL (CI SwiftShader, very old phones): force the low tier so the main thread never starves.
     let soft=false;try{const gl=renderer.getContext();const dbg=gl.getExtension('WEBGL_debug_renderer_info');soft=!!dbg&&/swiftshader|llvmpipe|software/i.test(String(gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL)));}catch{}
-    if(soft){low=true;renderer.setPixelRatio(1);}
+    if(soft){low=true;renderer.setPixelRatio(1);if(cameraView.current.zoom===13.5)cameraView.current={theta:.7,phi:1.28,zoom:10.6};}// software GL keeps the classic framing (wider view = more fill on CPU rasterisers)
     const glbTier:'med'|'low'|null=soft?null:!low?'med':phoneGpu?'med':null;(window as any).__pocketGlbTier=glbTier;
     // Living-core bodies: real GPUs (incl. phones). Software GL keeps the classic pocket like the GLBs; ?livingcore=1 forces it for review.
     const lcForced=new URLSearchParams(location.search).get('livingcore')==='1';const lcBody=new URLSearchParams(location.search).get('lcbody')==='1';// ?lcbody=1 shows the living-core particle body instead of the original sculpt
