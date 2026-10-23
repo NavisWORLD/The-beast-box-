@@ -59,7 +59,7 @@ def main(bdir,dolly,mix,out):
  carve_set={(norm(q),norm(a)) for p in carve_files for q,a in pairs_of(p)}
  train+=[(q,a) for q,a in pairs_of(mix) if (norm(q),norm(a)) not in carve_set]
  TP={h(q) for q,_ in train};TA={h(a) for _,a in train if len(norm(a).split())>=3}
- used={h(q) for q,_ in A0+B0}|{h(c) for c in list(E.CHAT)+list(CHARACTER_PROMPTS)}
+ used={h(q) for q,_ in A0+B0}|{h(c) for c in list(E.CHAT_V1)+list(CHARACTER_PROMPTS)}
  def fresh(q,a):return h(q) not in TP and h(q) not in used and not(len(norm(a).split())>=3 and h(a) in TA)
  pool=[]
  for q,a,s in never:

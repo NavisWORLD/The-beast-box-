@@ -31,6 +31,10 @@ if _V2.is_file():PAIRS=PAIRS_V1+[(r["user"],r["assistant"]) for r in json.loads(
 CHAT=["Hi! Who are you?","How is your day going?","Tell me something fun.",
  "What do you like to do?","Can you be my friend?","What is a dragon?",
  "Say something kind.","What should we explore today?"]
+# Gate v2 (Cory approved 2026-10-23): good-replies prompts grow from 8 to 50 (same reply_ok scoring,
+# same comparison model); 42 fixed-seed held-out prompts from scripts/zeref_gate_sets_v2.json "chat_added".
+CHAT_V1=list(CHAT)
+if _V2.is_file():CHAT=CHAT_V1+[r["user"] for r in json.loads(_V2.read_text()).get("chat_added",[])]
 # Exactly the RAWRPHOS server chat template (models/rawrphos/inference/server.py).
 def fmt(p):return f"user: {p}\nassistant:"
 def ref_nll(path):

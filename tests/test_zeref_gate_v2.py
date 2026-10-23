@@ -30,3 +30,14 @@ def test_frozen_rotation_and_spike_guard():
     assert 'ZEREF_CHAT_ROTATE_SEED="${{ github.run_id }}"' not in w and "zeref-gate-v2-20261023" in w
     s=Path("scripts/zeref_continuation_006.py").read_text()
     assert "ZEREF_006_SKIPPED_BATCH=" in s and "clip_grad_norm_(model.parameters(),1." in s and "ZEREF_006_BATCH=" in s
+
+def test_chat_prompts_50_no_torch():
+    d=json.loads(Path("scripts/zeref_gate_sets_v2.json").read_text())
+    c=d["chat_added"];assert len(c)==42 and len({r["prompt_sha256"] for r in c})==42
+    ab={r["prompt_sha256"] for r in d["set_a_added"]+d["set_b_added"]}
+    assert not ab&{r["prompt_sha256"] for r in c}
+def test_chat_prompts_loaded_and_excluded():
+    import pytest;pytest.importorskip("torch");pytest.importorskip("safetensors")
+    import rawrphos_chat_eval as E,zeref_chat_corpus as C
+    assert len(E.CHAT)==50 and E.CHAT[:8]==E.CHAT_V1
+    for p in E.CHAT: assert p.strip().lower() in C.held
