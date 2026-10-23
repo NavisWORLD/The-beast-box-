@@ -1,0 +1,58 @@
+{
+ "source": "apps/beastbox-cloud/lib/universe/living-world.mjs initialTraits {curiosity,sociality,calm,joy} + creature mood.fear; 'wonder' is new (no live field)",
+ "sheet": "sprites/mood_icons.png",
+ "cell": 64,
+ "frames": 4,
+ "fps": 6,
+ "moods": [
+  {
+   "id": "curious",
+   "row": 0,
+   "field": "curiosity",
+   "color": "#5fe7ff"
+  },
+  {
+   "id": "social",
+   "row": 1,
+   "field": "sociality",
+   "color": "#ff8ad8"
+  },
+  {
+   "id": "calm",
+   "row": 2,
+   "field": "calm",
+   "color": "#7dffb0"
+  },
+  {
+   "id": "joy",
+   "row": 3,
+   "field": "joy",
+   "color": "#ffd94a"
+  },
+  {
+   "id": "wonder",
+   "row": 4,
+   "field": null,
+   "color": "#b48cff"
+  },
+  {
+   "id": "fear",
+   "row": 5,
+   "field": "fear",
+   "color": "#ff5a5a"
+  }
+ ],
+ "spread_ring": {
+  "sheet": "sprites/mood_spread_ring.png",
+  "cell": 128,
+  "frames": 8,
+  "fps": 12,
+  "tint": "multiply white by mood color, additive blend"
+ },
+ "nap": {
+  "sheet": "sprites/nap_zzz.png",
+  "cell": 64,
+  "frames": 4,
+  "fps": 4
+ }
+}
