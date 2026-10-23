@@ -1,0 +1,16 @@
+import {test} from 'node:test';import assert from 'node:assert/strict';import {readFileSync} from 'node:fs';
+import {weatherFrom,createWater,stepWater,waterTotal,createMover,stepMover,mountainProfile} from '../lib/universe/world-mechanics.mjs';
+test('weather is driven by the CST Lorenz/Hebbian state and is deterministic',()=>{const F={S:{L:{x:3,y:5,z:40},hebb:.3},storm:.5};const a=weatherFrom(F,{moist:.8}),b=weatherFrom(F,{moist:.8});assert.deepEqual(a,b);assert.ok(a.rain>0);
+ assert.ok(weatherFrom({S:{L:{x:0,y:0,z:1},hebb:.4},storm:0},{moist:.2}).rain===0);assert.match(a.source,/SIMULATED/);});
+test('water flows downhill and pools in low cells',()=>{const W=createWater(8,1,[0,1,2,3,4,5,6,7]);W.w.fill(1);for(let i=0;i<200;i++)stepWater(W,{rain:0,evap:0});assert.ok(W.w[0]>W.w[5]);assert.ok(Math.abs(waterTotal(W)-8)<1e-3);});
+test('gravity lands you after flying; walk/swim/fly blend smoothly',()=>{const M=createMover();M.fly=true;for(let i=0;i<200;i++)stepMover(M,{dt:.05});assert.ok(M.y>2&&M.w.fly>.99);M.fly=false;stepMover(M,{dt:.05});assert.ok(M.w.fly>.5&&M.w.fly<1);
+ for(let i=0;i<200;i++)stepMover(M,{dt:.05,ground:0});assert.equal(M.y,0);assert.ok(M.w.walk>.99);for(let i=0;i<200;i++)stepMover(M,{dt:.05,inWater:true});assert.ok(M.y<0&&M.w.swim>.99);});
+test('seeded mountains; mechanics wired additively with Cosmo art, no Math.random',()=>{assert.deepEqual(mountainProfile('s'),mountainProfile('s'));
+ const m=readFileSync(new URL('../lib/universe/mechanics-three.ts',import.meta.url),'utf8'),w=readFileSync(new URL('../lib/universe/world-mechanics.mjs',import.meta.url),'utf8'),lw=readFileSync(new URL('../components/living-world.tsx',import.meta.url),'utf8');
+ for(const s of [m,w])assert.doesNotMatch(s,/Math\.random/);for(const f of ['rain_streaks_8x_32x128','rain_splash_8f_64','bubbles_8f_64x128','torch_cookie_512','glow_sprite_nyxlet_256','glyph_atlas_'])assert.match(m,new RegExp(f));
+ assert.match(lw,/data-lw-ascii/);assert.match(lw,/asciiRef\.current\)ascii\.render\(scene,camera\);else renderer\.render\(scene,camera\)/);assert.match(lw,/data-lw-fly/);assert.match(lw,/underwaterColor/);});
+test('world cues fire on real state edges with Emeth lines',async()=>{const {createWorldCues,stepWorldCues}=await import('../lib/universe/world-mechanics.mjs');const {worldLine}=await import('../lib/universe/living-alive.mjs');
+ const C=createWorldCues();assert.equal(stepWorldCues(C,{sunH:.5}),null);assert.equal(stepWorldCues(C,{sunH:0}),'sunset');assert.equal(stepWorldCues(C,{sunH:-.5}),'night');assert.equal(stepWorldCues(C,{sunH:0}),'sunrise');
+ assert.equal(stepWorldCues(C,{sunH:0,rain:.5}),'rain_start');assert.equal(stepWorldCues(C,{sunH:0,rain:.5,under:true}),'dive');assert.equal(stepWorldCues(C,{sunH:0,rain:.5}),'surface');
+ assert.equal(stepWorldCues(C,{sunH:0,rain:.5,fly:1}),'fly');assert.equal(stepWorldCues(C,{sunH:0,rain:.5,fly:1,bursts:1}),'lava_burst');stepWorldCues(C,{sunH:0,rain:.5,fly:1,bursts:1,wet:3});assert.equal(stepWorldCues(C,{sunH:0,rain:.5,fly:1,bursts:1,wet:4}),'water_flows');
+ for(const k of ['sunrise','sunset','night','rain_start','dive','surface','water_flows','lava_burst','fly']){const l=worldLine(k,'s',1);assert.ok(l&&l.length<=44,k);}});

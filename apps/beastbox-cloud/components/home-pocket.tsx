@@ -12,6 +12,7 @@ import {stormChaos} from '../lib/companion/fluid-swirl.mjs';
 import {deriveEmotions} from '../lib/companion/emotion.mjs';
 import {useChshGame} from './use-chsh-game';
 import dynamic from 'next/dynamic';
+import {isSoftwareGL} from '../lib/three/soft-gl';
 const LivingWorld=dynamic(()=>import('./living-world'),{ssr:false});
 /** Guest default: Zeref bb-deada969's own recorded session record (display only; never adopted, never merged with the Moonwraith display guide). */
 export const ZEREF_HOME_DEFAULT={id:'bb-deada969',src:'/spark/zeref-live-20261010/unsigned-session.json'};
@@ -25,12 +26,15 @@ export default function HomePocket(){
  const [homeView,setHomeView]=useState<'world'|'pocket'>('world');const chooseHomeView=(v:'world'|'pocket')=>setHomeView(v);
  useEffect(()=>{if(own||zeref)return;let live=true;fetch(ZEREF_HOME_DEFAULT.src).then(r=>r.ok?r.json():null).then(d=>{const b=d?.beast;if(live&&b?.qbeast?.profile?.id===ZEREF_HOME_DEFAULT.id)setZeref(b);}).catch(()=>{});return()=>{live=false;};},[own,zeref]);
  const beast=own||zeref;const [world,setWorld]=useState(false);
+ // Software GL (CI SwiftShader, GPU-less VMs): the living world's shaders take tens of seconds to link there and freeze the page,
+ // so the home view keeps the classic Cage pocket; real GPUs (incl. phones) get the embedded world. The full world still opens on demand.
+ const [softHome,setSoftHome]=useState(false);useEffect(()=>{setSoftHome(isSoftwareGL());},[]);
  const game=useChshGame();const sc=stormChaos(deriveEmotions(beast),game);
  const qvmCounts=useOwnQvmCounts(beast?recordedQvmStimulusPath(beast):null);
  const chat=Array.isArray(session?.chat)?session.chat:[];const lastYou=[...chat].reverse().find((m:any)=>m?.role==='you')?.text||null;
  // Oct 16: the same cage look Cory loves; living-core Zeref + life layer live inside it. The ⋯ button tucks sound/game/help on phones.
  return <div className="home-pocket-layer is-roamer" data-home-pocket={own?'saved-beast':zeref?'zeref-bb-deada969':'guide'}>
-  {own&&homeView==='world'&&!world?<LivingWorld embedded genome={own.genome||null} beastKey={own.qbeast?.profile?.id||null} beastName={own.displayName||own.genome?.names?.[String(own.stage)]||null} onExpand={()=>setWorld(true)}/>:<CagePocketDimension seed={beast?beast.genome?.seed||beast.seed:null} qbeastId={beast?beast.qbeast.profile.id:null}
+  {own&&homeView==='world'&&!world&&!softHome?<LivingWorld embedded genome={own.genome||null} beastKey={own.qbeast?.profile?.id||null} beastName={own.displayName||own.genome?.names?.[String(own.stage)]||null} onExpand={()=>setWorld(true)}/>:<CagePocketDimension seed={beast?beast.genome?.seed||beast.seed:null} qbeastId={beast?beast.qbeast.profile.id:null}
    stage={beast?(beast.nativeStage||1):1} behaviorPosition={beast?beast.behavior?.position||null:null}
    state={beast?visualStateFromBeast(beast):'idle'} reduced={reduced} onActiveChange={noop} qvmCounts={qvmCounts} autoOrbit chatLine={lastYou}/>}
   {own?<button type="button" className="lc-living-world-open" data-home-view-toggle onClick={()=>chooseHomeView(homeView==='world'?'pocket':'world')} style={{position:'absolute',left:10,top:48,zIndex:5,background:'rgba(20,14,50,.85)',color:'#fff',border:0,borderRadius:10,padding:'6px 10px',font:'12px system-ui'}}>{homeView==='world'?'✦ Pocket view':'🌍 Living world'}</button>:null}

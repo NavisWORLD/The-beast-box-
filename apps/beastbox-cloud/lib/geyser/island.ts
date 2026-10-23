@@ -2,7 +2,7 @@
 // a translucent jelly sea block that tips and springs back, and a shallow-water sim with caustics + foam.
 import {GJ,STACKS,islandHeight,springStep,waterStep,waterDrop,rng} from './geyser-math.mjs';
 type T=typeof import('three');
-export function buildIsland(THREE:T,scene:import('three').Scene,{low}:{low:boolean}){
+export function buildIsland(THREE:T,scene:import('three').Scene,{low,open=false}:{low:boolean;open?:boolean}){
   const root=new THREE.Group();root.name='geyser-jelly';root.position.set(GJ.cx,0,GJ.cz);scene.add(root);
   const U={uT:{value:0},uSea:{value:GJ.sea}};const r=rng('geyser-jelly');const S=GJ.half*2;
   // ---- island terrain (vertex colours: black sand, moss, scoria, basalt) + caustics on the seabed
@@ -36,6 +36,18 @@ export function buildIsland(THREE:T,scene:import('three').Scene,{low}:{low:boole
     fragmentShader:'varying vec3 vN;varying vec3 vV;void main(){float f=pow(1.-abs(dot(vN,vV)),2.2);gl_FragColor=vec4(mix(vec3(.25,.85,.8),vec3(.75,1.,.95),f),.06+.42*f);}'});
   const block=new THREE.Mesh(new THREE.BoxGeometry(S,H,S),blockM);block.position.y=bot+H/2;block.renderOrder=3;jelly.add(block);
   const edges=new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(S,H,S)),new THREE.LineBasicMaterial({color:0x9ff4ff,transparent:true,opacity:.45,blending:THREE.AdditiveBlending,depthWrite:false}));edges.position.copy(block.position);jelly.add(edges);
+  // open sea (Cory, Oct 22): no floating glass tile; the island rises out of a real ocean with a shelf, shoreline foam and deep water
+  if(open){block.visible=false;edges.visible=false;
+   const oc=new THREE.Mesh(new THREE.RingGeometry(GJ.R*.9,GJ.half*1.6,low?96:192,low?8:16),new THREE.ShaderMaterial({transparent:true,depthWrite:false,uniforms:{uT:U.uT,uR:{value:GJ.R},uH:{value:GJ.half}},
+    vertexShader:'varying vec2 vP;void main(){vP=position.xy;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+    fragmentShader:'uniform float uT,uR,uH;varying vec2 vP;void main(){float a=atan(vP.y,vP.x);float shore=uR*(1.+.12*sin(-a*3.+.7)+.07*sin(-a*7.-1.1));float r=length(vP);float d=r-shore;if(d<.15)discard;'+
+     'float shelf=smoothstep(.15,2.2,d),deep=smoothstep(2.,uH*.9,d);vec3 c=mix(vec3(.18,.62,.66),vec3(.05,.2,.38),shelf);c=mix(c,vec3(.02,.05,.16),deep);'+
+     'float sw=sin(vP.x*1.7+uT*.6)*sin(vP.y*1.3-uT*.45)+.5*sin((vP.x+vP.y)*3.1+uT);c+=vec3(.25,.45,.55)*max(0.,sw)*.06*(1.-deep*.6);'+
+     'float foam=smoothstep(.9,.15,d)*(.55+.45*sin(r*14.-uT*1.8));c=mix(c,vec3(.92,.98,1.),clamp(foam,0.,1.)*.7);'+
+     'float fade=1.-smoothstep(uH*1.25,uH*1.6,r);gl_FragColor=vec4(c,(.82+.15*shelf)*fade);}'}));
+   oc.rotation.x=-Math.PI/2;oc.position.y=GJ.sea-.012;oc.renderOrder=1;oc.name='gj-ocean';root.add(oc);
+   // seabed skirt: the land plane's square edge slopes down into the deep instead of ending in the air
+   const sk=new THREE.Mesh(new THREE.RingGeometry(GJ.half*.98,GJ.half*1.6,low?48:96,2),new THREE.MeshStandardMaterial({color:0x0a1626,roughness:1}));sk.rotation.x=-Math.PI/2;sk.position.y=GJ.bed-.05;root.add(sk);}
   const n=low?GJ.simLow:GJ.simHigh;const h=new Float32Array(n*n),pv=new Float32Array(n*n),mask=new Uint8Array(n*n),dep=new Float32Array(n*n);
   const wg=new THREE.PlaneGeometry(S,S,n-1,n-1);wg.rotateX(-Math.PI/2);const WP=wg.attributes.position as any;
   for(let j=0;j<n;j++)for(let i=0;i<n;i++){const q2=j*n+i;const x=WP.getX(q2),z=WP.getZ(q2);const d=GJ.sea-islandHeight(x,z);dep[q2]=d;mask[q2]=d>.01&&i>0&&j>0&&i<n-1&&j<n-1?1:0;}

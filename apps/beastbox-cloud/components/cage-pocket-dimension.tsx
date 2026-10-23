@@ -72,7 +72,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
  const sandSource=qvmCounts?'receipt':'seed';
  const canvasRef=useRef<HTMLCanvasElement>(null);
  const motion=useRef({position:behaviorPosition,state,stage,impulse:0});
- const cameraView=useRef<View>({theta:.7,phi:1.28,zoom:10.6});
+ const cameraView=useRef<View>({theta:.7,phi:1.22,zoom:13.5});
  // Tap-a-creature: set once the scene exists; a tap (no drag) raycasts and focuses the camera on what it hits.
  const pickRef=useRef<((x:number,y:number)=>void)|null>(null);
  const [visualSettings,setVisualSettings]=useState<{enabled:boolean;quality:'auto'|'low'|'high';neonWire?:boolean}>({...DEFAULT_POCKET_3D});
@@ -157,14 +157,14 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
    }else if(event.key==='-'){
     event.preventDefault();cameraView.current.zoom=clamp(cameraView.current.zoom*1.3,ZOOM_MIN,ZOOM_MAX);
    }else if(event.key==='Home'){
-    event.preventDefault();cameraView.current={theta:.7,phi:1.28,zoom:10.6};
+    event.preventDefault();cameraView.current={theta:.7,phi:1.22,zoom:13.5};
    }
   };
   // Existing sound-generator events: sound is a *visual stimulus*, not proof
   // of external microphone hearing or physical quantum/natural growth.
   const chirp=(e:Event)=>{const raw=Number((e as CustomEvent)?.detail?.intensity);motion.current.impulse=clamp(motion.current.impulse+(Number.isFinite(raw)?raw:.35)*.32,0,1.25);};
   const mute=()=>{motion.current.impulse=0;};
-  const resetCamera=()=>{cameraView.current={theta:.7,phi:1.28,zoom:10.6};pickRef.current?.(-1e6,-1e6);};
+  const resetCamera=()=>{cameraView.current={theta:.7,phi:1.22,zoom:13.5};pickRef.current?.(-1e6,-1e6);};
   const option={passive:true} as AddEventListenerOptions;
   const unguard=parent?guardCanvasTouch(parent,{hint:parent.classList.contains('beast-landing-art')?'↔ Drag sideways to spin · swipe to scroll':'↔ Drag sideways to explore · pinch to zoom'}):()=>{};
   if(parent){
@@ -215,7 +215,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,low?(phoneGpu?1.25:1):1.5));
     // Software GL (CI SwiftShader, very old phones): force the low tier so the main thread never starves.
     let soft=false;try{const gl=renderer.getContext();const dbg=gl.getExtension('WEBGL_debug_renderer_info');soft=!!dbg&&/swiftshader|llvmpipe|software/i.test(String(gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL)));}catch{}
-    if(soft){low=true;renderer.setPixelRatio(1);}
+    if(soft){low=true;renderer.setPixelRatio(1);if(cameraView.current.zoom===13.5)cameraView.current={theta:.7,phi:1.28,zoom:10.6};}// software GL keeps the classic framing (wider view = more fill on CPU rasterisers)
     const glbTier:'med'|'low'|null=soft?null:!low?'med':phoneGpu?'med':null;(window as any).__pocketGlbTier=glbTier;
     // Living-core bodies: real GPUs (incl. phones). Software GL keeps the classic pocket like the GLBs; ?livingcore=1 forces it for review.
     const lcForced=new URLSearchParams(location.search).get('livingcore')==='1';const lcBody=new URLSearchParams(location.search).get('lcbody')==='1';// ?lcbody=1 shows the living-core particle body instead of the original sculpt
@@ -231,7 +231,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     const moonlight=new THREE.PointLight(0xa8eaff,24,12);
     moonlight.position.set(0,4,1);scene.add(moonlight);
     const glow=new THREE.PointLight(0xba82f4,13,11);glow.position.set(-2,2,-3);scene.add(glow);
-    const heaven=addHeaven(THREE,scene,{low});// the user's heaven: warm divine light, endless depth, serene flow
+    const heaven=addHeaven(THREE,scene,{low,rand:randomFor(key+':heaven'),far:soft?undefined:(()=>{const r=randomFor(key+':sun');const a=r()*6.283,el=.42+r()*.35;return {dir:[Math.cos(a)*Math.cos(el),Math.sin(el),Math.sin(a)*Math.cos(el)] as [number,number,number],dist:70};})()});// the user's heaven: warm divine light, endless depth, serene flow
     // Lost COSMOS look: dark cosmic sand floor instead of blue stone.
     const stone=new THREE.MeshStandardMaterial({color:0x1c1530,emissive:0x0a0618,roughness:1,metalness:.02});
     const floraMat=new THREE.MeshStandardMaterial({color:0x6fe7ff,emissive:0x2aa6d6,emissiveIntensity:.9,metalness:.3,roughness:.18,transparent:true,opacity:.9});
@@ -328,7 +328,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     // Home: the sprite-built 3D Zeref lives here, standing on the habitat floor (one world, one camera).
     const zHolder=new THREE.Group();zHolder.scale.setScalar(.45);zHolder.position.set(0,-.07,0);zHolder.rotation.y=.7;scene.add(zHolder);
     // Universe of worlds: home trees/clouds/sky dome/parallax haze + distant worlds with gravity wells; Zeref travels between them.
-    const neonU=neonUniforms();const uw=buildWorlds(THREE,scene,{low,universe:UNIVERSE_R,neon:neonU});const land=(!soft||lcForced)?buildTerrain(THREE,scene,{low}):null;if(lcForced)(window as any).__lcLand=land;const gj=(!soft||lcForced)?buildIsland(THREE,scene,{low}):null;const gjEv=gj?addGeyserEvents(THREE,gj,{low}):null;const gjLife=gj&&gjEv?addIslandLife(THREE,gj,gjEv.puff,{low}):null;const gjSnd=gj?createGeyserSound():null;gjEv?.on(e=>{gjSnd?.event(e==='geyser-tap'?'':e);if(e==='tremor'||e==='erupt')gjLife?.scare();});gjLife?.on(e=>gjSnd?.event(e));if(lcForced){(window as any).__geyser=gj;(window as any).__geyserEv=gjEv;(window as any).__geyserLife=gjLife;}
+    const neonU=neonUniforms();const uw=buildWorlds(THREE,scene,{low,universe:UNIVERSE_R,neon:neonU});const land=(!soft||lcForced)?buildTerrain(THREE,scene,{low}):null;if(lcForced)(window as any).__lcLand=land;const gj=(!soft||lcForced)?buildIsland(THREE,scene,{low,open:true}):null;const gjEv=gj?addGeyserEvents(THREE,gj,{low}):null;const gjLife=gj&&gjEv?addIslandLife(THREE,gj,gjEv.puff,{low}):null;const gjSnd=gj?createGeyserSound():null;gjEv?.on(e=>{gjSnd?.event(e==='geyser-tap'?'':e);if(e==='tremor'||e==='erupt')gjLife?.scare();});gjLife?.on(e=>gjSnd?.event(e));if(lcForced){(window as any).__geyser=gj;(window as any).__geyserEv=gjEv;(window as any).__geyserLife=gjLife;}
     const onGj=(e:any)=>{const a=String(e?.detail?.action||'');if(a==='erupt')gjEv?.erupt();else if(a==='tremor')gjEv?.tremor();else if(a==='geyser')gjEv?.geyser();else if(a==='breach')gjLife?.breach();else if(a==='castoff')gjLife?.castoff();};window.addEventListener('beastbox:geyser',onGj);if(gj){(window as any).__geyserReady=true;window.dispatchEvent(new Event('beastbox:geyser-ready'));}
     // tap the geyser, volcano, whale or boat to trigger it (taps only; drags keep orbiting the camera)
     const gjRay=new THREE.Raycaster(),gjNdc=new THREE.Vector2();let gjDown:{x:number;y:number;t:number}|null=null;
@@ -375,10 +375,10 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     let plush:ReturnType<typeof buildPlush>|null=null;let beastFoot=0;const hop=createHop(key);const beastNode=new THREE.Group();beastNode.name='beast-3d';scene.add(beastNode);
     const syncPlush=()=>{const gen=(window as any).__beastGenome as PlushGenome|null;const want=!!gen&&!pixelRef.current;
      if(plush&&(!want||plush.root.userData.seed!==gen?.seed)){beastNode.remove(plush.root);plush.dispose();plush=null;}
-     if(want&&!plush&&gen){plush=buildPlush(THREE,gen,{low});plush.root.userData.seed=gen.seed;plush.root.scale.setScalar(.78);beastNode.add(plush.root);
+     if(want&&!plush&&gen){plush=buildPlush(THREE,gen,{low});plush.root.userData.seed=gen.seed;plush.root.scale.setScalar(.5);beastNode.add(plush.root);
       // Zeref-pipeline sculpted GLB replaces the plush when available (plush stays as low tier / fallback while loading or on failure)
       if((glbTier||new URLSearchParams(location.search).get('beastglb')==='1')&&GLB_PLANS.includes(gen.body)){const mine=plush;loadBeastGlb(THREE,gen,{tier:glbTier||'med'}).then(gb=>{
-        if(!gb||disposed||plush!==mine){gb?.dispose();return;}gb.root.scale.setScalar(.69);mine.root.visible=false;beastNode.add(gb.root);beastNode.updateMatrixWorld(true);{const bb=new THREE.Box3().setFromObject(gb.root);beastFoot=beastNode.position.y-bb.min.y;}
+        if(!gb||disposed||plush!==mine){gb?.dispose();return;}gb.root.scale.setScalar(.44);mine.root.visible=false;beastNode.add(gb.root);beastNode.updateMatrixWorld(true);{const bb=new THREE.Box3().setFromObject(gb.root);beastFoot=beastNode.position.y-bb.min.y;}
         const pd=mine.drive,pdis=mine.dispose;const lp=new THREE.Vector3();
         (mine as any).drive=(dt:number,b:any,mp:any,look:any)=>{let ll=null;if(look){lp.set(look.x,look.y,look.z);gb.root.worldToLocal(lp);ll={yaw:Math.atan2(lp.x,lp.z),pitch:Math.atan2(lp.y-.6,Math.hypot(lp.x,lp.z))};}gb.drive(dt,b,mp,ll);};
         (mine as any).dispose=()=>{beastNode.remove(gb.root);gb.dispose();pdis();};(mine as any).tris=gb.tris;void pd;}).catch(()=>{});}}
@@ -386,7 +386,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     syncPlush();window.addEventListener('beastbox:genome',syncPlush);window.addEventListener('beastbox:pixel-mode',syncPlush);
     if(new URLSearchParams(location.search).get('qa')==='1')(window as any).__pocketQA={brain,life};// QA captures only: force a life mode
     const lifeRand=randomFor(key+':god');const camXZ=()=>({x:camera.position.x,z:camera.position.z});
-    const near=(r:number)=>{const a=brain.heading+(lifeRand()-.5)*1.6,d=.9+lifeRand()*r;let x=brain.x+Math.cos(a)*d,z=brain.z+Math.sin(a)*d;const m=Math.hypot(x,z);if(m>3.2){x*=3.2/m;z*=3.2/m;}return {x,z};};
+    const near=(r:number)=>{const a=brain.heading+(lifeRand()-.5)*1.6,d=.9+lifeRand()*r;let x=brain.x+Math.cos(a)*d,z=brain.z+Math.sin(a)*d;const m=Math.hypot(x,z);if(m>4){x*=4/m;z*=4/m;}return {x,z};};
     const pokeBeast=()=>{const mood=life.update(0,null,null).mood;pokeLife(brain,mood as any,camXZ() as any);life.poke(brain.x,brain.z);};
     godRef.current={weather:w=>life.setWeather(w),time:t=>life.setTime(t),treat:()=>{const p=near(1.2);life.dropTreat(p.x,p.z);},flower:()=>{const p=near(1.5);life.plantFlower(p.x,p.z);},poke:pokeBeast};
     const onTalk=(e:Event)=>{const raw=Number((e as CustomEvent)?.detail?.intensity);life.talk(Number.isFinite(raw)?raw:.4);if(brain.mode!=='nap'&&brain.mode!=='shelter'){brain.mode='glance';brain.timer=1.6;}};
