@@ -9,6 +9,7 @@ export default function SiteNav(){
  const path=usePathname()||'/';const [open,setOpen]=useState(false),[float,setFloat]=useState(false);
  useEffect(()=>{const f=()=>setFloat(window.scrollY>140);f();window.addEventListener('scroll',f,{passive:true});return()=>window.removeEventListener('scroll',f);},[]);
  useEffect(()=>{setOpen(false);},[path]);
+ useEffect(()=>{const o=()=>setOpen(true);window.addEventListener('beastbox:open-site-nav',o);return()=>window.removeEventListener('beastbox:open-site-nav',o);},[]);
  useEffect(()=>{if(!open)return;const k=(e:KeyboardEvent)=>{if(e.key==='Escape')setOpen(false);};window.addEventListener('keydown',k);return()=>window.removeEventListener('keydown',k);},[open]);
  const cur=(h:string)=>h===path;
  const [beastName,setBeastName]=useState<string|null>(null);
