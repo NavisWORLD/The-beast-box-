@@ -71,12 +71,12 @@ export default function Universe3D({u,onSelect,onAlive}:{u:any;onSelect?:(id:str
    let far:THREE.Object3D|null=null,fd=-1;for(const g of starObj.values()){const d=g.position.distanceTo(hs.position)+(g.userData.bh?1e6:0);if(g!==hs&&d>fd){fd=d;far=g;}}
    const outer=Math.max(8,...U.planets.filter((p:any)=>p.star===hp?.star).map((p:any)=>orbitR(p)))+6;
    import('three/examples/jsm/loaders/GLTFLoader.js').then(({GLTFLoader})=>{const L=new GLTFLoader();
-    L.load('/universe/deepspace/models/wormhole_ring.glb',gl=>{const o=gl.scene;o.scale.setScalar(0.35);o.rotation.x=Math.PI/2;o.userData.art='wormhole';
+    L.load('/universe/deepspace/models/wormhole_ring.glb',gl=>{const o=gl.scene;o.scale.setScalar(0.2);o.rotation.x=Math.PI/2;o.userData.art='wormhole';
      if(far)o.position.copy(hs.position).lerp(far.position,0.5);else o.position.copy(hs.position).add(new THREE.Vector3(outer*2,0,0));o.position.y+=6;world.add(o);
      if(gl.animations[0]){mixer=new THREE.AnimationMixer(o);mixer.clipAction(gl.animations[0]).play();}});
     for(const k of ['a','b','c'])L.load(`/universe/deepspace/models/asteroid_${k}_far.glb`,gl=>{let mesh:any=null;gl.scene.traverse((c:any)=>{if(!mesh&&c.isMesh)mesh=c;});if(!mesh)return;
      const n=40,im=new THREE.InstancedMesh(mesh.geometry,mesh.material,n),M=new THREE.Matrix4(),q=new THREE.Quaternion(),e=new THREE.Euler();
-     for(let i=0;i<n;i++){const a=r()*Math.PI*2,R=outer+(r()-0.5)*4,sc=0.02+r()*0.07;e.set(r()*6.28,r()*6.28,r()*6.28);q.setFromEuler(e);
+     for(let i=0;i<n;i++){const a=r()*Math.PI*2,R=outer+(r()-0.5)*4,sc=0.012+r()*0.035;e.set(r()*6.28,r()*6.28,r()*6.28);q.setFromEuler(e);
       M.compose(new THREE.Vector3(Math.cos(a)*R,(r()-0.5)*1.2,Math.sin(a)*R),q,new THREE.Vector3(sc,sc,sc));im.setMatrixAt(i,M);}
      const g=new THREE.Group();g.position.copy(hs.position);g.add(im);g.userData.spin=0.01+r()*0.02;world.add(g);belt.push(g);});
    }).catch(()=>{});}
