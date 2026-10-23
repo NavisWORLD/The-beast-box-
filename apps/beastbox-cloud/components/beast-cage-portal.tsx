@@ -11,23 +11,23 @@ import SparkBeastArena from './spark-beast-arena';
 // Code-split the heavy WebGL/animation scenes so the Beast Cage paints fast on phones.
 const LivingWorld=dynamic(()=>import('./living-world'),{ssr:false});
 const CagePocketDimension=dynamic(()=>import('./cage-pocket-dimension'),{ssr:false,loading:()=><div style={{minHeight:320}} aria-busy="true"/>});
-import GenesisForge from './genesis-forge';
+const GenesisForge=dynamic(()=>import('./genesis-forge')); // E3: below-the-fold, split out of the first Cage bundle
 import BeastCareDeck from './beast-care-deck';
 import CreatureHabitat from './creature-habitat';
 import {visualStateFromBeast} from '../lib/companion/creature-visual-state.mjs';
 import {recordedQvmStimulusPath} from '../lib/companion/recorded-qvm-stimulus.mjs';
 import {useOwnQvmCounts} from './use-own-qvm-counts';
 import {useUniverseMotion} from './use-universe-motion';
-import QbeastMenagerie from './qbeast-menagerie';
-import CreatureDashboard from './creature-dashboard';
+const QbeastMenagerie=dynamic(()=>import('./qbeast-menagerie')); // E3: below-the-fold, split out of the first Cage bundle
+const CreatureDashboard=dynamic(()=>import('./creature-dashboard')); // E3: below-the-fold, split out of the first Cage bundle
 import {useBeastSession} from './beast-session';
 import {shownName} from '../lib/companion/session.mjs';
 import {publicProfileFromBeast,publicProfileFromCreature,type CosmosProfile} from '../public/spark/cosmos-profile.mjs';
 import {useCompanion} from './companion-provider';
 import {generateCreature,type BaseLook,type AmbientAction} from '../lib/creature-profile';
 import BrandCrest from '@/components/brand-crest';
-import ZerefDiaryPanel from './zeref-diary-panel';
-import MetaMusePanel from './meta-muse-panel';
+const ZerefDiaryPanel=dynamic(()=>import('./zeref-diary-panel')); // E3: below-the-fold, split out of the first Cage bundle
+const MetaMusePanel=dynamic(()=>import('./meta-muse-panel')); // E3: below-the-fold, split out of the first Cage bundle
 import {ZEREF_PROFILE} from '../lib/zeref/zeref-mind.mjs';
 import {creatureVisual} from '../public/spark/creature-assets.mjs';
 import {POCKET_3D_CAMERA_RESET} from '../lib/companion/pocket-3d-settings.mjs';
@@ -107,7 +107,7 @@ export default function BeastCagePortal(){
     <Link href="/sol-game">Lost COSMOS</Link>
     <Link href="/beast-cage/field">Lost Cosmos Field</Link>
     <Link href="/brain-bay">Brain Bay</Link>
-    <Link href="/research">Lab</Link>
+    <Link href="/research">Research Lab</Link>
     <Link href="/workspace">Workstation</Link>
     <Link className="cage-nav-cta" href="/settings">Settings <ArrowRight size={15}/></Link>
    </nav>

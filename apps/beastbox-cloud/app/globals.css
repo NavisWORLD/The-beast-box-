@@ -790,3 +790,13 @@ body[data-dock=closed] :is([data-lost-cosmos-dock][data-dock-state=mini],[data-l
  [data-u3d-zoom] button{width:34px!important;height:34px!important;min-height:0!important}
  [data-threads-label]{top:178px!important;left:12px!important;transform:none!important;max-width:calc(100% - 24px)!important;text-align:left!important}
 }
+
+/* PR E3 (Cosmo) narrow widths: room navs wrap (Workstation stays visible), chips wrap instead of clipping, the world beast card shrinks. */
+@media(max-width:700px){
+ .cage-topbar nav,.public-journey-links{flex-wrap:wrap!important;overflow-x:visible!important;justify-content:flex-start}
+ .cage-topbar nav>a{min-height:36px!important;padding:6px 9px!important}
+ .public-journey-links a{flex:0 1 auto!important;min-height:36px!important}
+ .hero-foot{gap:8px 14px;padding-right:0}
+ [data-lw-chips]>span{font-size:10px!important;padding:2px 7px!important;max-width:100%;white-space:normal}
+ [data-lw-card]{max-width:48%!important;font-size:11px;padding:6px 8px!important}
+}
