@@ -37,4 +37,20 @@ export const THING_KINDS=Object.freeze(['flower','crystal','cairn','pond','burro
 /** Things on the planet: positions and kinds from the seed stream; how many are "awake" grows with coverage. */
 export function worldThings(u,max=48){const r=lwStream(u.seed+':things');return Array.from({length:max},(_,i)=>({id:'thing-'+i,kind:THING_KINDS[Math.floor(r()*THING_KINDS.length)],n:unitFrom(r),size:+(0.6+r()*0.8).toFixed(3),level:0}));}
 /** What a creature takes from touching a thing (trait channel); the amount is drawn from a seeded stream inside driftTraits. */
-export const THING_LESSON=Object.freeze({flower:'abiogenesis',crystal:'supernova',cairn:'build',pond:'calm',burrow:'rest',tree:'abiogenesis'});
+export const THING_LESSON=Object.freeze({flower:'abiogenesis',crystal:'supernova',cairn:'build',pond:'calm',burrow:'rest',tree:'abiogenesis',cactus:'storm',ice:'calm',ember:'storm',mushroom:'abiogenesis'});
+// ---- Biomes (Oct 22 2026): the whole surface is biomes, placed from the recorded-IBM-derived universe seed (no Math.random).
+// Fields are sums of seeded sine waves over the unit normal so the same function runs on CPU (props/creatures) and GPU (shader).
+// Layout follows 'Whole-planet biomes' in the Shared World bible (Cosmic Emeth).
+export const BIOMES_LW=Object.freeze(['ocean','plains','heartwood','beach','glacier','tundra','pine','ember','papersea','mushroom','peaks']);
+export const BIOME_NAMES=Object.freeze({ocean:'Jelly-geyser sea',plains:'Sunflower plains',heartwood:'Heartwood forest',beach:'Coast beach',glacier:'Glacier',tundra:'Crystal moss tundra',pine:'Pine-dark forest',ember:'Ember fields',papersea:'Paper sea marsh',mushroom:'Mushroom swamp',peaks:'Celestial peaks',desert:'Desert dunes'});
+/** Field params. opts.water/opts.temp (planet data) shift sea level and climate: hot planets shrink ice and grow embers. */
+export function biomeParams(seedKey,opts={}){const r=lwStream(seedKey+':biome');const w=()=>Array.from({length:4},(_,i)=>{const v=unitFrom(r);const f=1.5+i*1.3+r()*1.2;return {k:[v[0]*f,v[1]*f,v[2]*f],p:+(r()*6.2832).toFixed(4),a:+(0.5/(i+1)).toFixed(4)};});
+ return {h:w(),m:w(),sea:+(opts.water!=null?(opts.water-0.5)*0.7-0.12:-0.2).toFixed(4),tb:+(opts.temp!=null?Math.max(-0.6,Math.min(0.6,(opts.temp-288)/200)):0).toFixed(4)};}
+const wsum=(ws,n)=>ws.reduce((s,w)=>s+w.a*Math.sin(w.k[0]*n[0]+w.k[1]*n[1]+w.k[2]*n[2]+w.p),0);
+/** Biome at unit normal n: same rules as the shader in components/living-world.tsx. */
+export function biomeAt(bp,n){const h=wsum(bp.h,n),m=wsum(bp.m,n),c=1-Math.abs(n[1])*1.15+bp.tb+0.1*m-0.15*Math.max(0,h);
+ if(c<0.02)return 'glacier';if(h<bp.sea)return 'ocean';if(h>0.56)return 'peaks';if(h<bp.sea+0.1&&c>0.45)return 'beach';if(c>0.86)return 'ember';
+ if(h<bp.sea+0.26&&m>0.08)return c>0.5?'mushroom':'papersea';if(c<0.36)return m>0?'pine':'tundra';return h>0.22?'heartwood':'plains';}
+export const BIOME_PROPS=Object.freeze({ocean:['pond'],plains:['flower','flower','burrow'],heartwood:['tree','tree','burrow'],beach:['cairn','pond'],glacier:['ice','ice'],tundra:['crystal','ice','cairn'],pine:['tree','tree','cairn'],ember:['ember','cairn'],papersea:['pond','flower'],mushroom:['mushroom','mushroom','pond'],peaks:['crystal','cairn'],desert:['cactus','cairn']});
+/** How a creature moves in each biome, and what the beast learns the first time it enters one. */
+export const BIOME_FEEL=Object.freeze({ocean:{speed:.45,lesson:'calm'},plains:{speed:1,lesson:'day'},heartwood:{speed:.8,lesson:'rest'},beach:{speed:.9,lesson:'greet'},glacier:{speed:.55,lesson:'calm'},tundra:{speed:.7,lesson:'supernova'},pine:{speed:.75,lesson:'rest'},ember:{speed:.85,lesson:'storm'},papersea:{speed:.6,lesson:'abiogenesis'},mushroom:{speed:.65,lesson:'abiogenesis'},peaks:{speed:.6,lesson:'build'},desert:{speed:.7,lesson:'storm'}});
