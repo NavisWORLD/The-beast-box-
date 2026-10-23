@@ -2,6 +2,7 @@
 import {beastDisplayName} from '../lib/companion/beast-name.mjs';
 import {useCallback,useEffect,useMemo,useState} from 'react';
 import Link from 'next/link';
+import TalkBeastLabel from './talk-beast-label'; // Talk to My Beast fallback
 import {ArrowRight,BrainCircuit,DatabaseZap,LockKeyhole,Orbit,ShieldCheck,SlidersHorizontal,Sparkles,Volume2} from 'lucide-react';
 import SparkBeastCompanion from './spark-beast-companion';
 import dynamic from 'next/dynamic';
@@ -115,7 +116,7 @@ export default function BeastCagePortal(){
     <span className="cage-eyebrow"><Sparkles size={13}/> WELCOME TO THE BEAST CAGE</span>
     <h1 id="cage-title">A small companion.<br/><em>An entire universe.</em></h1>
     <p>For dreamers, idlers, players, builders and anyone with a strange little idea: this is the place to live with your Beast. Care for it, talk to it, shape its look, then take the same identity into LOST COSMOS.</p>
-    <div className="cage-hero-actions"><Link className="cage-primary" href="/beast-cage/talk">Talk to My Beast <ArrowRight size={17}/></Link><a className="cage-secondary" href="#customize">Customize</a><Link className="cage-secondary" href="/sol-game">Enter LOST COSMOS 🎮</Link></div>
+    <div className="cage-hero-actions"><Link className="cage-primary" href="/beast-cage/talk"><TalkBeastLabel/> <ArrowRight size={17}/></Link><a className="cage-secondary" href="#customize">Customize</a><Link className="cage-secondary" href="/sol-game">Enter LOST COSMOS 🎮</Link></div>
     <p className="cage-quiet"><LockKeyhole size={13}/><span>One Beast stays at the center. More ways to explore: <Link href="/beast-cage/world">Tiny world</Link> · <Link href="/beast-cage/turntable">3D model</Link> · <Link href="/beast-cage/play">Adventure</Link> · <Link href="/beast-cage/field">📷 Open Field (camera)</Link> · <Link href="/beast-cage/guest">Game lab</Link> · <a href="/spark/index.html">Open Public Beast Generator</a> · <Link href="/workspace?owner=1">Owner deck</Link>.</span></p>
    </div>
    <div data-cage-view={view} className={'cage-habitat-visual'+(pocketReady?' cage-pocket-active':'')} role="group" aria-label="Circular dimensional world behind the original Spark Beast; drag or pinch to explore, or focus and use arrow keys and plus/minus to move the view" tabIndex={0}>
