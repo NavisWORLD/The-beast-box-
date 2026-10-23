@@ -357,6 +357,9 @@ uniform vec3 uPlay[8];
     addEventListener('beastbox:local-sensor-level',onMic as any);canvas.addEventListener('pointermove',onMove);document.addEventListener('visibilitychange',onVis);
     cleanup.push(()=>{removeEventListener('beastbox:local-sensor-level',onMic as any);canvas.removeEventListener('pointermove',onMove);document.removeEventListener('visibilitychange',onVis);});
     const metAt:Record<string,number>={};let napT=0,meetN=0;
+    // test/debug hook for screenshots: a build next to the beast at a given progress. NOT a world event: writes no record, says nothing.
+    (window as any).__lwBuildDemo=(kind='burrow',progress=1)=>{const at=bN.clone().addScaledVector(bF,1.2/PR).normalize();const b:any={id:'demo-'+kind,kind,progress,stage:progress<.33?0:progress<.66?1:2,at,by:['demo'],tick:u.tick,demo:true};builds.push(b);
+     b.node=new THREE.Group();const f=bF.clone();place(b.node,at,f);b.node.position.copy(at).multiplyScalar(PR+hAt(at));scene.add(b.node);showStage(b);return b.stage;};
     return {
      // 1) cosmic: same grow() events as the traits; Zeref says Emeth's line; 5) Zeref records each one
      onTick(prev:any,next:any){const cev=cosmicEvents(prev,next);if(!cev.length)return;const cl=cosmicLine(cev,seed,next.tick);if(cl){lineRef.current('Zeref: '+cl.line);evCool=6;}
@@ -372,7 +375,7 @@ uniform vec3 uPlay[8];
       showStage(b);zRec(ev);if(ev.stage===0||ev.finished)say2(r.name,coexistLine(ev,seed,builds.length),5);},
      frame(dt:number,tt:number){
       // 2) window
-      const kind=stepWindow(win,dt,{mic,pointerNear,returned});returned=0;if(kind){say2(beastNm,windowLine(kind,seed,win.n),3);winBoost=1;glowBoost=1;}
+      const kind=stepWindow(win,dt,{mic,pointerNear,returned});returned=0;if(kind){const wl=windowLine(kind,seed,win.n);if(wl){lineRef.current(beastNm+': '+wl);evCool=4;}winBoost=1;glowBoost=1;}
       winBoost=Math.max(0,winBoost-dt*.4);
       for(const b of builds){if(b.model){b.grow=Math.min(1,(b.grow??1)+dt*1.2);b.model.scale.setScalar(MODEL_K*b.grow);}if(b.win?.material)b.win.material.emissiveIntensity=windowEmissive(tt,winBoost);}
       for(const mx of mixers)mx.update(dt);
