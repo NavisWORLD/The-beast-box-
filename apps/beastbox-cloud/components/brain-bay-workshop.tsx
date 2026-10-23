@@ -40,8 +40,7 @@ export default function BrainBayWorkshop(){
    </section>
    <div className={styles.talkColumn}>
     <div className={styles.sectionLabel}><span>CHOOSE A BRAIN · TALK</span><BrainCircuit size={21} aria-hidden="true"/></div>
-    {/* Inline panel (Cosmo's audit): the brain choices and chat show here instead of an empty column with one button */}
-    <BeastTalkPanel surface="panel" compact title={beast?`Talk to ${name}`:undefined}/>
+    <BeastTalkPanel title={beast?`Talk to ${name}`:undefined}/>
    </div>
   </div>
   <footer className={styles.footer}><p>Your Beast&apos;s story stays in this browser. A model only receives the message you send, framed by your Beast&apos;s name and personality.</p><Link prefetch={false} href="/beast-cage/talk">Full Talk to Beast room <ArrowUpRight size={14} aria-hidden="true"/></Link><Link prefetch={false} href="/workspace#brain-bay">Open owner workstation <ArrowUpRight size={14} aria-hidden="true"/></Link><Link prefetch={false} href="/research">Read the Lab receipts <ArrowUpRight size={14} aria-hidden="true"/></Link></footer>
