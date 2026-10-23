@@ -810,3 +810,5 @@ body[data-one-dock] [data-site-nav-float]{display:none!important}
 @media(min-width:760px){body[data-one-dock] [data-site-nav-bar]{display:none!important}}
 /* Field game: its own ☰ Field menu is the one floating control there (it now also opens the site menu and Talk), so the dock never covers the pad, the Lv card or the sheets. */
 body:has([data-go-screen]) .site-dock{display:none}
+/* E4: inside the Beach Two region its own header (← Universe / Full screen) is the control, so the dock never covers the toy's Controls bar. */
+body:has([data-universe-region]) .site-dock{display:none}
