@@ -8,7 +8,7 @@ export const SITE_NAV:readonly NavGroup[]=[
  {key:'home',label:'Home',items:[{label:'Home',href:'/',icon:'🏠'},{label:'Meet your beast',href:'/spark/index.html',icon:'🐣',beast:'meet'}]},
  {key:'cage',label:'The Cage',items:[{label:'Pocket cage',href:'/beast-cage',icon:'🏰'},{label:'Look Closer at your beast',href:'/beast-cage/look',icon:'🔍',beast:'look'},{label:'Adventure walk',href:'/beast-cage/play',icon:'🕹️'},{label:'Field game',href:'/beast-cage/go',icon:'🧭'},{label:'Lost Cosmos Field',href:'/beast-cage/field',icon:'📷'},{label:'Catch a Star',href:'/beast-cage/guest',icon:'🐾'}]},
  {key:'universe',label:'The Universe',items:[{label:'Tiny Universe',href:'/universe',icon:'🌌'},{label:'Beach Two (planet beach)',href:'/beach-two',icon:'🏖️'}]},
- {key:'zeref',label:'Zeref',items:[{label:'Talk to Zeref',href:'/beast-cage/talk?with=zeref',icon:'🌙'},{label:'Talk to your beast',href:'/beast-cage/talk?with=beast',icon:'💬',beast:'talk'},{label:'Zeref’s diary',href:'/beast-cage#zeref-diary',icon:'📔'}]},
+ {key:'zeref',label:'Zeref',items:[{label:'Talk to your beast',href:'/beast-cage/talk?with=beast',icon:'💬',beast:'talk'},{label:'Talk to Zeref',href:'/beast-cage/talk?with=zeref',icon:'🌙'},{label:'Zeref’s diary',href:'/beast-cage#zeref-diary',icon:'📔'}]},
  {key:'game',label:'Lost COSMOS',items:[{label:'Lost COSMOS game',href:'/sol-game',icon:'🎮'}]},
  {key:'spark',label:'Spark Lab',items:[{label:'Spark Beasts',href:'/spark/index.html',icon:'🧪'},{label:'Try it',href:'/try',icon:'✨'}]},
  {key:'brain',label:'Brain Bay',items:[{label:'Brain Bay',href:'/brain-bay',icon:'🧠'}]},
