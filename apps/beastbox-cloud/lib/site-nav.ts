@@ -6,8 +6,8 @@ export type NavGroup={key:string;label:string;items:NavItem[]};
 // 'Meet your beast' and 'Look closer' are relabelled with the active beast's real name by <SiteNav/> (beast: true).
 export const SITE_NAV:readonly NavGroup[]=[
  {key:'home',label:'Home',items:[{label:'Home',href:'/',icon:'🏠'},{label:'Meet your beast',href:'/spark/index.html',icon:'🐣',beast:'meet'}]},
- {key:'cage',label:'The Cage',items:[{label:'Pocket cage',href:'/beast-cage',icon:'🏰',note:'your beast’s home and tiny world'},{label:'Look closer',href:'/beast-cage/look',icon:'🔍',note:'360° view · or tap a creature in the Cage',beast:'look'},{label:'Adventure walk',href:'/beast-cage/play',icon:'🕹️'},{label:'Field game',href:'/beast-cage/go',icon:'🧭'},{label:'Open Field (AR)',href:'/beast-cage/field',icon:'📷'},{label:'Guest cage',href:'/beast-cage/guest',icon:'🐾'}]},
- {key:'universe',label:'The Universe',items:[{label:'Zoom out to the worlds',href:'/universe',icon:'🌌'},{label:'Beach Two',href:'/beach-two',icon:'🏖️',note:'a beach on a planet'}]},
+ {key:'cage',label:'The Cage',items:[{label:'Pocket cage',href:'/beast-cage',icon:'🏰'},{label:'Look closer',href:'/beast-cage/look',icon:'🔍',beast:'look'},{label:'Adventure walk',href:'/beast-cage/play',icon:'🕹️'},{label:'Field game',href:'/beast-cage/go',icon:'🧭'},{label:'Open Field (AR)',href:'/beast-cage/field',icon:'📷'},{label:'Guest cage',href:'/beast-cage/guest',icon:'🐾'}]},
+ {key:'universe',label:'The Universe',items:[{label:'Other worlds',href:'/universe',icon:'🌌'},{label:'Beach Two (planet beach)',href:'/beach-two',icon:'🏖️'}]},
  {key:'zeref',label:'Zeref',items:[{label:'Talk to Zeref',href:'/beast-cage/talk',icon:'🌙'},{label:'Zeref’s diary',href:'/beast-cage#zeref-diary',icon:'📔'}]},
  {key:'game',label:'Lost COSMOS',items:[{label:'Lost COSMOS game',href:'/sol-game',icon:'🎮'}]},
  {key:'spark',label:'Spark Lab',items:[{label:'Spark Lab · my beast',href:'/spark/index.html',icon:'🧪'},{label:'Try it',href:'/try',icon:'✨'}]},
