@@ -142,7 +142,8 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
    suppressClick=false;
   };
   const wheel=(event:WheelEvent)=>{
-   if(isControl(event.target))return;
+   // desktop wheel zoom works over the creature and its tap target too; only real form fields keep the wheel
+   if(event.target instanceof Element&&event.target.closest('input,select,textarea,[contenteditable="true"]'))return;
    event.preventDefault();
    cameraView.current.zoom=clamp(cameraView.current.zoom*Math.exp(event.deltaY*.0016),ZOOM_MIN,ZOOM_MAX);
   };
@@ -419,6 +420,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
       // forgiving finger: nearest creature to the ray within ~0.6 world units
       for(const c of list){c.obj.getWorldPosition(tgt);const d=ray.ray.distanceToPoint(tgt);if(d<.6&&d<bestD){bestD=d;best=c;}}
      }
+     window.dispatchEvent(new CustomEvent('beastbox:look-closer',{detail:{id:best?.id??null}}));
      if(best?.id==='beast'){pokeBeast();return;}
      focused=best;if(best)cameraView.current.zoom=Math.min(cameraView.current.zoom,4.6);
      (window as any).__pocketFocus={id:best?.id??null};
@@ -499,8 +501,8 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
         if(brain.moment==='splash')life.splashStep(brain.x,brain.z,brain.speed,reduced?0:dt);if(hp.air===false&&(brain as any).wasAir&&brain.inPuddle)life.splash(brain.x,brain.z,1.4);(brain as any).wasAir=hp.air;}beastNode.rotation.y=Math.PI/2-brain.heading;
        plush.drive(reduced?0:dt,brain,L.mp,brain.lookCam>.3?{x:camera.position.x,y:camera.position.y,z:camera.position.z}:attn);
        // observer camera: a gentle side/away drift that keeps the Beast framed, never forced into its face
-       if(!autoOrbitRef.current&&!focused&&!reduced&&now-lastDragAt.current>4000){const want=-brain.heading+Math.PI/2+.5*Math.PI+(brain.lookCam>.5?Math.PI*.35:0);
-        let dth=((want-v.theta)%(Math.PI*2)+Math.PI*3)%(Math.PI*2)-Math.PI;v.theta+=dth*Math.min(1,dt*.12);v.zoom+=(9.4-v.zoom)*Math.min(1,dt*.2);v.phi+=(1.36-v.phi)*Math.min(1,dt*.2);
+       if(!autoOrbitRef.current&&!focused&&!reduced&&now-lastDragAt.current>1500){const want=-brain.heading+Math.PI/2+.5*Math.PI+(brain.lookCam>.5?Math.PI*.35:0);
+        let dth=((want-v.theta)%(Math.PI*2)+Math.PI*3)%(Math.PI*2)-Math.PI;v.theta+=dth*Math.min(1,dt*.45);v.zoom+=(9.4-v.zoom)*Math.min(1,dt*.6);v.phi+=(1.36-v.phi)*Math.min(1,dt*.6);
         homeFocus.set(brain.x*.6,1.05,brain.z*.6);/* lower + pulled back so the pocket world shows behind the Beast */}else homeFocus.set(0,.85,0);
        (window as any).__beastLife={moment:brain.moment??null,y:+beastNode.position.y.toFixed(3),ground:+groundAt(brain.x,brain.z).toFixed(3),air:!!(brain as any).air,mode:brain.mode,x:brain.x,z:brain.z,attn:brain.attn?.kind??null,weather:life.getWeather(),coherence:L.cst.ch.coherence,chaos:L.cst.ch.chaos,hebb:L.cst.hebb,rain:L.env.rain,night:L.env.night,tris:plush.tris};}}
      {zr=Math.hypot(zHolder.position.x,zHolder.position.z);const capZ=lcForced&&(window as any).__lcFocusZeref;const pull=focused?0:capZ||(lcS.camEase??0)>.05?Math.max(capZ?1:0,lcS.camEase??0):(now-lastDragAt.current>2500?Math.min(1,Math.max(0,(zr-3)/4)):0);

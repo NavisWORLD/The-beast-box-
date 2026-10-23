@@ -765,3 +765,8 @@ html[data-beast-3d] .cage-habitat-visual [data-spark-beast] [data-beast-sprite],
 /* Oct 19 (Cory): creatures live in the universe, not on a screen: no card backdrop behind the companion inside the cage pocket. */
 .cage-pocket-active [data-spark-beast="true"]{background:none!important;border-color:transparent!important;box-shadow:none!important}
 .cage-pocket-active [data-spark-beast="true"] [class*="aura"]{display:none}
+
+/* Cosmo's visual audit: the world view is a rounded rectangle so Spawn in and the chips are never clipped by the pocket circle */
+.cage-habitat-visual[data-cage-view=world]{border-radius:28px}
+.cage-habitat-visual[data-cage-view=world] .cage-orbit{display:none}
+.cage-look-pill{position:absolute;z-index:6;left:50%;bottom:14px;transform:translateX(-50%);padding:10px 16px;border-radius:999px;background:#1a1240e6;border:1px solid #b48cff;color:#f1e8ff;font-weight:800;font-size:13px;text-decoration:none;box-shadow:0 0 18px #8a5cff66}
