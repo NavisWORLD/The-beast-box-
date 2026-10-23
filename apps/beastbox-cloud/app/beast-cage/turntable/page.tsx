@@ -26,6 +26,7 @@ export default function CreatureTurntable(){
  const [spin,setSpin]=useState(true),[angle,setAngle]=useState<number>(0);
  const [showProcess,setShowProcess]=useState(false);
  const [subject,setSubject]=useState<Subject>('workshop');
+ useEffect(()=>{try{if(new URLSearchParams(location.search).get('with')==='zeref')setSubject('moonwraith');}catch{}},[]);
  const [pose,setPose]=useState<CreatureState>('idle');
  const [speaking,setSpeaking]=useState(false);
  useEffect(()=>{if(profile)setLook(profile.baseLook);},[profile?.id,profile?.baseLook]);

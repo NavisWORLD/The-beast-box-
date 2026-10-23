@@ -65,7 +65,7 @@ export default function BeastCagePortal(){
  // Default view: the ZEREF rig exploring the dimensional pocket. The original pixel sprite stays one tap away.
  // Tapping the Beast (or Zeref) in the pocket offers Look Closer; other creatures just get the camera focus.
  const [lookId,setLookId]=useState<string|null>(null);
- useEffect(()=>{let t=0;const on=(e:Event)=>{const id=(e as CustomEvent).detail?.id;setLookId(id==='beast'||id==='zeref'?id:null);clearTimeout(t);t=window.setTimeout(()=>setLookId(null),7000);};window.addEventListener('beastbox:look-closer',on);return()=>{window.removeEventListener('beastbox:look-closer',on);clearTimeout(t);};},[]);
+ useEffect(()=>{let t=0;const on=(e:Event)=>{const id=(e as CustomEvent).detail?.id;const ok=id==='beast'||id==='zeref';setLookId(ok?id:null);if(ok){/* E2: a tap on your creature opens Look Closer */window.location.assign('/beast-cage/look'+(id==='zeref'?'?with=zeref':''));}clearTimeout(t);t=window.setTimeout(()=>setLookId(null),7000);};window.addEventListener('beastbox:look-closer',on);return()=>{window.removeEventListener('beastbox:look-closer',on);clearTimeout(t);};},[]);
  const [view0,setView0]=useState<'pocket'|'classic'>('pocket');const [worldOn,setWorldOn]=useState(true);const view:'pocket'|'classic'|'world'=worldOn?'world':view0;const setView=(v:'pocket'|'classic'|'world')=>{if(v==='world')setWorldOn(true);else{setWorldOn(false);setView0(v);}};const [worldFull,setWorldFull]=useState(false);
  const [cageMode,setCageMode]=useState<'friendly'|'advanced'>('friendly');
  useEffect(()=>{try{if(window.localStorage.getItem('beastbox-cage-mode-v1')==='advanced'||/^#(menagerie)/.test(window.location.hash))setCageMode('advanced');}catch{}},[]);
