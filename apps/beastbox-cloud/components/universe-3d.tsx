@@ -12,6 +12,8 @@ import {threadFade,threadBrightness,creatureHome,threadBend} from '@/lib/univers
 // own loop really ticked, /api/cosmos/activity) and dimmer ones to stars, planets and storms. Only at full zoom-out; hideable.
 const THREADS_KEY='beastbox.oneMindThreads.v1';const SEG=24;
 /* eslint-disable @typescript-eslint/no-explicit-any */
+// E5a (Cosmo): planets wear their biome's own colour + glow maps (public/universe/livingworld/biomes); the flat colour stays as the tint/fallback.
+const BIOME_MAP:Record<string,string>={ember:'ember_world',paper:'paper_sea',jelly:'jelly_geyser',sunflower:'sunflower_ring',moss:'crystal_moss',glacier:'glacier'};
 const BIOME_HEX:Record<string,number>={ember:0xff7a2a,paper:0xe9d9b0,jelly:0x8fa8ff,sunflower:0xffd24a,moss:0x8fd06a,glacier:0xdff2ff};
 function rand(seed:string){let h=0;for(const c of seed)h=(h*31+c.charCodeAt(0))>>>0;return()=>{h=(h*1664525+1013904223)>>>0;return h/2**32;};}
 function starHex(t:number){return t>15000?0xbcd4ff:t>9000?0xe2ebff:t>6500?0xfff6e0:t>4500?0xffd59a:0xff9a6a;}
@@ -87,6 +89,8 @@ export default function Universe3D({u,onSelect,onAlive}:{u:any;onSelect?:(id:str
     b.visible=fire&&f<8;if(b.visible){const m=b.material.map!;m.offset.set((f%4)/4,1-(Math.floor(f/4)+1)/2);b.position.copy(sp.position).add(new THREE.Vector3((rr()-0.5)*sp.scale.x*.6,(rr()-0.3)*sp.scale.x*.4,(rr()-0.5)*sp.scale.x*.6));b.scale.setScalar(sp.scale.x*.7);}}
    for(const[k,b]of bolts)if(!live.has(k)){world.remove(b);bolts.delete(k);}
    const dt=Math.max(0,Math.min(.1,t-lastT));lastT=t;mixer?.update(dt);for(const g of belt)g.rotation.y=t*g.userData.spin;}
+  const bioCache=new Map<string,THREE.Texture>();const bioLoader=new THREE.TextureLoader();
+  const biomeTex=(k:string,kind:'color'|'glow')=>{const key=k+'_'+kind;let t=bioCache.get(key);if(!t){t=bioLoader.load('/universe/livingworld/biomes/'+key+'.webp');if(kind==='color')t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=4;bioCache.set(key,t);}return t;};
   function build(){const U=uRef.current;if(!U)return;
    for(const st of U.stars){if(starObj.has(st.id))continue;const g=new THREE.Group();g.position.copy(starPos(st));
     if(st.remnant==='black_hole'){g.add(new THREE.Mesh(new THREE.SphereGeometry(2.2,32,16),new THREE.MeshBasicMaterial({color:0x000000})));
@@ -96,7 +100,7 @@ export default function Universe3D({u,onSelect,onAlive}:{u:any;onSelect?:(id:str
      const glow=new THREE.Sprite(new THREE.SpriteMaterial({map:ringTex,color:starHex(st.temperature_k),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true,opacity:.35}));glow.scale.setScalar(rr*7);g.add(glow);
      const L=new THREE.PointLight(starHex(st.temperature_k),2.2,0,0);g.add(L);}
     g.userData.id=st.id;world.add(g);starObj.set(st.id,g);}
-   for(const pl of U.planets){if(planetMesh.has(pl.id))continue;const m=new THREE.Mesh(sphere,new THREE.MeshStandardMaterial({color:BIOME_HEX[biomeOf(pl)]||0x9988ff,roughness:.85,metalness:0,emissive:0x110822}));
+   for(const pl of U.planets){if(planetMesh.has(pl.id))continue;const bk=biomeOf(pl),bm=BIOME_MAP[bk];const mat=new THREE.MeshStandardMaterial({color:bm?0xffffff:(BIOME_HEX[bk]||0x9988ff),roughness:.85,metalness:0,emissive:bm?0xffffff:0x110822,emissiveIntensity:bm?.35:1});if(bm){mat.map=biomeTex(bm,'color');mat.emissiveMap=biomeTex(bm,'glow');}const m=new THREE.Mesh(sphere,mat);
     m.scale.setScalar(0.35+0.18*Math.sqrt(pl.radius_earth));m.userData.id=pl.id;world.add(m);planetMesh.set(pl.id,m);}
   }
   const orbitR=(pl:any)=>4+5*Math.sqrt(pl.orbit_au);

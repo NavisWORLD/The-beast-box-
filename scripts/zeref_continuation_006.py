@@ -206,6 +206,56 @@ TIME_BUDGET_S=float(os.environ.get("ZEREF_006_TIME_BUDGET_S","0"))  # 0 = no bud
 WIP_IN=os.environ.get("ZEREF_GROWTH_WIP_IN","");WIP_OUT=os.environ.get("ZEREF_GROWTH_WIP_OUT","build/zeref-006/growth-wip.pt")
 LIMITS_HIT=[]
 HEBBIAN_LR=float(os.environ.get("ZEREF_HEBBIAN_LR","0.0003"))  # new params start from zero; base LR unchanged
+OPT_RESUME=[]
+def map_optimizer_state(sd,model,groups_now,meta,parent_model=None):
+ """2026-10-23 resume fix: map the parent's saved AdamW state onto the param groups built NOW,
+ by parameter identity (names), not by group size. Layouts tried in order: names saved in the
+ parent metadata; the same [base, hebb] split; legacy single group (base only); the growth-round
+ layout (hebb + fresh grown params, as saved by the growth step). Params without a mapped state
+ get fresh moments, and a group that cannot be mapped at all is reinitialized; both are LOGGED."""
+ import copy;sd=copy.deepcopy(sd);G=sd["param_groups"];st=sd["state"]
+ byname=dict(model.named_parameters());name={id(p):n for n,p in byname.items()}
+ cands=[]
+ if meta.get("optimizer_group_param_names"):
+  cands.append(("saved_names",[[byname.get(n) for n in g] for g in meta["optimizer_group_param_names"]]))
+ cands.append(("same_split",[list(g) for g in groups_now]))
+ cands.append(("legacy_single_group",[list(groups_now[0])]))
+ lin=meta.get("capacity_growth_lineage") or [];pm=parent_model if parent_model is not None else model
+ if lin and lin[-1].get("to_layers")==pm.config.n_layers:
+  # rebuilt on the PARENT's own parameters, then translated to the current model by name
+  n0,n1=lin[-1]["from_layers"],lin[-1]["to_layers"];pn={id(p):k for k,p in pm.named_parameters()}
+  fresh=[p for k,p in pm.named_parameters() if k.startswith(f"blocks.{n0-1}.transition.") or any(k.startswith(f"blocks.{i}.") for i in range(n0,n1))]
+  hb=pm.hebbian_parameters()+fresh;fid={id(p) for p in hb}
+  tr=lambda l:[byname.get(pn[id(p)]) for p in l]
+  cands.append(("growth_round_layout",[tr([p for p in pm.parameters() if id(p) not in fid]),tr(hb)]))
+ def fits(lists):
+  if [len(l) for l in lists]!=[len(g["params"]) for g in G]:return None
+  m={}
+  for l,g in zip(lists,G):
+   for p,i in zip(l,g["params"]):
+    if p is None:return None
+    s_=st.get(i)
+    if s_ is not None and "exp_avg" in s_ and tuple(s_["exp_avg"].shape)!=tuple(p.shape):return None
+    m[id(p)]=i  # duplicates: torch keys state by the LAST index, so last wins (same as save)
+  return m
+ how,m=None,None
+ for k,l in cands:
+  m=fits(l)
+  if m is not None:how=k;break
+ new_groups=[];new_state={};log={"layout":how or "unmapped","groups":[]};idx=0
+ for gi,params in enumerate(groups_now):
+  hyper={k:v for k,v in (G[min(gi,len(G)-1)] if G else {}).items() if k!="params"}
+  ids=[];mapped=0
+  for p in params:
+   ids.append(idx)
+   if m is not None and id(p) in m and m[id(p)] in st:new_state[idx]=st[m[id(p)]];mapped+=1
+   idx+=1
+  new_groups.append({**hyper,"params":ids})
+  log["groups"].append({"group":gi,"params":len(params),"state_mapped":mapped,"fresh":len(params)-mapped,
+   "reinitialized":mapped==0 and len(params)>0})
+ sd["param_groups"]=new_groups;sd["state"]=new_state
+ print("ZEREF_OPTIMIZER_RESUME="+json.dumps(log),flush=True)
+ return sd,log
 def extend_optimizer_state(sd,n_base,n_hebb):
  """Parent AdamW state (1 group) -> [base, hebbian] groups; new params get fresh moments."""
  import copy;sd=copy.deepcopy(sd);groups=sd["param_groups"]
@@ -242,13 +292,14 @@ def train_variant(parent_path,tokenizer,pool,seed,chat_pool=(),chat_eval=None):
  if TRINITY and model.config.state_mode!="tri":
   from rawrphos.architecture.model import upgrade_to_trinity
   model=upgrade_to_trinity(model)  # zeroed drive: identical logits at upgrade
- base=model.base_parameters();hebb=model.hebbian_parameters()
+ base=model.base_parameters();hebb=model.hebbian_parameters();parent_model=model
  if GROW_LAYERS:
   # 008 repeatable growth: function-preserving depth expansion (identical logits at growth).
   # New block params join the fresh-moment group (no anchor to their zero init); parent order kept.
   from rawrphos.architecture.model import grow_depth
   model,fresh=grow_depth(model,GROW_LAYERS)
-  hebb=model.hebbian_parameters()+[p for p in model.parameters() if id(p) in fresh]
+  hebb=model.hebbian_parameters();_h={id(p) for p in hebb}
+  hebb+=[p for p in model.parameters() if id(p) in fresh and id(p) not in _h]  # no duplicates (Trinity params of new blocks are in both)
   hid={id(p) for p in hebb};base=[p for p in model.parameters() if id(p) not in hid]
  if WIP_IN and os.path.isfile(WIP_IN):
   # 009: continue a grown-but-unfinished round (saved when a physical limit was hit). Only if it
@@ -261,7 +312,9 @@ def train_variant(parent_path,tokenizer,pool,seed,chat_pool=(),chat_eval=None):
  groups=[{"params":base}]+([{"params":hebb}] if hebb else [])
  opt=torch.optim.AdamW(groups,lr=LR,weight_decay=.01)
  if not hebb:opt.load_state_dict(parent["state"]["optimizer"])  # flag off: exact old resume
- else:opt.load_state_dict(extend_optimizer_state(parent["state"]["optimizer"],len(base),len(hebb)))
+ else:
+  _sd,_log=map_optimizer_state(parent["state"]["optimizer"],model,[base,hebb],parent["metadata"],parent_model)
+  OPT_RESUME.append(_log);opt.load_state_dict(_sd)
  for gi,group in enumerate(opt.param_groups):group["lr"]=HEBBIAN_LR if gi==1 else LR
  by=defaultdict(list)
  for i,(a,_) in enumerate(pool):by[a].append(i)
@@ -498,6 +551,9 @@ def main():
   "approved_cycle_count":cycle+1,
   "training_steps":parent["metadata"]["training_steps"]+UPDATES,
   "cycle_optimizer_updates":UPDATES,
+  # resume fix: exact parameter names per optimizer group, so the next round maps state by name
+  "optimizer_group_param_names":[[{id(p):k for k,p in model.named_parameters()}[id(q)] for q in g["params"]] for g in opt.param_groups],
+  "optimizer_resume":OPT_RESUME[-1] if OPT_RESUME else None,
   "actual_native_training_pairs":len(train),"actual_native_heldout_pairs":len(heldout),
   "dataset_sha256":source_digest,"dataset_source_class":manifest["source_class"],
   "qbeast_id":ZEREF,"original_ibm_job_id":IBM,
