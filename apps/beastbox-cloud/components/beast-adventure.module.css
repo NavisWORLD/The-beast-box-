@@ -17,3 +17,5 @@
 .note{color:#aeb9d1;font-size:12px;line-height:1.5}
 .label{font-size:11px;letter-spacing:.14em;color:#86e2eb;font-weight:800}
 @media(max-width:860px){.layout{grid-template-columns:1fr}.map{min-height:380px}}
+
+.map{user-select:none;-webkit-user-select:none;touch-action:none;cursor:grab}.map:active{cursor:grabbing}.mapPan{position:absolute;inset:0;will-change:transform}
