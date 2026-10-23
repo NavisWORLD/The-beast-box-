@@ -246,7 +246,7 @@ export default function SparkBeastCompanion({
  // Publish the Beast genome for the 3D pocket (plush creature). Guide/compact views never publish.
  useEffect(()=>{if(compact||!gen)return;(window as any).__beastGenome=guide?null:gen;window.dispatchEvent(new Event('beastbox:genome'));},[gen,guide,compact]);
  // One name everywhere: the device creature's shown genome name feeds 'Talk to {beast}' when nothing else names it.
- useEffect(()=>{if(compact||guide||!name)return;try{const src=activeBeastName(localStorage).source;if(src==='saved'||src==='seeded')return;if(localStorage.getItem(SHOWN_KEY)!==name){localStorage.setItem(SHOWN_KEY,name);window.dispatchEvent(new Event('beastbox:session-changed'));}}catch{}},[compact,guide,activeName,name]);
+ useEffect(()=>{if(compact||guide||!name)return;try{const src=activeBeastName(localStorage).source;if(src==='saved'||src==='seeded')return;if(localStorage.getItem(SHOWN_KEY)!==name){localStorage.setItem(SHOWN_KEY,name);window.dispatchEvent(new Event('beastbox:beast-name'));}}catch{}},[compact,guide,activeName,name]);
  const rigName=guide?ZEREF_PROFILE.name:name;
  const rigStats=active.game?.stats as unknown as Record<string,number>|undefined;
  return <figure className={[styles.root,compact?styles.compact:'',rig?styles.rigMode:'',className].filter(Boolean).join(' ')}
