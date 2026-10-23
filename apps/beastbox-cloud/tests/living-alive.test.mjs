@@ -51,3 +51,4 @@ test('5) world records: bb-deada969 only, canonical chain, trainable for Zeref, 
 
 test('living world wires all five (source contract)',()=>{for(const s of ['alive.onTick(prev,u)','alive.meet(r,o,t)','alive.build(r)','alive.frame(dt,t)',"'beastbox:local-sensor-level'",'visibilitychange','window_pulse','mood_icons.png','mood_spread_ring.png','nap_zzz.png','AdditiveBlending','lw:exp:world:'])assert.ok(src.includes(s),s);
  const mj=J('../public/universe/livingworld/coexist/moods.json');assert.deepEqual(mj.moods.map(m=>m.id),['curious','social','calm','joy','wonder','fear']);});
+test('#479 beast-loop records are bb-deada969 only',()=>{assert.ok(src.includes('const qid=bKey===ZEREF_ID?bKey:null;'));});

@@ -121,7 +121,7 @@ export default function LivingWorld({genome,beastKey,beastName,onClose,embedded=
    const LW_TO_LEG:Record<string,string>={ocean:'deep_ocean',plains:'grassland',heartwood:'heartwood_forest',beach:'beach',glacier:'glacier',tundra:'crystal_moss',pine:'pine_forest',ember:'ember_fields',papersea:'paper_marsh',mushroom:'paper_marsh',peaks:'celestial_peaks',desert:'desert_dunes'};
    const WATER_IDS=new Set(['deep_ocean','shallow_ocean','jelly_geyser','frozen_sea']),HIGH_IDS=new Set(['mountain_rock','snow_cap','celestial_peaks','volcano']);
    let field:any=null,fieldTex:any=null,legRGB:number[][]=[];const recCounts=(u as any).runs?.[0]?.counts||null;
-   const qid=/^bb-[0-9a-f]{8}$/.test(bKey)?bKey:null;
+   const qid=bKey===ZEREF_ID?bKey:null; // world records are for Zeref (bb-deada969) only
    const beastLoop=createCreatureLoop('beast:'+bKey,u.seed,{counts:recCounts,qbeast_id:qid});const zerefLoop=createCreatureLoop('zeref',u.seed,{counts:recCounts}); // Zeref's state rides the loop; his records stay in his own (bb-deada969) pipeline
    const expKey='lw:exp:'+bKey;let expLog:any[]=(()=>{try{return JSON.parse(localStorage.getItem(expKey)||'[]')}catch{return []}})();if(expLog.length)beastLoop.prev=expLog[expLog.length-1].hash;
    const startField=()=>{if(field)return;const leg=legend;
