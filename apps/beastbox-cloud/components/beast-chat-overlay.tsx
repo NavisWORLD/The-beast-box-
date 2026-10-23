@@ -70,7 +70,7 @@ export default function BeastChatOverlay(){
  },[open,mobile,close]);
  const changed=useCallback((state:TalkState)=>window.dispatchEvent(new CustomEvent('beastbox:talk-state',{detail:{state}})),[]);
  return <>
-  {path!=='/sol-game'||!game?<button className={styles.launcher} type="button" data-critical-control aria-controls="beast-chat-overlay" aria-expanded={open} disabled={!host} onClick={event=>window.dispatchEvent(new CustomEvent('beastbox:open-chat',{detail:{opener:event.currentTarget}}))}>TALK TO {persona.name}</button>:null}
+  {path!=='/sol-game'||!game?<button className={styles.launcher} type="button" data-beast-chat-launcher data-critical-control aria-controls="beast-chat-overlay" aria-expanded={open} disabled={!host} onClick={event=>window.dispatchEvent(new CustomEvent('beastbox:open-chat',{detail:{opener:event.currentTarget}}))}>TALK TO {persona.name}</button>:null}
   {host?createPortal(<>
    {open&&mobile?<button type="button" className={styles.scrim} aria-label="Dismiss creature chat" onClick={close}/>:null}
    <section ref={panel} id="beast-chat-overlay" role="dialog" aria-modal={mobile||undefined} aria-label={`Talk to ${persona.name}`} data-companion-chat-overlay data-expanded={expanded||undefined} className={styles.panel} hidden={!open} style={{'--chat-vh':geometry.height+'px','--chat-bottom':geometry.bottom+'px'} as React.CSSProperties}>

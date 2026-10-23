@@ -2,6 +2,7 @@
 import {beastDisplayName} from '../lib/companion/beast-name.mjs';
 import {useCallback,useEffect,useMemo,useState} from 'react';
 import Link from 'next/link';
+import TalkBeastLabel from './talk-beast-label'; // Talk to My Beast fallback
 import {ArrowRight,BrainCircuit,DatabaseZap,LockKeyhole,Orbit,ShieldCheck,SlidersHorizontal,Sparkles,Volume2} from 'lucide-react';
 import SparkBeastCompanion from './spark-beast-companion';
 import dynamic from 'next/dynamic';
@@ -61,6 +62,9 @@ export default function BeastCagePortal(){
  // The model/persona and the companion starter profile do not override the verified saved QBEAST.
  const savedVisual=sameSpark?creatureVisual({id:session.beast.qbeast.profile.id,genome:session.beast.genome}):null;
  // Default view: the ZEREF rig exploring the dimensional pocket. The original pixel sprite stays one tap away.
+ // Tapping the Beast (or Zeref) in the pocket offers Look Closer; other creatures just get the camera focus.
+ const [lookId,setLookId]=useState<string|null>(null);
+ useEffect(()=>{let t=0;const on=(e:Event)=>{const id=(e as CustomEvent).detail?.id;setLookId(id==='beast'||id==='zeref'?id:null);clearTimeout(t);t=window.setTimeout(()=>setLookId(null),7000);};window.addEventListener('beastbox:look-closer',on);return()=>{window.removeEventListener('beastbox:look-closer',on);clearTimeout(t);};},[]);
  const [view0,setView0]=useState<'pocket'|'classic'>('pocket');const [worldOn,setWorldOn]=useState(true);const view:'pocket'|'classic'|'world'=worldOn?'world':view0;const setView=(v:'pocket'|'classic'|'world')=>{if(v==='world')setWorldOn(true);else{setWorldOn(false);setView0(v);}};const [worldFull,setWorldFull]=useState(false);
  const [cageMode,setCageMode]=useState<'friendly'|'advanced'>('friendly');
  useEffect(()=>{try{if(window.localStorage.getItem('beastbox-cage-mode-v1')==='advanced'||/^#(menagerie)/.test(window.location.hash))setCageMode('advanced');}catch{}},[]);
@@ -112,12 +116,13 @@ export default function BeastCagePortal(){
     <span className="cage-eyebrow"><Sparkles size={13}/> WELCOME TO THE BEAST CAGE</span>
     <h1 id="cage-title">A small companion.<br/><em>An entire universe.</em></h1>
     <p>For dreamers, idlers, players, builders and anyone with a strange little idea: this is the place to live with your Beast. Care for it, talk to it, shape its look, then take the same identity into LOST COSMOS.</p>
-    <div className="cage-hero-actions"><Link className="cage-primary" href="/beast-cage/talk">Talk to My Beast <ArrowRight size={17}/></Link><a className="cage-secondary" href="#customize">Customize</a><Link className="cage-secondary" href="/sol-game">Enter LOST COSMOS 🎮</Link></div>
+    <div className="cage-hero-actions"><Link className="cage-primary" href="/beast-cage/talk"><TalkBeastLabel/> <ArrowRight size={17}/></Link><a className="cage-secondary" href="#customize">Customize</a><Link className="cage-secondary" href="/sol-game">Enter LOST COSMOS 🎮</Link></div>
     <p className="cage-quiet"><LockKeyhole size={13}/><span>One Beast stays at the center. More ways to explore: <Link href="/beast-cage/world">Tiny world</Link> · <Link href="/beast-cage/turntable">3D model</Link> · <Link href="/beast-cage/play">Adventure</Link> · <Link href="/beast-cage/field">📷 Open Field (camera)</Link> · <Link href="/beast-cage/guest">Game lab</Link> · <a href="/spark/index.html">Open Public Beast Generator</a> · <Link href="/workspace?owner=1">Owner deck</Link>.</span></p>
    </div>
-   <div className={'cage-habitat-visual'+(pocketReady?' cage-pocket-active':'')} role="group" aria-label="Circular dimensional world behind the original Spark Beast; drag or pinch to explore, or focus and use arrow keys and plus/minus to move the view" tabIndex={0}>
+   <div data-cage-view={view} className={'cage-habitat-visual'+(pocketReady?' cage-pocket-active':'')} role="group" aria-label="Circular dimensional world behind the original Spark Beast; drag or pinch to explore, or focus and use arrow keys and plus/minus to move the view" tabIndex={0}>
     <div className="cage-orbit cage-orbit-one" aria-hidden="true"/><div className="cage-orbit cage-orbit-two" aria-hidden="true"/>
     <GeyserControls/>
+    {lookId?<Link className="cage-look-pill" href="/beast-cage/look" data-cage-look-closer={lookId}>🔍 Look Closer at {lookId==='zeref'?'Zeref':pocketName}</Link>:null}
     <CagePocketDimension
      seed={sameSpark?session.beast.genome?.seed||session.beast.seed:null}
      qbeastId={sameSpark?session.beast.qbeast.profile.id:null}

@@ -29,6 +29,8 @@ const OFF: Sensors = {
 type Job = { state?: string; error?: string; result?: { result?: { response?: string } }; response?: string };
 
 export default function BeastAdventure() {
+  // Play map: dragging pans the trail (Cosmo's audit) instead of selecting text.
+  const [pan, setPan] = useState({ x: 0, y: 0 }); const panDrag = useRef<{ x: number; y: number } | null>(null);
   const { ready, session, trail, sensorLog, change, setTrail, noteSensor } = useBeastSession();
   const [sensors, setSensors] = useState<Sensors>(OFF);
   const [cameraOn, setCameraOn] = useState(false);
@@ -301,7 +303,11 @@ export default function BeastAdventure() {
       <Link href="/workspace#brain-bay">BRAIN BAY ↗</Link>
     </header>
     <div className={css.layout}>
-      <section className={css.map} aria-label="Adventure trail">
+      <section className={css.map} aria-label="Adventure trail" data-map-pan={`${Math.round(pan.x)},${Math.round(pan.y)}`}
+        onPointerDown={(e) => { if ((e.target as Element).closest('button')) return; panDrag.current = { x: e.clientX, y: e.clientY }; e.currentTarget.setPointerCapture(e.pointerId); }}
+        onPointerMove={(e) => { const d = panDrag.current; if (!d) return; const nx = Math.max(-160, Math.min(160, pan.x + e.clientX - d.x)), ny = Math.max(-120, Math.min(120, pan.y + e.clientY - d.y)); panDrag.current = { x: e.clientX, y: e.clientY }; setPan({ x: nx, y: ny }); }}
+        onPointerUp={() => { panDrag.current = null; }} onPointerCancel={() => { panDrag.current = null; }}>
+        <div className={css.mapPan} style={{ transform: `translate(${pan.x}px, ${pan.y}px)` }}>
         {['grove', 'shore', 'observatory', 'nest'].map((id) => {
           const spot = placeById(id);
           return <button key={id} type="button" className={css.place} style={{ left: `${spot.x}%`, top: `${spot.y}%` }} aria-pressed={trail.place === id} onClick={() => setTrail(goTo(trail, id))}>{spot.name}</button>;
@@ -310,6 +316,7 @@ export default function BeastAdventure() {
           {beast ? <PixelBeast publicSpark={!!beast?.qbeast} genome={{ ...beast.genome, facing: trail.facing }} stage={beast.stage} pose={reaction.pose === 'emote' ? 'emote' : reaction.pose} emote={reaction.emote} facing={trail.facing} reduced={reduced} label={`${shownName(beast)} ${reaction.pose}, ${reaction.reason}`} /> : null}
         </div>
         <p className={css.emote} style={{ left: `${trail.beast.x}%`, top: `${trail.beast.y}%` }}>{beast ? reaction.reason : companion?.name ? `${companion.name} is your companion. Bring ${companion.name} onto the trail from the care deck below.` : 'Meet a spark beast in the care deck.'}</p>
+        </div>
         <video ref={video} muted playsInline style={{ position: 'absolute', width: 1, height: 1, opacity: 0 }} aria-hidden="true" />
       </section>
       <section className={css.side} aria-label="Adventure talk">

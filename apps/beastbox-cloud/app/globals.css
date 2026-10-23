@@ -765,3 +765,21 @@ html[data-beast-3d] .cage-habitat-visual [data-spark-beast] [data-beast-sprite],
 /* Oct 19 (Cory): creatures live in the universe, not on a screen: no card backdrop behind the companion inside the cage pocket. */
 .cage-pocket-active [data-spark-beast="true"]{background:none!important;border-color:transparent!important;box-shadow:none!important}
 .cage-pocket-active [data-spark-beast="true"] [class*="aura"]{display:none}
+
+/* Cosmo's visual audit: the world view is a rounded rectangle so Spawn in and the chips are never clipped by the pocket circle */
+.cage-habitat-visual[data-cage-view=world]{border-radius:28px}
+.cage-habitat-visual[data-cage-view=world] .cage-orbit{display:none}
+.cage-look-pill{position:absolute;z-index:6;left:50%;bottom:14px;transform:translateX(-50%);padding:10px 16px;border-radius:999px;background:#1a1240e6;border:1px solid #b48cff;color:#f1e8ff;font-weight:800;font-size:13px;text-decoration:none;box-shadow:0 0 18px #8a5cff66}
+
+/* One floating dock (Cosmo's audit): extra floaters tucked away until "More"; the page keeps room so the dock never covers text */
+body[data-dock=closed] :is([data-zeref-voice-dock],aside[data-sound-room],[data-companion-overlay],[data-lost-cosmos-player-shell][data-running=false],[data-beast-chat-launcher]){display:none!important}
+@media (max-width:700px){body[data-dock=closed] .companion-dock{display:none!important}}
+body{padding-bottom:calc(64px + env(safe-area-inset-bottom))}
+.site-dock{position:fixed;z-index:60;right:max(10px,env(safe-area-inset-right));bottom:calc(10px + env(safe-area-inset-bottom));display:flex;gap:4px;padding:4px;border-radius:999px;background:#120c2ee8;border:1px solid #8a6cff88;box-shadow:0 8px 24px #0008;backdrop-filter:blur(6px)}
+.site-dock>*{display:inline-flex;align-items:center;gap:6px;min-height:40px;padding:0 12px;border-radius:999px;border:0;background:transparent;color:#efe6ff;font:700 12px system-ui;text-decoration:none;cursor:pointer}
+.site-dock>*:hover,.site-dock>*:focus-visible{background:#2a1d5c}
+@media (max-width:420px){.site-dock span{display:none}}
+body:has([data-beach-two-page]) .site-dock{display:none}
+body:has([data-beach-two-page]){padding-bottom:0;overflow:hidden}
+/* One dock (Cosmo): the mini Lost COSMOS bar and the support launcher also wait behind More; a full-screen player stays. */
+body[data-dock=closed] :is([data-lost-cosmos-dock][data-dock-state=mini],[data-lost-cosmos-dock][data-dock-state=expanded],aside.cosmic-support:not(.is-open)){display:none!important}

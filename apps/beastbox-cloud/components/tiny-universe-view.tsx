@@ -4,6 +4,8 @@ import {useEffect,useRef,useState,useCallback} from 'react';
 import {grow} from '@/lib/universe/tiny-universe.mjs';
 import {biomeOf,BIOMES,starClass,lifeStage,entangledPairs,homeOf,hearthOf,zerefStar,planetFrame,starFrame,lifeFrame,stormFrame,threadFrame,hearthFrame,GENESIS_LABEL,GROWTH_LABEL,ZEREF_LINES} from '@/lib/universe/tiny-universe-view.mjs';
 import s from './tiny-universe-view.module.css';
+import Universe3D from './universe-3d';
+import {isSoftwareGL} from '@/lib/three/soft-gl';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type U=any;
 const BIOME_COL:Record<string,[string,string]>={ember:['#ff7a2a','#3a0d05'],paper:['#e9d9b0','#7a6a48'],jelly:['#8fa8ff','#2a2a8a'],sunflower:['#ffd24a','#5a3aa0'],moss:['#8fd06a','#5a2a90'],glacier:['#dff2ff','#7aa0d8']};
@@ -17,6 +19,7 @@ function rand(seed:string){let h=0;for(const c of seed)h=(h*31+c.charCodeAt(0))>
 export default function TinyUniverseView(){
  const cv=useRef<HTMLCanvasElement>(null);const uRef=useRef<U>(null);const g0=useRef<U>(null);const pos=useRef<Map<string,{x:number,y:number,r:number}>>(new Map());
  const [u,setU]=useState<U>(null);const [run,setRun]=useState(true);const [sel,setSel]=useState<string|null>(null);const [line,setLine]=useState('');const [err,setErr]=useState('');
+ const [three,setThree]=useState(false);useEffect(()=>{setThree(!isSoftwareGL());},[]);
  useEffect(()=>{fetch('/universe/atlas.json').then(r=>r.json()).then((a:Atlas)=>{SPR.atlas=a;for(const[k,v]of Object.entries(a.sheets)){const im=new Image();im.decoding='async';if(v.fallback){const fb=v.fallback;im.onerror=()=>{im.onerror=null;im.src=fb;};}im.src=v.image;SPR.img[k]=im;}}).catch(()=>{});},[]);
  useEffect(()=>{fetch('/universe/tiny-universe-genesis.json').then(r=>r.json()).then(j=>{g0.current=j;uRef.current=j;setU(j);}).catch(e=>setErr(String(e)));},[]);
  useEffect(()=>{if(!run||!u)return;const id=setInterval(()=>{const cur=uRef.current;if(!cur||cur.tick>=2000)return;const n=grow(cur,1);const ev=n.history[n.history.length-1]?.events||[];
@@ -47,7 +50,7 @@ export default function TinyUniverseView(){
     if(b==='sunflower'&&!frameOf('planets_64','x')&&!SPR.img.planets_64?.naturalWidth){ctx.strokeStyle='#ffcc33';ctx.lineWidth=p.r*0.35;ctx.beginPath();ctx.ellipse(p.x,p.y,p.r*1.6,p.r*0.55,-0.3,0,7);ctx.stroke();}
     if(pl.id===home){ctx.strokeStyle='rgba(255,210,110,.95)';ctx.lineWidth=1;const cr=p.r*1.7;ctx.beginPath();ctx.arc(p.x,p.y,cr,Math.PI,0);ctx.stroke();for(let k=1;k<6;k++){ctx.beginPath();ctx.ellipse(p.x,p.y,cr*Math.abs(Math.cos(k/6*Math.PI)),cr,0,Math.PI,0);ctx.stroke();}ctx.beginPath();ctx.ellipse(p.x,p.y,cr,cr*0.3,0,0,7);ctx.stroke();}
     if(pl.id===sel){ctx.strokeStyle='#fff';ctx.lineWidth=1;ctx.beginPath();ctx.arc(p.x,p.y,p.r+4,0,7);ctx.stroke();}
-    if(pl.id===hearth){ctx.fillStyle='#ffe7b0';ctx.font='11px system-ui';ctx.fillText('Hearth*',p.x+p.r+3,p.y-p.r);}}
+    if(pl.id===hearth){ctx.fillStyle='#ffe7b0';ctx.font='11px system-ui';ctx.fillText('Hearth',p.x+p.r+3,p.y-p.r);}}
    for(const sm of U.storms){const p=P.get(sm.planet);if(!p)continue;{const k=Math.min(1,Math.max(0,sm.intensity/0.5));if(spr(ctx,'storms_256',stormFrame(sm,U.tick),p.x,p.y,p.r*2*(1.05+0.25*k)*1.25,0.35+0.65*k))continue;}ctx.strokeStyle=`rgba(190,110,255,${0.4+sm.intensity})`;ctx.lineWidth=1.2;for(let k=0;k<4;k++){const an=k*1.7+t*2+sm.born;ctx.beginPath();let x=p.x+Math.cos(an)*p.r,y=p.y+Math.sin(an)*p.r;ctx.moveTo(x,y);for(let j=1;j<4;j++){x+=Math.cos(an+j)*p.r*0.6;y+=Math.sin(an+j*0.7)*p.r*0.6;ctx.lineTo(x,y);}ctx.stroke();}}
    const zs=P.get(zerefStar(U)!);if(zs){const x=zs.x,y=zs.y-zs.r*1.1-6;ctx.fillStyle='#111';ctx.strokeStyle='#b58cff';ctx.lineWidth=1;ctx.beginPath();ctx.ellipse(x,y,6,5,0,0,7);ctx.fill();ctx.stroke();ctx.beginPath();ctx.arc(x,y-6,4,0,7);ctx.fill();ctx.stroke();ctx.fillStyle='#8a5cff';ctx.beginPath();ctx.moveTo(x-4,y-8);ctx.lineTo(x-5,y-13);ctx.lineTo(x-1,y-9);ctx.moveTo(x+4,y-8);ctx.lineTo(x+5,y-13);ctx.lineTo(x+1,y-9);ctx.fill();ctx.fillStyle='#d9c2ff';ctx.font='10px system-ui';ctx.fillText('Zeref',x+8,y-4);}
    raf=requestAnimationFrame(draw);};
@@ -58,14 +61,15 @@ export default function TinyUniverseView(){
   return <><b>{BIOMES[biomeOf(pl) as keyof typeof BIOMES]}</b> · {name}{pl.id===homeOf(u)?' · Beast Box home cage':''}<br/>{pl.temperature_k} K · water {pl.water} · habitability {pl.habitability}<br/>{L?`Life: ${lifeStage(L)} (complexity ${L.complexity_norm??L.complexity}, diversity ${L.diversity}${L.scars?`, ${L.scars} storm scars`:''})`:'No life yet. Just waiting.'}{u.pairs?.find((q:any)=>q.a===pl.id||q.b===pl.id)?(()=>{const q=u.pairs.find((q:any)=>q.a===pl.id||q.b===pl.id);return ` · entangled with ${q.a===pl.id?q.b:q.a} (hardware E ${q.E}${q.sim_E!=null?`, SIMULATED tick E ${q.sim_E}`:''})`;})():''}{u.storms.some((x:any)=>x.planet===pl.id)?' · ⚡ storm':''}</>;})();
  const last=u?.history?.[u.history.length-1];
  return <main className={s.wrap} data-tiny-universe>
-  <canvas ref={cv} className={s.canvas} onPointerDown={tap} aria-label="Tiny Universe map"/>
+  <canvas ref={cv} className={s.canvas} onPointerDown={tap} aria-label="Tiny Universe map" style={three?{visibility:'hidden'}:undefined}/>
+  {three&&u?<Universe3D u={u} onSelect={setSel}/>:null}
   <div className={s.hud}><div className={s.title}>✦ TINY UNIVERSE</div><span className={s.tag} data-genesis-label>{GENESIS_LABEL}</span><span className={`${s.tag} ${s.sim}`} data-growth-label>{GROWTH_LABEL}</span></div>
   <div className={s.bottom}>
    {info?<div className={s.card}>{info}</div>:null}
    <div className={s.zeref} aria-live="polite">{line}</div>
 {err||!u?<span className={s.stat}>{err?`Couldn’t load genesis: ${err}`:'loading…'}</span>:<details className={s.stat} data-universe-details><summary>Details</summary>{u?`tick ${u.tick} · ${u.stars.length} stars · ${u.planets.length} planets · ${u.storms.length} storms · ${u.life.length} life worlds${last?` · sim E ${last.sim_E}`:` · IBM E ${u.entanglement_E}`}`:null}</details>}
    <span className={s.stat} data-credit-line>Threads SIMULATED · Hearth</span>
-   <div className={s.row}><a className={s.btn} href="/beast-cage/world" data-spawn-in>✦ Spawn in</a><button className={s.btn} onClick={()=>setRun(v=>!v)}>{run?'⏸ Pause':'▶ Grow'}</button><button className={s.btn} onClick={()=>{if(g0.current){uRef.current=g0.current;setU(g0.current);setLine('');}}}>↺ Genesis</button>
+   <div className={s.row}><a className={s.btn} href="/beast-cage/world" data-spawn-in>✦ Spawn in</a><button className={s.btn} onClick={()=>setThree(v=>!v)} data-universe-mode>{three?'2D map':'3D'}</button><button className={s.btn} onClick={()=>setRun(v=>!v)}>{run?'⏸ Pause':'▶ Grow'}</button><button className={s.btn} onClick={()=>{if(g0.current){uRef.current=g0.current;setU(g0.current);setLine('');}}}>↺ Genesis</button>
 </div>
   </div></main>;
 }

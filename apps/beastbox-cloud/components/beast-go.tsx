@@ -1,4 +1,5 @@
 'use client';
+import {WORLD_SCENE_BG} from '@/lib/world-scene';
 import {useActiveBeastName} from '@/components/use-active-beast-name';
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
@@ -293,7 +294,7 @@ export default function BeastGo() {
     sfx('blip');
   }
 
-  return <main className={css.field} data-go-screen="true">
+  return <main className={css.field} data-go-screen="true" style={{background:WORLD_SCENE_BG}}>
     <h1 className={css.sr}>Lost Cosmos field</h1>
     <div className={css.cameraLayer} data-go-camera-field="true"><CameraField fullscreen floorPx={!nativePlayer && touch && !sheet && !(camLive && !padOpen) ? 270 : 0} onLive={(on) => { setCamLive(on); setPadOpen(!on); }} /></div>
     {guestMode && guestOpen ? <p className={css.guestNote} data-guest-play="true" id="go-guest-note">Guests play with a beast saved in this browser. No owner authority and no private memory. Talk uses the guest-safe brain.</p> : null}

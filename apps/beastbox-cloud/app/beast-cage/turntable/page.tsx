@@ -1,4 +1,5 @@
 'use client';
+import {WORLD_SCENE_BG} from '@/lib/world-scene';
 import {useActiveBeastName} from '@/components/use-active-beast-name';
 import {useEffect,useState} from 'react';
 import Link from 'next/link';
@@ -51,8 +52,10 @@ export default function CreatureTurntable(){
    <p>{attribution?attribution.label:'The active browser Beast drives the original procedural Three.js rig: saved hue, glow, fin pattern, halo pattern and constellation seed.'}</p>
   </section>
   {/* Cosmo's tap-to-inspect art (select ring, pedestal, info card) mounts here: data-look-closer-hook */}
-  <div className={styles.stage} data-look-closer-hook data-stage="real-3d-turntable" data-subject={subject} data-view-angle={spin?'spinning':angle} aria-label="Actual rotating Three.js creature">
+  <div className={styles.stage} style={{background:WORLD_SCENE_BG,border:0,borderRadius:0,boxShadow:'none'}} data-look-closer-hook data-stage="real-3d-turntable" data-subject={subject} data-view-angle={spin?'spinning':angle} aria-label="Actual rotating Three.js creature">
     <span className={styles.star} aria-hidden="true">✧</span>
+    {/* Cosmo's Look Closer pedestal set (lookcloser v1): contact shadow, mossy stone pedestal, animated select ring */}
+    <div aria-hidden="true" data-look-pedestal className={styles.pedestal}><i className={styles.pedShadow}/><i className={styles.pedStone}/><i className={styles.pedRing}/></div>
     {glb?<ZerefGlb3D spin={spin} angle={angle} mood={mood}/>:<><CosmicCompanion3D profile={subject==='workshop'?profile:null} dimensionalId={dimensionalId} look={look} state={pose} speaking={speaking&&pose==='listening'} turntable={spin} turntableAngle={spin?null:angle} quality="auto" className={styles.model} label={(attribution?attribution.label:'Real 3D '+(profile?.name||'companion'))+(spin?' · rotating':' · '+angle+' degrees')}/></>}
     <div className={styles.stageLabel}>{spin?'LIVE GEOMETRY • FULL 360° ROTATION':'LIVE GEOMETRY • '+angle+'° VIEW'}</div>
   </div>

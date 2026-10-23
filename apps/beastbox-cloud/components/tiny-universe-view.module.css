@@ -12,3 +12,6 @@
 .zeref{font-size:12px;color:#d9c2ff;min-height:16px}
 .stat{display:block}
 @media (min-width:900px){.bottom{left:16px;right:auto;max-width:520px;bottom:calc(84px + env(safe-area-inset-bottom))}}
+/* Readable over 3D planets (Cosmo): the bottom HUD sits on a soft dark plate and clears the zoom stack on phones. */
+.bottom{background:rgba(8,5,24,.78);border-radius:14px;padding:8px 10px;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+@media (max-width:899px){.bottom{left:8px;right:8px}}
