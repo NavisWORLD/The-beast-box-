@@ -25,13 +25,26 @@ class RawrphosConfig:
     sigma_init: float = 0.2
     state_dt: float = 0.1
     dropout: float = 0.0
+    # 2026-10-22 additive: optional in-context Hebbian fast weights (off = exact old model).
+    hebbian: bool = False
+    hebbian_dim: int = 32
+    hebbian_decay: float = 0.9
+    hebbian_rate: float = 0.1
+    # 2026-10-22 additive: original-kit state ladder rung (phera-ra/QC67_cosmo@b414724,
+    # architecture/cosmos_state_ladder.py Trinity). 'dyn12' = exact old model.
+    state_mode: str = 'dyn12'
 
     def __post_init__(self):
+        if type(self.hebbian) is not bool or type(self.hebbian_dim) is not int or self.hebbian_dim<1:
+            raise ValueError('invalid hebbian configuration')
+        if not 0<self.hebbian_decay<1 or not 0<self.hebbian_rate<=1:
+            raise ValueError('invalid hebbian decay/rate')
         for name in ['vocab_size','d_model','n_heads','n_layers','max_seq_len','state_dim']:
             if type(getattr(self,name)) is not int or getattr(self,name)<1:
                 raise ValueError(f'invalid {name}')
         if self.d_model % self.n_heads or (self.d_model//self.n_heads)%2:
             raise ValueError('heads must divide width and have an even rotary dimension')
+        if self.state_mode not in {'dyn12','tri'}: raise ValueError('state_mode must be dyn12 or tri')
         if self.state_dim != 12: raise ValueError('this architecture implements dyn12 only')
         if self.attention_mode not in {'dyn12','standard','zero_gate','frozen_state','shuffled_state'}:
             raise ValueError('unsupported attention mode')
@@ -40,7 +53,12 @@ class RawrphosConfig:
         if not 0 <= self.dropout < 1 or not 0 < self.state_dt <= 1:
             raise ValueError('invalid dropout or state time step')
 
-    def to_dict(self): return asdict(self)
+    def to_dict(self):
+        d=asdict(self)
+        if not self.hebbian:  # keep config.json byte-identical for non-Hebbian checkpoints
+            for k in ('hebbian','hebbian_dim','hebbian_decay','hebbian_rate'): d.pop(k)
+        if self.state_mode=='dyn12': d.pop('state_mode')
+        return d
     @classmethod
     def from_dict(cls, value): return cls(**value)
 
@@ -68,6 +86,30 @@ class Dyn12(nn.Module):
         self.gamma=nn.Parameter(torch.linspace(.02,.10,12))
     def forward(self,state,omega):
         return torch.tanh(state+self.dt*(self.k*omega.unsqueeze(-1)-self.gamma*state))
+
+
+class Trinity(nn.Module):
+    """Faithful port of the original kit's Trinity (cosmos_state_ladder.py:393-434):
+    12D and 42D as one coupled system; state is x54=concat(x12,x42).
+        dx12/dt = k*Omega - g12*x12 + 0.1*M(42->12) x42
+        dx42/dt = tanh(drive(h))*(1+tanh(M(12->42)x12))*(1+lam*Omega) - g42*x42 + 0.1*C(x42)
+    Only change: dt comes from config.state_dt (the kit hardcodes 0.1, served default 0.1)."""
+    def __init__(self,d_model,dt):
+        super().__init__(); self.dt=dt
+        self.k=nn.Parameter(torch.linspace(.05,.20,12))
+        self.g12=nn.Parameter(torch.linspace(.02,.10,12))
+        self.g42=nn.Parameter(torch.full((42,),.05))
+        self.drive=nn.Linear(d_model,42)
+        self.C=nn.Linear(42,42,bias=False)
+        self.m42_12=nn.Linear(42,12,bias=False)
+        self.m12_42=nn.Linear(12,42,bias=False)
+        self.lam=nn.Parameter(torch.tensor(.5))
+    def forward(self,state,h,omega):
+        x12,x42=state[...,:12],state[...,12:]; om=omega[...,None]
+        gain=1.0+torch.tanh(self.m12_42(x12))
+        d12=self.k*om-self.g12*x12+0.1*self.m42_12(x42)
+        d42=torch.tanh(self.drive(h))*gain*(1.0+self.lam*om)-self.g42*x42+0.1*self.C(x42)
+        return torch.tanh(torch.cat([x12+self.dt*d12,x42+self.dt*d42],-1))
 
 
 class StateAttention(nn.Module):
@@ -124,18 +166,44 @@ class StateAttention(nn.Module):
         return y,omega,{'key':k,'value':v,'state':keys,'key_mask':mask},telemetry
 
 
+class HebbianFastWeights(nn.Module):
+    """Per-sequence fast-weight memory (ported from closed_loop.py):
+    F_t = decay*F_{t-1} + rate * v_t k_t^T, Frobenius-bounded to <=1; read_t = F_{t-1} q_t (causal).
+    F is an activation carried in the KV cache: it starts at zero for every new prompt/session and
+    is never written back to parameters. The output projection is zero-initialised and scaled by a
+    learned gate starting at sigmoid(-4)~0.018, so an upgraded checkpoint starts at identical logits."""
+    def __init__(self,c):
+        super().__init__(); n=c.hebbian_dim; self.decay=c.hebbian_decay; self.rate=c.hebbian_rate
+        self.norm=RMSNorm(c.d_model)
+        self.q=nn.Linear(c.d_model,n,bias=False); self.k=nn.Linear(c.d_model,n,bias=False); self.v=nn.Linear(c.d_model,n,bias=False)
+        self.out=nn.Linear(n,c.d_model,bias=False)
+        self.gate_logit=nn.Parameter(torch.tensor(-4.0))
+    def reset_out(self): nn.init.zeros_(self.out.weight)
+    def forward(self,x,fast=None):
+        b,t,_=x.shape; n=self.q.out_features
+        h=self.norm(x); q=torch.tanh(self.q(h)); k=torch.tanh(self.k(h)); v=torch.tanh(self.v(h))
+        F_=torch.zeros(b,n,n,device=x.device,dtype=q.dtype) if fast is None else fast
+        reads=[]
+        for i in range(t):
+            reads.append(torch.einsum('bij,bj->bi',F_,q[:,i]))
+            F_=self.decay*F_+self.rate*torch.einsum('bi,bj->bij',v[:,i],k[:,i])
+            F_=F_/F_.flatten(1).norm(dim=-1).clamp(min=1.0)[:,None,None]
+        y=torch.sigmoid(self.gate_logit)*self.out(torch.stack(reads,1))
+        return x+y,F_,{'hebbian_gate':torch.sigmoid(self.gate_logit).detach(),'fast_weight_norm':F_.detach().flatten(1).norm(dim=-1).mean()}
+
+
 class Block(nn.Module):
     def __init__(self,c,final=False):
         super().__init__(); self.n1=RMSNorm(c.d_model); self.n2=RMSNorm(c.d_model)
         self.attn=StateAttention(c)
         hidden=int(c.d_model*((1+5**.5)/2))
         self.ffn=nn.Sequential(nn.Linear(c.d_model,hidden),nn.GELU(),nn.Linear(hidden,c.d_model))
-        self.transition=None if final else Dyn12(c.state_dt)
+        self.transition=None if final else (Trinity(c.d_model,c.state_dt) if c.state_mode=='tri' else Dyn12(c.state_dt))
     def forward(self,x,state,mask,past=None,return_attention=False):
-        y,omega,cache,tel=self.attn(self.n1(x),state,mask,past,return_attention)
+        h=self.n1(x); y,omega,cache,tel=self.attn(h,state,mask,past,return_attention)
         x=x+y
         if self.transition is not None and self.attn.config.attention_mode!='frozen_state':
-            state=self.transition(state,omega)
+            state=self.transition(state,h,omega) if isinstance(self.transition,Trinity) else self.transition(state,omega)
         x=x+self.ffn(self.n2(x))
         return x,state,cache,tel
 
@@ -148,12 +216,29 @@ class RawrphosLM(nn.Module):
         self.blocks=nn.ModuleList(Block(config,final=i==config.n_layers-1) for i in range(config.n_layers))
         self.norm=RMSNorm(config.d_model)
         self.apply(self._init)
+        # Registered LAST so non-Hebbian parameter order (and optimizer indices) are unchanged.
+        if config.hebbian:
+            self.hebbian=HebbianFastWeights(config); self.hebbian.reset_out()
+        if config.state_mode=='tri':
+            self.state_init42=nn.Linear(config.d_model,42)
     @staticmethod
     def _init(m):
         if isinstance(m,(nn.Linear,nn.Embedding)):
             nn.init.normal_(m.weight,std=.02)
             if getattr(m,'bias',None) is not None: nn.init.zeros_(m.bias)
+    @property
+    def state_width(self): return 54 if self.config.state_mode=='tri' else 12
     def parameter_count(self): return sum(p.numel() for p in self.parameters())
+    def hebbian_parameters(self):
+        out=list(self.hebbian.parameters()) if self.config.hebbian else []
+        if self.config.state_mode=='tri':  # new Trinity params only; k/g12 continue Dyn12's k/gamma
+            out+=list(self.state_init42.parameters())+[p for b in self.blocks if isinstance(b.transition,Trinity)
+                for n,p in b.transition.named_parameters() if n not in ('k','g12')]
+        return out
+    def base_parameters(self):
+        ids={id(p) for p in self.hebbian_parameters()}
+        return [p for p in self.parameters() if id(p) not in ids]
+
     def forward(self,input_ids,targets=None,attention_mask=None,past_key_values=None,use_cache=False,
                 control_vector=None,return_attention=False):
         c=self.config
@@ -166,7 +251,7 @@ class RawrphosLM(nn.Module):
             start=past_key_values[0]['key'].shape[-2]
             for cache in past_key_values:
                 shape=(b,c.n_heads,start,c.d_model//c.n_heads)
-                if cache['key'].shape!=shape or cache['value'].shape!=shape or cache['state'].shape!=(b,start,12):
+                if cache['key'].shape!=shape or cache['value'].shape!=shape or cache['state'].shape!=(b,start,self.state_width):
                     raise ValueError('cache shape mismatch')
         if start+t>c.max_seq_len: raise ValueError('context limit exceeded')
         if attention_mask is None:
@@ -177,10 +262,14 @@ class RawrphosLM(nn.Module):
             attention_mask=attention_mask.bool()
         if past_key_values is not None and any(not torch.equal(x['key_mask'],attention_mask[:,:start]) for x in past_key_values):
             raise ValueError('cached mask cannot change')
-        x=self.token(input_ids); state_logits=self.state_init(x); state=torch.tanh(state_logits)
+        x=self.token(input_ids); state_logits=self.state_init(x)
+        if c.state_mode=='tri': state_logits=torch.cat([state_logits,self.state_init42(x)],-1)
+        state=torch.tanh(state_logits)
         if control_vector is not None:
             if control_vector.shape!=(b,12) or not bool(torch.isfinite(control_vector).all()) or bool((control_vector.abs()>1).any()):
                 raise ValueError('external state must be finite [batch,12] in [-1,1]')
+            # tri: the 12 control scalars drive x12 only; x42 gets zero external input.
+            if c.state_mode=='tri': control_vector=torch.cat([control_vector,control_vector.new_zeros(b,42)],-1)
             state=torch.tanh(state_logits+control_vector.to(state)[:,None,:])
         if c.attention_mode=='frozen_state': state=state.detach()
         caches=[]; telemetry=[]
@@ -188,6 +277,12 @@ class RawrphosLM(nn.Module):
             x,state,cache,tel=block(x,state,attention_mask,None if past_key_values is None else past_key_values[i],return_attention)
             if use_cache: caches.append(cache)
             telemetry.append(tel)
+        if c.hebbian:
+            fast=None if past_key_values is None else past_key_values[-1].get('hebbian_fast')
+            if past_key_values is not None and fast is None: raise ValueError('hebbian cache missing fast weights')
+            x,fast,htel=self.hebbian(x,fast)
+            if use_cache: caches[-1]=dict(caches[-1],hebbian_fast=fast)
+            telemetry.append(htel)
         logits=F.linear(self.norm(x),self.token.weight)
         loss=None
         if targets is not None:
@@ -195,3 +290,31 @@ class RawrphosLM(nn.Module):
             if not bool((targets!=-100).any()): raise ValueError('no supervised tokens')
             loss=F.cross_entropy(logits.float().reshape(-1,c.vocab_size),targets.reshape(-1),ignore_index=-100)
         return {'logits':logits,'loss':loss,'past_key_values':caches if use_cache else None,'telemetry':telemetry}
+
+
+def upgrade_to_hebbian(model,dim=32):
+    """Return a Hebbian-enabled copy of a non-Hebbian model. Every existing tensor is copied
+    exactly; only hebbian.* is new (zero output => identical logits at upgrade time)."""
+    if model.config.hebbian: return model
+    cfg=RawrphosConfig.from_dict(dict(asdict(model.config),hebbian=True,hebbian_dim=dim))
+    new=RawrphosLM(cfg)
+    missing,unexpected=new.load_state_dict(model.state_dict(),strict=False)
+    if unexpected or any(not k.startswith('hebbian.') for k in missing):
+        raise ValueError('hebbian upgrade may only add hebbian.* parameters')
+    return new
+
+
+def upgrade_to_trinity(model):
+    """Return a state_mode='tri' copy of a dyn12 model with IDENTICAL outputs at upgrade:
+    Trinity.k/g12 copy Dyn12.k/gamma; state_init42 and Trinity.drive are zeroed so x42 stays 0
+    (then d42=0, M(42->12)x42=0, distances unchanged) until training moves drive."""
+    if model.config.state_mode=='tri': return model
+    new=RawrphosLM(RawrphosConfig.from_dict(dict(asdict(model.config),state_mode='tri')))
+    sd=model.state_dict(); tgt=new.state_dict()
+    for k,v in sd.items():
+        k2=k.replace('transition.gamma','transition.g12')
+        if k2 not in tgt: raise ValueError(f'unexpected key {k}')
+        tgt[k2]=v.clone()
+    for k in tgt:
+        if k.startswith('state_init42.') or '.transition.drive.' in k: tgt[k]=torch.zeros_like(tgt[k])
+    new.load_state_dict(tgt); return new

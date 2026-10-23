@@ -1,4 +1,5 @@
 """One loaded native checkpoint, bounded serial generation and measured timing."""
+import os
 import threading
 import time
 import math
@@ -25,14 +26,21 @@ class Engine:
             loaded = load_inference_snapshot(checkpoint, expected_checkpoint_sha256=expected_sha256)
         else:
             loaded = load_checkpoint(checkpoint,expected_checkpoint_sha256=expected_sha256,load_training_state=False)
-        self.model=loaded['model'].eval().to(device); self.device=device
+        model=loaded['model']
+        # 2026-10-22 (009): original-kit Trinity state + per-session Hebbian fast weights ON by default
+        # at serve time (RAWRPHOS_KIT_LAYERS=0 disables). Weights on disk are never modified; new parts
+        # start at zero (identical replies at upgrade); fast weights reset per request (stateless guest).
+        if os.environ.get('RAWRPHOS_KIT_LAYERS','1')!='0':
+            from rawrphos.architecture.model import upgrade_to_trinity,upgrade_to_hebbian
+            model=upgrade_to_hebbian(upgrade_to_trinity(model))
+        self.model=model.eval().to(device); self.device=device
         self.tokenizer=loaded['tokenizer']; self.metadata=loaded['metadata']
         self.load_seconds=time.perf_counter()-started; self.max_new_tokens=max_new_tokens
         self.lock=threading.Lock(); self.last_success=None; self.last_metrics={}
     def info(self):
         m=self.metadata
         return {'model_id':'rawrphos-native','display_name':'RAWRPHØS','family':'RAWRPHOS',
-            'architecture':self.model.config.to_dict(),'parameter_count':self.model.parameter_count(),
+            'architecture':self.model.config.to_dict(),'hebbian':bool(self.model.config.hebbian),'state_mode':self.model.config.state_mode,'parameter_count':self.model.parameter_count(),
             'checkpoint_sha256':m['checkpoint_sha256'],'tokenizer_sha256':m['tokenizer_sha256'],
             'context_limit':self.model.config.max_seq_len,'training_seq_len':m.get('training_seq_len'),
             'context_extrapolation_validated':False,'training_steps':m['training_steps'],
@@ -108,7 +116,7 @@ class Engine:
                 forward=self.model(input_ids,control_vector=cv)
                 logits[label]=forward['logits'][:,-1,:].float()
                 norm[label]=round(float(cv.norm()) if cv is not None else 0.0,8)
-                gates[label]=[round(float(t['gate']),8) for t in forward['telemetry']]
+                gates[label]=[round(float(t['gate']),8) for t in forward['telemetry'] if 'gate' in t]
                 if time.monotonic()-started>18:raise TimeoutError('matched probe timeout')
             def distance(a,b):
                 return round(float(torch.linalg.vector_norm(logits[a]-logits[b])),10)
@@ -199,7 +207,7 @@ class Engine:
                 forward=self.model(input_ids,control_vector=cv)
                 logits[label]=forward['logits'][:,-1,:].float().detach().clone()
                 telemetry=[]
-                for item in forward['telemetry']:
+                for item in [x for x in forward['telemetry'] if 'gate' in x]:
                     telemetry.append({
                         'gate':round(float(item['gate']),8),
                         'sigma':round(float(item['sigma']),8),

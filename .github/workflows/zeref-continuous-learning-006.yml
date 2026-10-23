@@ -215,6 +215,13 @@ jobs:
           # 2026-10-22: Zeref's own experiences (bb-deada969 diary, training cycles, this capture, universe genesis), capped 5%.
           python -u scripts/zeref_experience_rows.py build/zeref-006/chat-mix.jsonl build/zeref-006/experiences.jsonl build/zeref-006/inputs/native-evidence-manifest.json
           python -c "import json;m=json.load(open('build/zeref-006/chat-mix.manifest.json'));print('ZEREF_INGEST_BY_SOURCE='+json.dumps({'rows':m.get('rows'),'teacher_distill':m.get('teacher_distill',{}).get('rows'),'experience':m.get('experience_rows',{}).get('by_kind'),'extra':m.get('extra_sources',{}).get('rows_by_source'),'music_001':m.get('music_rows'),'warm_001':m.get('warm_rows'),'dad_voice':m.get('dad_voice_rows'),'knowledge':m.get('knowledge_rows')}),flush=True)"
+      - name: Free pretraining slice (TinyStories past the first 50k, CDLA-Sharing-1.0, rotated per run)
+        run: |
+          set -Eeuo pipefail
+          off=$(( 50000000 + (${{ github.run_id }} % 900) * 2000000 ))
+          if curl -fsSL --retry 3 -r "${off}-$((off+1999999))" -o build/zeref-006/tinystories-range.txt "https://huggingface.co/datasets/roneneldan/TinyStories/resolve/f54c09fd23315a6f9c86f9dc80f725de7d8f9c64/TinyStories-train.txt"; then
+            python scripts/zeref_pretrain_slice.py build/zeref-006/tinystories-range.txt build/zeref-006/pretrain-slice.jsonl "$off"
+          else echo 'ZEREF_PRETRAIN_SLICE_UNAVAILABLE (continuing without it)'; fi
       - name: Install pinned PUBLIC 14000 (fixed anti-ratchet chat reference + promotion baseline)
         run: |
           set -Eeuo pipefail
@@ -222,6 +229,9 @@ jobs:
       - name: Resume exact AdamW state, perform up to 64 new CPU updates and test heldout/retention
         env:
           ZEREF_006_PUBLIC_REF_DIR: build/public-14k
+          # 007: train a Hebbian-enabled candidate from the approved pin (zero-output start).
+          ZEREF_HEBBIAN: '1'
+          ZEREF_TRINITY: '1'
         run: |
           set -Eeuo pipefail
           python -u scripts/zeref_continuation_006.py
@@ -242,6 +252,7 @@ jobs:
             build/zeref-006/chat-eval.json
             build/zeref-006/promotion-decision.json
             build/zeref-006/character-check.json
+            build/zeref-006/identity-probe.json
           retention-days: 90
           if-no-files-found: warn
       - name: Chat test vs public 14000 (decides ONLY whether a promotion PR may be proposed)

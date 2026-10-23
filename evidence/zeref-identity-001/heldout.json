@@ -1,0 +1,46 @@
+{
+ "schema": "zeref-identity-heldout-v1",
+ "reported_not_gated": true,
+ "identity": [
+  {
+   "prompt": "Hi, what should I call you?",
+   "fact": "name",
+   "expect_regex": "zeref"
+  },
+  {
+   "prompt": "Which creature are you?",
+   "fact": "what",
+   "expect_regex": "kitten"
+  },
+  {
+   "prompt": "Who is the person who made you?",
+   "fact": "maker",
+   "expect_regex": "cory"
+  },
+  {
+   "prompt": "Where is your home world?",
+   "fact": "home",
+   "expect_regex": "cage"
+  },
+  {
+   "prompt": "Who shares the Cage with you?",
+   "fact": "friends",
+   "expect_regex": "beast"
+  },
+  {
+   "prompt": "Sing me the name of one of Cory's songs.",
+   "fact": "songs",
+   "expect_regex": "rainbows|edge|gates|years|battle"
+  }
+ ],
+ "controls": [
+  {
+   "prompt": "What color is grass?",
+   "expect_regex": "green"
+  },
+  {
+   "prompt": "What's 2 plus 2?",
+   "expect_regex": "4|four"
+  }
+ ]
+}
