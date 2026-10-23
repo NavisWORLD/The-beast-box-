@@ -20,6 +20,9 @@ function rand(seed:string){let h=0;for(const c of seed)h=(h*31+c.charCodeAt(0))>
 export default function TinyUniverseView(){
  const cv=useRef<HTMLCanvasElement>(null);const uRef=useRef<U>(null);const g0=useRef<U>(null);const pos=useRef<Map<string,{x:number,y:number,r:number}>>(new Map());
  const [u,setU]=useState<U>(null);const [run,setRun]=useState(true);const [sel,setSel]=useState<string|null>(null);const [line,setLine]=useState('');const aliveGate=useRef(createAliveGate());const [err,setErr]=useState('');
+ /* E4 (Cosmo): Beach Two is a region inside the universe. ?region=beach-two (or the Beach Two button) opens it over the map; /beach-two still works on its own. */
+ const [region,setRegion]=useState<string|null>(null);useEffect(()=>{const r=new URLSearchParams(window.location.search).get('region');if(r==='beach-two')setRegion(r);},[]);
+ const openRegion=(r:string|null)=>{setRegion(r);const q=new URL(window.location.href);if(r)q.searchParams.set('region',r);else q.searchParams.delete('region');window.history.replaceState(null,'',q.toString());};
  const [three,setThree]=useState(false);useEffect(()=>{setThree(!isSoftwareGL());},[]);
  useEffect(()=>{fetch('/universe/atlas.json').then(r=>r.json()).then((a:Atlas)=>{SPR.atlas=a;for(const[k,v]of Object.entries(a.sheets)){const im=new Image();im.decoding='async';if(v.fallback){const fb=v.fallback;im.onerror=()=>{im.onerror=null;im.src=fb;};}im.src=v.image;SPR.img[k]=im;}}).catch(()=>{});},[]);
  useEffect(()=>{fetch('/universe/tiny-universe-genesis.json').then(r=>r.json()).then(j=>{g0.current=j;uRef.current=j;setU(j);}).catch(e=>setErr(String(e)));},[]);
@@ -70,7 +73,12 @@ export default function TinyUniverseView(){
    <div className={s.zeref} aria-live="polite">{line}</div>
 {err||!u?<span className={s.stat}>{err?`Couldn’t load genesis: ${err}`:'loading…'}</span>:<details className={s.stat} data-universe-details><summary>Details</summary>{u?`tick ${u.tick} · ${u.stars.length} stars · ${u.planets.length} planets · ${u.storms.length} storms · ${u.life.length} life worlds${last?` · sim E ${last.sim_E}`:` · IBM E ${u.entanglement_E}`}`:null}</details>}
    <span className={s.stat} data-credit-line>Threads SIMULATED · Hearth</span>
-   <div className={s.row}><a className={s.btn} href="/beast-cage/world" data-spawn-in>✦ Spawn in</a><button className={s.btn} onClick={()=>setThree(v=>!v)} data-universe-mode>{three?'2D map':'3D'}</button><button className={s.btn} onClick={()=>setRun(v=>!v)}>{run?'⏸ Pause':'▶ Grow'}</button><button className={s.btn} onClick={()=>{if(g0.current){uRef.current=g0.current;setU(g0.current);setLine('');}}}>↺ Genesis</button>
+   <div className={s.row}><a className={s.btn} href="/beast-cage/world" data-spawn-in>✦ Spawn in</a><button className={s.btn} onClick={()=>openRegion('beach-two')} data-region-beach-two>🏖 Beach Two</button><button className={s.btn} onClick={()=>setThree(v=>!v)} data-universe-mode>{three?'2D map':'3D'}</button><button className={s.btn} onClick={()=>setRun(v=>!v)}>{run?'⏸ Pause':'▶ Grow'}</button><button className={s.btn} onClick={()=>{if(g0.current){uRef.current=g0.current;setU(g0.current);setLine('');}}}>↺ Genesis</button>
 </div>
-  </div></main>;
+  </div>
+  {region==='beach-two'?<section data-universe-region="beach-two" aria-label="Beach Two region" style={{position:'fixed',inset:0,zIndex:40,background:'#0b1122',display:'flex',flexDirection:'column'}}>
+   <div style={{display:'flex',alignItems:'center',gap:10,padding:'8px 12px',color:'#cfe6ff',font:'600 13px system-ui',flexWrap:'wrap'}}><button className={s.btn} onClick={()=>openRegion(null)} data-region-back>← Universe</button><span>✦ Region · Beach Two</span><a className={s.btn} href="/beach-two" style={{marginLeft:'auto'}}>Full screen</a></div>
+   <iframe src="/beach-two/toy.html" title="Beach Two" style={{flex:1,width:'100%',border:0}} allow="fullscreen"/>
+  </section>:null}
+ </main>;
 }
