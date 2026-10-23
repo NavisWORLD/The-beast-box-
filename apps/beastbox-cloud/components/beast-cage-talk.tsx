@@ -25,7 +25,7 @@ export default function BeastCageTalk(){
  const [askedBeast,setAskedBeast]=useState(false);
  useEffect(()=>{try{setAskedBeast(new URLSearchParams(location.search).get('with')==='beast');}catch{}},[]);
  // Menu deep links: 'Talk to Zeref' -> ?with=zeref (bb-deada969, rawrphos-local); 'Talk to {beast}' -> ?with=beast.
- useEffect(()=>{try{const w=new URLSearchParams(location.search).get('with');if(w==='zeref')choose('zeref');else if(w==='beast')choose('companion');}catch{}},[]);// eslint-disable-line react-hooks/exhaustive-deps
+ useEffect(()=>{try{const w=new URLSearchParams(location.search).get('with');if(w==='zeref')choose('zeref',false);else if(w==='beast')choose('companion',false);}catch{}},[]);// eslint-disable-line react-hooks/exhaustive-deps
  const talkingToZeref=persona.source==='zeref';
  useEffect(()=>{document.title=`Talk to ${persona.name} · BEAST BOX`;},[persona.name]);
  const savedId=session?.beast?.qbeast?.profile?.id||'';
@@ -44,7 +44,7 @@ export default function BeastCageTalk(){
    {askedBeast&&!companion?<p data-talk-no-beast>You haven’t met your own beast yet, so Zeref is answering. <Link href="/beast-cage">Find your beast in the Cage</Link>.</p>:null}
    {/* site_labels.json (Emeth): each creature thinks with its own brain on the shared RAWRPHØS model, never as Zeref */}
    {talkingToZeref?<p data-talk-subtitle>He's still learning to speak. Some replies come out strange.</p>:<p data-talk-subtitle>{persona.name} thinks with its own brain, built on Zeref (RAWRPHØS). It's still learning, so some replies come out strange.</p>}
-   <p>Your Beast keeps its own name, personality and memories. Pick a brain to give it a voice: the free RAWRPHØS guest model, a model on your own computer, or your own key. Every reply comes from that model, and if it is offline you will see that instead of a made-up answer.</p>
+   <p data-talk-honesty>{talkingToZeref?'Zeref is RAWRPHØS, running on the rawrphos-local model.':`${persona.name} keeps its own name, traits and memories, and answers through the same rawrphos-local model as Zeref.`} Every reply comes from that model. If it is offline you will see that, never a made-up answer.</p>
   </section>
   <div className={styles.main}>
    <section className={styles.scene} aria-label="Animated cosmic companion">
