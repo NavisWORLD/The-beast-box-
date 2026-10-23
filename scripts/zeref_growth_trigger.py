@@ -88,7 +88,7 @@ if __name__=="__main__":
  if cmd=="decide":
   path,layers,sha=sys.argv[2],int(sys.argv[3]),sys.argv[4];exp=sys.argv[5] if len(sys.argv)>5 else None
   try:
-   pin=json.load(open("apps/beastbox-cloud/lib/rawrphos-public-pin.json"));bar=pin["promotion"]["candidate_ref_nll"]*1.005
+   pin=json.load(open("apps/beastbox-cloud/lib/rawrphos-public-pin.json"));bar=(pin.get("gate_v2") or {}).get("set_a_pin_nll",pin["promotion"]["candidate_ref_nll"])*1.005
    lin=load(path);d=decide(lin,layers,sha,exp,bar);json.dump(lin,open(path,"w"),indent=1)
   except Exception as e:d={"schema":"zeref-growth-trigger-v2","grow":False,"add_layers":0,"error":type(e).__name__}
   print("ZEREF_GROWTH_TRIGGER="+json.dumps(d),flush=True)
