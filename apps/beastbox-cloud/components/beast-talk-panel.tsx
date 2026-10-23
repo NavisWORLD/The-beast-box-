@@ -1,4 +1,5 @@
 'use client';
+import Details from './details-toggle';
 import {useCallback,useEffect,useMemo,useRef,useState,type FormEvent} from 'react';
 import {useBeastSession} from './beast-session';
 import {useCompanion} from './companion-provider';
@@ -262,7 +263,7 @@ function BeastTalkContent({onState,compact=false,title,gameBridge}:PanelProps){
   </div>
 
   <details className={styles.brains} data-visitor-growth>
-   <summary>My COSMOS growth · {growth?.exchanges??0} verified exchanges · this browser only</summary>
+   <summary>My COSMOS growth · {growth?.exchanges??0} verified exchange{(growth?.exchanges??0)===1?'':'s'} · this browser only</summary>
    <p>Curiosity {growth?.curiosity??50} · Resonance {growth?.resonance??50} · Stability {growth?.stability??50} · Signal {growth?.signal??50}</p>
    <small>Local classical QVM-inspired stimulus (Rigetti-style simulation, NOT a Rigetti cloud or hardware run). No shared model weights are retrained. The growth record stores aggregates, not raw conversation text.</small>
    <label className={styles.check}><input type="checkbox" checked={shareGrowth} onChange={e=>toggleGrowth(e.target.checked)}/> Share my local growth summary with whichever brain I select. Use the separate history control to include previous messages. Off by default.</label>
@@ -295,7 +296,7 @@ function BeastTalkContent({onState,compact=false,title,gameBridge}:PanelProps){
   <div className={styles.log} aria-label={`Conversation with ${persona.name}`} aria-live="polite">
    {log.length===0?<p className={styles.empty}>Say hi to {persona.name}! 👋 Type below, then tap Send.<small> {persona.name}&apos;s replies come from RAWRPHØS, never from a script. Teachers coach RAWRPHØS in the background; their words are never shown as {persona.name}&apos;s.</small></p>:
     log.map((turn,i)=>turn.role==='system'?<div key={i} className={styles.offline} role="status" data-model-offline-turn><strong>⚠ Model offline · not {persona.name}&apos;s voice</strong><p>{turn.text}</p></div>:<div key={i} style={{display:'contents'}}><div className={turn.role==='you'?styles.you:styles.beast}>
-     <span className={styles.speaker}>{turn.role==='you'?'You':persona.name}{turn.role==='beast'&&turn.model?<em> · via {turn.model}</em>:null}</span>
+     <span className={styles.speaker}>{turn.role==='you'?'You':persona.name}{turn.role==='beast'&&turn.model?<Details inline label="·"><em>via {turn.model}</em></Details>:null}</span>
      <p>{turn.text}</p>
      {turn.reachOut?<small data-reach-out>💬 {REACH_OUT_LABEL} · {turn.reachOut}</small>:null}
      {turn.role==='beast'&&turn.coachedBy?<small data-coached-by>Coached by: {turn.coachedBy}</small>:null}

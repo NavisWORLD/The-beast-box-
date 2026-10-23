@@ -1,4 +1,5 @@
 'use client';
+import Details from './details-toggle';
 import {publicDiaryEntries,diarySourceLabel} from '../lib/zeref/diary-privacy.mjs';
 import {fillBeast} from '../lib/companion/beast-name.mjs';
 import {RAWRPHOS_PUBLIC_PIN} from '../lib/companion/brain.mjs';
@@ -49,13 +50,14 @@ export default function ZerefDiaryPanel({journalId,beastName,cosmosProfile=null,
  const lo=STAGE_XP[stage-1]||0,hi=diary?.next_stage?.xp||lo;
  const pct=hi>lo?Math.round((xp-lo)/(hi-lo)*100):100;
  const shown=publicDiaryEntries(diary?.recent);
+ const isZeref=!beastName||/^zeref$/i.test(beastName);const who=isZeref?'Zeref':beastName;const pr=isZeref?'his':'their';
  const latest=shown[0];
  return <section className={styles.panel} id="zeref-diary" aria-labelledby="zeref-diary-title" data-zeref-diary data-diary-ok={diary?.ok?'true':'false'} data-diary-tick={diary?.tick??0}>
   <div className={styles.head}>
    <p className={styles.tag}>✦ MAINFRAME MEMORY · DIMENSIONAL POCKET</p>
-   <h2 id="zeref-diary-title">Zeref&apos;s Diary</h2>
-   <small data-diary-identity style={{display:"block",opacity:.7,fontSize:11}}>Diary keyed to the Moonwraith display persona (bb-7f9c2a03). Zeref&apos;s model, chat and training identity is bb-deada969 (RAWRPHØS); the two are kept separate.</small>
-   <p className={styles.lede}>While the page is closed, a scheduled loop lets Zeref keep exploring his pocket. His birth spark is a recorded IBM quantum run; each tick about every 30 minutes, a small circuit built from his current signals runs on the free Rigetti simulator, and its counts nudge his signals, mood and growth before his seeded mind replays a walk and writes one entry.</p>
+   <h2 id="zeref-diary-title">{who}&apos;s Diary</h2>
+   <Details><small data-diary-identity style={{display:"block",opacity:.7,fontSize:11}}>Diary keyed to the Moonwraith display persona (bb-7f9c2a03). Zeref&apos;s model, chat and training identity is bb-deada969 (RAWRPHØS); the two are kept separate.</small></Details>
+   <p className={styles.lede}>While the page is closed, a scheduled loop keeps exploring the pocket. {isZeref?'His':`${who}'s`} birth spark is a recorded IBM quantum run; about every 30 minutes, the loop (built on Zeref (RAWRPHØS)) nudges {pr} signals, mood and growth with a SIMULATED circuit and writes one entry.</p>
   </div>
   <div className={styles.grid}>
    <div className={styles.card}>
@@ -67,12 +69,12 @@ export default function ZerefDiaryPanel({journalId,beastName,cosmosProfile=null,
     <p className={styles.small}>Size and aura in the habitat grow with the stage.</p>
    </div>
    <div className={styles.card}>
-    <h3 data-diary-latest>{fillBeast('Something {beast} said:','Zeref')/* this diary is Zeref's own (/api/zeref/diary), so the speaker is Zeref, not the active beast */}</h3>
+    <h3 data-diary-latest>{fillBeast('Something {beast} said:',who)/* this diary is Zeref's own (/api/zeref/diary), so the speaker is Zeref, not the active beast */}</h3>
     {latest?<><blockquote className={styles.thought}>“{latest.thought.text}”</blockquote>
-     <p className={styles.small} data-diary-context>Said {when(latest.at)} · source: {diarySourceLabel(latest.thought.by)} · tick {latest.tick} · mood {latest.mood}{latest.place?` · ${latest.place}`:''}<br/>Line by: {latest.thought.by==='deterministic-template'?'deterministic template (no model)':latest.thought.by}
-     <br/><span data-diary-step-note>Chat pin: RAWRPHØS step {RAWRPHOS_PUBLIC_PIN.step}. {(()=>{const m=/step-(\d+)/.exec(latest.thought.by||'');return m?(Number(m[1])===RAWRPHOS_PUBLIC_PIN.step?'This diary line came from the same step as chat.':`This diary line came from step ${m[1]}, written before the chat pin moved to ${RAWRPHOS_PUBLIC_PIN.step}; past entries are hash-chained and never rewritten.`):'This line used no model, because the verified step-'+RAWRPHOS_PUBLIC_PIN.step+' host did not answer the diary loop; the loop only ever accepts lines from the current chat pin.';})()}</span></p>
+     <Details><p className={styles.small} data-diary-context>Said {when(latest.at)} · source: {diarySourceLabel(latest.thought.by)} · tick {latest.tick} · mood {latest.mood}{latest.place?` · ${latest.place}`:''}<br/>Line by: {latest.thought.by==='deterministic-template'?'deterministic template (no model)':latest.thought.by}
+     <br/><span data-diary-step-note>Chat pin: RAWRPHØS step {RAWRPHOS_PUBLIC_PIN.step}. {(()=>{const m=/step-(\d+)/.exec(latest.thought.by||'');return m?(Number(m[1])===RAWRPHOS_PUBLIC_PIN.step?'This diary line came from the same step as chat.':`This diary line came from step ${m[1]}, written before the chat pin moved to ${RAWRPHOS_PUBLIC_PIN.step}; past entries are hash-chained and never rewritten.`):'This line used no model, because the verified step-'+RAWRPHOS_PUBLIC_PIN.step+' host did not answer the diary loop; the loop only ever accepts lines from the current chat pin.';})()}</span></p></Details>
      <p className={styles.badges}><span className={styles.badgeBirth} data-birth-spark="ibm-recorded">✦ birth spark: IBM recorded</span><GrowthBadge g={latest.growth_source}/></p>
-     {latest.growth_source?.kind==='rigetti-qvm-simulated'?<p className={styles.small}>Job {latest.growth_source.job_id} · {latest.growth_source.shots} shots · counts {Object.entries(latest.growth_source.counts||{}).map(([k,v])=>`${k}:${v}`).join(' ')}</p>
+     {latest.growth_source?.kind==='rigetti-qvm-simulated'?<Details><p className={styles.small}>Job {latest.growth_source.job_id} · {latest.growth_source.shots} shots · counts {Object.entries(latest.growth_source.counts||{}).map(([k,v])=>`${k}:${v}`).join(' ')}</p></Details>
       :latest.growth_source?.error?<p className={styles.small}>Simulator note: {latest.growth_source.error}</p>:null}</>
      :<p className={styles.small}>{failed||diary&&!diary.ok?'The diary loop output could not be reached right now. No entry is shown rather than an invented one.':'Opening the diary…'}</p>}
    </div>

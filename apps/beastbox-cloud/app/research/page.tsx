@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Details from '@/components/details-toggle';
 import JourneyLinks from '@/components/journey-links';
 import Link from 'next/link';
 import { ArrowLeft, ArrowUpRight, Atom, BrainCircuit, FlaskConical, ShieldCheck } from 'lucide-react';
@@ -156,7 +157,7 @@ export default function ResearchIndex() {
           </div>
         </section>
       </div>
-      <footer className={styles.footer}>CORY DAVIS // NAVISWORLD · MODEL ≠ MEMORY · MODEL ≠ STATE · MODEL ≠ AUTHORITY</footer>
+      <footer className={styles.footer}>CORY DAVIS // NAVISWORLD <Details inline>MODEL ≠ MEMORY · MODEL ≠ STATE · MODEL ≠ AUTHORITY</Details></footer>
     </main>
   );
 }

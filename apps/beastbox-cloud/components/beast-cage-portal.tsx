@@ -1,4 +1,5 @@
 'use client';
+import Details from './details-toggle';
 import {beastDisplayName} from '../lib/companion/beast-name.mjs';
 import {useCallback,useEffect,useMemo,useState} from 'react';
 import Link from 'next/link';
@@ -104,7 +105,7 @@ export default function BeastCagePortal(){
     <a href="/spark/index.html">My Beast</a>
     <Link href="/beast-cage" aria-current="page">Beast Cage</Link>
     <Link href="/sol-game">Lost COSMOS</Link>
-    <Link href="/beast-cage/field">Open Field</Link>
+    <Link href="/beast-cage/field">Lost Cosmos Field</Link>
     <Link href="/brain-bay">Brain Bay</Link>
     <Link href="/research">Lab</Link>
     <Link href="/workspace">Workstation</Link>
@@ -144,7 +145,7 @@ export default function BeastCagePortal(){
     <button type="button" aria-pressed={view==='pocket'} onClick={()=>chooseView('pocket')}>✦ Pocket explorer</button>
     <button type="button" aria-pressed={view==='classic'} onClick={()=>chooseView('classic')}>Classic pixel sprite</button>
     <button type="button" onClick={()=>window.dispatchEvent(new Event(POCKET_3D_CAMERA_RESET))} aria-label="Reset 3D pocket camera">Reset 3D camera</button>
-    <a href="#zeref-diary">Zeref&apos;s Diary ↓</a>
+    <a href="#zeref-diary">{pocketName}&apos;s Diary ↓</a>
    </div>
   </section>
   {sameSpark?<CreatureDashboard beast={session.beast} cosmosProfile={cosmosProfile}/>:null}
@@ -159,7 +160,7 @@ export default function BeastCagePortal(){
   <CreatureHabitat />
   <BeastCareDeck />
   <div data-advanced-only><QbeastMenagerie />
-  <section className="cage-invariants"><span>MODEL ≠ MEMORY</span><span>MODEL ≠ IDENTITY</span><span>MODEL ≠ AUTHORITY</span></section></div>
+  <Details><section className="cage-invariants"><span>MODEL ≠ MEMORY</span><span>MODEL ≠ IDENTITY</span><span>MODEL ≠ AUTHORITY</span></section></Details></div>
   <section className="cage-customize" id="customize" aria-labelledby="customize-title">
    <div className="cage-section-heading"><span className="cage-eyebrow"><SlidersHorizontal size={13}/> A LOOK THAT FEELS LIKE YOURS</span>
     <h2 id="customize-title">Meet the first<br/><em>little constellations.</em></h2>

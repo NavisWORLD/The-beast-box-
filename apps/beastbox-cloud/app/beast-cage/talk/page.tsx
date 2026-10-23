@@ -9,7 +9,7 @@ export default function TalkPage() {
       <Link href="/beast-cage" style={{fontWeight:800,color:'#a8eef9',letterSpacing:'.14em'}}>✦ BEAST CAGE</Link>
       <Link href="/workspace?owner=1" style={{fontSize:12,color:"#ddd1ff"}}>OWNER WORKSTATION ↗</Link>
     </header>
-    <div className="room-strip"><JourneyLinks current="cage" label="Beast Box rooms"/></div>
+    <div className="room-strip"><JourneyLinks current="talk" label="Beast Box rooms"/></div>
     <BeastCageTalk />
   </main>;
 }

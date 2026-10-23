@@ -1,4 +1,5 @@
 'use client';
+import Details from '@/components/details-toggle';
 import {useState,type FormEvent} from 'react';
 import JourneyLinks from '@/components/journey-links';
 import Link from 'next/link';
@@ -56,8 +57,8 @@ export default function TryBeastBox(){
     <button type="submit" disabled={busy||!text.trim()||(provider==='huggingface-byok'&&(!hfKey||!confirm))}>{busy?'Generating…':'Send to model'} <ArrowRight size={16}/></button>
    </div>
    {error?<p role="alert" className="guest-error">{error}</p>:null}
-   {reply?<section className="guest-reply" role="status"><strong>{reply.provider==='rawrphos-local'?`RAWRPHØS · step ${PUBLIC_PIN.training_steps}`:reply.model||'Hugging Face model'}</strong><p>{reply.reply}</p><small>Real model response · stateless guest session · answers may be wrong</small></section>:null}
+   {reply?<section className="guest-reply" role="status"><strong>{reply.provider==='rawrphos-local'?<>{'RAWRPHØS'}<Details inline>step {PUBLIC_PIN.training_steps}</Details></>:reply.model||'Hugging Face model'}</strong><p>{reply.reply}</p><small>Real model response · stateless guest session · answers may be wrong</small></section>:null}
   </form>
-  <footer className="guest-bottom"><BrandCrest size={14} decorative style={{verticalAlign:'-2px',marginRight:6}}/>BEAST BOX COSMOS · MODEL ≠ MEMORY ≠ AUTHORITY <Link href="https://github.com/NavisWORLD/The-beast-box-" target="_blank" rel="noopener noreferrer">Open source ↗</Link></footer>
+  <footer className="guest-bottom"><BrandCrest size={14} decorative style={{verticalAlign:'-2px',marginRight:6}}/>BEAST BOX COSMOS <Details inline>MODEL ≠ MEMORY ≠ AUTHORITY</Details> <Link href="https://github.com/NavisWORLD/The-beast-box-" target="_blank" rel="noopener noreferrer">Open source ↗</Link></footer>
  </main>;
 }
