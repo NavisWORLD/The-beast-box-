@@ -126,7 +126,7 @@ export default function BeastCagePortal(){
    <div data-cage-view={view} className={'cage-habitat-visual'+(pocketReady?' cage-pocket-active':'')} role="group" aria-label="Circular dimensional world behind the original Spark Beast; drag or pinch to explore, or focus and use arrow keys and plus/minus to move the view" tabIndex={0}>
     <div className="cage-orbit cage-orbit-one" aria-hidden="true"/><div className="cage-orbit cage-orbit-two" aria-hidden="true"/>
     <GeyserControls/>
-    {lookId?<Link className="cage-look-pill" href="/beast-cage/look" data-cage-look-closer={lookId}>🔍 Look Closer at {lookId==='zeref'?'Zeref':pocketName}</Link>:softTap?<Link className="cage-look-pill" href="/beast-cage/look" data-cage-look-fallback="true">🔍 Look Closer at {pocketName}</Link>:null}
+    {lookId?<Link className="cage-look-pill" href="/beast-cage/look" data-cage-look-closer={lookId}>🔍 Look Closer at {lookId==='zeref'?'Zeref':pocketName}</Link>:softTap?<Link className="cage-look-pill" href={creatureName?"/beast-cage/look":"/beast-cage/look?with=zeref"} data-cage-look-fallback="true">🔍 Look Closer at {pocketName}</Link>:null}
     <CagePocketDimension
      seed={sameSpark?session.beast.genome?.seed||session.beast.seed:null}
      qbeastId={sameSpark?session.beast.qbeast.profile.id:null}
