@@ -1,0 +1,366 @@
+{
+ "units": "instances per square metre",
+ "note": "multiply by mask from home_biomes_1024x512.png index; physics loop may override after first look",
+ "biomes": {
+  "deep_ocean": {
+   "index": 0,
+   "ground_texture": "biome_tile",
+   "per_m2": {
+    "grass_tuft_a": 0,
+    "grass_tuft_b": 0,
+    "grass_tall_c": 0.0,
+    "flower_pink": 0.0,
+    "flower_gold": 0.0,
+    "crystal_small": 0.0,
+    "crystal_cluster": 0.0,
+    "crystal_spire": 0.0,
+    "mushroom_single": 0.0,
+    "mushroom_cluster": 0.0,
+    "rock_pebble": 0.0,
+    "rock_boulder": 0.0
+   }
+  },
+  "shallow_ocean": {
+   "index": 1,
+   "ground_texture": "biome_tile",
+   "per_m2": {
+    "grass_tuft_a": 0,
+    "grass_tuft_b": 0,
+    "grass_tall_c": 0.0,
+    "flower_pink": 0.0,
+    "flower_gold": 0.0,
+    "crystal_small": 0.0,
+    "crystal_cluster": 0.0,
+    "crystal_spire": 0.0,
+    "mushroom_single": 0.0,
+    "mushroom_cluster": 0.0,
+    "rock_pebble": 0.0,
+    "rock_boulder": 0.0
+   }
+  },
+  "beach": {
+   "index": 2,
+   "ground_texture": "biome_tile",
+   "per_m2": {
+    "grass_tuft_a": 0.3,
+    "grass_tuft_b": 0,
+    "grass_tall_c": 0.0,
+    "flower_pink": 0.0,
+    "flower_gold": 0.0,
+    "crystal_small": 0.03,
+    "crystal_cluster": 0.0,
+    "crystal_spire": 0.0,
+    "mushroom_single": 0.0,
+    "mushroom_cluster": 0.0,
+    "rock_pebble": 1.5,
+    "rock_boulder": 0.02
+   }
+  },
+  "grassland": {
+   "index": 3,
+   "ground_texture": "meadow",
+   "per_m2": {
+    "grass_tuft_a": 6.0,
+    "grass_tuft_b": 4.0,
+    "grass_tall_c": 1.2,
+    "flower_pink": 0.3,
+    "flower_gold": 0.3,
+    "crystal_small": 0.05,
+    "crystal_cluster": 0.02,
+    "crystal_spire": 0.004,
+    "mushroom_single": 0.08,
+    "mushroom_cluster": 0.03,
+    "rock_pebble": 0.4,
+    "rock_boulder": 0.01
+   }
+  },
+  "heartwood_forest": {
+   "index": 4,
+   "ground_texture": "meadow",
+   "per_m2": {
+    "grass_tuft_a": 4.8,
+    "grass_tuft_b": 3.2,
+    "grass_tall_c": 2,
+    "flower_pink": 0.24,
+    "flower_gold": 0.24,
+    "crystal_small": 0.04,
+    "crystal_cluster": 0.016,
+    "crystal_spire": 0.0032,
+    "mushroom_single": 0.4,
+    "mushroom_cluster": 0.15,
+    "rock_pebble": 0.32,
+    "rock_boulder": 0.008
+   }
+  },
+  "rainforest": {
+   "index": 5,
+   "ground_texture": "meadow",
+   "per_m2": {
+    "grass_tuft_a": 6.6,
+    "grass_tuft_b": 4.4,
+    "grass_tall_c": 1.32,
+    "flower_pink": 0.6,
+    "flower_gold": 0.33,
+    "crystal_small": 0.055,
+    "crystal_cluster": 0.022,
+    "crystal_spire": 0.0044,
+    "mushroom_single": 0.5,
+    "mushroom_cluster": 0.2,
+    "rock_pebble": 0.44,
+    "rock_boulder": 0.011
+   }
+  },
+  "savanna": {
+   "index": 6,
+   "ground_texture": "meadow",
+   "per_m2": {
+    "grass_tuft_a": 2.4,
+    "grass_tuft_b": 1.6,
+    "grass_tall_c": 2.5,
+    "flower_pink": 0.12,
+    "flower_gold": 0.4,
+    "crystal_small": 0.02,
+    "crystal_cluster": 0.008,
+    "crystal_spire": 0.0016,
+    "mushroom_single": 0.032,
+    "mushroom_cluster": 0.012,
+    "rock_pebble": 0.16,
+    "rock_boulder": 0.004
+   }
+  },
+  "desert_dunes": {
+   "index": 7,
+   "ground_texture": "biome_tile",
+   "per_m2": {
+    "grass_tuft_a": 0,
+    "grass_tuft_b": 0,
+    "grass_tall_c": 0.0,
+    "flower_pink": 0.0,
+    "flower_gold": 0.0,
+    "crystal_small": 0.05,
+    "crystal_cluster": 0.0,
+    "crystal_spire": 0.0,
+    "mushroom_single": 0.0,
+    "mushroom_cluster": 0.0,
+    "rock_pebble": 0.8,
+    "rock_boulder": 0.03
+   }
+  },
+  "mountain_rock": {
+   "index": 8,
+   "ground_texture": "biome_tile",
+   "per_m2": {
+    "grass_tuft_a": 0.8,
+    "grass_tuft_b": 0,
+    "grass_tall_c": 0.0,
+    "flower_pink": 0.0,
+    "flower_gold": 0.0,
+    "crystal_small": 0.0,
+    "crystal_cluster": 0.06,
+    "crystal_spire": 0.015,
+    "mushroom_single": 0.0,
+    "mushroom_cluster": 0.0,
+    "rock_pebble": 1.2,
+    "rock_boulder": 0.06
+   }
+  },
+  "snow_cap": {
+   "index": 9,
+   "ground_texture": "biome_tile",
+   "per_m2": {
+    "grass_tuft_a": 0,
+    "grass_tuft_b": 0,
+    "grass_tall_c": 0.0,
+    "flower_pink": 0.0,
+    "flower_gold": 0.0,
+    "crystal_small": 0.12,
+    "crystal_cluster": 0.0,
+    "crystal_spire": 0.0,
+    "mushroom_single": 0.0,
+    "mushroom_cluster": 0.0,
+    "rock_pebble": 0.2,
+    "rock_boulder": 0.0
+   }
+  },
+  "glacier": {
+   "index": 10,
+   "ground_texture": "biome_tile",
+   "per_m2": {
+    "grass_tuft_a": 0,
+    "grass_tuft_b": 0,
+    "grass_tall_c": 0.0,
+    "flower_pink": 0.0,
+    "flower_gold": 0.0,
+    "crystal_small": 0.15,
+    "crystal_cluster": 0.06,
+    "crystal_spire": 0.01,
+    "mushroom_single": 0.0,
+    "mushroom_cluster": 0.0,
+    "rock_pebble": 0.0,
+    "rock_boulder": 0.0
+   }
+  },
+  "jelly_geyser": {
+   "index": 11,
+   "ground_texture": "meadow",
+   "per_m2": {
+    "grass_tuft_a": 3.6,
+    "grass_tuft_b": 2.4,
+    "grass_tall_c": 0.72,
+    "flower_pink": 0.6,
+    "flower_gold": 0.18,
+    "crystal_small": 0.03,
+    "crystal_cluster": 0.012,
+    "crystal_spire": 0.0024,
+    "mushroom_single": 0.5,
+    "mushroom_cluster": 0.018,
+    "rock_pebble": 0.24,
+    "rock_boulder": 0.006
+   }
+  },
+  "sunflower_ring": {
+   "index": 12,
+   "ground_texture": "meadow",
+   "per_m2": {
+    "grass_tuft_a": 6,
+    "grass_tuft_b": 4,
+    "grass_tall_c": 1.2,
+    "flower_pink": 0.3,
+    "flower_gold": 1.5,
+    "crystal_small": 0.05,
+    "crystal_cluster": 0.02,
+    "crystal_spire": 0.004,
+    "mushroom_single": 0.08,
+    "mushroom_cluster": 0.03,
+    "rock_pebble": 0.4,
+    "rock_boulder": 0.01
+   }
+  },
+  "crystal_moss": {
+   "index": 13,
+   "ground_texture": "meadow",
+   "per_m2": {
+    "grass_tuft_a": 3.0,
+    "grass_tuft_b": 2.0,
+    "grass_tall_c": 0.6,
+    "flower_pink": 0.15,
+    "flower_gold": 0.15,
+    "crystal_small": 0.6,
+    "crystal_cluster": 0.25,
+    "crystal_spire": 0.06,
+    "mushroom_single": 0.04,
+    "mushroom_cluster": 0.015,
+    "rock_pebble": 0.2,
+    "rock_boulder": 0.005
+   }
+  },
+  "volcano": {
+   "index": 14,
+   "ground_texture": "biome_tile",
+   "per_m2": {
+    "grass_tuft_a": 0,
+    "grass_tuft_b": 0,
+    "grass_tall_c": 0.0,
+    "flower_pink": 0.0,
+    "flower_gold": 0.0,
+    "crystal_small": 0.0,
+    "crystal_cluster": 0.04,
+    "crystal_spire": 0.0,
+    "mushroom_single": 0.0,
+    "mushroom_cluster": 0.0,
+    "rock_pebble": 1,
+    "rock_boulder": 0.05
+   }
+  },
+  "ember_fields": {
+   "index": 15,
+   "ground_texture": "biome_tile",
+   "per_m2": {
+    "grass_tuft_a": 0.9,
+    "grass_tuft_b": 0.6,
+    "grass_tall_c": 0.18,
+    "flower_pink": 0.045,
+    "flower_gold": 0.045,
+    "crystal_small": 0.05,
+    "crystal_cluster": 0.003,
+    "crystal_spire": 0.0006,
+    "mushroom_single": 0.012,
+    "mushroom_cluster": 0.0045,
+    "rock_pebble": 0.8,
+    "rock_boulder": 0.0015
+   }
+  },
+  "paper_marsh": {
+   "index": 16,
+   "ground_texture": "meadow",
+   "per_m2": {
+    "grass_tuft_a": 4.2,
+    "grass_tuft_b": 2.8,
+    "grass_tall_c": 2,
+    "flower_pink": 0.21,
+    "flower_gold": 0.21,
+    "crystal_small": 0.035,
+    "crystal_cluster": 0.014,
+    "crystal_spire": 0.0028,
+    "mushroom_single": 0.6,
+    "mushroom_cluster": 0.25,
+    "rock_pebble": 0.28,
+    "rock_boulder": 0.007
+   }
+  },
+  "celestial_peaks": {
+   "index": 17,
+   "ground_texture": "biome_tile",
+   "per_m2": {
+    "grass_tuft_a": 0,
+    "grass_tuft_b": 0,
+    "grass_tall_c": 0.0,
+    "flower_pink": 0.0,
+    "flower_gold": 0.0,
+    "crystal_small": 0.0,
+    "crystal_cluster": 0.08,
+    "crystal_spire": 0.03,
+    "mushroom_single": 0.0,
+    "mushroom_cluster": 0.0,
+    "rock_pebble": 1,
+    "rock_boulder": 0.05
+   }
+  },
+  "pine_forest": {
+   "index": 18,
+   "ground_texture": "meadow",
+   "per_m2": {
+    "grass_tuft_a": 4.8,
+    "grass_tuft_b": 3.2,
+    "grass_tall_c": 2,
+    "flower_pink": 0.24,
+    "flower_gold": 0.24,
+    "crystal_small": 0.04,
+    "crystal_cluster": 0.016,
+    "crystal_spire": 0.0032,
+    "mushroom_single": 0.4,
+    "mushroom_cluster": 0.15,
+    "rock_pebble": 0.32,
+    "rock_boulder": 0.008
+   }
+  },
+  "frozen_sea": {
+   "index": 19,
+   "ground_texture": "biome_tile",
+   "per_m2": {
+    "grass_tuft_a": 0,
+    "grass_tuft_b": 0,
+    "grass_tall_c": 0.0,
+    "flower_pink": 0.0,
+    "flower_gold": 0.0,
+    "crystal_small": 0.1,
+    "crystal_cluster": 0.03,
+    "crystal_spire": 0.0,
+    "mushroom_single": 0.0,
+    "mushroom_cluster": 0.0,
+    "rock_pebble": 0.0,
+    "rock_boulder": 0.0
+   }
+  }
+ }
+}

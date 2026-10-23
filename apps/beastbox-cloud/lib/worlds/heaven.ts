@@ -2,7 +2,8 @@
 // Additive only: the cage geometry, palette and fog stay; this layers warmth and depth on top.
 type T=typeof import('three');
 export const HEAVEN=Object.freeze({flow:.62,orbit:.6,exposure:1.4,sun:0xffe0b0,halo:0xffd7a0});
-export function addHeaven(THREE:T,scene:import('three').Scene,{low}:{low:boolean}){
+export function addHeaven(THREE:T,scene:import('three').Object3D,{low,rand}:{low:boolean;rand?:()=>number}){
+  const R=rand||Math.random;// the living world passes its seeded stream; the Cage keeps its original look
   const root=new THREE.Group();root.name='heaven';scene.add(root);
   // 1) warm divine light from above (gold-white key + soft warm fill)
   const sun=new THREE.DirectionalLight(HEAVEN.sun,1.7);sun.position.set(1.5,12,2);root.add(sun);root.add(sun.target);
@@ -22,7 +23,7 @@ export function addHeaven(THREE:T,scene:import('three').Scene,{low}:{low:boolean
    fragmentShader:'varying vec2 vU;uniform float uT;void main(){float a=smoothstep(0.,.25,vU.y)*(1.-smoothstep(.92,1.,vU.y))*(.55+.45*vU.y);float r=.6+.4*sin(vU.x*37.+uT*.25)*sin(vU.x*13.-uT*.17);gl_FragColor=vec4(vec3(1.,.86,.62)*a*r*.42,1.);}'}));
   shaft.position.set(0,-.1,0);root.add(shaft);
   // 2) endless depth: slow warm motes drifting upward through the light, layered far behind the cage
-  const N=low?260:700,P=new Float32Array(N*3),S=new Float32Array(N);for(let i=0;i<N;i++){const a=Math.random()*6.283,r=Math.pow(Math.random(),.6)*(i%3===0?60:14);P.set([Math.cos(a)*r,Math.random()*16,Math.sin(a)*r],i*3);S[i]=Math.random();}
+  const N=low?260:700,P=new Float32Array(N*3),S=new Float32Array(N);for(let i=0;i<N;i++){const a=R()*6.283,r=Math.pow(R(),.6)*(i%3===0?60:14);P.set([Math.cos(a)*r,R()*16,Math.sin(a)*r],i*3);S[i]=R();}
   const mg=new THREE.BufferGeometry();mg.setAttribute('position',new THREE.BufferAttribute(P,3));mg.setAttribute('aS',new THREE.BufferAttribute(S,1));
   const motes=new THREE.Points(mg,new THREE.ShaderMaterial({transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,fog:false,uniforms:{uT:{value:0}},
    vertexShader:'attribute float aS;uniform float uT;varying float vA;void main(){vec3 p=position;p.y=mod(p.y+uT*(.08+.12*aS),16.)-.2;p.x+=sin(uT*.1+aS*20.)*.4;vec4 mv=modelViewMatrix*vec4(p,1.);vA=smoothstep(0.,2.,p.y)*(1.-smoothstep(12.,16.,p.y))*(.4+.6*aS);gl_PointSize=min(40.,(3.+5.*aS)*30./-mv.z)*smoothstep(.35,1.1,-mv.z);gl_Position=projectionMatrix*mv;}',
