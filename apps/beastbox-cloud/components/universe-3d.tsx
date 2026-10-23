@@ -80,7 +80,7 @@ export default function Universe3D({u,onSelect}:{u:any;onSelect?:(id:string|null
   return()=>{cancelAnimationFrame(raf);cv.removeEventListener('wheel',wheel);renderer.dispose();el.removeChild(cv);};
  },[]);
  return <div ref={host} data-universe-3d style={{position:'absolute',inset:0}}>
-  <div style={{position:'absolute',right:56,top:'30%',display:'flex',flexDirection:'column',gap:6,zIndex:2}}>
+  <div style={{position:'absolute',right:56,top:'calc(50% - 200px)',display:'flex',flexDirection:'column',gap:6,zIndex:2}}>
    <button type="button" aria-label="Zoom in" onClick={()=>api.current?.zoom(-0.5)} style={zbtn}>＋</button>
    <span data-zoom-stage style={{fontSize:11,color:'#d8c8ff',textAlign:'center',background:'rgba(10,6,30,.7)',borderRadius:8,padding:'3px 4px'}}>{stage}</span>
    <button type="button" aria-label="Zoom out" onClick={()=>api.current?.zoom(0.5)} style={zbtn}>－</button>
