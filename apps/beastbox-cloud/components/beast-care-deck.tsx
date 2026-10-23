@@ -1,4 +1,5 @@
 'use client';
+import Details from './details-toggle';
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -214,7 +215,7 @@ export default function BeastCareDeck({ chat = true, sprite = true }: { chat?: b
           <div className={css.bar} aria-hidden="true"><i /><b ref={marker} data-training-marker /></div>
           <p className={css.note}>Tap Train in the bright window. Six taps, 900 ms per pass. {hits} hits so far.</p>
         </div>
-        <p className={css.saved} data-care-saved={saved ? 'true' : 'false'}>{saved ? '✓ Saved on this device' : 'Local save has not been verified'} <span>· Care XP {beast?.xp || 0} · Bond {beast?.bond || 0} · Energy {Math.round(beast?.energy ?? 0)}</span></p>
+        <p className={css.saved} data-care-saved={saved ? 'true' : 'false'}>{saved ? '✓ Saved on this device' : <Details inline label="Not saved yet">Local save has not been verified</Details>} <span>· Care XP {beast?.xp || 0} · Bond {beast?.bond || 0} · Energy {Math.round(beast?.energy ?? 0)}</span></p>
         {chat ? <form onSubmit={event => void speak(event)}>
           <label htmlFor="care-talk">Tell your companion something</label><textarea id="care-talk" value={line} maxLength={400} onChange={event => setLine(event.target.value)} placeholder="A short phrase to remember…" />
           <button type="submit" disabled={!beast || busy}>Learn this phrase</button>

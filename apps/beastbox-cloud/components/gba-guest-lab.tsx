@@ -1,4 +1,5 @@
 'use client';
+import Details from './details-toggle';
 import {useEffect,useRef,useState} from 'react';
 import Link from 'next/link';
 import {ArrowLeft,ArrowRight,Download,ShieldCheck,Gamepad2,Sparkles} from 'lucide-react';
@@ -138,6 +139,6 @@ export default function GuestGbaLab(){
    <Link href="/beast-cage/talk">Try real RAWRPHØS guest chat <ArrowRight size={16}/></Link>
    <Link href="/beast-cage/turntable">Spin the actual 360° 3D model ↻</Link>
   </section>
-  <footer className={styles.footer}>CORY DAVIS // NAVISWORLD • MODEL ≠ MEMORY ≠ AUTHORITY • GBA ART ≠ LLM</footer>
+  <footer className={styles.footer}>CORY DAVIS // NAVISWORLD <Details inline>MODEL ≠ MEMORY ≠ AUTHORITY • GBA ART ≠ LLM</Details></footer>
  </main>;
 }

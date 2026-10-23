@@ -2,6 +2,7 @@
 import {useEffect,useState} from 'react';
 import styles from './zeref-diary-panel.module.css';
 import ZerefResearchCard from './zeref-research-card';
+import Details from './details-toggle';
 
 type Loop={cells_visited:number;cells_total:number;known_rifts?:number;moves_blocked:number;moves_succeeded:number;blocked_rate?:number;favorite_spot:string|null;prefs?:Record<string,number>}|null;
 type Arm={cells_visited:number;blocked:number;legal?:number};
@@ -24,6 +25,8 @@ export default function ZerefKnowledgeDiagnostics({loop,beastId}:{loop:Loop;beas
  const e=st?.eval;
  return <div className={styles.card} data-zeref-knowledge data-neural-status={st?.status||'unknown'}>
   <h3>What Zeref knows · diagnostics</h3>
+  <p className={styles.small}>A deterministic pocket learner (live) and a separate neural experiment (historical). IBM seed recorded · growth SIMULATED.</p>
+  <Details>
   <p className={styles.small}><b>Pocket learner</b> ({beastId}, deterministic rules, live): {loop?<>{loop.cells_visited}/{loop.cells_total} patches explored · {loop.known_rifts??'?'} rifts learned by bumping · {loop.moves_succeeded} moves ok / {loop.moves_blocked} blocked{loop.favorite_spot?<> · favourite: {loop.favorite_spot}</>:null}</>:'no loop data yet'}. Simple running averages over its own outcomes; this is what moves him in the habitat.</p>
   <ZerefResearchCard beastId={beastId}/>
   {st?<p className={styles.small} data-neural-accepted={String(st.accepted)}><b>Historical neural experiment</b> (RAWRPHOS, {st.qbeast_id}, Experiment {st.experiment}): {st.status}. Parent {short(st.parent_sha256)}{st.candidate_sha256?<> → candidate {short(st.candidate_sha256)}</>:null}.
@@ -32,5 +35,6 @@ export default function ZerefKnowledgeDiagnostics({loop,beastId}:{loop:Loop;beas
    {st.run_url?<> <a href={st.run_url} rel="noreferrer" target="_blank">Evidence run</a>.</>:null}</p>
    :<p className={styles.small}>{err?'Neural experiment status unavailable; nothing is shown rather than an invented result.':'Loading neural model status…'}</p>}
   {st?<p className={styles.small}>{st.identity_note} {st.honesty}</p>:null}
+  </Details>
  </div>;
 }

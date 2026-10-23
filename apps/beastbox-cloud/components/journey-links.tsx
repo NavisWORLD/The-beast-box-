@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import RoomLink from './room-link';
-import { ROOMS } from '@/lib/rooms';
+import { ROOMS, TALK_ROOM } from '@/lib/rooms';
+import TalkBeastLabel from './talk-beast-label';
 
 type Extra = { label: string; href: string };
 /**
@@ -11,9 +12,9 @@ type Extra = { label: string; href: string };
 export default function JourneyLinks({ current, skip = [], extra = [], label = 'Beast Box journey' }:
   { current?: string; skip?: string[]; extra?: Extra[]; label?: string }) {
   return <nav className="public-journey-links" aria-label={label}>
-    {ROOMS.filter(room => !skip.includes(room.key)).map(room =>
+    {(current === 'talk' ? ROOMS.flatMap(r => r.key === 'cage' ? [r, TALK_ROOM] : [r]) : ROOMS).filter(room => !skip.includes(room.key)).map(room =>
       <RoomLink key={room.key} href={room.href} prefetch={false} aria-current={room.key === current ? 'page' : undefined}>
-        <span className="journey-icon" aria-hidden="true">{room.icon}</span>{room.label}
+        <span className="journey-icon" aria-hidden="true">{room.icon}</span>{room.key === 'talk' ? <TalkBeastLabel/> : room.label}
       </RoomLink>)}
     {extra.map(item => <Link key={item.href} href={item.href} prefetch={false} className="journey-extra">{item.label}</Link>)}
   </nav>;

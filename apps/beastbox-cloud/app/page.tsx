@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Details from '@/components/details-toggle';
 import TalkBeastLabel from '../components/talk-beast-label';
 import HomepageCreature from '../components/homepage-creature';
 import HomePocket from '../components/home-pocket';
@@ -32,7 +33,7 @@ export default function Home(){
    <a href="/spark/index.html"><span className="journey-icon" aria-hidden="true">🐣</span>My Beast</a>
    <Link href="/beast-cage" prefetch={false}><span className="journey-icon" aria-hidden="true">🏰</span>Beast Cage</Link>
    <Link href="/sol-game" prefetch={false}><span className="journey-icon" aria-hidden="true">🎮</span>Lost COSMOS</Link>
-   <Link href="/beast-cage/field" prefetch={false}><span className="journey-icon" aria-hidden="true">📷</span>Open Field</Link>
+   <Link href="/beast-cage/field" prefetch={false}><span className="journey-icon" aria-hidden="true">📷</span>Lost Cosmos Field</Link>
    <Link href="/brain-bay" prefetch={false}><span className="journey-icon" aria-hidden="true">🧠</span>Brain Bay</Link>
    <Link href="/research" prefetch={false}><span className="journey-icon" aria-hidden="true">🔬</span>Lab</Link>
    <Link href="/workspace" prefetch={false}><span className="journey-icon" aria-hidden="true">🛠️</span>Workstation</Link>
@@ -57,7 +58,7 @@ export default function Home(){
   <div className="beast-landing-art" aria-label="Original cosmic habitat artwork with the galaxy companion"><div className="beast-landing-habitat"/><HomePocket/><div className="beast-landing-creature"><HomepageCreature/></div><span className="beast-landing-caption">YOUR OWN LITTLE UNIVERSE · VISUAL PREVIEW</span></div>
  </section>
 
- <section className="value-strip"><span>MODEL ≠ MEMORY</span><span>MODEL ≠ STATE</span><span>MODEL ≠ AUTHORITY</span></section>
+ <Details style={{textAlign:'center'}}><section className="value-strip"><span>MODEL ≠ MEMORY</span><span>MODEL ≠ STATE</span><span>MODEL ≠ AUTHORITY</span></section></Details>
  <section className="feature-section">
   <div><p className="eyebrow">START SIMPLE · GO DEEP WHEN YOU WANT</p><h2>There is a door<br/><em>for however you think.</em></h2></div>
   <div className="feature-grid">{P.map(x=><RoomLink key={x.title} href={x.href} className="feature-card" data-tone={P.indexOf(x)}><x.icon size={27}/><h3>{x.title}</h3><p>{x.copy}</p><span className="secondary-link">Open →</span></RoomLink>)}</div>

@@ -1,4 +1,5 @@
 'use client';
+import Details from './details-toggle';
 import {useEffect,useState} from 'react';
 import {researchEvidence,type ResearchEvidence} from '../lib/zeref/research-status.mjs';
 import styles from './zeref-research-card.module.css';
@@ -18,7 +19,8 @@ export default function ZerefResearchCard({beastId}:{beastId?:string}){
  },[]);
  const a=view?.approved;
  return <section className={styles.card} aria-label="Latest Zeref neural research" data-zeref-research data-research-status={a?'approved-research-parent':'unavailable'}>
-  <p className={styles.tag}>RAWRPHØS · RESEARCH RECEIPTS</p>
+  <p className={styles.tag}>RAWRPHØS · Research</p>
+  <Details label="Details · research receipts"><p className={styles.tag}>RAWRPHØS · RESEARCH RECEIPTS</p>
   <h3>Latest approved neural parent</h3>
   {view&&a?<>
    <p className={styles.summary}><strong>Experiment {a.experiment} · cycle {a.approved_cycle}</strong> · {a.training_steps.toLocaleString()} training steps</p>
@@ -39,5 +41,6 @@ export default function ZerefResearchCard({beastId}:{beastId?:string}){
     <p className={styles.small}>Research audit: {view.auditedAt}. Pocket rules, generated diary lines, native game saves, recorded IBM measurements and neural weights remain distinct. <a href={report} target="_blank" rel="noopener noreferrer">Full audit</a></p>
    </details>
   </>:<p className={styles.small} role="status">{failed?'Research evidence is unavailable or inconsistent. No approval is inferred.':'Loading the audited research record…'}</p>}
+  </Details>
  </section>;
 }

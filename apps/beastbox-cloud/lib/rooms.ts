@@ -7,6 +7,9 @@ export const ROOMS: readonly Room[] = [
   { key: 'cage', label: 'Beast Cage', href: '/beast-cage', icon: '🏰' },
   { key: 'game', label: 'Lost COSMOS', href: '/sol-game', icon: '🎮' },
   { key: 'brain', label: 'Brain Bay', href: '/brain-bay', icon: '🧠' },
-  { key: 'lab', label: 'Lab', href: '/research', icon: '🔬' },
+  { key: 'lab', label: 'Research Lab', href: '/research', icon: '🔬' },
   { key: 'settings', label: 'Settings', href: '/settings', icon: '⚙️' },
 ];
+
+/** Shown only on the Talk page, next to Beast Cage, so that page has the full menu with itself highlighted. */
+export const TALK_ROOM: Room = { key: 'talk', label: 'Talk to your beast', href: '/beast-cage/talk?with=beast', icon: '💬' };
