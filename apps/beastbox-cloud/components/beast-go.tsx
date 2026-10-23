@@ -330,6 +330,8 @@ export default function BeastGo() {
         <div className={css.list}>
           {QUICK.map((item) => <button key={item.id} type="button" onClick={() => { sfx('confirm'); setSheet(item.id as SheetId); }}>{item.label}</button>)}
           <button type="button" data-meta-muse-entry="menu" onClick={() => { sfx('confirm'); setSheet('metamuse'); }}>Pair with Meta Muse</button>
+          <button type="button" data-go-site-menu onClick={() => { sfx('confirm'); setSheet(null); window.dispatchEvent(new Event('beastbox:open-site-nav')); }}>Site menu</button>
+          <button type="button" data-go-talk onClick={(e) => { sfx('confirm'); setSheet(null); window.dispatchEvent(new CustomEvent('beastbox:open-chat', { detail: { opener: e.currentTarget } })); }}>Talk</button>
         </div>
       </> : null}
       {sheet === 'bag' ? <>
