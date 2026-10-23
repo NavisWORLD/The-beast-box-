@@ -12,7 +12,8 @@ export function useTalkTarget(){
  // null = the guest never chose. Explicit choices are stored and always win.
  const [target,setTarget]=useState<TalkTarget|null>(null);
  useEffect(()=>{const sync=()=>{const v=read(TARGET_KEY);setTarget(v==='zeref'||v==='companion'?v:null);};sync();window.addEventListener(EVT,sync);window.addEventListener('storage',sync);return()=>{window.removeEventListener(EVT,sync);window.removeEventListener('storage',sync);};},[]);
- const choose=(t:TalkTarget)=>{write(TARGET_KEY,t);setTarget(t);window.dispatchEvent(new Event(EVT));};
+ // persist=false: a deep link (?with=zeref) picks Zeref on that page only, so other pages still say 'Talk to {beast}'.
+ const choose=(t:TalkTarget,persist=true)=>{if(!persist){setTarget(t);return;}write(TARGET_KEY,t);setTarget(t);window.dispatchEvent(new Event(EVT));};
  return [target,choose] as const;
 }
 
