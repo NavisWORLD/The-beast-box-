@@ -31,7 +31,7 @@ export function useTalkPersona(beast:any,profile:any){
  const zeref=useMemo(()=>talkPersona({}),[]);
  // Unchosen default: a guest's own saved Spark Beast (it has their memory) talks to them;
  // a passing Beast Cage creature never impersonates the chat. Otherwise it is Zeref (bb-deada969).
- const effective:TalkTarget=target??(companion?'companion':'zeref');
+ const effective:TalkTarget=target??(companion?.source==='spark'?'companion':'zeref');
  const persona=effective==='zeref'||!companion?zeref:companion;
  return {persona,companion,zeref,target:companion?effective:'zeref' as TalkTarget,choose};
 }
