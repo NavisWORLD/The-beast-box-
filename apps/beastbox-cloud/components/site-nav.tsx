@@ -1,6 +1,7 @@
 'use client';
 import {useEffect,useState} from 'react';
 import {usePathname} from 'next/navigation';
+import {activeBeastName as activeBeastNameFromStore} from '@/lib/companion/beast-name.mjs';
 import {SITE_NAV,activeBeastName,navLabel} from '@/lib/site-nav';
 import s from './site-nav.module.css';
 /** The one site menu: a slim top bar (+ a floating ☰ once scrolled) opening a grouped bottom sheet (phone) / side panel (desktop). */
@@ -11,7 +12,7 @@ export default function SiteNav(){
  useEffect(()=>{if(!open)return;const k=(e:KeyboardEvent)=>{if(e.key==='Escape')setOpen(false);};window.addEventListener('keydown',k);return()=>window.removeEventListener('keydown',k);},[open]);
  const cur=(h:string)=>h===path;
  const [beastName,setBeastName]=useState<string|null>(null);
- useEffect(()=>{if(open){try{setBeastName(activeBeastName(localStorage.getItem('beastbox-active-creature-v1')));}catch{}}},[open]);
+ useEffect(()=>{if(open){try{setBeastName(activeBeastNameFromStore(localStorage).name);}catch{}}},[open]);
  const toggle=()=>setOpen(o=>!o);
  return <>
   <div className={s.bar} data-site-nav-bar><a href="/" className={s.brand}>✦ BEAST BOX</a><button type="button" className={s.barBtn} data-site-nav-toggle aria-expanded={open} aria-controls="site-nav-sheet" onClick={toggle}><span aria-hidden>☰</span> Menu</button></div>

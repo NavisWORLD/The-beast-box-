@@ -3,6 +3,7 @@
  * and emulator heartbeat live on this object. Views only read it.
  */
 
+import { beastDisplayName } from "./beast-name.mjs";
 import { createMind, importMind, isKidSafe, observeText, replyFromMind } from "./learn.mjs";
 import {recordCreatureExperience as recordBehaviorFeedback,validateBehavior} from "./behavior.mjs";
 
@@ -124,7 +125,7 @@ export function applyGameReturn(session, payload) {
 
 export function shownName(beast) {
   if (!beast) return "Beast";
-  return beast.displayName || beast.genome?.names?.[String(beast.stage)] || beast.genome?.names?.[beast.stage] || "Beast";
+  return beastDisplayName(beast) || "Beast";
 }
 
 export function adoptBeast(session, genome, displayName = "") {

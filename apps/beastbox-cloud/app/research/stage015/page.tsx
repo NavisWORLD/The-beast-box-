@@ -36,7 +36,7 @@ export default function Stage015Research() {
       <p className={styles.lead}>Real experiments. Public receipts. Both the positive engineering milestone and the negative scientific result.</p>
       <p className={styles.byline}>CORY DAVIS / NAVISWORLD · COSMOS / RAWRPHØS / COSMIC SYNAPSE THEORY</p>
       <div className={styles.actions}>
-        <a className={styles.primary} href={repo + '/pull/125'} target="_blank" rel="noopener noreferrer">Open the research PR <ArrowUpRight size={17} aria-hidden="true"/></a>
+        <a className={styles.primary} href={repo + '/pull/125'} target="_blank" rel="noopener noreferrer">Read how it works <ArrowUpRight size={17} aria-hidden="true"/></a>
         <a className={styles.secondary} href={repo + '/blob/cd5d9321cb30f5327d14bbdd3f71751b630d81a3/docs/COSMOS_STAGE015_VERIFIED_RESULTS_AND_LIMITATIONS.md'} target="_blank" rel="noopener noreferrer">Technical report <ArrowUpRight size={15} aria-hidden="true"/></a>
       </div>
     </section>

@@ -142,9 +142,9 @@ function BeastTalkContent({onState,compact=false,title,gameBridge}:PanelProps){
  const modelName=route==='local-ollama'?prefs.ollamaModel:route==='hf-byok'?prefs.hfModel:info.model;
  const connection=busy?{tone:'busy',text:'Asking the model…'}
   :offline?{tone:'off',text:'Model offline · '+offline.error}
-  :verifiedAt?{tone:'on',text:'Connected · real reply verified '+time(verifiedAt)}
+  :verifiedAt?{tone:'on',text:`${persona.name}'s reply · came from the real model `+time(verifiedAt)}
   :route==='guest-rawrphos'&&guestConfigured===false?{tone:'off',text:'Model offline · the free guest host is not configured on this site'}
-  :route==='guest-rawrphos'&&guestConfigured===true?{tone:'ready',text:'Ready · free host configured (each reply is verified)'}
+  :route==='guest-rawrphos'&&guestConfigured===true?{tone:'ready',text:'Ready · free host configured (every reply is checked to come from the real model)'}
   :route==='guest-rawrphos'?{tone:'ready',text:'Checking the free host…'}
   :route==='hf-byok'&&!hfKey?{tone:'off',text:'Needs your Hugging Face token'}
   :{tone:'ready',text:'Ready to try · runs on your side'};

@@ -1,4 +1,5 @@
 'use client';
+import {useActiveBeastName} from '@/components/use-active-beast-name';
 
 import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react';
 import { createPortal } from 'react-dom';
@@ -34,8 +35,9 @@ export default function CosmicSupportWidget() {
   const { audio, state: audioState } = useBeastAudio();
   // Read existing identity only. Support never writes, adopts or evolves a Beast.
   const { profile } = useCompanion();
+  const activeName = useActiveBeastName();
   const { ready, session } = useBeastSession();
-  const name = ready && session?.beast ? shownName(session.beast) : profile?.name;
+  const name = ready && session?.beast ? shownName(session.beast) : (activeName || profile?.name);
   const audible = soundOn && !audioState.sparkMuted;
 
   useEffect(() => {

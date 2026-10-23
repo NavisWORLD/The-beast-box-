@@ -1,4 +1,5 @@
 'use client';
+import {useActiveBeastName} from '@/components/use-active-beast-name';
 import {useUniverseMotion} from './use-universe-motion';
 import {useCallback,useEffect,useMemo,useRef,useState} from 'react';
 import {Hand,Music,Volume2,VolumeX,Zap} from 'lucide-react';
@@ -55,7 +56,8 @@ export default function SparkBeastArena({profile,fallbackLook='nebula',state='id
  const core=genome&&session?.beast&&genome.seed===session.beast.seed?session.beast.behavior:null;
  const canonicalSaved=preferSavedBeast&&!!session?.beast?.qbeast;
  const guide=rig&&!profile&&!canonicalSaved;
- const name=core?shownName(session.beast):guide?'Zeref':genome?.names?.[2]||genome?.names?.[1]||profile?.name||'Spark Beast';
+ const activeName=useActiveBeastName();
+ const name=core?shownName(session.beast):guide?'Zeref':activeName||genome?.names?.[2]||genome?.names?.[1]||profile?.name||'Spark Beast';
  // DIMENSIONAL POCKET: seeded places (moon pools, crystals, portals) the rig explores on its own.
  // A saved Beast with a live behavior core keeps that core's authoritative position instead.
  const journalId=canonicalSaved?session.beast.qbeast.profile.id:guide?ZEREF_PROFILE.id:(profile?.id||'preview');

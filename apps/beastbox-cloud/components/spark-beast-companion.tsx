@@ -1,4 +1,5 @@
 'use client';
+import {useActiveBeastName} from '@/components/use-active-beast-name';
 import {useUniverseMotion} from './use-universe-motion';
 import {useCallback,useEffect,useMemo,useRef,useState} from 'react';
 import {getBeastAudio} from '../lib/companion/beast-audio-engine.mjs';
@@ -13,6 +14,7 @@ import {useBeastSession} from './beast-session';
 import {loadSparkRuns} from '../public/spark/runs.mjs';
 import SparkRig,{type RigDriver} from './spark-rig';
 import {ZEREF_PROFILE,ZEREF_RECORDED_SOURCE} from '../lib/zeref/zeref-mind.mjs';
+import {shownName} from '../lib/companion/session.mjs';
 
 type VisualState='idle'|'listening'|'thinking'|'remembering'|'observing'|'sleeping'|'celebrating'|'halted';
 type Run={
@@ -236,7 +238,8 @@ export default function SparkBeastCompanion({
   return()=>window.removeEventListener('beastbox:spark-chirp',onChirp);
  },[audioChannel,intensity,speak]);
 
- const name=sameSpark?.displayName||gen?.names?.[stage]||active.name;
+ const activeName=useActiveBeastName();
+ const name=(sameSpark?shownName(sameSpark):null)||gen?.names?.[stage]||activeName||active.name;
  // Rig mode with no chosen Beast: the site guide Zeref lives in the habitat (same rule as the home page).
  const guide=rig&&!profile&&!sameSpark;
  // Publish the Beast genome for the 3D pocket (plush creature). Guide/compact views never publish.

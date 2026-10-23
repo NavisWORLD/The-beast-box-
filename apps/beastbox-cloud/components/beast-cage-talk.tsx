@@ -1,4 +1,5 @@
 'use client';
+import {useTalkPersona} from './use-talk-target';
 import {useCallback,useEffect,useState} from 'react';
 import Link from 'next/link';
 import CosmicCompanion3D,{type CreatureState} from './cosmic-companion-3d';
@@ -20,6 +21,13 @@ export default function BeastCageTalk(){
  const {profile}=useCompanion();
  const {session}=useBeastSession();
  const zeref=!session?.beast&&!profile;
+ const {persona,companion,choose}=useTalkPersona(session?.beast||null,profile);
+ const [askedBeast,setAskedBeast]=useState(false);
+ useEffect(()=>{try{setAskedBeast(new URLSearchParams(location.search).get('with')==='beast');}catch{}},[]);
+ // Menu deep links: 'Talk to Zeref' -> ?with=zeref (bb-deada969, rawrphos-local); 'Talk to {beast}' -> ?with=beast.
+ useEffect(()=>{try{const w=new URLSearchParams(location.search).get('with');if(w==='zeref')choose('zeref');else if(w==='beast')choose('companion');}catch{}},[]);// eslint-disable-line react-hooks/exhaustive-deps
+ const talkingToZeref=persona.source==='zeref';
+ useEffect(()=>{document.title=`Talk to ${persona.name} · BEAST BOX`;},[persona.name]);
  const savedId=session?.beast?.qbeast?.profile?.id||'';
  const canSolid=zeref||savedId===SAVED_ZEREF_ID||savedId===MOONWRAITH_DISPLAY_ID;
  const [solid,setSolid]=useState(false);
@@ -32,7 +40,9 @@ export default function BeastCageTalk(){
  return <div className={styles.shell}>
   <section className={styles.hero} aria-labelledby="talk-title">
    <span className={styles.eyebrow}>BEAST BOX // REAL MODEL CONVERSATION</span>
-   <h1 id="talk-title">Talk to <em>your Beast.</em></h1>
+   <h1 id="talk-title" data-talk-with={talkingToZeref?'zeref':'beast'}>Talk to <em>{persona.name}.</em></h1>
+   {askedBeast&&!companion?<p data-talk-no-beast>You haven’t met your own beast yet, so Zeref is answering. <Link href="/beast-cage">Find your beast in the Cage</Link>.</p>:null}
+   {talkingToZeref?<p data-talk-subtitle>He's still learning to speak. Some replies come out strange.</p>:null}
    <p>Your Beast keeps its own name, personality and memories. Pick a brain to give it a voice: the free RAWRPHØS guest model, a model on your own computer, or your own key. Every reply comes from that model, and if it is offline you will see that instead of a made-up answer.</p>
   </section>
   <div className={styles.main}>

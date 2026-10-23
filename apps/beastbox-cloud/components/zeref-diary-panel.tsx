@@ -1,4 +1,6 @@
 'use client';
+import {publicDiaryEntries,diarySourceLabel} from '../lib/zeref/diary-privacy.mjs';
+import {fillBeast} from '../lib/companion/beast-name.mjs';
 import {RAWRPHOS_PUBLIC_PIN} from '../lib/companion/brain.mjs';
 import {useEffect,useState} from 'react';
 import {readJournal,type Journal} from '../lib/zeref/pocket-journal';
@@ -46,7 +48,8 @@ export default function ZerefDiaryPanel({journalId,beastName,cosmosProfile=null,
  const stage=diary?.stage||1,xp=diary?.xp||0;
  const lo=STAGE_XP[stage-1]||0,hi=diary?.next_stage?.xp||lo;
  const pct=hi>lo?Math.round((xp-lo)/(hi-lo)*100):100;
- const latest=diary?.recent?.[0];
+ const shown=publicDiaryEntries(diary?.recent);
+ const latest=shown[0];
  return <section className={styles.panel} id="zeref-diary" aria-labelledby="zeref-diary-title" data-zeref-diary data-diary-ok={diary?.ok?'true':'false'} data-diary-tick={diary?.tick??0}>
   <div className={styles.head}>
    <p className={styles.tag}>✦ MAINFRAME MEMORY · DIMENSIONAL POCKET</p>
@@ -64,9 +67,9 @@ export default function ZerefDiaryPanel({journalId,beastName,cosmosProfile=null,
     <p className={styles.small}>Size and aura in the habitat grow with the stage.</p>
    </div>
    <div className={styles.card}>
-    <h3>Latest thought</h3>
+    <h3 data-diary-latest>{fillBeast('Something {beast} said:','Zeref')/* this diary is Zeref's own (/api/zeref/diary), so the speaker is Zeref, not the active beast */}</h3>
     {latest?<><blockquote className={styles.thought}>“{latest.thought.text}”</blockquote>
-     <p className={styles.small}>Tick {latest.tick} · {when(latest.at)} · mood {latest.mood}{latest.place?` · ${latest.place}`:''}<br/>Line by: {latest.thought.by==='deterministic-template'?'deterministic template (no model)':latest.thought.by}
+     <p className={styles.small} data-diary-context>Said {when(latest.at)} · source: {diarySourceLabel(latest.thought.by)} · tick {latest.tick} · mood {latest.mood}{latest.place?` · ${latest.place}`:''}<br/>Line by: {latest.thought.by==='deterministic-template'?'deterministic template (no model)':latest.thought.by}
      <br/><span data-diary-step-note>Chat pin: RAWRPHØS step {RAWRPHOS_PUBLIC_PIN.step}. {(()=>{const m=/step-(\d+)/.exec(latest.thought.by||'');return m?(Number(m[1])===RAWRPHOS_PUBLIC_PIN.step?'This diary line came from the same step as chat.':`This diary line came from step ${m[1]}, written before the chat pin moved to ${RAWRPHOS_PUBLIC_PIN.step}; past entries are hash-chained and never rewritten.`):'This line used no model, because the verified step-'+RAWRPHOS_PUBLIC_PIN.step+' host did not answer the diary loop; the loop only ever accepts lines from the current chat pin.';})()}</span></p>
      <p className={styles.badges}><span className={styles.badgeBirth} data-birth-spark="ibm-recorded">✦ birth spark: IBM recorded</span><GrowthBadge g={latest.growth_source}/></p>
      {latest.growth_source?.kind==='rigetti-qvm-simulated'?<p className={styles.small}>Job {latest.growth_source.job_id} · {latest.growth_source.shots} shots · counts {Object.entries(latest.growth_source.counts||{}).map(([k,v])=>`${k}:${v}`).join(' ')}</p>
@@ -83,7 +86,7 @@ export default function ZerefDiaryPanel({journalId,beastName,cosmosProfile=null,
    <ZerefKnowledgeDiagnostics beastId={journalId} loop={journalId==='bb-7f9c2a03'?diary?.learning||null:null}/>
    {showGrow?<GrowInCosmos profile={cosmosProfile}/>:null}
   </div>
-  {diary?.recent?.length?<ol className={styles.entries} aria-label="Recent diary entries">{diary.recent.slice(0,6).map(e=><li key={e.hash}>
+  {shown.length?<ol className={styles.entries} aria-label="Recent diary entries">{shown.slice(0,6).map(e=><li key={e.hash}>
    <span className={styles.when}>#{e.tick} · {when(e.at)}</span>
    <span>{e.thought.text}</span>
    <small><GrowthBadge g={e.growth_source}/> {e.mood}{e.place?` · ${e.place}`:''} · +{e.xp_gain} XP{e.new_combo_count?` · ${e.new_combo_count} new combo${e.new_combo_count>1?'s':''}`:''}{e.grew?` · grew to ${e.stage_name}!`:''}{(e as any).learning?` · ${(e as any).learning.new_cells} new patch${(e as any).learning.new_cells===1?'':'es'}, ${(e as any).learning.moves_blocked} blocked`:''}</small>

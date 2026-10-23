@@ -64,7 +64,7 @@ with sync_playwright() as p:
     unauth.get_by_role("button",name="SETTINGS").click()
     unauth.get_by_text("Connect your universe").wait_for(timeout=10000)
     assert unauth.get_by_role("button",name="Hugging Face").count()==1
-    assert unauth.get_by_role("button",name="Azure Blob Storage").count()==1
+    assert unauth.get_by_role("button",name="Cloud save").count()==1
     assert unauth.get_by_role("button",name="IBM watsonx.ai").count()==1
     assert unauth.get_by_role("button",name="Ollama Cloud").count()==1
     assert_form_landmarks(unauth,"desktop settings")
