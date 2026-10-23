@@ -5,6 +5,7 @@ import {grow} from '@/lib/universe/tiny-universe.mjs';
 import {biomeOf,BIOMES,starClass,lifeStage,entangledPairs,homeOf,hearthOf,zerefStar,planetFrame,starFrame,lifeFrame,stormFrame,threadFrame,hearthFrame,GENESIS_LABEL,GROWTH_LABEL,ZEREF_LINES} from '@/lib/universe/tiny-universe-view.mjs';
 import s from './tiny-universe-view.module.css';
 import Universe3D from './universe-3d';
+import {createAliveGate} from '@/lib/universe/alive-props.mjs';
 import {isSoftwareGL} from '@/lib/three/soft-gl';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type U=any;
@@ -18,7 +19,7 @@ function tinted(sheet:string,key:string,hue:number,mode:GlobalCompositeOperation
 function rand(seed:string){let h=0;for(const c of seed)h=(h*31+c.charCodeAt(0))>>>0;return()=>{h=(h*1664525+1013904223)>>>0;return h/2**32;};}
 export default function TinyUniverseView(){
  const cv=useRef<HTMLCanvasElement>(null);const uRef=useRef<U>(null);const g0=useRef<U>(null);const pos=useRef<Map<string,{x:number,y:number,r:number}>>(new Map());
- const [u,setU]=useState<U>(null);const [run,setRun]=useState(true);const [sel,setSel]=useState<string|null>(null);const [line,setLine]=useState('');const [err,setErr]=useState('');
+ const [u,setU]=useState<U>(null);const [run,setRun]=useState(true);const [sel,setSel]=useState<string|null>(null);const [line,setLine]=useState('');const aliveGate=useRef(createAliveGate());const [err,setErr]=useState('');
  const [three,setThree]=useState(false);useEffect(()=>{setThree(!isSoftwareGL());},[]);
  useEffect(()=>{fetch('/universe/atlas.json').then(r=>r.json()).then((a:Atlas)=>{SPR.atlas=a;for(const[k,v]of Object.entries(a.sheets)){const im=new Image();im.decoding='async';if(v.fallback){const fb=v.fallback;im.onerror=()=>{im.onerror=null;im.src=fb;};}im.src=v.image;SPR.img[k]=im;}}).catch(()=>{});},[]);
  useEffect(()=>{fetch('/universe/tiny-universe-genesis.json').then(r=>r.json()).then(j=>{g0.current=j;uRef.current=j;setU(j);}).catch(e=>setErr(String(e)));},[]);
@@ -62,7 +63,7 @@ export default function TinyUniverseView(){
  const last=u?.history?.[u.history.length-1];
  return <main className={s.wrap} data-tiny-universe>
   <canvas ref={cv} className={s.canvas} onPointerDown={tap} aria-label="Tiny Universe map" style={three?{visibility:'hidden'}:undefined}/>
-  {three&&u?<Universe3D u={u} onSelect={setSel}/>:null}
+  {three&&u?<Universe3D u={u} onSelect={setSel} onAlive={k=>{const f=aliveGate.current.fire(k,String(u.seed||'tiny'),performance.now()/1000);if(f)setLine(f.line);}}/>:null}
   <div className={s.hud}><div className={s.title}>✦ TINY UNIVERSE</div><span className={s.tag} data-genesis-label>{GENESIS_LABEL}</span><span className={`${s.tag} ${s.sim}`} data-growth-label>{GROWTH_LABEL}</span></div>
   <div className={s.bottom}>
    {info?<div className={s.card}>{info}</div>:null}

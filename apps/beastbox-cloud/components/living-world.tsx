@@ -37,6 +37,7 @@ import {LW_LABELS,gatheringPoints,spreadAngle,initialTraits,driftTraits,lattice1
 import {ARTIST_RESIDENTS} from '@/lib/companion/artist-residents.mjs';
 import {cosmicEvents,cosmicLine,createWindow,stepWindow,windowLine,seededMood,spreadMood,napGroup,buildKind,advanceBuild,coexistLine,worldLine,learnBiome,worldRecord,toJsonl,windowEmissive,traitIcon,MOOD_ICON,ZEREF_ID} from '@/lib/universe/living-alive.mjs';
 import {addCageSurface} from '@/lib/universe/surface-three';
+import {createAliveGate} from '@/lib/universe/alive-props.mjs';
 import {zoomBlend,zoomDistance,stepZoom,clampAboveGround,isMeadow} from '@/lib/universe/groundcover.mjs';
 import {addHeaven} from '@/lib/worlds/heaven';
 import {buildPlush,type PlushGenome} from './creature-plush-3d';
@@ -72,7 +73,7 @@ export default function LivingWorld({genome,beastKey,beastName,onClose,embedded=
    const renderer=new THREE.WebGLRenderer({canvas,antialias:!phone,powerPreference:'high-performance'});
    renderer.setPixelRatio(Math.min(devicePixelRatio||1,phone?2:2));renderer.outputColorSpace=THREE.SRGBColorSpace;
    const scene=new THREE.Scene();scene.background=new THREE.Color(0x05030f);
-   const camera=new THREE.PerspectiveCamera(55,1,.05,400);
+   const aliveGate=createAliveGate();const camera=new THREE.PerspectiveCamera(55,1,.05,400);
    const L=new THREE.TextureLoader();const tex=(f:string,rep=false)=>{const t=L.load(ART+f);t.colorSpace=THREE.SRGBColorSpace;if(rep){t.wrapS=t.wrapT=THREE.RepeatWrapping;}return t;};
    const hemi=new THREE.HemisphereLight(0xb9a8ff,0x223322,1.1);scene.add(hemi);const sun=new THREE.DirectionalLight(0xfff1dd,1.6);sun.position.set(20,14,10);scene.add(sun);scene.add(sun.target);
    // a real sun: day/night from the wall clock (approach from Genesis X env sim: light = max(.1, h*.8+.2), ambient = max(.1, h*.3+.1))
@@ -534,7 +535,8 @@ uniform vec3 uPlay[8];
      camPos.lerp(want,Math.min(1,dt*(sp?4:2.5)));camPos.setLength(clampAboveGround(camPos.length(),ground0,0));
      const tgt=cT.clone().lerp(cN.clone().multiplyScalar(PR*.15),zb.orbit);camLook.lerp(tgt,Math.min(1,dt*4));
      camera.position.copy(camPos);camera.up.copy(cN).lerp(new THREE.Vector3(0,1,0),zb.orbit).normalize();camera.lookAt(camLook);}
-    surface?.update(t);heaven.update(t);heaven.root.visible=zC<.55&&cN.dot(sunDir)>-.08;heaven.root.position.copy(cN).multiplyScalar(PR+hAt(cN));heaven.root.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),cN);
+    // Alive props: real events only (a breath peak in view, a creature entering a crystal's 3 m, flowers visibly turning) -> one of Emeth's lines, picked by seed.
+    {const evs=surface?.update(t,{sunDir,creatures:[bN,...residents.map((r:any)=>r.n)],cam:camera.position})||[];for(const k of evs){const f=aliveGate.fire(k,String(u.seed),t);if(f){lineRef.current(f.line);break;}}}heaven.update(t);heaven.root.visible=zC<.55&&cN.dot(sunDir)>-.08;heaven.root.position.copy(cN).multiplyScalar(PR+hAt(cN));heaven.root.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),cN);
     beastLamp.position.copy(beastNode.position).addScaledVector(bN,TRAV_H*1.4);beastLamp.intensity=(1-zb.orbit)*7;
     {const night=1-THREE.MathUtils.smoothstep(cN.dot(sunDir),-.12,.35);const dusk=Math.max(0,1-Math.abs(cN.dot(sunDir))/.18)*.7;
      mech?.update(t,dt,{focus:cN.clone().multiplyScalar(PR+hAt(cN)),up:cN,camPos:camera.position,rain:(window as any).__lwWeatherForce?.rain??weather.rain,cloud:(window as any).__lwWeatherForce?.cloud??weather.cloud,wind:weather.wind,night,dusk,ground3:zC<.6,

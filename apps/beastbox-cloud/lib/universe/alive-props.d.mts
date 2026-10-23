@@ -1,0 +1,17 @@
+export const ALIVE_PROPS:Readonly<Record<string,{kind:'rock'|'crystal'|'mushroom'|'flower';period:number}>>;
+export const LIFE_DEFAULT:Readonly<Record<string,number>>;
+export const CRYSTAL_RADIUS_M:number;export const SUN_LIMIT_RAD:number;
+export function aliveInstances(seed:string,asset:string,n:number):{phase:Float32Array;life:Float32Array;jitter:Float32Array;kind:string;period:number}|null;
+export function breathe(t:number,period:number,phase:number):number;
+export function crossedPeak(t0:number,t1:number,period:number,phase:number):boolean;
+export function nearness(p:number[],creatures:number[][],radius:number):number;
+export function sunFacing(sunLocal:number[],jit:ArrayLike<number>):number[];
+export function easeFacing(cur:number[],target:number[],dt:number):number[];
+export function angleBetween(a:number[],b:number[]):number;
+export const ALIVE_EVENTS:readonly string[];
+export function aliveLine(kind:string,seed:string,key:string|number):string|null;
+export function createAliveGate(o?:{perKind?:number;global?:number}):{fire(kind:string,seed:string,now:number):{kind:string;line:string;n:number}|null};
+export function threadFade(d:number):number;
+export function threadBrightness(entry:any,nowMs:number):{b:number;why:string};
+export function creatureHome(seed:string,id:string,planets:{id:string}[]):string|null;
+export function threadBend(seed:string,id:string):number[];
