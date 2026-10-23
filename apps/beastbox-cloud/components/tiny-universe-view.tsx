@@ -54,7 +54,7 @@ export default function TinyUniverseView(){
   raf=requestAnimationFrame(draw);return()=>cancelAnimationFrame(raf);},[sel]);
  const tap=useCallback((e:React.PointerEvent<HTMLCanvasElement>)=>{const b=e.currentTarget.getBoundingClientRect();const x=e.clientX-b.left,y=e.clientY-b.top;let best:string|null=null,bd=28;for(const[id,p]of pos.current){const d=Math.hypot(p.x-x,p.y-y);if(d<Math.max(bd,p.r+6)&&d<bd+p.r){best=id;bd=d;}}setSel(best);},[]);
  const info=(()=>{if(!u||!sel)return null;const st=u.stars.find((x:any)=>x.id===sel);if(st)return <><b>{starClass(st)}</b> · {st.id}<br/>{st.mass_solar} M☉ · {st.temperature_k} K · age {st.age} ticks</>;
-  const pl=u.planets.find((x:any)=>x.id===sel);if(!pl)return null;const L=u.life.find((l:any)=>l.planet===pl.id);const name=pl.id===hearthOf(u)?'Hearth (placeholder name — Cory can rename)':pl.id;
+  const pl=u.planets.find((x:any)=>x.id===sel);if(!pl)return null;const L=u.life.find((l:any)=>l.planet===pl.id);const name=pl.id===hearthOf(u)?'Hearth':pl.id;
   return <><b>{BIOMES[biomeOf(pl) as keyof typeof BIOMES]}</b> · {name}{pl.id===homeOf(u)?' · Beast Box home cage':''}<br/>{pl.temperature_k} K · water {pl.water} · habitability {pl.habitability}<br/>{L?`Life: ${lifeStage(L)} (complexity ${L.complexity_norm??L.complexity}, diversity ${L.diversity}${L.scars?`, ${L.scars} storm scars`:''})`:'No life yet. Just waiting.'}{u.pairs?.find((q:any)=>q.a===pl.id||q.b===pl.id)?(()=>{const q=u.pairs.find((q:any)=>q.a===pl.id||q.b===pl.id);return ` · entangled with ${q.a===pl.id?q.b:q.a} (hardware E ${q.E}${q.sim_E!=null?`, SIMULATED tick E ${q.sim_E}`:''})`;})():''}{u.storms.some((x:any)=>x.planet===pl.id)?' · ⚡ storm':''}</>;})();
  const last=u?.history?.[u.history.length-1];
  return <main className={s.wrap} data-tiny-universe>
@@ -63,9 +63,9 @@ export default function TinyUniverseView(){
   <div className={s.bottom}>
    {info?<div className={s.card}>{info}</div>:null}
    <div className={s.zeref} aria-live="polite">{line}</div>
-<span className={s.stat}>{err?`Couldn’t load genesis: ${err}`:u?`tick ${u.tick} · ${u.stars.length} stars · ${u.planets.length} planets · ${u.storms.length} storms · ${u.life.length} life worlds${last?` · sim E ${last.sim_E}`:` · IBM E ${u.entanglement_E}`}`:'loading…'}</span>
-   <span className={s.stat} data-credit-line>Threads SIMULATED · art Cosmo · Hearth* placeholder</span>
-   <div className={s.row}><button className={s.btn} onClick={()=>setRun(v=>!v)}>{run?'⏸ Pause':'▶ Grow'}</button><button className={s.btn} onClick={()=>{if(g0.current){uRef.current=g0.current;setU(g0.current);setLine('');}}}>↺ Genesis</button>
+{err||!u?<span className={s.stat}>{err?`Couldn’t load genesis: ${err}`:'loading…'}</span>:<details className={s.stat} data-universe-details><summary>Details</summary>{u?`tick ${u.tick} · ${u.stars.length} stars · ${u.planets.length} planets · ${u.storms.length} storms · ${u.life.length} life worlds${last?` · sim E ${last.sim_E}`:` · IBM E ${u.entanglement_E}`}`:null}</details>}
+   <span className={s.stat} data-credit-line>Threads SIMULATED · Hearth</span>
+   <div className={s.row}><a className={s.btn} href="/beast-cage/world" data-spawn-in>✦ Spawn in</a><button className={s.btn} onClick={()=>setRun(v=>!v)}>{run?'⏸ Pause':'▶ Grow'}</button><button className={s.btn} onClick={()=>{if(g0.current){uRef.current=g0.current;setU(g0.current);setLine('');}}}>↺ Genesis</button>
 </div>
   </div></main>;
 }

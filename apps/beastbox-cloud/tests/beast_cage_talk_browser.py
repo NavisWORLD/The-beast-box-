@@ -17,7 +17,7 @@ with sync_playwright() as p:
   page.on("request",lambda req:sent.append(req.url) if "/api/guest" in req.url else None)
   response=page.goto(ROOT+"/beast-cage/talk",wait_until="domcontentloaded",timeout=45000)
   assert response and response.status==200
-  expect(page.get_by_role("heading",name="Talk to your Beast.")).to_be_visible()
+  expect(page.get_by_role("heading",name=re.compile(r"^Talk to .+\.$"))).to_be_visible()
   # The shared composer is deliberately hidden until the visitor opens it.
   page.locator('button[data-critical-control][aria-controls="beast-chat-overlay"]').click()
   overlay=page.locator('[data-companion-chat-overlay]')
@@ -38,7 +38,7 @@ with sync_playwright() as p:
   context.close()
  reduced=browser.new_context(viewport={"width":390,"height":844},reduced_motion="reduce")
  page=reduced.new_page();page.goto(ROOT+"/beast-cage/talk",wait_until="domcontentloaded")
- expect(page.get_by_role("heading",name="Talk to your Beast.")).to_be_visible()
+ expect(page.get_by_role("heading",name=re.compile(r"^Talk to .+\.$"))).to_be_visible()
  page.screenshot(path=str(OUT/"talk-reduced-motion.png"),full_page=True)
  reduced.close();browser.close()
 print("REAL_SIDEQUEST_BROWSER_PASS UI footage recorded without fabricating model responses")

@@ -1,4 +1,5 @@
 'use client';
+import {useActiveBeastName} from '@/components/use-active-beast-name';
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { care, goTo, PLACES, placeById, rememberExchange, talkAndGrow } from '../lib/companion/adventure.mjs';
@@ -28,6 +29,7 @@ const GAME_KEYS = new Set(['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'z
 
 export default function BeastGo() {
   const { profile, selectProfile } = useCompanion();
+  const activeName = useActiveBeastName();
   const { ready, session, trail, sensorLog, change, setTrail } = useBeastSession();
   const [sheet, setSheet] = useState<SheetId>(null);
   const [touch, setTouch] = useState(false);
@@ -301,7 +303,7 @@ export default function BeastGo() {
       </span>
       <button type="button" className={css.identity} onClick={() => toggle('beasts')}>
         <span className={css.meta}>
-          <strong>{ready ? (beast?.genome?.seed ? shownName(beast) : (profile?.name || 'Pick a creature')) : 'Loading save'}</strong>
+          <strong>{ready ? (beast?.genome?.seed ? shownName(beast) : (activeName || profile?.name || 'Pick a creature')) : 'Loading save'}</strong>
           <span>Lv {card.stage} · {card.mood}</span>
           <span className={css.xp} role="meter" aria-label={`Experience ${card.xp}`} aria-valuemin={0} aria-valuemax={card.goal || card.xp || 1} aria-valuenow={card.xp}><i style={{ width: `${Math.round(card.ratio * 100)}%` }} /></span>
         </span>

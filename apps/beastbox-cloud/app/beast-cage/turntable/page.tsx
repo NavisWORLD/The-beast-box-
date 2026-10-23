@@ -1,4 +1,5 @@
 'use client';
+import {useActiveBeastName} from '@/components/use-active-beast-name';
 import {useEffect,useState} from 'react';
 import Link from 'next/link';
 import JourneyLinks from '@/components/journey-links';
@@ -19,7 +20,7 @@ type Subject='workshop'|'moonwraith'|'dragonling';
 const MOODS:ZerefMood[]=['calm','happy','curious','scared','sleepy','angry','walk'];
 const heartRun=heartSound.runs[0];
 export default function CreatureTurntable(){
- const {profile}=useCompanion();
+ const {profile}=useCompanion();const activeName=useActiveBeastName();
  const [look,setLook]=useState<CreatureLook>(profile?.baseLook??'nebula');
  const [spin,setSpin]=useState(true),[angle,setAngle]=useState<number>(0);
  const [showProcess,setShowProcess]=useState(false);
@@ -46,7 +47,7 @@ export default function CreatureTurntable(){
   <div className="room-strip"><JourneyLinks current="cage" label="Beast Box rooms"/></div>
   <section className={styles.intro}>
    <span>LOOK CLOSER // 360° VIEW</span>
-   <h1>Look closer at {subject==='workshop'?(profile?.name||'your beast'):'Zeref'} <em>in 3D.</em></h1>
+   <h1>Look Closer at {subject==='workshop'?(activeName||'your beast'):'Zeref'} <em>in 3D.</em></h1>
    <p>{attribution?attribution.label:'The active browser Beast drives the original procedural Three.js rig: saved hue, glow, fin pattern, halo pattern and constellation seed.'}</p>
   </section>
   {/* Cosmo's tap-to-inspect art (select ring, pedestal, info card) mounts here: data-look-closer-hook */}
@@ -59,7 +60,7 @@ export default function CreatureTurntable(){
     <div className={styles.buttons} role="group" aria-label="Choose which creature is on the turntable">
       <button type="button" className={subject==='moonwraith'?styles.active:''} aria-pressed={subject==='moonwraith'} onClick={()=>setSubject('moonwraith')}>Moonwraith 3D</button>
       <button type="button" className={subject==='dragonling'?styles.active:''} aria-pressed={subject==='dragonling'} onClick={()=>setSubject('dragonling')}>Saved Zeref 3D</button>
-      <button type="button" className={subject==='workshop'?styles.active:''} aria-pressed={subject==='workshop'} onClick={()=>setSubject('workshop')}>{profile?.name||'Your beast'}</button>
+      <button type="button" className={subject==='workshop'?styles.active:''} aria-pressed={subject==='workshop'} onClick={()=>setSubject('workshop')}>{activeName||'Your beast'}</button>
     </div>
     <div className={styles.buttons}>
       <button className={spin?styles.active:''} aria-pressed={spin} onClick={()=>setSpin(true)}>↻ Rotate 360°</button>

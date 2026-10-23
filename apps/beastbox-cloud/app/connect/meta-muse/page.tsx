@@ -22,7 +22,7 @@ export default async function MetaMuseConsent({ searchParams }: { searchParams: 
   const p = Object.fromEntries(FIELDS.map((k) => [k, one(q[k])]));
   let problem = '';
   let clientName = 'An MCP client';
-  if (!store) problem = 'This Beast Box deployment has no connector storage configured yet, so it cannot pair.';
+  if (!store) problem = 'Saving isn\'t switched on yet, so the headband cannot pair.';
   else {
     try { const client = await checkAuthorizeRequest(store, p, mcpUrl(origin)); clientName = client.client_name; }
     catch (e) { problem = e instanceof Error ? e.message : 'Invalid authorization request.'; }

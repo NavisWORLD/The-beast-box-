@@ -1,4 +1,5 @@
 'use client';
+import {beastDisplayName} from '../lib/companion/beast-name.mjs';
 import {useCallback,useEffect,useMemo,useState} from 'react';
 import Link from 'next/link';
 import {ArrowRight,BrainCircuit,DatabaseZap,LockKeyhole,Orbit,ShieldCheck,SlidersHorizontal,Sparkles,Volume2} from 'lucide-react';
@@ -129,8 +130,8 @@ export default function BeastCagePortal(){
      state={sameSpark?visualStateFromBeast(session.beast):ambient==='rest'?'sleeping':ambient==='orbit'?'celebrating':ambient==='perch'?'observing':'idle'}
      label="Active Spark Beast companion" preferSavedBeast={sameSpark}
      rig={view==='pocket'&&(!savedVisual||savedVisual.renderer==='moonwraith-rig')}/>
-    {view==='world'&&sameSpark&&!worldFull?<LivingWorld embedded genome={session.beast.genome||null} beastKey={session.beast.qbeast.profile.id} beastName={session.beast.displayName||null} onExpand={()=>setWorldFull(true)}/>:null}
-    {worldFull&&sameSpark?<LivingWorld genome={session.beast.genome||null} beastKey={session.beast.qbeast.profile.id} beastName={session.beast.displayName||null} onClose={()=>setWorldFull(false)}/>:null}
+    {view==='world'&&sameSpark&&!worldFull?<LivingWorld embedded genome={session.beast.genome||null} beastKey={session.beast.qbeast.profile.id} beastName={beastDisplayName(session.beast)} onExpand={()=>setWorldFull(true)}/>:null}
+    {worldFull&&sameSpark?<LivingWorld genome={session.beast.genome||null} beastKey={session.beast.qbeast.profile.id} beastName={beastDisplayName(session.beast)} onClose={()=>setWorldFull(false)}/>:null}
     <span className="cage-habitat-caption">✧ YOUR OWN POCKET UNIVERSE</span>
    </div>
    <div className="cage-view-toggle" role="group" aria-label="Habitat view">

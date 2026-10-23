@@ -41,7 +41,7 @@ export function createSparkChatPopup({getBeast,getAvatar,onVerified,onPattern}){
   const route=prefs.route,info=ROUTE_INFO[route],model=route==='local-ollama'?prefs.ollamaModel:route==='hf-byok'?prefs.hfModel:info.model;
   $('talk-source').textContent=`Teacher: ${TEACHER_LABEL[route]||info.label}`;
   $('talk-source').title=`Advanced · Brain: ${info.label} · ${model}`;
-  $('talk-reply').textContent=pending?'Asking the selected model…':offline?'Model offline · no reply received':verified?`Connected · real reply verified ${time(verified.at)}`:'Not connected yet · each model reply is checked';
+  $('talk-reply').textContent=pending?'Asking the selected model…':offline?'Model offline · no reply received':verified?`Reply · came from the real model ${time(verified.at)}`:'Not connected yet · each model reply is checked';
   $('talk-brain-bar').dataset.tone=pending?'busy':offline?'offline':verified?'verified':'ready';
   dialog.dataset.talkState=pending?'thinking':offline?'offline':verified?'replied':'idle';dialog.dataset.talkRoute=route;
   $('talk-send').disabled=!!pending||cloudMode==='restore'||!input.value.trim();$('talk-cancel').hidden=!pending;input.readOnly=!!pending||cloudMode==='restore';

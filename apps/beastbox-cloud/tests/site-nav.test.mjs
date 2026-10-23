@@ -5,7 +5,7 @@ test('one site nav in the root layout with every area grouped',()=>{
  for(const g of ['home','zeref','cage','game','spark','brain','research','account','workshop'])assert.match(nav,new RegExp(`key:'${g}'`));
 });
 test('every internal nav link points at a real page or static file',()=>{
- for(const [,h] of nav.matchAll(/href:'([^']+)'/g)){const path=h.split('#')[0];
+ for(const [,h] of nav.matchAll(/href:'([^']+)'/g)){const path=h.split(/[#?]/)[0];
   const ok=path==='/'?existsSync(new URL('../app/page.tsx',import.meta.url)):path.endsWith('.html')?existsSync(new URL('../public'+path,import.meta.url)):existsSync(new URL('../app'+path+'/page.tsx',import.meta.url));
   assert.ok(ok,h);}
 });
