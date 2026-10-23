@@ -65,6 +65,30 @@ export default function Universe3D({u,onSelect,onAlive}:{u:any;onSelect?:(id:str
   const planetMesh=new Map<string,THREE.Mesh>();const starObj=new Map<string,THREE.Object3D>();const stormObj=new Map<string,THREE.Sprite>();
   const sphere=new THREE.SphereGeometry(1,32,20);
   const diskTex=tex('accretion_disk_1024.png'),ringTex=tex('photon_ring_512.png'),stormTex=[tex('storm_cloud_violet_1024.png'),tex('storm_cloud_teal_1024.png')];
+  // E5c (Cosmo deepspace art): a wormhole ring and an asteroid belt are ART placed from the real star layout (seeded, no Math.random);
+  // storms get seeded lightning flashes. GLBs load lazily after the first frame so the universe opens fast.
+  let decoDone=false;const boltTex=tex('lightning_4x2_256.png');boltTex.repeat.set(1/4,1/2);const bolts=new Map<string,THREE.Sprite>();let mixer:THREE.AnimationMixer|null=null;const belt:THREE.Object3D[]=[];
+  function addDeco(){const U=uRef.current;if(decoDone||!U||!U.stars?.length)return;decoDone=true;const seed=String(U.seed||'tiny');const r=rand(seed+':deepspace');
+   const hp=U.planets.find((p:any)=>p.id===homeOf(U));const hs=hp?starObj.get(hp.star):[...starObj.values()][0];if(!hs)return;
+   let far:THREE.Object3D|null=null,fd=-1;for(const g of starObj.values()){const d=g.position.distanceTo(hs.position)+(g.userData.bh?1e6:0);if(g!==hs&&d>fd){fd=d;far=g;}}
+   const outer=Math.max(8,...U.planets.filter((p:any)=>p.star===hp?.star).map((p:any)=>orbitR(p)))+6;
+   import('three/examples/jsm/loaders/GLTFLoader.js').then(({GLTFLoader})=>{const L=new GLTFLoader();
+    L.load('/universe/deepspace/models/wormhole_ring.glb',gl=>{const o=gl.scene;o.scale.setScalar(0.2);o.rotation.x=Math.PI/2;o.userData.art='wormhole';
+     if(far)o.position.copy(hs.position).lerp(far.position,0.5);else o.position.copy(hs.position).add(new THREE.Vector3(outer*2,0,0));o.position.y+=6;world.add(o);
+     if(gl.animations[0]){mixer=new THREE.AnimationMixer(o);mixer.clipAction(gl.animations[0]).play();}});
+    for(const k of ['a','b','c'])L.load(`/universe/deepspace/models/asteroid_${k}_far.glb`,gl=>{let mesh:any=null;gl.scene.traverse((c:any)=>{if(!mesh&&c.isMesh)mesh=c;});if(!mesh)return;
+     const n=40,im=new THREE.InstancedMesh(mesh.geometry,mesh.material,n),M=new THREE.Matrix4(),q=new THREE.Quaternion(),e=new THREE.Euler();
+     for(let i=0;i<n;i++){const a=r()*Math.PI*2,R=outer+(r()-0.5)*4,sc=0.012+r()*0.035;e.set(r()*6.28,r()*6.28,r()*6.28);q.setFromEuler(e);
+      M.compose(new THREE.Vector3(Math.cos(a)*R,(r()-0.5)*1.2,Math.sin(a)*R),q,new THREE.Vector3(sc,sc,sc));im.setMatrixAt(i,M);}
+     const g=new THREE.Group();g.position.copy(hs.position);g.add(im);g.userData.spin=0.01+r()*0.02;world.add(g);belt.push(g);});
+   }).catch(()=>{});}
+  let lastT=0;function lightning(t:number){const U=uRef.current;const live=new Set<string>();
+   for(const sm of U?.storms||[]){const sp=stormObj.get(sm.planet);if(!sp)continue;live.add(sm.planet);let b=bolts.get(sm.planet);
+    if(!b){const tx=boltTex.clone();tx.needsUpdate=true;b=new THREE.Sprite(new THREE.SpriteMaterial({map:tx,blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));world.add(b);bolts.set(sm.planet,b);}
+    const bucket=Math.floor(t/1.6),ph=t/1.6-bucket,rr=rand(sm.planet+':bolt:'+bucket);const fire=rr()<0.35+0.4*Math.min(1,sm.intensity/0.5);const f=Math.floor(ph*1.6*24);
+    b.visible=fire&&f<8;if(b.visible){const m=b.material.map!;m.offset.set((f%4)/4,1-(Math.floor(f/4)+1)/2);b.position.copy(sp.position).add(new THREE.Vector3((rr()-0.5)*sp.scale.x*.6,(rr()-0.3)*sp.scale.x*.4,(rr()-0.5)*sp.scale.x*.6));b.scale.setScalar(sp.scale.x*.7);}}
+   for(const[k,b]of bolts)if(!live.has(k)){world.remove(b);bolts.delete(k);}
+   const dt=Math.max(0,Math.min(.1,t-lastT));lastT=t;mixer?.update(dt);for(const g of belt)g.rotation.y=t*g.userData.spin;}
   const bioCache=new Map<string,THREE.Texture>();const bioLoader=new THREE.TextureLoader();
   const biomeTex=(k:string,kind:'color'|'glow')=>{const key=k+'_'+kind;let t=bioCache.get(key);if(!t){t=bioLoader.load('/universe/livingworld/biomes/'+key+'.webp');if(kind==='color')t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=4;bioCache.set(key,t);}return t;};
   function build(){const U=uRef.current;if(!U)return;
@@ -86,7 +110,8 @@ export default function Universe3D({u,onSelect,onAlive}:{u:any;onSelect?:(id:str
     if(!sp){sp=new THREE.Sprite(new THREE.SpriteMaterial({map:stormTex[sm.planet.length%2],transparent:true,depthWrite:false,opacity:.75}));world.add(sp);stormObj.set(sm.planet,sp);}
     sp.position.copy(p.position);sp.scale.setScalar(p.scale.x*(3+2*Math.min(1,sm.intensity/0.5)));}
    for(const[k,sp]of stormObj)if(!live.has(k)){world.remove(sp);stormObj.delete(k);}
-   for(const g of starObj.values()){const d=g.getObjectByName('disk');if(d)d.rotation.z=t*0.05;}}
+   for(const g of starObj.values()){const d=g.getObjectByName('disk');if(d)d.rotation.z=t*0.05;}
+   addDeco();lightning(t);}
   // camera rig: spherical around a target, log distance
   let yaw=0.6,pitch=0.5,logD=Math.log(30),targetId:string|null=homeOf(uRef.current||{planets:[],life:[]});const tgt=new THREE.Vector3(),want=new THREE.Vector3();
   const setZoom=(f:number)=>{logD=Math.min(Math.log(ZOOM_MAX),Math.max(Math.log(ZOOM_MIN),logD+f));};
