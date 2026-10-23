@@ -70,10 +70,13 @@ function validateSession(raw,replay,byKey){
   item.genome=genome;item.body=genome.body;item.island=genome.island;
  }
  if(raw.mind.associations){
-  const a=raw.mind.associations;allowed(a,['schema','observations','concepts','links']);
+  const a=raw.mind.associations;allowed(a,['schema','observations','concepts','links','cold']);
   if(a.schema!=='beastbox-associations-v1'||!integer(a.observations,1e6)||!object(a.concepts)||Object.keys(a.concepts).length>128||!object(a.links)||Object.keys(a.links).length>384)fail('association memory exceeds its bounds.');
   for(const [key,v] of Object.entries(a.concepts))if(!/^[a-z0-9][a-z0-9']{1,15}$/.test(key)||!Number.isFinite(v)||v<=0||v>8)fail('invalid association concept.');
   for(const [key,v] of Object.entries(a.links)){const words=key.split('|');if(words.length!==2||words[0]>=words[1]||!words.every(w=>Object.hasOwn(a.concepts,w))||!Number.isFinite(v)||v<=0||v>8)fail('invalid association link.');}
+  if(a.cold!==undefined){allowed(a.cold,['concepts','links']);if(!object(a.cold.concepts)||!object(a.cold.links))fail('invalid cold association store.');  // cold store: no count cap; the journey file size bound still applies
+   for(const [key,v] of Object.entries(a.cold.concepts))if(!/^[a-z0-9][a-z0-9']{1,15}$/.test(key)||!Number.isFinite(v)||v<=0||v>8)fail('invalid cold association concept.');
+   for(const [key,v] of Object.entries(a.cold.links)){const w=key.split('|');if(w.length!==2||w[0]>=w[1]||!w.every(x=>/^[a-z0-9][a-z0-9']{1,15}$/.test(x))||!Number.isFinite(v)||v<=0||v>8)fail('invalid cold association link.');}}
  }
  mindBounds(raw.mind);allowed(raw.train,['score','rounds']);if(!integer(raw.train.score)||!integer(raw.train.rounds))fail('invalid training counters.');
  allowed(raw.emulator,['mounted','ticks','booted']);if(!integer(raw.emulator.ticks))fail('invalid emulator counter.');

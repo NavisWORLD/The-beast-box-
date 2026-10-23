@@ -20,7 +20,14 @@ const STOP = new Set('about after again also because been being could from have 
 const safeWord = word => /^[a-z0-9][a-z0-9']{1,15}$/.test(word) && !['constructor','prototype','__proto__'].includes(word) && isKidSafe(word);
 const finite = (n,max=1e6) => typeof n==='number' && Number.isFinite(n) ? Math.max(0,Math.min(max,n)) : 0;
 const rounded = n => Math.round(n*1000)/1000;
-const emptyAssociations = () => ({schema:ASSOCIATION_SCHEMA,observations:0,concepts:{},links:{}});
+// Hot limits keep recall fast; anything trimmed from hot memory spills to a persisted COLD store
+// (no count cap; grows with experience) instead of being forgotten. Cold entries are promoted back
+// to hot when seen again and are searched when hot recall comes up short.
+const emptyAssociations = () => ({schema:ASSOCIATION_SCHEMA,observations:0,concepts:{},links:{},cold:{concepts:{},links:{}}});
+function spill(map,limit,cold){
+ const keep=trimMap(map,limit);for(const [k,v] of Object.entries(map))if(!Object.hasOwn(keep,k))cold[k]=rounded(Math.max(cold[k]||0,v));return keep;
+}
+export function coldSize(mind){const c=mind?.associations?.cold;return c?{concepts:Object.keys(c.concepts||{}).length,links:Object.keys(c.links||{}).length}:{concepts:0,links:0};}
 function trimMap(map,limit,score=n=>n){
  const entries=Object.entries(map).sort((a,b)=>score(b[1])-score(a[1])||a[0].localeCompare(b[0],'en')).slice(0,limit);
  return Object.fromEntries(entries);
@@ -34,23 +41,32 @@ function importAssociations(raw){
  if(raw.links&&typeof raw.links==='object'&&!Array.isArray(raw.links))for(const [key,n] of Object.entries(raw.links).slice(0,4096)){
   const words=key.split('|');if(words.length===2&&words[0]<words[1]&&words.every(w=>safeWord(w)&&Object.hasOwn(a.concepts,w))&&finite(n,8)>0)a.links[key]=rounded(finite(n,8));
  }
- a.links=trimMap(a.links,ASSOCIATION_LIMITS.links);return a;
+ a.links=trimMap(a.links,ASSOCIATION_LIMITS.links);
+ const rc=raw.cold&&typeof raw.cold==='object'?raw.cold:{};
+ for(const part of ['concepts','links'])if(rc[part]&&typeof rc[part]==='object'&&!Array.isArray(rc[part]))for(const [k,n] of Object.entries(rc[part])){
+  const ok=part==='concepts'?safeWord(k):(()=>{const w=k.split('|');return w.length===2&&w[0]<w[1]&&w.every(safeWord);})();
+  if(ok&&finite(n,8)>0&&!Object.hasOwn(a[part],k))a.cold[part][k]=rounded(finite(n,8));
+ }
+ return a;
 }
 function learnAssociations(mind,text,{seed=''}={}){
  const a=importAssociations(mind.associations),words=associationTokens(text);if(!words.length)return;
  // A domain-separated deterministic draw from this existing genesis and event count.
  // Never rereads a seed pool, requests hardware, or claims fresh measurement.
  const rate=rounded(.4+fnv(`beastbox:association:v1:${seed}:${a.observations}`)/4294967296);
- for(const w of words)a.concepts[w]=rounded(Math.min(8,(a.concepts[w]||0)+rate));
+ const warm=(part,k)=>{const v=a.cold[part][k]||0;delete a.cold[part][k];return v;};  // promote cold -> hot
+ for(const w of words)a.concepts[w]=rounded(Math.min(8,(a.concepts[w]||warm('concepts',w))+rate));
  for(let i=0;i<words.length;i++)for(let j=i+1;j<words.length;j++){
-  const key=[words[i],words[j]].sort().join('|');a.links[key]=rounded(Math.min(8,(a.links[key]||0)+rate));
+  const key=[words[i],words[j]].sort().join('|');a.links[key]=rounded(Math.min(8,(a.links[key]||warm('links',key))+rate));
  }
  a.observations=Math.min(1e6,a.observations+1);
  if(a.observations%5===0)for(const bag of [a.concepts,a.links])for(const key of Object.keys(bag)){
   bag[key]=rounded(bag[key]*.995);if(bag[key]<.05)delete bag[key];
  }
- a.concepts=trimMap(a.concepts,ASSOCIATION_LIMITS.concepts);
- a.links=trimMap(Object.fromEntries(Object.entries(a.links).filter(([k])=>k.split('|').every(w=>Object.hasOwn(a.concepts,w)))),ASSOCIATION_LIMITS.links);
+ a.concepts=spill(a.concepts,ASSOCIATION_LIMITS.concepts,a.cold.concepts);
+ const orphan=Object.entries(a.links).filter(([k])=>!k.split('|').every(w=>Object.hasOwn(a.concepts,w)));
+ for(const [k,v] of orphan){a.cold.links[k]=rounded(Math.max(a.cold.links[k]||0,v));delete a.links[k];}
+ a.links=spill(a.links,ASSOCIATION_LIMITS.links,a.cold.links);
  mind.associations=a;
 }
 
@@ -66,6 +82,11 @@ export function recallAssociations(mind,text,limit=3){
    for(let r=0;r<DIM;r++)for(let c=0;c<DIM;c++)signal+=x[r]*finite(mind.weights?.[r]?.[c],CLIP)*y[c];
    prior.matrix+=Math.max(0,Math.min(4,signal));scores.set(word,prior);
   }
+ }
+ if(scores.size<limit)for(const [key,strength] of Object.entries(a.cold.links)){  // cold store: only when hot is short
+  const [left,right]=key.split('|');
+  for(const [cue,word] of [[left,right],[right,left]])if(queries.includes(cue)&&!queries.includes(word)&&!scores.has(word))
+   scores.set(word,{word,association:strength,matrix:0,cues:[cue],cold:true});
  }
  return [...scores.values()].map(h=>({...h,association:rounded(h.association),matrix:rounded(h.matrix),score:rounded(h.association+h.matrix*.1),cues:[...new Set(h.cues)]})).sort((a,b)=>b.score-a.score||a.word.localeCompare(b.word,'en')).slice(0,Math.max(0,Math.min(12,Math.floor(limit)||0)));
 }

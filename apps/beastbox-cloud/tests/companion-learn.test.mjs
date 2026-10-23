@@ -29,3 +29,15 @@ test("blocked phrases do not move weights", () => {
   assert.equal(JSON.stringify(mind.weights), before);
   assert.equal(mind.steps, 0);
 });
+
+test('association memory spills past the hot limits into a persisted cold store and recalls from it',async()=>{
+ const L=await import('../lib/companion/learn.mjs');
+ let mind=L.createMind();
+ for(let i=0;i<400;i++)L.observeText(mind,`zorb${i.toString(36)}a quilm${i.toString(36)}b`);
+ const a=mind.associations;
+ assert.ok(Object.keys(a.concepts).length<=L.ASSOCIATION_LIMITS.concepts&&Object.keys(a.links).length<=L.ASSOCIATION_LIMITS.links);
+ const c=L.coldSize(mind);assert.ok(c.concepts>L.ASSOCIATION_LIMITS.concepts,'cold store grows past hot limit');
+ const back=L.importMind(JSON.parse(JSON.stringify(L.exportMind?L.exportMind(mind):mind)));
+ assert.equal(L.coldSize(back).concepts,c.concepts);
+ const hit=L.recallAssociations(back,'zorb0a',3);assert.ok(hit.some(h=>h.word==='quilm0b'&&h.cold));
+});

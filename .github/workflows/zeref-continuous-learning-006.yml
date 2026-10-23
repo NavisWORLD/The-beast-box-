@@ -226,12 +226,22 @@ jobs:
         run: |
           set -Eeuo pipefail
           python models/rawrphos/scripts/install_pinned_14k.py --destination build/public-14k > build/zeref-006/public-14k-receipt.json
-      - name: Capacity-saturation trigger (repeatable function-preserving growth; never a gate input)
+      - name: Unbounded growth trigger (plateau OR Rigetti SIMULATED growth events; persisted lineage; never a gate input)
         id: growth
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -Eeuo pipefail
-          layers="$(python -c "import json;print(json.load(open(__import__('os').environ['BEAST_006_PARENT_PATH']+'/config.json'))['n_layers'])" 2>/dev/null || echo 6)"
-          python scripts/zeref_growth_trigger.py "$layers"
+          mkdir -p build/zeref-006/growth
+          # 009: growth state is a persisted lineage file on the fixed `zeref-growth-lineage` pre-release,
+          # not old CI logs (the 008 log read returned null in CI and never fired).
+          gh release download zeref-growth-lineage --repo "${{ github.repository }}" -D build/zeref-006/growth --clobber 2>/dev/null \
+            || echo 'ZEREF_GROWTH_LINEAGE_NEW (no prior lineage asset)'
+          lin=build/zeref-006/growth/growth-lineage.json
+          layers="$(python -c "import json,os;print(json.load(open(os.environ['BEAST_006_PARENT_PATH']+'/config.json'))['n_layers'])" 2>/dev/null || echo 6)"
+          psha="$(python -c "import json,os;print(json.load(open(os.environ['BEAST_006_PARENT_PATH']+'/metadata.json'))['checkpoint_sha256'])" 2>/dev/null || echo unknown)"
+          python scripts/zeref_growth_trigger.py decide "$lin" "$layers" "$psha" build/zeref-006/experiences.jsonl
+          if [ -s build/zeref-006/growth/growth-wip.pt ]; then echo "wip=build/zeref-006/growth/growth-wip.pt" >> "$GITHUB_OUTPUT"; fi
       - name: Resume exact AdamW state, perform up to 64 new CPU updates and test heldout/retention
         env:
           ZEREF_006_PUBLIC_REF_DIR: build/public-14k
@@ -240,6 +250,9 @@ jobs:
           ZEREF_TRINITY: '1'
           ZEREF_006_LR: '0.00005'  # 008: local EMA trial passed chat A/B at 5e-5 step 64 (A 2.842, B 2.897)
           ZEREF_GROW_LAYERS: ${{ steps.growth.outputs.add_layers || '0' }}
+          ZEREF_GROWTH_WIP_IN: ${{ steps.growth.outputs.wip || '' }}
+          ZEREF_GROWTH_WIP_OUT: build/zeref-006/growth/growth-wip-new.pt
+          ZEREF_006_TIME_BUDGET_S: '2700'  # physical limit: 90-min job; stop training at 45 min, save WIP, continue next round
         run: |
           set -Eeuo pipefail
           python -u scripts/zeref_continuation_006.py
@@ -289,6 +302,21 @@ jobs:
             build/zeref-006/approval.json
           retention-days: 90
           if-no-files-found: ignore
+      - name: Persist growth lineage (every non-PR round; WIP saved when a physical limit was hit)
+        if: always() && github.event_name != 'pull_request' && steps.growth.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -Eeuo pipefail
+          d=build/zeref-006/growth
+          [ -s build/zeref-006/report.json ] && python scripts/zeref_growth_trigger.py record "$d/growth-lineage.json" build/zeref-006/report.json "${{ github.run_id }}"
+          files="$d/growth-lineage.json"
+          if [ -s "$d/growth-wip-new.pt" ]; then mv "$d/growth-wip-new.pt" "$d/growth-wip.pt"; files="$files $d/growth-wip.pt"
+          elif [ -s build/zeref-006/approval.json ]; then gh release delete-asset zeref-growth-lineage growth-wip.pt --repo "${{ github.repository }}" -y 2>/dev/null || true; fi
+          gh release view zeref-growth-lineage --repo "${{ github.repository }}" >/dev/null 2>&1 || \
+            gh release create zeref-growth-lineage --repo "${{ github.repository }}" --prerelease --title "Zeref growth lineage (state only, never a pin)" \
+              --notes "Persisted growth state for bb-deada969: rounds, growth events (plateau / Azure Rigetti SIMULATED events), target layers, world growth, and a WIP grown checkpoint when a runtime limit was hit. Never served; never a gate input."
+          gh release upload zeref-growth-lineage $files --repo "${{ github.repository }}" --clobber
       - name: Publish approved checkpoint as a durable GitHub release (artifacts expire after 90 days)
         if: success() && github.event_name != 'pull_request' && hashFiles('build/zeref-006/approval.json') != ''
         run: |

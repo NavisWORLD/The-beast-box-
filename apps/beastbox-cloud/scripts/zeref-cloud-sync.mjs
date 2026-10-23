@@ -36,7 +36,7 @@ if(j>0){const ex=[];
  const d=await getBlob(cfg,ZEREF_DIR+'/diary.jsonl').catch(()=>null);
  if(d)for(const l of d.text.split('\n').slice(-400)){try{const e=JSON.parse(l);if(e.beast_id==='bb-deada969')ex.push({kind:'diary',tick:e.tick,at:e.at,mood:e.mood,place:e.place,
   places_visited:e.places_visited,new_combo_count:e.new_combo_count,combos:(e.discovered_combos||[]).map(c=>c.name).slice(0,3),stage_name:e.stage_name,grew:e.grew,
-  growth:e.growth_source?.kind,simulated:!!e.growth_source?.simulated,new_cells:e.learning?.new_cells,favorite_spot:e.learning?.favorite_spot,thought:e.thought?.by==='deterministic-template'?e.thought.text:null});}catch{}}
+  growth:e.growth_source?.kind,simulated:!!e.growth_source?.simulated,universe_growth:e.universe_growth??null,new_cells:e.learning?.new_cells,favorite_spot:e.learning?.favorite_spot,thought:e.thought?.by==='deterministic-template'?e.thought.text:null});}catch{}}
  for(const n of (await listBlobs(cfg,ZEREF_DIR+'/experiences/',{max:2000})).sort()){const b=await getBlob(cfg,n).catch(()=>null);if(!b)continue;try{const r=JSON.parse(b.text);ex.push({kind:'training-cycle',tag:r.tag,at:r.published_at});}catch{}}
  writeFileSync(process.argv[j+1],ex.map(r=>JSON.stringify(r)).join('\n')+(ex.length?'\n':''));
  console.log('ZEREF_EXPERIENCE_EXPORT='+JSON.stringify({diary_ticks:ex.filter(r=>r.kind==='diary').length,training_cycles:ex.filter(r=>r.kind==='training-cycle').length}));}
