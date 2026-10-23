@@ -780,3 +780,4 @@ body{padding-bottom:calc(64px + env(safe-area-inset-bottom))}
 .site-dock>*:hover,.site-dock>*:focus-visible{background:#2a1d5c}
 @media (max-width:420px){.site-dock span{display:none}}
 body:has([data-beach-two-page]) .site-dock{display:none}
+body:has([data-beach-two-page]){padding-bottom:0;overflow:hidden}
