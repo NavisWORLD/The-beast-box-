@@ -40,7 +40,7 @@ function patch(THREE:T,mat:any,cfg:{h:number;near:number;far:number;inner:number
   if(al)s.fragmentShader='varying float vGlow;\n'+s.fragmentShader.replace('#include <emissivemap_fragment>','#include <emissivemap_fragment>\n totalEmissiveRadiance*=vGlow;');};
  m.customProgramCacheKey=()=>'surf'+cfg.thin+(cfg.inner>0?'i':'')+(al?':'+al.kind+':'+al.part:'');return m;}
 async function loadParts(url:string){const {GLTFLoader}=await import('three/examples/jsm/loaders/GLTFLoader.js');const g:any=await new GLTFLoader().loadAsync(url);g.scene.updateMatrixWorld(true);
- const parts:any[]=[];g.scene.traverse((o:any)=>{if(o.isMesh){const geo=o.geometry.clone();geo.applyMatrix4(o.matrixWorld);
+ const parts:any[]=[];g.scene.traverse((o:any)=>{if(o.isMesh){const geo=o.geometry.clone();geo.morphAttributes={};geo.morphTargetsRelative=false;geo.applyMatrix4(o.matrixWorld);/* breathing is done in the shader; instanced meshes carry no morph targets */
   let n:any=o;while(n&&!/^(head(_\d+)?|crack_glow|crystal_body|mushroom_body)$/.test(n.name||''))n=n.parent;
   const e=n?n.matrixWorld.elements:null;parts.push({geo,mat:o.material,node:n?.name||null,pivot:e?[e[12],e[13],e[14]]:[0,0,0]});}});return parts;}
 /** Flower heads -> one geometry (one group per material) with per-vertex aPivot, so all blooms of a type are ONE InstancedMesh. */

@@ -783,3 +783,10 @@ body:has([data-beach-two-page]) .site-dock{display:none}
 body:has([data-beach-two-page]){padding-bottom:0;overflow:hidden}
 /* One dock (Cosmo): the mini Lost COSMOS bar and the support launcher also wait behind More; a full-screen player stays. */
 body[data-dock=closed] :is([data-lost-cosmos-dock][data-dock-state=mini],[data-lost-cosmos-dock][data-dock-state=expanded],aside.cosmic-support:not(.is-open)){display:none!important}
+
+/* 3D universe on phones: zoom stack and One Mind label fit between the seed chips and the HUD plate (Oct 23 2026) */
+@media (max-width:600px){
+ [data-u3d-zoom]{top:134px!important;right:12px!important;gap:4px!important;flex-direction:row!important;align-items:center}
+ [data-u3d-zoom] button{width:34px!important;height:34px!important;min-height:0!important}
+ [data-threads-label]{top:178px!important;left:12px!important;transform:none!important;max-width:calc(100% - 24px)!important;text-align:left!important}
+}
