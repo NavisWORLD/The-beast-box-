@@ -44,10 +44,10 @@ def expected_steps(cycle):
 LR=float(os.environ.get("ZEREF_006_LR","0.00001"))
 LR_MIN_FRACTION=0.1
 EVAL_EVERY=64
-BATCH=8
+BATCH=int(os.environ.get("ZEREF_006_BATCH","16"))  # 008 larger batches (was 8): 4 game + 12 chat
 TEACHER_VERSION="visible-signals-v2"
 CHAT_MIX=Path(os.environ.get("ZEREF_006_CHAT_MIX","build/zeref-006/chat-mix.jsonl"))
-CHAT_PER_BATCH=int(os.environ.get("ZEREF_006_CHAT_PER_BATCH","6"))  # mode-mixed: game + chat in every batch
+CHAT_PER_BATCH=int(os.environ.get("ZEREF_006_CHAT_PER_BATCH","12"))  # mode-mixed: game + chat in every batch
 DECISION_INDEX=7  # tokens of "ACTION: " are 0..6; index 7 names the key
 DECISION_WEIGHT=float(os.environ.get("ZEREF_006_DECW","1.0"))
 REPLAY_MAX_DATASETS=12
@@ -192,6 +192,8 @@ def rigetti_order_seed(cycle,fresh_digest=None,run_id=None):
 HEBBIAN=os.environ.get("ZEREF_HEBBIAN","1")=="1"
 HEBBIAN_DIM=int(os.environ.get("ZEREF_HEBBIAN_DIM","32"))
 TRINITY=os.environ.get("ZEREF_TRINITY","1")=="1"  # original-kit Trinity 12D+42D state (QC67_cosmo)
+EMA_DECAY=float(os.environ.get("ZEREF_006_EMA_DECAY","0.98"))  # 008 steadier training (0 = off)
+GROW_LAYERS=int(os.environ.get("ZEREF_GROW_LAYERS","0"))  # set by scripts/zeref_growth_trigger.py on plateau
 HEBBIAN_LR=float(os.environ.get("ZEREF_HEBBIAN_LR","0.0003"))  # new params start from zero; base LR unchanged
 def extend_optimizer_state(sd,n_base,n_hebb):
  """Parent AdamW state (1 group) -> [base, hebbian] groups; new params get fresh moments."""
@@ -230,6 +232,13 @@ def train_variant(parent_path,tokenizer,pool,seed,chat_pool=(),chat_eval=None):
   from rawrphos.architecture.model import upgrade_to_trinity
   model=upgrade_to_trinity(model)  # zeroed drive: identical logits at upgrade
  base=model.base_parameters();hebb=model.hebbian_parameters()
+ if GROW_LAYERS:
+  # 008 repeatable growth: function-preserving depth expansion (identical logits at growth).
+  # New block params join the fresh-moment group (no anchor to their zero init); parent order kept.
+  from rawrphos.architecture.model import grow_depth
+  model,fresh=grow_depth(model,GROW_LAYERS)
+  hebb=model.hebbian_parameters()+[p for p in model.parameters() if id(p) in fresh]
+  hid={id(p) for p in hebb};base=[p for p in model.parameters() if id(p) not in hid]
  anchor=[p.detach().clone() for p in base]  # L2 anchor on the approved parent's weights only
  groups=[{"params":base}]+([{"params":hebb}] if hebb else [])
  opt=torch.optim.AdamW(groups,lr=LR,weight_decay=.01)
@@ -242,6 +251,7 @@ def train_variant(parent_path,tokenizer,pool,seed,chat_pool=(),chat_eval=None):
  class_w=torch.tensor([len(by[c])**0.5 for c in classes],dtype=torch.float)
  g=torch.Generator().manual_seed(seed)
  logs=[];best=None
+ ema={k:v.detach().clone() for k,v in model.state_dict().items()} if EMA_DECAY>0 else None  # 008 running average
  for n in range(UPDATES):
   for gi,group in enumerate(opt.param_groups):group["lr"]=(HEBBIAN_LR if gi==1 else LR)*(LR_MIN_FRACTION+(1-LR_MIN_FRACTION)*.5*(1+math.cos(math.pi*n/UPDATES)))
   opt.zero_grad(set_to_none=True)
@@ -277,12 +287,22 @@ def train_variant(parent_path,tokenizer,pool,seed,chat_pool=(),chat_eval=None):
   total.backward()
   grad=torch.nn.utils.clip_grad_norm_(model.parameters(),1.,error_if_nonfinite=True)
   opt.step()
+  if ema is not None:
+   with torch.no_grad():
+    for k,v in model.state_dict().items():
+     if v.dtype.is_floating_point:ema[k].mul_(EMA_DECAY).add_(v.detach(),alpha=1-EMA_DECAY)
+     else:ema[k].copy_(v)
   if (n+1)%16==0:
    row={"step":n+1,"train_loss":float(loss.detach()),"anchor_drift":float(drift.detach()),"grad_norm":float(grad)}
    logs.append(row);print("ZEREF_006_REAL_CPU_UPDATE="+json.dumps(row),flush=True)
   if chat_eval and (n+1)%EVAL_EVERY==0:
    c=chat_eval(model)
    if best is None or c<best[0]:best=(c,n+1,{k:v.detach().clone() for k,v in model.state_dict().items()})
+   if ema is not None:  # 008: also score the running-average weights; same selection rule
+    live={k:v.detach().clone() for k,v in model.state_dict().items()};model.load_state_dict(ema);ce=chat_eval(model)
+    print("ZEREF_006_INCYCLE_EMA_CHAT="+json.dumps({"step":n+1,"chat_nll":ce}),flush=True)
+    if ce<best[0]:best=(ce,n+1,{k:v.clone() for k,v in ema.items()})
+    model.load_state_dict(live)
    print("ZEREF_006_INCYCLE_CHAT="+json.dumps({"step":n+1,"chat_nll":c,"lr":opt.param_groups[0]["lr"]}),flush=True)
  if best is not None:
   model.load_state_dict(best[2]);logs.append({"best_in_cycle_step":best[1],"best_in_cycle_chat_nll":best[0]})
@@ -449,7 +469,9 @@ def main():
   "not_new_ibm_hardware":True,"not_quantum_training":True,
   "teacher":"OBSERVATION_CONDITIONED_SCRIPTED_HEURISTIC_NOT_HUMAN_NOT_MODEL",
   "production_promoted":False,"learned_game_progress_proven":False,
-  "growth_recipe":"sqrt_balanced+replay+l2_anchor+rigetti_sim_order+chat_mix"}
+  "growth_recipe":"sqrt_balanced+replay+l2_anchor+rigetti_sim_order+chat_mix",
+  "capacity_growth_lineage":list(parent["metadata"].get("capacity_growth_lineage",[]))+([{"from_layers":parent["model"].config.n_layers,
+   "to_layers":parent["model"].config.n_layers+GROW_LAYERS,"method":"grow_depth_function_preserving","parent_checkpoint_sha256":parent["metadata"]["checkpoint_sha256"]}] if GROW_LAYERS else [])}
  saved=save_checkpoint(temp,model,tokenizer,meta,
   {"optimizer":opt.state_dict(),"rng":rng_state(),"data_rng":torch_generator.get_state()})
  load_checkpoint(temp,expected_checkpoint_sha256=saved["checkpoint_sha256"],load_training_state=True)
