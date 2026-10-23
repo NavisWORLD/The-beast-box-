@@ -781,3 +781,5 @@ body{padding-bottom:calc(64px + env(safe-area-inset-bottom))}
 @media (max-width:420px){.site-dock span{display:none}}
 body:has([data-beach-two-page]) .site-dock{display:none}
 body:has([data-beach-two-page]){padding-bottom:0;overflow:hidden}
+/* One dock (Cosmo): the mini Lost COSMOS bar and the support launcher also wait behind More; a full-screen player stays. */
+body[data-dock=closed] :is([data-lost-cosmos-dock][data-dock-state=mini],[data-lost-cosmos-dock][data-dock-state=expanded],aside.cosmic-support:not(.is-open)){display:none!important}
