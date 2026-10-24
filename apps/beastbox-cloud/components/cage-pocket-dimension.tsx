@@ -21,6 +21,7 @@ import {nextGoal,UNIVERSE_R,rng as lcRng,SHAPES} from '../lib/living-core/roam-b
 import {recordArrival} from '../lib/zeref/pocket-journal';
 import {motionPersona,createActor,stepActor} from '../lib/companion/film-motion.mjs';
 import {addGodView,ZOOM_MIN,ZOOM_LIMIT} from './pocket-god-view';
+import {isPanGesture,panStep,decayPan,centroid,keyPanPixels,worldPerPixel} from '@/lib/universe/view-gestures.mjs';
 import {ARTIST_RESIDENTS} from '../lib/companion/artist-residents.mjs';
 import {addPocketResidents} from './pocket-residents';
 import {addPocketSand} from './pocket-sand-layer';
@@ -102,20 +103,24 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
   // Cage habitat, or the home pocket art (home: the god view is driven from the whole pocket).
   const parent=canvas.closest('.cage-habitat-visual,.beast-landing-art') as HTMLElement|null;
   const activePointers=new Map<number,Pointer>();
+  // shared camera pan (two-finger drag, right drag, Shift+drag, Shift+arrows): an offset on the look-at point, eased back whenever the camera focuses something
+  let pan={x:0,y:0,z:0};const panBasis={rx:1,ry:0,rz:0,ux:0,uy:1,uz:0,k:.01};const panPtr=new Set<number>();const panBy=(dx:number,dy:number)=>{pan=panStep(pan,panBasis,dx,dy,cameraView.current.zoom*2+6);};(window as any).__pocketPan=()=>({...pan});
   let moved=false,suppressClick=false,pinching=false; // pinching: once two fingers are down, the gesture only zooms until every finger lifts
   const isControl=(target:EventTarget|null)=>target instanceof Element&&Boolean(
    target.closest('input,select,textarea,a,summary,[contenteditable="true"]')||
    target.closest('button:not([aria-label^="Tap "])')
   );
   const pointerDown=(event:PointerEvent)=>{
-   if(isControl(event.target)||event.button!==0&&event.pointerType==='mouse')return;
+   if(isControl(event.target)||event.button!==0&&event.button!==2&&event.pointerType==='mouse')return;
+   if(isPanGesture({button:event.pointerType==='mouse'?event.button:0,shiftKey:event.pointerType==='mouse'&&event.shiftKey}))panPtr.add(event.pointerId);
    activePointers.set(event.pointerId,{x:event.clientX,y:event.clientY});moved=false;if(activePointers.size>=2)pinching=true;
   };
   const pointerMove=(event:PointerEvent)=>{
    const prev=activePointers.get(event.pointerId);if(!prev)return;
    const dx=event.clientX-prev.x,dy=event.clientY-prev.y;
    if(Math.abs(dx)+Math.abs(dy)>3)moved=true;
-   if(activePointers.size===1&&!pinching){
+   if(activePointers.size===1&&!pinching&&panPtr.has(event.pointerId)){panBy(dx,dy);lastDragAt.current=performance.now();}
+   else if(activePointers.size===1&&!pinching){
     cameraView.current.theta-=dx*.009;lastDragAt.current=performance.now();
     cameraView.current.phi=clamp(cameraView.current.phi+dy*.008,.06,3.08);
    }else if(activePointers.size===2){
@@ -124,6 +129,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
      const before=Math.hypot(prev.x-other.x,prev.y-other.y);
      const after=Math.hypot(event.clientX-other.x,event.clientY-other.y);
      if(before>18&&after>18)cameraView.current.zoom=clamp(cameraView.current.zoom*before/after,ZOOM_MIN,ZOOM_LIMIT);
+     {const c0=centroid(prev,other),c1=centroid({x:event.clientX,y:event.clientY},other);panBy(c1.x-c0.x,c1.y-c0.y);lastDragAt.current=performance.now();}
     }
    }
    activePointers.set(event.pointerId,{x:event.clientX,y:event.clientY});
@@ -131,7 +137,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
   const pointerEnd=(event:PointerEvent)=>{
    const tap=activePointers.has(event.pointerId)&&!moved&&activePointers.size===1;
    if(activePointers.has(event.pointerId)&&moved)suppressClick=true;
-   activePointers.delete(event.pointerId);if(activePointers.size===0)pinching=false;
+   activePointers.delete(event.pointerId);panPtr.delete(event.pointerId);if(activePointers.size===0)pinching=false;
    if(tap)pickRef.current?.(event.clientX,event.clientY);
   };
   const clickCapture=(event:MouseEvent)=>{
@@ -149,7 +155,9 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
   };
   const keyboard=(event:KeyboardEvent)=>{
    if(event.target!==parent||isControl(event.target))return;
-   if(event.key==='ArrowLeft'||event.key==='ArrowRight'){
+   const kp=event.shiftKey?keyPanPixels(event.key):null;
+   if(kp){event.preventDefault();panBy(kp[0],kp[1]);}
+   else if(event.key==='ArrowLeft'||event.key==='ArrowRight'){
     event.preventDefault();cameraView.current.theta+=(event.key==='ArrowLeft'?.17:-.17);
    }else if(event.key==='ArrowUp'||event.key==='ArrowDown'){
     event.preventDefault();cameraView.current.phi=clamp(cameraView.current.phi+(event.key==='ArrowUp'?-.14:.14),.06,3.08);
@@ -158,14 +166,15 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
    }else if(event.key==='-'){
     event.preventDefault();cameraView.current.zoom=clamp(cameraView.current.zoom*1.3,ZOOM_MIN,ZOOM_LIMIT);
    }else if(event.key==='Home'){
-    event.preventDefault();cameraView.current={theta:.7,phi:1.22,zoom:13.5};
+    event.preventDefault();cameraView.current={theta:.7,phi:1.22,zoom:13.5};pan={x:0,y:0,z:0};
    }
   };
   // Existing sound-generator events: sound is a *visual stimulus*, not proof
   // of external microphone hearing or physical quantum/natural growth.
   const chirp=(e:Event)=>{const raw=Number((e as CustomEvent)?.detail?.intensity);motion.current.impulse=clamp(motion.current.impulse+(Number.isFinite(raw)?raw:.35)*.32,0,1.25);};
   const mute=()=>{motion.current.impulse=0;};
-  const resetCamera=()=>{cameraView.current={theta:.7,phi:1.22,zoom:13.5};pickRef.current?.(-1e6,-1e6);};
+  const resetCamera=()=>{pan={x:0,y:0,z:0};cameraView.current={theta:.7,phi:1.22,zoom:13.5};pickRef.current?.(-1e6,-1e6);};
+  const noMenu=(e:Event)=>{e.preventDefault();}; // right drag pans
   const option={passive:true} as AddEventListenerOptions;
   const unguard=parent?guardCanvasTouch(parent,{hint:parent.classList.contains('beast-landing-art')?'↔ Drag sideways to spin · swipe to scroll':'↔ Drag sideways to explore · pinch to zoom'}):()=>{};
   if(parent){
@@ -173,7 +182,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
    parent.addEventListener('pointermove',pointerMove,option);
    parent.addEventListener('pointerup',pointerEnd,option);
    parent.addEventListener('pointercancel',pointerEnd,option);
-   parent.addEventListener('wheel',wheel,{passive:false});
+   parent.addEventListener('wheel',wheel,{passive:false});parent.addEventListener('contextmenu',noMenu);
    parent.addEventListener('keydown',keyboard);
    parent.addEventListener('click',clickCapture,true);
   }
@@ -187,7 +196,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     parent.removeEventListener('pointermove',pointerMove);
     parent.removeEventListener('pointerup',pointerEnd);
     parent.removeEventListener('pointercancel',pointerEnd);
-    parent.removeEventListener('wheel',wheel);
+    parent.removeEventListener('wheel',wheel);parent.removeEventListener('contextmenu',noMenu);
     parent.removeEventListener('keydown',keyboard);
     parent.removeEventListener('click',clickCapture,true);
    }
@@ -510,7 +519,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
      if(uwPose&&!focused)homeFocus.set(zHolder.position.x,zHolder.position.y+.6,zHolder.position.z);// camera rides the gravity tunnel with Zeref// gravity-well follow across the universe
      {const fp=lcForced&&(window as any).__lcFocusPoint;if(fp&&!focused)homeFocus.set(fp.x,fp.y,fp.z);}// capture hook only with ?livingcore=1
      if(focused){focused.obj.getWorldPosition(tgt);tgt.y+=.35;focus.lerp(tgt,Math.min(1,dt*4));}else focus.lerp(homeFocus,Math.min(1,dt*3));
-     const f0=god.update(elapsed,v.zoom,focus,godFocus);const f=new THREE.Vector3(f0.x,f0.y,f0.z);
+     const f0=god.update(elapsed,v.zoom,focus,godFocus);const f=new THREE.Vector3(f0.x,f0.y,f0.z);if(focused||uwPose)pan=decayPan(pan,reduced?1:dt);f.x+=pan.x;f.y+=pan.y;f.z+=pan.z;
      (scene.fog as import('three').FogExp2).density=.012*Math.min(1.6,12/v.zoom)*(uwPose?.45:1);// cage-purple fog, tuned for the expanded universe
      const lens=gcam.lens(reduced?0:dt,v.zoom,zr,reduced?0:Math.min(1,(lcS.LC?.__surf?.U.uFlowA.value||0)*.5));let zd=lens.zoom;camera.fov=lens.fov;
      {// hidden nervous system: felt, not seen. Signal level drives core pulse, surface-life flow and mood/roam (no overlay, no dim, no camera move)
@@ -518,7 +527,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
       if(!reduced&&lcS.nerveF>.08){lcS.syn?.kick(Math.min(.25,lcS.nerveF*dt*3));const U=lcS.LC?.__surf?.U;if(U?.uFlowA)U.uFlowA.value=Math.min(1.5,U.uFlowA.value+lcS.nerveF*dt*.6);}
       if(tf&&tf.id==='zeref'&&tf.f>.7&&!lcS.ov){lcS.ov='curious';lcS.ovT=1.5;if(lcS.goal==null)lcS.pause=Math.min(lcS.pause??2,.4);}
       sensors.hush(null,0);}
-     camera.near=Math.max(.05,zd*.01);camera.far=Math.max(30000,zd*5);camera.updateProjectionMatrix();
+     camera.near=Math.max(.05,zd*.01);camera.far=Math.max(30000,zd*5);camera.updateProjectionMatrix();{const e=camera.matrixWorld.elements;panBasis.rx=e[0];panBasis.ry=e[1];panBasis.rz=e[2];panBasis.ux=e[4];panBasis.uy=e[5];panBasis.uz=e[6];panBasis.k=worldPerPixel(camera.fov,zd,Math.max(1,canvas.clientHeight||600));}
      camera.position.set(f.x+zd*Math.sin(v.phi)*Math.sin(v.theta),f.y+zd*Math.cos(v.phi),f.z+zd*Math.sin(v.phi)*Math.cos(v.theta));{const bods:any[]=[{x:zHolder.position.x,y:zHolder.position.y+.3,z:zHolder.position.z,r:.4},{x:beastNode.position.x,y:beastNode.position.y+.3,z:beastNode.position.z,r:.45}];for(const r of ((window as any).__lcResidents||[]))bods.push({x:r.x,y:.35,z:r.z,r:.4});for(const b of uw.bodies())bods.push(b);
       if(pushCameraOut(camera.position,bods)>0)camera.lookAt(f);}// creatures can never get inside the lens
      if(elapsed-((camera as any).__capT||-9)>1){(camera as any).__capT=elapsed;capScenePoints(scene);
