@@ -70,6 +70,8 @@ vec3 c=texture2D(tScene,bhScreen+s).rgb;float ring=exp(-pow((r-1.5*rs)/(0.08*rs+
    renderer.setRenderTarget(rt);renderer.render(scene,cam);renderer.setRenderTarget(null);renderer.render(lensScene,lensCam);};
 
   const tl=new THREE.TextureLoader();const tex=(n:string)=>{const t=tl.load('/universe/deepspace/'+n);t.colorSpace=THREE.SRGBColorSpace;return t;};
+  /* storm art has a square edge: multiply it by a radial fade (canvas, destination-in) so only the swirl shows */
+  const roundTex=(n:string)=>{const t=new THREE.Texture();t.colorSpace=THREE.SRGBColorSpace;const img=new Image();img.onload=()=>{const c=document.createElement('canvas');c.width=c.height=512;const g=c.getContext('2d')!;g.drawImage(img,0,0,512,512);g.globalCompositeOperation='destination-in';const gr=g.createRadialGradient(256,256,0,256,256,256);gr.addColorStop(0,'rgba(0,0,0,1)');gr.addColorStop(.55,'rgba(0,0,0,.85)');gr.addColorStop(.92,'rgba(0,0,0,0)');g.fillStyle=gr;g.fillRect(0,0,512,512);t.image=c;t.needsUpdate=true;};img.src='/universe/deepspace/'+n;return t;};
   // seeded background stars
   {const r=rand(String(uRef.current?.seed||'tiny'));const n=1800,p=new Float32Array(n*3);for(let i=0;i<n;i++){const th=r()*Math.PI*2,ph=Math.acos(2*r()-1),R=2500+r()*800;p[i*3]=R*Math.sin(ph)*Math.cos(th);p[i*3+1]=R*Math.cos(ph);p[i*3+2]=R*Math.sin(ph)*Math.sin(th);}
    const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(p,3));scene.add(new THREE.Points(g,new THREE.PointsMaterial({color:0xffffff,size:2.2,sizeAttenuation:false,transparent:true,opacity:.75})));}
@@ -99,7 +101,7 @@ vec3 c=texture2D(tScene,bhScreen+s).rgb;float ring=exp(-pow((r-1.5*rs)/(0.08*rs+
   const moonsOf=new Map<string,{m:any;mesh:any;body:any}[]>();let moonsBuilt=false;const mv=new THREE.Vector3(),mc=new THREE.Vector3();
   const planetMesh=new Map<string,THREE.Mesh>();const starObj=new Map<string,THREE.Object3D>();const stormObj=new Map<string,THREE.Sprite>();
   const _sv=new THREE.Vector3();const sphere=new THREE.SphereGeometry(1,32,20);
-  const diskTex=tex('accretion_disk_1024.png'),ringTex=tex('photon_ring_512.png'),stormTex=[tex('storm_cloud_violet_1024.png'),tex('storm_cloud_teal_1024.png')];
+  const diskTex=tex('accretion_disk_1024.png'),ringTex=tex('photon_ring_512.png'),stormTex=[roundTex('storm_cloud_violet_1024.png'),roundTex('storm_cloud_teal_1024.png')];
   // E5c (Cosmo deepspace art): a wormhole ring and an asteroid belt are ART placed from the real star layout (seeded, no Math.random);
   // storms get seeded lightning flashes. GLBs load lazily after the first frame so the universe opens fast.
   let decoDone=false;const boltTex=tex('lightning_4x2_256.png');boltTex.repeat.set(1/4,1/2);const bolts=new Map<string,THREE.Sprite>();let mixer:THREE.AnimationMixer|null=null;const belt:THREE.Object3D[]=[];
