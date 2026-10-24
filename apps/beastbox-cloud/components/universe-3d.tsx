@@ -5,6 +5,7 @@
 // Art: Cosmo's deepspace sheets (accretion disk + photon ring on real black-hole remnants, storm clouds on real storms).
 // Seeded only (string hash LCG from the universe seed); no Math.random.
 import {allStorms} from '@/lib/universe/seeded-storms.mjs';
+import {seededBlackHoles,seededInfall,BH_LABEL} from '@/lib/universe/seeded-black-holes.mjs';
 import {useEffect,useRef,useState} from 'react';
 import * as THREE from 'three';
 import {isSoftwareGL} from '@/lib/three/soft-gl';
@@ -61,11 +62,11 @@ vec3 c=texture2D(tScene,bhScreen+s).rgb;float ring=exp(-pow((r-1.5*rs)/(0.08*rs+
 #include <colorspace_fragment>
 }`});
   lensScene.add(new THREE.Mesh(new THREE.PlaneGeometry(2,2),lensMat));const bhV=new THREE.Vector3(),bhC=new THREE.Vector3();
-  const renderLensed=()=>{let best:THREE.Object3D|null=null,bd=1e9;for(const g of starObj.values()){if(!g.userData.bh)continue;g.getWorldPosition(bhV);const dd=bhV.distanceTo(cam.position);if(dd<bd){bd=dd;best=g;}}
+  let seededBH:THREE.Group|null=null;const renderLensed=()=>{let best:THREE.Object3D|null=null,bd=1e9;for(const g of [...starObj.values(),...(seededBH?[seededBH]:[])]){if(!g.userData.bh)continue;g.getWorldPosition(bhV);const dd=bhV.distanceTo(cam.position);if(dd<bd){bd=dd;best=g;}}
    if(!lensOn||!best){renderer.render(scene,cam);return;}
    best.getWorldPosition(bhC);const p=bhC.clone().project(cam);const on=p.z<1&&Math.abs(p.x)<1.3&&Math.abs(p.y)<1.3;if(!on){renderer.render(scene,cam);return;}
    const sz=renderer.getDrawingBufferSize(new THREE.Vector2());if(rt.width!==sz.x||rt.height!==sz.y)rt.setSize(sz.x,sz.y);
-   const rsS=(2.2/Math.max(.01,bd))/Math.tan(cam.fov*Math.PI/360)*0.5;lensMat.uniforms.bhScreen.value.set((p.x+1)/2,(p.y+1)/2);lensMat.uniforms.rs.value=Math.min(.25,rsS);
+   const rsS=((best!.userData.bhR||2.2)/Math.max(.01,bd))/Math.tan(cam.fov*Math.PI/360)*0.5;lensMat.uniforms.bhScreen.value.set((p.x+1)/2,(p.y+1)/2);lensMat.uniforms.rs.value=Math.min(.25,rsS);
    lensMat.uniforms.aspect.value=cam.aspect;lensMat.uniforms.strength.value=Math.min(1,Math.max(0,(1.3-Math.max(Math.abs(p.x),Math.abs(p.y)))/0.3));
    renderer.setRenderTarget(rt);renderer.render(scene,cam);renderer.setRenderTarget(null);renderer.render(lensScene,lensCam);};
 
@@ -128,7 +129,23 @@ vec3 c=texture2D(tScene,bhScreen+s).rgb;float ring=exp(-pow((r-1.5*rs)/(0.08*rs+
    const dt=Math.max(0,Math.min(.1,t-lastT));lastT=t;mixer?.update(dt);for(const g of belt)g.rotation.y=t*g.userData.spin;}
   const bioCache=new Map<string,THREE.Texture>();const bioLoader=new THREE.TextureLoader();let csT:THREE.Texture|null=null,ccT:THREE.Texture|null=null;const cleanSunTex=()=>{if(!csT){csT=bioLoader.load('/universe/planets/handoff/sun_clean/sun_clean_sprite_add_1024.png');csT.colorSpace=THREE.SRGBColorSpace;csT.anisotropy=4;}return csT!;};const cleanCoronaTex=()=>{if(!ccT){ccT=bioLoader.load('/universe/planets/handoff/sun_clean/sun_clean_corona_add_4x4_256.png');ccT.colorSpace=THREE.SRGBColorSpace;}return ccT!;};let coronaT:THREE.Texture|null=null;const coronaTex=()=>{if(!coronaT){coronaT=bioLoader.load('/universe/livingworld/landforms/sky/sun_corona_512.png');coronaT.colorSpace=THREE.SRGBColorSpace;}return coronaT;};
   const biomeTex=(k:string,kind:'color'|'glow')=>{const key=k+'_'+kind;let t=bioCache.get(key);if(!t){t=bioLoader.load('/universe/livingworld/biomes/'+key+'.webp');if(kind==='color')t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=4;bioCache.set(key,t);}return t;};
+  /* SEEDED black hole (Cory's a.html physics; the recording has none): black sphere, his orange->violet noise accretion disk (RingGeometry 1.2R..3R),
+     photon ring, orbiting infall on Kepler orbits (w = sqrt(GM/r^3)), and the same screen-space lensing as real remnants. */
+  const buildSeededBH=(sb:any,U:any)=>{const R=sb.radius,g=new THREE.Group();g.position.set(sb.x,sb.y,sb.z);g.userData.bh=true;g.userData.bhR=R;g.userData.seeded=true;g.name='seeded-black-hole';
+   g.add(new THREE.Mesh(new THREE.SphereGeometry(R,48,24),new THREE.MeshBasicMaterial({color:0x000000})));
+   const pivot=new THREE.Group();pivot.rotation.x=sb.tilt;pivot.name='bh-pivot';g.add(pivot);
+   const dm=new THREE.ShaderMaterial({uniforms:{time:{value:0}},vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
+    fragmentShader:'uniform float time;varying vec2 vUv;float noise(vec2 p){return fract(sin(dot(p,vec2(12.9898,78.233)))*43758.5453);}void main(){float radius=length(vUv-0.5);float n=noise(floor(vUv*60.0)/60.0*5.0+time*0.2);vec3 color=mix(vec3(1.0,0.5,0.1),vec3(0.8,0.1,1.0),radius*2.0);gl_FragColor=vec4(color*(0.35+0.65*n),1.0)*clamp(1.0-radius*1.8,0.0,1.0);}',side:THREE.DoubleSide,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false});
+   const disk=new THREE.Mesh(new THREE.RingGeometry(R*sb.diskInner,R*sb.diskOuter,128),dm);disk.rotation.x=-Math.PI/2;disk.name='bh-disk';pivot.add(disk);
+   const ring=new THREE.Sprite(new THREE.SpriteMaterial({map:ringTex,blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));ring.scale.setScalar(R*3.3);g.add(ring);
+   const inf=seededInfall(sb,String(U.seed||'tiny'),160);const pos=new Float32Array(inf.length*3),col=new Float32Array(inf.length*3);inf.forEach((q,i)=>{const c=new THREE.Color().setRGB(1,0.5-0.4*q.hot,0.1+0.8*q.hot);col.set([c.r,c.g,c.b],i*3);});
+   const pg=new THREE.BufferGeometry();pg.setAttribute('position',new THREE.BufferAttribute(pos,3));pg.setAttribute('color',new THREE.BufferAttribute(col,3));
+   const pts=new THREE.Points(pg,new THREE.PointsMaterial({size:R*0.12,vertexColors:true,transparent:true,opacity:.9,blending:THREE.AdditiveBlending,depthWrite:false,sizeAttenuation:true}));pts.name='bh-infall';pts.userData.inf=inf;pivot.add(pts);
+   return g;};
+  const updateSeededBH=(t:number)=>{if(!seededBH)return;const pv=seededBH.getObjectByName('bh-pivot') as THREE.Group;const dm=(pv.getObjectByName('bh-disk') as THREE.Mesh).material as THREE.ShaderMaterial;dm.uniforms.time.value=t;
+   const pts=pv.getObjectByName('bh-infall') as THREE.Points;const inf=pts.userData.inf as any[];const a=(pts.geometry.attributes.position as THREE.BufferAttribute);inf.forEach((q,i)=>{const th=q.a0+q.w*t;a.setXYZ(i,Math.cos(th)*q.r,q.h,Math.sin(th)*q.r);});a.needsUpdate=true;};
   function build(){const U=uRef.current;if(!U)return;
+   if(!seededBH){const sb=seededBlackHoles(U)[0];if(sb){seededBH=buildSeededBH(sb,U);world.add(seededBH);(el as any).dataset.seededBh=BH_LABEL;const lb=document.createElement('div');lb.setAttribute('data-bh-label','');lb.textContent='Black hole · '+BH_LABEL+' (the recording has none; Cory’s a.html physics)';lb.style.cssText='position:absolute;left:52px;top:232px;z-index:3;font-size:11px;color:#ffd9b0;background:rgba(12,8,32,.62);border:1px solid #ff9a4d66;border-radius:10px;padding:3px 8px;max-width:min(70vw,300px);pointer-events:none';el!.appendChild(lb);}}
    for(const st of U.stars){if(starObj.has(st.id))continue;const g=new THREE.Group();g.position.copy(starPos(st));
     if(st.remnant==='black_hole'){g.userData.bh=true;g.add(new THREE.Mesh(new THREE.SphereGeometry(2.2,32,16),new THREE.MeshBasicMaterial({color:0x000000})));
      const disk=new THREE.Mesh(new THREE.PlaneGeometry(16,16),new THREE.MeshBasicMaterial({map:diskTex,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide}));disk.rotation.x=-Math.PI/2+0.25;disk.name='disk';g.add(disk);
@@ -172,7 +189,7 @@ vec3 c=texture2D(tScene,bhScreen+s).rgb;float ring=exp(-pow((r-1.5*rs)/(0.08*rs+
     if(!sp){sp=new THREE.Sprite(new THREE.SpriteMaterial({map:stormTex[sm.planet.length%2],transparent:true,depthWrite:false,opacity:.75,blending:THREE.AdditiveBlending}));world.add(sp);stormObj.set(sm.planet,sp);}
     sp.position.copy(p.position);sp.scale.setScalar(p.scale.x*(3+2*Math.min(1,sm.intensity/0.5)));}
    for(const[k,sp]of stormObj)if(!live.has(k)){world.remove(sp);stormObj.delete(k);}
-   for(const g of starObj.values()){const d=g.getObjectByName('disk');if(d)d.rotation.z=t*0.05;}
+   for(const g of starObj.values()){const d=g.getObjectByName('disk');if(d)d.rotation.z=t*0.05;}updateSeededBH(simT);
    addDeco();lightning(t);}
   // camera rig: spherical around a target, log distance
   let simT=0,simRate=1,pinned=false,yaw=0.6,pitch=0.5,logD=Math.log(30),goal=Math.log(30),doorV=0,doorPre=false,lastMs=0,lastDt=0,targetId:string|null=homeOf(uRef.current||{planets:[],life:[]});const tgt=new THREE.Vector3(),want=new THREE.Vector3();
@@ -204,7 +221,7 @@ vec3 c=texture2D(tScene,bhScreen+s).rgb;float ring=exp(-pow((r-1.5*rs)/(0.08*rs+
    const m:any=targetId?(planetMesh.get(targetId)||starObj.get(targetId)):null;const k=Math.min(1,Math.max(0,(d-260)/700));want.set(0,0,0);if(m)want.copy(m.position).multiplyScalar(1-k);tgt.lerp(want,1-Math.exp(-(lastDt||.016)*7.5)); /* frame-rate independent (0.125 at 60 fps): on a slow renderer the focus still keeps up with an orbiting planet */
    cam.position.set(tgt.x+d*Math.cos(pitch)*Math.sin(yaw),tgt.y+d*Math.sin(pitch),tgt.z+d*Math.cos(pitch)*Math.cos(yaw));cam.near=Math.max(0.02,d*0.01);cam.updateProjectionMatrix();cam.lookAt(tgt);
    if(targetId&&planetMesh.has(targetId)){const pm:any=planetMesh.get(targetId);const sg=starObj.get((uRef.current?.planets||[]).find((p:any)=>p.id===targetId)?.star);if(sg){const a1=pm.position.clone().project(cam),b1=sg.position.clone().project(cam);(window as any).__u3dSunDir={planet:targetId,screen:[+(b1.x-a1.x).toFixed(3),+(b1.y-a1.y).toFixed(3)],note:'NDC offset from the planet to its star; the lit limb must face this way'};}}
-   const s=zoomStage(d);if(s!==last){const wider=last==='Orbit'||last==='System'||last==='Neighbours'||last==='Universe';{const zk=zoomLineKind(last,s,{blackHole:(uRef.current?.stars||[]).some((q:any)=>q.remnant==='black_hole')});if(zk)showZLine(zk.kind,zk.key);}last=s;setStage(s);el.dataset.zoomStage=s;
+   const s=zoomStage(d);if(s!==last){const wider=last==='Orbit'||last==='System'||last==='Neighbours'||last==='Universe';{const zk=zoomLineKind(last,s,{blackHole:!!seededBH||(uRef.current?.stars||[]).some((q:any)=>q.remnant==='black_hole')});if(zk)showZLine(zk.kind,zk.key);}last=s;setStage(s);el.dataset.zoomStage=s;
     // a real zoom-in reached a world: Emeth's line for a planet or a star
     if(s==='Planet'&&wider&&targetId)aliveRef.current?.(starObj.has(targetId)?'zoom_star':'zoom_planet');}
    {const f=threadsRef.current?threadFade(d):0;const on=f>.02;threads.visible=on;origin.visible=on;if(on)drawThreads(f);
