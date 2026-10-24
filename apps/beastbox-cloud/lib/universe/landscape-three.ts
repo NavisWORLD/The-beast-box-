@@ -9,7 +9,7 @@ import {SURFACE_ART,ALIVE_ART} from './surface-three';
 type T=typeof import('three');type V3=import('three').Vector3;
 const TAU=Math.PI*2;
 /** Pad and ring ride a little above the sampled height so the (coarser) GPU terrain mesh never swallows them. World units (0.294 u = 1 m). */
-const PAD_LIFT=0.07,RING_LIFT=0.09;
+const PAD_LIFT=0.12,RING_LIFT=0.16,HMAX_M=0.9;
 const sstep=(a:number,b:number,x:number)=>{const t=Math.min(1,Math.max(0,(x-a)/(b-a)));return t*t*(3-2*t);};
 /** pure per-vertex hash in [0,1) (no RNG): same pad, same grain, every load */
 export const padHash=(i:number,j:number)=>{const s=Math.sin(i*12.9898+j*78.233)*43758.5453;return s-Math.floor(s);};
@@ -25,6 +25,11 @@ export function addLandscapes(THREE:T,parent:import('three').Object3D,o:Landscap
  const {R,mpu,hAt}=o;const root=new THREE.Group();root.name='landscapes';parent.add(root);
  const tmp=new THREE.Vector3(),tn=new THREE.Vector3(),tq=new THREE.Quaternion(),UP=new THREE.Vector3(0,1,0);
  const sp=(d:number[],lift:number,out=new THREE.Vector3())=>{tn.set(d[0],d[1],d[2]).normalize();return out.copy(tn).multiplyScalar(R+hAt(tn)+lift);};
+ // Decal surfaces ride the HIGHEST height within ~0.9 m (the GPU terrain mesh is coarser than the height map and would otherwise swallow them in the dips).
+ const q1=new THREE.Vector3(),q2=new THREE.Vector3(),q3=new THREE.Vector3();
+ const spMax=(d:number[],lift:number,out=new THREE.Vector3())=>{tn.set(d[0],d[1],d[2]).normalize();q1.set(-tn.z,0,tn.x);if(q1.lengthSq()<1e-6)q1.set(1,0,0);q1.normalize();q2.copy(tn).cross(q1);const e=HMAX_M/LANDSCAPE.worldRadiusM;
+  let h=hAt(tn);for(const [a,b] of [[1,0],[-1,0],[0,1],[0,-1]]){q3.copy(tn).addScaledVector(q1,a*e).addScaledVector(q2,b*e).normalize();h=Math.max(h,hAt(q3));}
+  return out.copy(tn).multiplyScalar(R+h+lift);};
  const col=(hex:string)=>new THREE.Color(hex);
  const items:any[]=[];
  for(const ls of o.landscapes){
@@ -34,22 +39,22 @@ export function addLandscapes(THREE:T,parent:import('three').Object3D,o:Landscap
   // ---- pad: polar grid, vertices on the terrain; colour/alpha follow rim_lerp in LINEAR light (THREE.Color holds linear values)
   const RN=12,SN=40;const pos=new Float32Array(((RN+1)*SN)*3),colv=new Float32Array(((RN+1)*SN)*4),idx:number[]=[];
   const cb=col(pad.base),cd=col(pad.detail),cr=col(pad.rim),co=col(pad.rim_outer),c=new THREE.Color();
-  for(let ri=0;ri<=RN;ri++){const f=ri/RN;const pf=padFrac(f);for(let si=0;si<SN;si++){const k=ri*SN+si;const d=ri===0?n:pointAt(n,si/SN*TAU,f*rad);sp(d,PAD_LIFT,tmp);pos[k*3]=tmp.x;pos[k*3+1]=tmp.y;pos[k*3+2]=tmp.z;
+  for(let ri=0;ri<=RN;ri++){const f=ri/RN;const pf=padFrac(f);for(let si=0;si<SN;si++){const k=ri*SN+si;const d=ri===0?n:pointAt(n,si/SN*TAU,f*rad);spMax(d,PAD_LIFT,tmp);pos[k*3]=tmp.x;pos[k*3+1]=tmp.y;pos[k*3+2]=tmp.z;
     c.copy(cb).lerp(cd,padHash(ri,si)*LOOK.pad.detail_noise.amount*(1-pf.toRim));c.lerp(cr,pf.toRim);c.lerp(co,pf.toOuter);colv[k*4]=c.r;colv[k*4+1]=c.g;colv[k*4+2]=c.b;colv[k*4+3]=pf.alpha;}}
   for(let ri=0;ri<RN;ri++)for(let si=0;si<SN;si++){const a=ri*SN+si,b=ri*SN+(si+1)%SN,a2=(ri+1)*SN+si,b2=(ri+1)*SN+(si+1)%SN;idx.push(a,a2,b,b,a2,b2);}
   const pg=new THREE.BufferGeometry();pg.setAttribute('position',new THREE.BufferAttribute(pos,3));pg.setAttribute('color',new THREE.BufferAttribute(colv,4));pg.setIndex(idx);
-  const padMat=new THREE.MeshBasicMaterial({vertexColors:true,transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2,fog:false});
+  const padMat=new THREE.MeshBasicMaterial({vertexColors:true,transparent:true,depthWrite:false,side:THREE.DoubleSide,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2,fog:false});
   const padMesh=new THREE.Mesh(pg,padMat);padMesh.renderOrder=2;padMesh.frustumCulled=false;group.add(padMesh);
   // ---- play ring (inner + outer) and four ticks N/E/S/W (view-layer decal; terrain-following ribbons)
   const rp:number[]=[],rc:number[]=[],ri2:number[]=[];const hw=(LOOK.ring.ring_width_m/2)/LANDSCAPE.worldRadiusM;const ringC=col(rcfg.ring),tickC=(rcfg.ticks as string[]).map(col);
-  const pushQ=(pa:number[],pb:number[],cc:any,a:number)=>{const base=rp.length/3;for(const d of [pa,pb]){sp(d,RING_LIFT,tmp);rp.push(tmp.x,tmp.y,tmp.z);rc.push(cc.r,cc.g,cc.b,a);}return base;};
+  const pushQ=(pa:number[],pb:number[],cc:any,a:number)=>{const base=rp.length/3;for(const d of [pa,pb]){spMax(d,RING_LIFT,tmp);rp.push(tmp.x,tmp.y,tmp.z);rc.push(cc.r,cc.g,cc.b,a);}return base;};
   const strip=(pts:number[][][],cc:any,a:number,close:boolean)=>{let prev=-1,first=-1;for(const [pa,pb] of pts){const b=pushQ(pa,pb,cc,a);if(prev>=0)ri2.push(prev,prev+1,b,prev+1,b+1,b);else first=b;prev=b;}if(close&&first>=0&&prev>=0)ri2.push(prev,prev+1,first,prev+1,first+1,first);};
   const ringPts=(fr:number)=>Array.from({length:49},(_,i)=>{const b=i/48*TAU;return [pointAt(n,b,Math.max(1e-4,fr*rad-hw)),pointAt(n,b,fr*rad+hw)];});
   const rIn=LOOK.ring.inner_ring_radius_frac,rOut=LOOK.ring.outer_ring_radius_frac;
   strip(ringPts(rIn).slice(0,48),ringC,1,true);strip(ringPts(rOut).slice(0,48),ringC,1,true);
   for(let k=0;k<4;k++){const b=ls.yaw+k*Math.PI/2;const pts=Array.from({length:7},(_,i)=>{const dd=(rIn+(rOut-rIn)*i/6)*rad;const dl=hw/Math.max(dd,1e-3);return [pointAt(n,b-dl,dd),pointAt(n,b+dl,dd)];});strip(pts,tickC[k],LOOK.ring.tick_alpha_mul,false);}
   const rg=new THREE.BufferGeometry();rg.setAttribute('position',new THREE.Float32BufferAttribute(rp,3));rg.setAttribute('color',new THREE.Float32BufferAttribute(rc,4));rg.setIndex(ri2);
-  const ringMat=new THREE.MeshBasicMaterial({vertexColors:true,transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-4,polygonOffsetUnits:-4,fog:false});
+  const ringMat=new THREE.MeshBasicMaterial({vertexColors:true,transparent:true,depthWrite:false,side:THREE.DoubleSide,polygonOffset:true,polygonOffsetFactor:-4,polygonOffsetUnits:-4,fog:false});
   const ringMesh=new THREE.Mesh(rg,ringMat);ringMesh.renderOrder=3;ringMesh.frustumCulled=false;detail.add(ringMesh);
   const it:any={ls,n:new THREE.Vector3(n[0],n[1],n[2]),group,detail,padMat,ringMat,pad,lamps:[] as any[],mode:'gather',stormSm:0,stormOn:false,storm_t:0,night_t:0,lampLevel:0,far:false,pieces:0,ready:false,
    cb,cd,pos:sp(landscapeAnchors(ls).lamp,0.9*mpu)};
