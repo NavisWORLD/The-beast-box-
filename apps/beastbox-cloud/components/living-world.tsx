@@ -31,6 +31,7 @@ const {createWorldField,stepWorldField,legendAt,fieldRGBA,createCreatureLoop,ste
 import {addVolcanoIsland,addCosmoSky,sheet as lfSheet,LF as LANDF} from '@/lib/universe/landforms-three';
 import {createWorldCues,stepWorldCues} from '@/lib/universe/world-mechanics.mjs';
 import {isSoftwareGL} from '@/lib/three/soft-gl';
+import {addBeachShore} from '@/lib/universe/beach-shore-three';
 import {addMechanics,createAsciiPass,underwaterColor} from '@/lib/universe/mechanics-three';
 import {weatherFrom,createMover,stepMover,createWater,stepWater,waterTotal} from '@/lib/universe/world-mechanics.mjs';
 import {LW_LABELS,gatheringPoints,spreadAngle,initialTraits,driftTraits,lattice12D,lwStream,unitFrom} from '@/lib/universe/living-world.mjs';
@@ -154,7 +155,7 @@ export default function LivingWorld({genome,beastKey,beastName,onClose,embedded=
     biomeOf=(n)=>{const id=legendAt(field,[n.x,n.y,n.z]);return (COSMO_TO_LW[id]||'plains');};cosmoNameOf=(n)=>legendAt(field,[n.x,n.y,n.z]).replace(/_/g,' ').replace(/\b\w/g,(m:string)=>m.toUpperCase());
     (window as any).__lwField=()=>({tick:field.tick,changed:field.changed,tension:+field.storm.toFixed(3),lorenz:{...field.S.L},records:expLog.length,beast:beastLoop.S.ch,zeref:zerefLoop.S.ch});};
    // ---- the Cage surface everywhere: Cosmo's ground cover + trees, instanced, planted from the seed per biome (one renderer: lib/universe/surface-three)
-   let surface:any=null;let island:any=null;let mech:any=null;let water:any=null;let weather:any={cloud:.3,rain:0,wind:[0,0]};const mover=createMover();const ascii=createAsciiPass(THREE,renderer,{phone});cleanup.push(()=>ascii.dispose());
+   let surface:any=null;let island:any=null;let beach:any=null;let mech:any=null;let water:any=null;let weather:any={cloud:.3,rain:0,wind:[0,0]};const mover=createMover();const ascii=createAsciiPass(THREE,renderer,{phone});cleanup.push(()=>ascii.dispose());
    const buildSurface=()=>{if(surface||disposed)return;const tintOf:Record<string,[number,number,number]>={};for(const L of (legend?.biomes||[])){const c=parseInt(L.rgb.slice(1),16);tintOf[L.id]=[(c>>16)/255,((c>>8)&255)/255,(c&255)/255];}
     const tv=new THREE.Vector3();
     surface=addCageSurface(THREE,scene,{seed:u.seed+':surface',R:PR,mpu:TRAV_H/1.7,size:1.5,budget:phone?.22:.55,
@@ -168,6 +169,11 @@ export default function LivingWorld({genome,beastKey,beastName,onClose,embedded=
      if(!pick)pick=new THREE.Vector3(...(unitFrom(r) as number[]));
      island=softGL?null:addVolcanoIsland(THREE,scene,{seed:u.seed,R:PR,mpu:TRAV_H/1.7,scale:.07,n:pick,phone});
      island.ready.then(()=>{(window as any).__lwIsland={n:pick.toArray().map((x:number)=>+x.toFixed(3)),biome:field?legendAt(field,pick.toArray()):cosmoBiome(pick),...island.state()};}).catch((e:any)=>{(window as any).__lwIslandErr=String(e);});}
+    // Pocket beach shoreline: a seeded 'beach' cell of the world field (else the coast next to the sea), away from the beast; terrain, not a tab
+    {const r=lwStream(u.seed+':beach');let pick:any=null;for(const w of ['beach','shallow_ocean']){for(let i=0;i<200&&!pick;i++){const d=unitFrom(r) as number[];const v=new THREE.Vector3(d[0],d[1],d[2]);if(v.dot(gpts[0])>.9)continue;const id=field?legendAt(field,d):cosmoBiome(v);if(id===w)pick=v;}if(pick)break;}
+     if(!pick)pick=new THREE.Vector3(...(unitFrom(r) as number[]));
+     beach=addBeachShore(THREE,scene,{seed:u.seed,R:PR,mpu:TRAV_H/1.7,scale:.05,n:pick,phone});(window as any).__lwBeach={biome:field?legendAt(field,pick.toArray()):cosmoBiome(pick),...beach.state()};
+     beach.ready.then((ok:boolean)=>{(window as any).__lwBeach={biome:field?legendAt(field,pick.toArray()):cosmoBiome(pick),...beach.state(),glb:ok};});}
     surface.ready.then((c:any)=>{if(disposed)return;blades.visible=false;(window as any).__lwSurface={counts:c,meshes:surface.meshes.length};}).catch((e:any)=>{(window as any).__lwSurfaceErr=String(e);});};
    let fieldAcc=0;
    const fieldStep=(dt:number,sunV:import('three').Vector3,activity:number)=>{if(!field)return;
@@ -460,7 +466,7 @@ uniform vec3 uPlay[8];
      const dayL=Math.max(.1,h*.8+.2);sun.intensity=2.2*dayL;sun.color.copy(starCol).lerp(SKY_DUSK,Math.max(0,1-Math.abs(h)/.2)*.35);hemi.intensity=1.4*Math.max(.12,h*.3+.25);
      sunDisc.position.copy(sunDir).multiplyScalar(160);starMesh.position.copy(sunDisc.position);moon.position.copy(sunDir).multiplyScalar(-70).add(new THREE.Vector3(0,12,0));
      const ground3=zC<.6;const day=ground3?THREE.MathUtils.smoothstep(h,-.12,.35):0;const dusk=ground3?Math.max(0,1-Math.abs(h)/.18)*.7:0;
-     (scene.background as any).copy(SKY_NIGHT).lerp(SKY_DAY,day).lerp(SKY_DUSK,dusk*(1-day*.5));cosmoSky.update(t,1-day*.97,camera.position);nova.update(dt);if(nova.playing)nova.sp.scale.setScalar(30+40*Math.min(1,nova.sp.material.map!.offset.x+1-nova.sp.material.map!.offset.y));island?.update(dt,camera.position);if(starMat)starMat.opacity=1-day*.95;
+     (scene.background as any).copy(SKY_NIGHT).lerp(SKY_DAY,day).lerp(SKY_DUSK,dusk*(1-day*.5));cosmoSky.update(t,1-day*.97,camera.position);nova.update(dt);if(nova.playing)nova.sp.scale.setScalar(30+40*Math.min(1,nova.sp.material.map!.offset.x+1-nova.sp.material.map!.offset.y));island?.update(dt,camera.position);beach?.update(dt);if(starMat)starMat.opacity=1-day*.95;
      // wind: heated by the sun, gusts with storms; drives grass sway and fur
      windS=.25+.35*Math.max(0,h)+storming*.6;windV.applyAxisAngle(fN,dt*.03);try{zDrv?.update(dt);}catch{}zHold.rotateY(dt*.05);fieldStep(dt,sunDir,Math.min(1,joy.current.active?1:0)+(spawnRef.current?.3:0));if(field?.mp){windV.x+=(field.mp.wind.x-windV.x)*dt*.2;windV.z+=(field.mp.wind.z-windV.z)*dt*.2;}storming=Math.max(0,storming-dt*.15);bladeMat.uniforms.uGust.value=W.gust_amp*(.6+windS*1.4);
      // sunrise at the beast: wonder
