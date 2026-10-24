@@ -7,6 +7,7 @@ from beastbox.routing import ROUTING, ROUTING_PATH, banded_step, rigetti_source,
 from beastbox.state_family import StateFamily
 
 NOW = 1_000_000.0
+ON_DEVICE = {"feature_extraction": "on-device", "raw_retained": False}
 REC = json.loads(Path("apps/beastbox-cloud/public/spark/rigetti-qvm-sim.json").read_text())["scenario_records"][0]["batches"][0]
 
 
@@ -48,15 +49,48 @@ def test_control_sources_are_masked():
 
 
 def test_measured_audio_routes_to_d1_and_band1():
-    out = route({"audio": {"kind": "measured", "captured_at": NOW - 1, "features": {"rms": 0.25}}}, now=NOW)
+    out = route({"audio": {"kind": "measured", "captured_at": NOW - 1, "features": {"rms": 0.25},
+                           "provenance": ON_DEVICE}}, now=NOW)
     assert out["d12"][0] == 0.25 and out["d42"][6] == 0.25
     assert out["receipts"][0]["cls"] == "real"
 
 
 @pytest.mark.parametrize("bad", [{"pcm": 1.0}, {"voice": 0.1}, {"rms": [0.1, 0.2]}, {"rms": float("nan")}])
-def test_private_raw_signals_refused(bad):
+def test_only_named_finite_scalar_features_enter(bad):
     with pytest.raises(ValueError):
-        route({"audio": {"kind": "measured", "captured_at": NOW, "features": bad}}, now=NOW)
+        route({"audio": {"kind": "measured", "captured_at": NOW, "features": bad, "provenance": ON_DEVICE}}, now=NOW)
+
+
+def test_raw_payloads_cannot_ride_in_other_fields():
+    base = {"kind": "measured", "captured_at": NOW, "features": {"rms": 0.1}, "provenance": ON_DEVICE}
+    for extra in ({"samples": [0.0] * 8}, {"pcm_base64": "AAAA"}):
+        with pytest.raises(ValueError):
+            route({"audio": dict(base, **extra)}, now=NOW)
+    with pytest.raises(ValueError):
+        route({"audio": dict(base, provenance=dict(ON_DEVICE, waveform=[0.1, 0.2]))}, now=NOW)
+    with pytest.raises(ValueError):
+        route({"audio": dict(base, provenance=dict(ON_DEVICE, blob="x" * 500))}, now=NOW)
+    with pytest.raises(ValueError):
+        route({"unknown_source": base}, now=NOW)
+
+
+def test_private_measured_source_must_declare_on_device_extraction():
+    src = {"kind": "measured", "captured_at": NOW, "features": {"rms": 0.1}}
+    with pytest.raises(ValueError):
+        route({"audio": src}, now=NOW)
+    with pytest.raises(ValueError):
+        route({"audio": dict(src, provenance={"feature_extraction": "on-device", "raw_retained": True})}, now=NOW)
+    route({"audio": dict(src, provenance={"feature_extraction": "on-box", "raw_retained": False})}, now=NOW)
+
+
+def test_voice_and_music_feed_the_audio_band_with_origin_and_feature_hash():
+    voice = {"kind": "measured", "captured_at": NOW - 2, "features": {"rms": 0.3, "spectral_centroid": -0.2}, "provenance": ON_DEVICE}
+    music = {"kind": "measured", "captured_at": NOW - 1, "features": {"rms": 0.6}, "provenance": ON_DEVICE}
+    out = route({"voice": voice, "music": music}, now=NOW)
+    rms = out["receipts"][0]
+    assert rms["origin"] == "music" and out["d12"][0] == 0.6  # freshest audio-class source wins
+    cen = [r for r in out["receipts"] if r["feature"] == "spectral_centroid" and r["slot"] == "D9"][0]
+    assert cen["origin"] == "voice" and len(cen["feature_sha256"]) == 64
 
 
 def test_routed_update_is_additive_and_banded():
