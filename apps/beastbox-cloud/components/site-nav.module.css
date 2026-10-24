@@ -15,3 +15,6 @@
 @media(min-width:760px){.sheet{left:auto;top:0;bottom:0;width:380px;max-height:none;border-radius:20px 0 0 20px;align-content:start}}
 /* desktop: no full-width band (keeps every page's own header/room nav); a Menu tab on the free right edge */
 @media(min-width:760px){.bar{position:fixed;z-index:45;top:42%;right:0;left:auto;background:none;border:0;min-height:0;padding:0}.brand{display:none}.barBtn{writing-mode:vertical-rl;min-height:0;padding:12px 7px;border-radius:12px 0 0 12px;border-right:0;letter-spacing:.12em}.pill{display:none}}
+.hint{margin:2px 6px 4px;font-size:12px;color:#a9c8dc}
+.foot{margin:12px 6px 8px;padding-top:8px;border-top:1px solid #234a63;display:flex;flex-direction:column;gap:2px;font-size:12px;color:#cfe6f2}
+.foot small{font-size:11px;opacity:.75}

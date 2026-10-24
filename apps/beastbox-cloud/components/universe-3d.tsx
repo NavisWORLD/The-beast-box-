@@ -28,6 +28,10 @@ const BIOME_MAP:Record<string,string>={ember:'ember_world',paper:'paper_sea',jel
 const BIOME_HEX:Record<string,number>={ember:0xff7a2a,paper:0xe9d9b0,jelly:0x8fa8ff,sunflower:0xffd24a,moss:0x8fd06a,glacier:0xdff2ff};
 function rand(seed:string){let h=0;for(const c of seed)h=(h*31+c.charCodeAt(0))>>>0;return()=>{h=(h*1664525+1013904223)>>>0;return h/2**32;};}
 import {zoomLineKind,doorLineKind,zoomLine,noticeLine,noticeGate} from '@/lib/universe/zoom-lines.mjs';
+import {growthNodesAt,growthHomeWorld} from '@/lib/universe/seeded-growth-nodes.mjs';
+import {growthZoomLine,planetWords} from '@/lib/universe/growth-copy.mjs';
+/** Emeth zoom_growth line for the home world, derived from the SEEDED nodes' SIMULATED state (null when there are none). */
+const growthLineFor=(u:any):string|null=>{try{if(!u?.planets?.length)return null;const home=growthHomeWorld(u);const nodes=growthNodesAt(u,u.tick).filter((n:any)=>n.planet===home);return nodes.length?growthZoomLine(nodes,planetWords(home,home),String(u.seed||'tiny'),Math.floor((u.tick||0)/20)):null;}catch{return null;}};
 export const ZOOM_MIN=1.2,ZOOM_MAX=1400;
 /* Zoom-out has no hard stop any more: ZOOM_MAX is the old comfortable range, ZOOM_LIMIT is only a float32-precision guard (10,000x beyond it).
    Past ZOOM_MAX the far plane and the background star shell grow with the camera distance, so nothing is cut or clipped. */
@@ -45,7 +49,7 @@ export default function Universe3D({u,beast,onSelect,onAlive,doorOn=false,onDoor
  useEffect(()=>{let dead=false;const load=()=>fetch('/api/cosmos/activity',{cache:'no-store'}).then(r=>r.ok?r.json():null).then(j=>{if(dead||!j?.creatures)return;activity.current=j.creatures;const n=j.creatures.length;setActivityNote(n?`${n} creature${n===1?'':'s'} · brightness = how recently its own loop ticked`:'no creature loop activity reported');}).catch(()=>{if(!dead)setActivityNote('loop activity unavailable · threads drawn at the faint floor');});load();const iv=setInterval(load,300000);return()=>{dead=true;clearInterval(iv);};},[]);
  const host=useRef<HTMLDivElement>(null);const uRef=useRef(u);uRef.current=u;const sel=useRef(onSelect);sel.current=onSelect;
  const [zline,setZline]=useState<{text:string;key:string;n:number}|null>(null);const zlineN=useRef(0);const zlineT=useRef(0);
- const showZLine=(kind:'zoom_out'|'zoom_in',key:string|null)=>{if(!key)return;const text=zoomLine(kind,key,String(uRef.current?.seed||'tiny'),zlineN.current);if(!text)return;zlineN.current++;setZline({text,key,n:zlineN.current});window.clearTimeout(zlineT.current);zlineT.current=window.setTimeout(()=>setZline(null),5200);};
+ const showZLine=(kind:'zoom_out'|'zoom_in',key:string|null,override?:string|null)=>{if(!key)return;const text=override||zoomLine(kind,key,String(uRef.current?.seed||'tiny'),zlineN.current);if(!text)return;zlineN.current++;setZline({text,key,n:zlineN.current});window.clearTimeout(zlineT.current);zlineT.current=window.setTimeout(()=>setZline(null),5200);};
  const beastRef=useRef(beast);beastRef.current=beast;const nGate=useRef<any>(null),nN=useRef(0),nT=useRef(0);const [notice,setNotice]=useState<{text:string;key:string;n:number}|null>(null);
  /* Emeth's creature_notices, text verbatim; {beast} = the active beast's name. One at a time, with a quiet gap (noticeGate). */
  const showNotice=(key:string,gapMs?:number)=>{const g=noticeGate(nGate.current,key,performance.now(),gapMs);nGate.current=g.state;if(!g.show)return;const text=noticeLine(key,beastRef.current||'Your beast',String(uRef.current?.seed||'tiny'),nN.current);if(!text)return;nN.current++;setNotice({text,key,n:nN.current});window.clearTimeout(nT.current);nT.current=window.setTimeout(()=>setNotice(null),6000);};
@@ -234,7 +238,7 @@ vec3 c=texture2D(tScene,bhScreen+s).rgb;float ring=exp(-pow((r-1.5*rs)/(0.08*rs+
     else if(!bhNear&&!bhFar&&seen&&dB>R*30){bhFar=true;showNotice('black_hole_far');}
     el.dataset.bhDist=String(Math.round(dB/R));{const lb=el.querySelector('[data-bh-label]') as HTMLElement|null;if(lb){const z2=zoomStage(d);lb.style.display=(doorV<.05&&(z2!=='Surface'||targetId==='seeded-bh-0')&&(dB<R*40||z2==='System'||z2==='Neighbours'||z2==='Universe'))?'':'none';}}}
    {const zs=zoomStage(d);if(targetId&&stormObj.has(targetId)&&(zs==='Planet'||zs==='Surface'))showNotice('storm_near');else if(stormObj.size&&(zs==='Orbit'||zs==='System'))showNotice('storm_far');}
-   const s=zoomStage(d);if(s!==last){const wider=last==='Orbit'||last==='System'||last==='Neighbours'||last==='Universe';{const zk=zoomLineKind(last,s,{blackHole:!!seededBH||(uRef.current?.stars||[]).some((q:any)=>q.remnant==='black_hole')});if(zk)showZLine(zk.kind,zk.key);}last=s;setStage(s);el.dataset.zoomStage=s;
+   const s=zoomStage(d);if(s!==last){const wider=last==='Orbit'||last==='System'||last==='Neighbours'||last==='Universe';{const zk=zoomLineKind(last,s,{blackHole:!!seededBH||(uRef.current?.stars||[]).some((q:any)=>q.remnant==='black_hole')});if(zk){const gl=zk.kind==='zoom_in'&&(s==='Orbit'||s==='Planet')?growthLineFor(uRef.current):null;showZLine(zk.kind,zk.key,gl);}}last=s;setStage(s);el.dataset.zoomStage=s;
     // a real zoom-in reached a world: Emeth's line for a planet or a star
     if(s==='Planet'&&wider&&targetId)aliveRef.current?.(starObj.has(targetId)?'zoom_star':'zoom_planet');}
    {const f=threadsRef.current?threadFade(d):0;const on=f>.02;threads.visible=on;origin.visible=on;if(on)drawThreads(f);

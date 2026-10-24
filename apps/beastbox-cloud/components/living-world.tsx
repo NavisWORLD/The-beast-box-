@@ -34,6 +34,7 @@ import {isSoftwareGL} from '@/lib/three/soft-gl';
 import {addBeachShore} from '@/lib/universe/beach-shore-three';
 import {addOceanLife} from '@/lib/universe/ocean-life-three';
 import {noticeLine,noticeGate} from '@/lib/universe/zoom-lines.mjs';
+import {growthChip,growthNoteKey,growthDriveKey,growthNoteLine} from '@/lib/universe/growth-copy.mjs';
 import {addMechanics,createAsciiPass,underwaterColor} from '@/lib/universe/mechanics-three';
 import {weatherFrom,createMover,stepMover,createWater,stepWater,waterTotal} from '@/lib/universe/world-mechanics.mjs';
 import {LW_LABELS,gatheringPoints,spreadAngle,initialTraits,driftTraits,lattice12D,lwStream,unitFrom} from '@/lib/universe/living-world.mjs';
@@ -56,7 +57,7 @@ type Traits={curiosity:number;sociality:number;calm:number;joy:number;experience
 export default function LivingWorld({genome,beastKey,beastName,onClose,embedded=false,onExpand,door=false,onOrbitOut}:{genome?:PlushGenome|null;beastKey?:string|null;beastName?:string|null;onClose?:()=>void;embedded?:boolean;onExpand?:()=>void;door?:boolean;onOrbitOut?:()=>void}){
  // door: mounted inside /universe as the pocket world's end of the one continuous zoom (orbit view, no storage, no full-screen takeover)
  const orbitOutRef=useRef(onOrbitOut);orbitOutRef.current=onOrbitOut;const [beachCam,setBeachCam]=useState(false);const seaJump=useRef(0);const beachCamRef=useRef(false);beachCamRef.current=beachCam;
- const host=useRef<HTMLDivElement>(null);const hudBiome=useRef<HTMLSpanElement>(null);const hudSea=useRef<HTMLSpanElement>(null);const canvasRef=useRef<HTMLCanvasElement>(null);
+ const host=useRef<HTMLDivElement>(null);const hudBiome=useRef<HTMLSpanElement>(null);const hudSea=useRef<HTMLSpanElement>(null);const hudGN=useRef<HTMLSpanElement>(null);const hudHome=useRef<HTMLSpanElement>(null);const hudGNx=useRef<HTMLParagraphElement>(null);const canvasRef=useRef<HTMLCanvasElement>(null);
  const [spawned,setSpawned]=useState(()=>{if(embedded||door)return false;try{return sessionStorage.getItem('lw:spawned')==='1';}catch{return false;}});const [watch,setWatch]=useState(embedded);const watchRef=useRef(false);watchRef.current=watch;const spawnRef=useRef(false);
  const [hud,setHud]=useState<{tick:number;simE:number|null;life:number;storms:number;cover:number;traits:Traits|null;blades:number;fps:number;learned?:Record<string,number>;awake?:number}>({tick:0,simE:null,life:0,storms:0,cover:0,traits:null,blades:0,fps:0});
  const [err,setErr]=useState<string|null>(null);const [booted,setBooted]=useState(false);const [line,setLine]=useState<string|null>(null);const lineRef=useRef(setLine);lineRef.current=setLine;
@@ -172,7 +173,7 @@ export default function LivingWorld({genome,beastKey,beastName,onClose,embedded=
    // test-only URL params (default behaviour unchanged): ?hold=1 freezes the camera (no drift, no zoom) and holds the time of day; ?growthdebug=1 shows a readout of the nearest growth node and tap counts
     const HOLD=/[?&]hold=1\b/.test(location.search),GDBG=/[?&]growthdebug=1\b/.test(location.search);const hz:{m:string;z:number;a:number|null}={m:'',z:0,a:null};const gTaps:Record<string,number>={};let gDbgEl:HTMLElement|null=null,gDbgT=0;
     (window as any).__lwTestParams={hold:HOLD,growthdebug:GDBG};
-   let gSnap:any[]=[];const growthNow=()=>{const sn=new Map(gSnap.map((n:any)=>[n.id,n]));return growthNodesAt(u,u.tick).filter((n:any)=>sn.has(n.id)).map((n:any)=>({...n,lat:sn.get(n.id).lat,lon:sn.get(n.id).lon,view_snapped:sn.get(n.id).view_snapped}));};
+   let growthUi:()=>void=()=>{};let gSnap:any[]=[];const growthNow=()=>{const sn=new Map(gSnap.map((n:any)=>[n.id,n]));return growthNodesAt(u,u.tick).filter((n:any)=>sn.has(n.id)).map((n:any)=>({...n,lat:sn.get(n.id).lat,lon:sn.get(n.id).lon,view_snapped:sn.get(n.id).view_snapped}));};
    const buildSurface=()=>{if(surface||disposed)return;const tintOf:Record<string,[number,number,number]>={};for(const L of (legend?.biomes||[])){const c=parseInt(L.rgb.slice(1),16);tintOf[L.id]=[(c>>16)/255,((c>>8)&255)/255,(c&255)/255];}
     const tv=new THREE.Vector3();
     // Growth nodes (SEEDED placement from the recorded-IBM seed, SIMULATED tick). The home world's nodes (including the SEEDED home-world exception) are moved by the VIEW to the nearest habitat the tint pack covers.
@@ -199,7 +200,7 @@ export default function LivingWorld({genome,beastKey,beastName,onClose,embedded=
      beach.ready.then((ok:boolean)=>{(window as any).__lwBeach={biome:field?legendAt(field,pick.toArray()):cosmoBiome(pick),...beach.state(),glb:ok};});}
     // seeded ocean life (fish schools, rays, whales, plankton glow): only in water cells of the world field
     try{if(!(window as any).__lwNoOcean)ocean=addOceanLife(THREE,scene,{seed:u.seed,R:PR,mpu:TRAV_H/1.7,phone,life:Math.max(.4,Math.min(1.6,.6+((u.life||[]).length||0)*.15)),isWater:(d:number[])=>{const id=field?legendAt(field,d):(cosmoBiome(tv.set(d[0],d[1],d[2]))||'');return WATER_IDS.has(id)?id:null;}});cleanup.push(()=>ocean?.dispose());(window as any).__lwOcean=ocean.state();{const w0=ocean.data.schools.find((x:any)=>x.kind==='whale')||ocean.data.schools[0];if(w0)(window as any).__lwOceanN=new THREE.Vector3(w0.n[0],w0.n[1],w0.n[2]);}}catch(e){(window as any).__lwOceanErr=String(e);}
-    (window as any).__lwGrowthInfo=()=>surface?.growthInfo?.();surface.ready.then((c:any)=>{if(disposed)return;blades.visible=false;(window as any).__lwSurface={counts:c,meshes:surface.meshes.length};}).catch((e:any)=>{(window as any).__lwSurfaceErr=String(e);});};
+    (window as any).__lwGrowthInfo=()=>surface?.growthInfo?.();try{growthUi();}catch{}surface.ready.then((c:any)=>{if(disposed)return;blades.visible=false;(window as any).__lwSurface={counts:c,meshes:surface.meshes.length};}).catch((e:any)=>{(window as any).__lwSurfaceErr=String(e);});};
    let fieldAcc=0;
    const fieldStep=(dt:number,sunV:import('three').Vector3,activity:number)=>{if(!field)return;
     const heat=Math.min(1,Math.max(0,((homeStar?.temperature_k||5800)-3000)/6000));
@@ -363,6 +364,7 @@ uniform vec3 uPlay[8];
     {const hl=Math.max(0,gpts[0].dot(sunDir));const wet=({ocean:1,beach:.9,papersea:1,mushroom:1,plains:.8,heartwood:.9,pine:.7,tundra:.5,glacier:.3,ember:.2,peaks:.3} as any)[biomeOf(gpts[0])]??.6;growLW=Math.min(1.2,growLW+.004*hl*wet);try{localStorage.setItem('lw:growLW:'+bKey,String(growLW));}catch{}}
     traits=driftTraits(traits,u,bKey,exp||'day');glowBoost=1;alive.onTick(prev,u);UG.uSpread.value=Math.min(Math.PI,spreadAngle(u)+growLW);
     if(surface&&gSnap.length)try{surface.setGrowth(growthNow(),u.tick);}catch{}
+    try{growthUi();}catch{}
     try{localStorage.setItem('lw:universe',JSON.stringify(u));localStorage.setItem('lw:traits:'+bKey,JSON.stringify(traits));}catch{}};
    // ---- input
    const kd=(e:KeyboardEvent)=>{keys.current.add(e.key.toLowerCase());if(e.key.toLowerCase()==='f')setFlying(v=>!v);},ku=(e:KeyboardEvent)=>{keys.current.delete(e.key.toLowerCase());};
@@ -401,6 +403,13 @@ uniform vec3 uPlay[8];
    // physics + events state: gravity hop on the sphere, wind, storm puff, sunrise, meetings; greeting once per visit
    let exWalk=0,exBack=false,exRun=false;
    let nGate:any=null,nCount=0,stormSeen=false,stormHi=false;const notice=(key:string,gap=6000)=>{const g=noticeGate(nGate,key,performance.now(),gap);nGate=g.state;if(!g.show)return;const tx=noticeLine(key,beastName||'Your beast',String(u.seed),nCount++);if(tx)lineRef.current(tx);};/* Emeth's creature_notices, verbatim */
+   {let gKey:string|null=null,gDKey:string|null=null,gGate:any=null,gN=0;growthUi=()=>{const nodes=growthNow();const chip=growthChip(nodes);const el=hudGN.current,hm=hudHome.current,ex=hudGNx.current;
+    if(el){el.style.display=chip?'':'none';if(chip){el.textContent=chip.text;el.title=chip.explainer;el.dataset.stage=chip.stage;}}
+    if(hm){hm.style.display=chip?.homeText?'':'none';if(chip?.homeText)hm.textContent=chip.homeText;}
+    if(ex){ex.style.display=chip?'':'none';if(chip)ex.textContent=chip.explainer;}
+    // a line when what the nodes are doing changes (derived from the SIMULATED state; the first reading is silent)
+    const k=growthNoteKey(nodes),dk=growthDriveKey(nodes);const tryShow=(key:string|null)=>{if(!key)return;const g=noticeGate(gGate,'growth:'+key,performance.now(),20000,90000);gGate=g.state;if(!g.show)return;const tx=growthNoteLine(key,beastName||'Your beast',String(u.seed),gN++);if(tx)lineRef.current(tx);};
+    const dkS=dk||'';if(gKey!==null&&k&&k!==gKey)tryShow(k);else if(gKey!==null&&gDKey!==null&&dk&&dkS!==gDKey)tryShow(dk);if(k)gKey=k;if(gKey!==null)gDKey=dkS;};}
    let bY=0,bVY=0,puff=0,storming=0,windS=.3,greeted=false,lastSunH=0,evCool=0;const G_SURF=4.2;const windV=new THREE.Vector3(1,0,.4).normalize();const metCool:Record<string,number>={};
    const beastNm=beastName||'Your beast';const say=(s:string,cd=6)=>{if(evCool>0)return;evCool=cd;lineRef.current(s);};
    const hop=(v:number)=>{if(bY<=0.001)bVY=v;};
@@ -651,10 +660,10 @@ uniform vec3 uPlay[8];
   {embedded?<details data-lw-chips data-lw-info style={{position:'absolute',top:'calc(env(safe-area-inset-top) + 8px)',left:8,maxWidth:'calc(100% - 16px)',zIndex:3}}>
    <summary aria-label="About this world: what is recorded, simulated or modelled" style={{listStyle:'none',cursor:'pointer',width:30,height:30,borderRadius:'50%',display:'grid',placeItems:'center',background:'rgba(10,6,30,.78)',border:'1px solid rgba(190,170,255,.6)',color:'#efeaff',font:'700 15px system-ui'}}>ⓘ</summary>
    <div style={{display:'flex',flexWrap:'wrap',gap:6,marginTop:6,padding:8,borderRadius:12,background:'rgba(10,6,30,.86)'}}>
-    <span style={pill('#2b6cb0')} data-lw-spark>{LW_LABELS.spark}</span><span style={pill('#9b2c2c')} data-lw-growth>{LW_LABELS.growth}</span><span style={pill('#553c9a')} data-lw-model>{LW_LABELS.model}</span><span style={pill('#276749')} data-lw-biome ref={hudBiome}>Biome</span><span style={{...pill('#0e7490'),display:'none'}} data-lw-sea-seeded ref={hudSea}/>
-   </div></details>
+    <span style={pill('#2b6cb0')} data-lw-spark>{LW_LABELS.spark}</span><span style={pill('#9b2c2c')} data-lw-growth>{LW_LABELS.growth}</span><span style={{...pill('#2f855a'),display:'none'}} data-lw-growth-nodes ref={hudGN}/><span style={{...pill('#2c7a7b'),display:'none'}} data-lw-home-growth ref={hudHome}/><span style={pill('#553c9a')} data-lw-model>{LW_LABELS.model}</span><span style={pill('#276749')} data-lw-biome ref={hudBiome}>Biome</span><span style={{...pill('#0e7490'),display:'none'}} data-lw-sea-seeded ref={hudSea}/>
+   <p data-lw-growth-explainer ref={hudGNx} style={{display:'none',margin:'4px 2px 0',fontSize:11,lineHeight:1.35,color:'#d9ccff',maxWidth:300}}/></div></details>
   :<div data-lw-chips style={{position:'absolute',top:'calc(env(safe-area-inset-top) + 10px)',left:10,right:10,display:'flex',flexWrap:'wrap',gap:6,pointerEvents:'none'}}>
-   <span style={pill('#2b6cb0')} data-lw-spark>{LW_LABELS.spark}</span><span style={pill('#9b2c2c')} data-lw-growth>{LW_LABELS.growth}</span><span style={pill('#553c9a')} data-lw-model>{LW_LABELS.model}</span><span style={pill('#276749')} data-lw-biome ref={hudBiome}>Biome</span><span style={{...pill('#0e7490'),display:'none'}} data-lw-sea-seeded ref={hudSea}/>
+   <span style={pill('#2b6cb0')} data-lw-spark>{LW_LABELS.spark}</span><span style={pill('#9b2c2c')} data-lw-growth>{LW_LABELS.growth}</span><span style={{...pill('#2f855a'),display:'none'}} data-lw-growth-nodes ref={hudGN}/><span style={{...pill('#2c7a7b'),display:'none'}} data-lw-home-growth ref={hudHome}/><span style={pill('#553c9a')} data-lw-model>{LW_LABELS.model}</span><span style={pill('#276749')} data-lw-biome ref={hudBiome}>Biome</span><span style={{...pill('#0e7490'),display:'none'}} data-lw-sea-seeded ref={hudSea}/>
   </div>}
   <div style={{position:'absolute',left:10,right:10,bottom:'calc(env(safe-area-inset-bottom) + 10px)',display:'flex',justifyContent:'space-between',alignItems:'flex-end',gap:8,pointerEvents:'none'}}>
    <div data-lw-card style={{background:'rgba(10,6,30,.72)',borderRadius:12,padding:'8px 10px',maxWidth:'62%',pointerEvents:'auto',display:embedded&&!spawned?'none':undefined}}>
