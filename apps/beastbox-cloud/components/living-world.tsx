@@ -77,8 +77,8 @@ export default function LivingWorld({genome,beastKey,beastName,onClose,embedded=
    const phone=matchMedia('(max-width: 820px)').matches||/iPhone|iPad|Android/.test(navigator.userAgent);
    const renderer=new THREE.WebGLRenderer({canvas,antialias:!phone,powerPreference:'high-performance'});
    renderer.setPixelRatio(Math.min(devicePixelRatio||1,phone?2:2));renderer.outputColorSpace=THREE.SRGBColorSpace;
-   const scene=new THREE.Scene();scene.background=new THREE.Color(0x05030f);
-   const aliveGate=createAliveGate();const camera=new THREE.PerspectiveCamera(55,1,.05,400);
+   const scene=new THREE.Scene();(window as any).__lwScene=scene;scene.background=new THREE.Color(0x05030f);
+   const aliveGate=createAliveGate();const camera=new THREE.PerspectiveCamera(55,1,.05,400);(window as any).__lwCam=camera;
    const L=new THREE.TextureLoader();const tex=(f:string,rep=false)=>{const t=L.load(ART+f);t.colorSpace=THREE.SRGBColorSpace;if(rep){t.wrapS=t.wrapT=THREE.RepeatWrapping;}return t;};
    const hemi=new THREE.HemisphereLight(0xb9a8ff,0x223322,1.1);scene.add(hemi);const sun=new THREE.DirectionalLight(0xfff1dd,1.6);sun.position.set(20,14,10);scene.add(sun);scene.add(sun.target);
    // a real sun: day/night from the wall clock (approach from Genesis X env sim: light = max(.1, h*.8+.2), ambient = max(.1, h*.3+.1))
@@ -108,13 +108,13 @@ export default function LivingWorld({genome,beastKey,beastName,onClose,embedded=
    // ---- planet ground: grass/soil tiles blended by a coverage field that spreads from gathering points
    const gpts=gatheringPoints(u,bKey).map(v=>new THREE.Vector3(...v));
    const UG:any={uRamp:{value:(()=>{const t=L.load('/universe/livingworld/landforms/ocean/water_depth_ramp_256x16.png');t.colorSpace=THREE.SRGBColorSpace;return t;})()},uFoam:{value:(()=>{const t=L.load('/universe/livingworld/landforms/ocean/foam_512.png');t.wrapS=t.wrapT=THREE.RepeatWrapping;return t;})()},uMap:{value:null},uUseMap:{value:0},uHeight:{value:null},uDisp:{value:0},uGlow:{value:null},uIdx:{value:null},uField:{value:0},uTiles:{value:null},uUseTiles:{value:0},uLeg:{value:Array.from({length:20},()=>new THREE.Vector3(9,9,9))},uMN:{value:(()=>{const t=L.load('/universe/livingworld/groundcover/textures/meadow_near_albedo_1024.png');t.colorSpace=THREE.SRGBColorSpace;t.wrapS=t.wrapT=THREE.RepeatWrapping;return t;})()},uMF:{value:(()=>{const t=L.load('/universe/livingworld/groundcover/textures/meadow_far_albedo_1024.png');t.colorSpace=THREE.SRGBColorSpace;t.wrapS=t.wrapT=THREE.RepeatWrapping;return t;})()},uGrass:{value:tex('ground_grass_tile_256.jpg',true)},uSoil:{value:tex('ground_soil_tile_256.jpg',true)},uMask:{value:tex('grass_edge_edge_mask.png',true)},
-    uPts:{value:gpts},uLift:{value:0},uPlay:{value:Array.from({length:8},()=>new THREE.Vector3())},uSpread:{value:spreadAngle(u)},uT:{value:0},uSun:{value:sun.position.clone().normalize()}};
+    uPts:{value:gpts},uLift:{value:0},uPlay:{value:Array.from({length:8},()=>new THREE.Vector3())},uSpread:{value:spreadAngle(u)},uT:{value:0},uShow:{value:0},uSun:{value:sun.position.clone().normalize()}};
    const COVER=`uniform sampler2D uHeight;uniform float uDisp;vec2 eqUV(vec3 n){return vec2(atan(n.z,n.x)/6.2832+.5,asin(clamp(n.y,-1.0,1.0))/3.1416+.5);}float disp(vec3 n){return uDisp>0.0?max(0.0,texture2D(uHeight,eqUV(n)).r-0.42)*uDisp:0.0;}uniform vec3 uPts[8];uniform float uSpread;float cover(vec3 n){float c=0.0;for(int i=0;i<8;i++){float a=acos(clamp(dot(n,uPts[i]),-1.0,1.0));c=max(c,smoothstep(uSpread,uSpread-0.35,a));}return c;}`;
    // beasts gather first on living land (plains/forest; tundra or pine near the poles), so pick the first seeded layout variant that puts the gathering point there
    const BP=(()=>{const g0=gpts[0];for(let i=0;i<64;i++){const bp=biomeParams(i?u.seed+':v'+i:u.seed);if(['plains','heartwood','pine','tundra'].includes(biomeAt(bp,[g0.x,g0.y,g0.z]) as string))return bp;}return biomeParams(u.seed);})();const BGL=biomeGLSL(BP);let biomeOf=(n:import('three').Vector3)=>biomeAt(BP,[n.x,n.y,n.z]) as string;
    const ground=new THREE.Mesh(new THREE.SphereGeometry(PR,phone?96:160,phone?64:110),new THREE.ShaderMaterial({uniforms:UG,
     vertexShader:`varying vec3 vN;varying vec2 vUv;varying vec3 vWp;${COVER}void main(){vN=normalize(position);vUv=uv*vec2(48.0,24.0);vec3 p=position+vN*disp(vN);vWp=p;gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.0);}`,
-    fragmentShader:`uniform sampler2D uGrass,uSoil,uMask,uMap,uGlow,uIdx,uTiles,uMN,uMF,uRamp,uFoam;uniform float uT;uniform float uUseMap,uUseTiles,uField;uniform vec3 uSun,uLeg[20];uniform float uLift;varying vec3 vN;varying vec2 vUv;varying vec3 vWp;${COVER}${BGL}
+    fragmentShader:`uniform sampler2D uGrass,uSoil,uMask,uMap,uGlow,uIdx,uTiles,uMN,uMF,uRamp,uFoam;uniform float uT,uShow;uniform float uUseMap,uUseTiles,uField;uniform vec3 uSun,uLeg[20];uniform float uLift;varying vec3 vN;varying vec2 vUv;varying vec3 vWp;${COVER}${BGL}
      int legIdx(vec3 c){int bi=0;float bd=9.0;for(int i=0;i<20;i++){vec3 d=c-uLeg[i];float dd=dot(d,d);if(dd<bd){bd=dd;bi=i;}}return bi;}
      vec3 tri(sampler2D t,vec3 n){vec3 w=pow(abs(n),vec3(4.0));w/=w.x+w.y+w.z;vec3 p=n*${(PR/2).toFixed(1)};return texture2D(t,p.yz).rgb*w.x+texture2D(t,p.xz).rgb*w.y+texture2D(t,p.xy).rgb*w.z;}
      void main(){vec3 n=normalize(vN);int b=biome(n);float c=cover(n);float m=.5+.35*(tri(uMask,n*1.7).r-.5)+.25*(fract(sin(dot(floor(n*40.0),vec3(12.9,78.2,37.7)))*43758.5)-.5);float g=smoothstep(m-.2,m+.2,c*1.1);
@@ -124,7 +124,7 @@ export default function LivingWorld({genome,beastKey,beastName,onClose,embedded=
       if(b!=0&&b!=10)col=mix(col,col*1.1+grassT*gt*.4,g*(b==1||b==2||b==6?1.0:.6));
       if(uUseMap>.5){vec2 eq=eqUV(n);col=texture2D(uMap,eq).rgb*(.85+.3*det-.15)*(1.0+.12*g);
        // Cosmo's seamless biome tiles up close (atlas 5x4 in legend order, picked from the biome index map)
-       if(uUseTiles>.5){float dc=distance(cameraPosition,vWp);float near=smoothstep(9.0,2.5,dc);if(uField>.5&&texture2D(uIdx,eq).a>.5)near=max(near,.85);if(near>0.0){int bi=legIdx(texture2D(uIdx,eq).rgb);vec2 tu0=vec2(eq.x*96.0,eq.y*48.0);vec2 tuv=fract(tu0);tuv=clamp(tuv,.02,.98);vec2 cell=vec2(float(bi-(bi/5)*5),float(bi/5));vec3 tc=textureGrad(uTiles,(cell+vec2(tuv.x,1.0-tuv.y))/vec2(5.0,4.0),dFdx(tu0)*vec2(.2,.25),dFdy(tu0)*vec2(.2,.25)).rgb;col=mix(col,tc*(1.0+.12*g),near*.8);}}}
+       if(uUseTiles>.5){float dc=distance(cameraPosition,vWp);float near=smoothstep(9.0,2.5,dc);if(uField>.5){/* cells the live world field has changed (alpha 1) used to switch to flat tile art with a hard cell-shaped edge (the flat wedges and streaks seen from orbit): feather across neighbouring cells with 5 dithered taps */float fa=0.0;for(int k=0;k<5;k++){float ang=float(k)*2.39+fract(sin(dot(vWp,vec3(91.7,37.3,13.1)))*4375.5)*6.28;vec2 o=k==0?vec2(0.0):vec2(cos(ang)/64.0,sin(ang)/32.0)*1.1;fa+=texture2D(uIdx,eq+o).a>.5?.2:0.0;}near=max(near,.85*smoothstep(.0,.8,fa));}/* the ocean has its own depth-ramp pass below: biome tile art over water (flat navy/purple patches, ember streaks, hard cell wedges) is skipped where the height map is under sea level */if(uUseMap>.5)near*=smoothstep(.40,.44,texture2D(uHeight,eq).r);if(near>0.0){int bi=legIdx(texture2D(uIdx,eq).rgb);vec2 tu0=vec2(eq.x*96.0,eq.y*48.0);vec2 tuv=fract(tu0);tuv=clamp(tuv,.02,.98);vec2 cell=vec2(float(bi-(bi/5)*5),float(bi/5));vec3 tc=textureGrad(uTiles,(cell+vec2(tuv.x,1.0-tuv.y))/vec2(5.0,4.0),dFdx(tu0)*vec2(.2,.25),dFdy(tu0)*vec2(.2,.25)).rgb;col=mix(col,tc*(1.0+.12*g),near*.8);}}}
       // Cosmo's cage meadow (near ~2 m repeat x far 40-60 m macro, blended by distance) on every meadow biome, tinted by the biome colour
       if(uUseMap>.5){float dmM=distance(cameraPosition,vWp)/${(TRAV_H/1.7).toFixed(4)};float wM=1.0-smoothstep(90.0,170.0,dmM);if(wM>0.0){int bm=legIdx(texture2D(uIdx,eqUV(n)).rgb);
        // soft meadow mask: 5 dithered taps across the field cells so meadow edges blend instead of showing square tiles
@@ -143,7 +143,7 @@ export default function LivingWorld({genome,beastKey,beastName,onClose,embedded=
       if(b==7)col+=vec3(.6,.2,.05)*pow(.5+.5*sin(bH(n)*50.0),8.0);if(b==10)col+=vec3(.2,.25,.4)*(1.0-dif);
       if(b==0)col+=vec3(.9,.95,1.0)*pow(max(0.0,dot(reflect(-uSun,n),v)),40.0)*.6;
       if(uUseMap>.5)col+=texture2D(uGlow,eqUV(n)).rgb*(1.0-smoothstep(-.1,.25,dot(n,uSun)))*1.1;
-      float rim=pow(1.0-max(0.0,dot(n,v)),3.0);gl_FragColor=vec4(col+vec3(.35,.55,1.0)*rim*.45,1.0);}`}));
+      float rim=pow(1.0-max(0.0,dot(n,v)),3.0);/* until Cosmo's maps (or the decision to use the seeded fallback) arrive, show a plain unlit planet: the procedural biome bands, ember stripes and white caps were flashing for several seconds on slow loads and read as stripes/seams */vec3 rimC=vec3(.35,.55,1.0)*rim*.45;gl_FragColor=vec4(mix(vec3(.05,.08,.15)*(.5+.9*dif)+rimC,col+rimC,uShow),1.0);}`}));
    scene.add(ground);
    {const sc=new THREE.Mesh(new THREE.SphereGeometry(PR+.012,phone?64:120,phone?40:80),new THREE.ShadowMaterial({opacity:.32}));sc.receiveShadow=true;scene.add(sc);}
    // Cosmo's painted maps swap in when present (2:1 equirect colour map); otherwise the procedural-from-seed biomes stay.
@@ -226,6 +226,7 @@ export default function LivingWorld({genome,beastKey,beastName,onClose,embedded=
      Object.values(sheets).forEach((t:any)=>{const done=()=>{fix();};if(t.image?.width)done();else{const iv=setInterval(()=>{if(t.image?.width){clearInterval(iv);done();}},200);cleanup.push(()=>clearInterval(iv));}});
      (window as any).__lwCosmoProps=propSprites.length;for(const th of things)th.node.position.copy(th.n).multiplyScalar(PR+hAt(th.n));}catch(e){(window as any).__lwCosmoPropsErr=String(e);}
     return true;}).catch(e=>{startField();buildSurface();(window as any).__lwCosmoMapsErr=String(e);return false;});
+   cosmoReady.then(()=>{UG.uShow.value=1;},()=>{UG.uShow.value=1;});
    // atmosphere rim, visible from orbit
    {const atm=new THREE.Mesh(new THREE.SphereGeometry(PR*1.07,64,40),new THREE.ShaderMaterial({transparent:true,depthWrite:false,side:THREE.BackSide,blending:THREE.AdditiveBlending,
      vertexShader:`varying vec3 vW;void main(){vW=(modelMatrix*vec4(position,1.0)).xyz;gl_Position=projectionMatrix*viewMatrix*vec4(vW,1.0);}`,
