@@ -14,7 +14,7 @@ import {useBeastSession} from './beast-session';
 import styles from './beast-cage-talk.module.css';
 
 const CREATURE:Record<TalkState,CreatureState>={idle:'idle',thinking:'thinking',listening:'listening',speaking:'celebrating',replied:'observing',offline:'idle'};
-const CAPTION:Record<TalkState,string>={idle:'WAITING FOR YOUR MESSAGE',thinking:'MODEL REQUEST PENDING',listening:'LISTENING',speaking:'READING THE REPLY ALOUD',replied:'REPLY VERIFIED',offline:'MODEL OFFLINE · NO REPLY INVENTED'};
+const CAPTION:Record<TalkState,string>={idle:'WAITING FOR YOUR MESSAGE',thinking:'MODEL REQUEST PENDING',listening:'LISTENING',speaking:'READING THE REPLY ALOUD',replied:'MODEL REPLY RECEIVED · WORDING NOT CHECKED',offline:'MODEL OFFLINE · NO REPLY INVENTED'};
 
 /** Talk to Beast page: the animated habitat reacts to the real request state of the shared talk panel. */
 export default function BeastCageTalk(){

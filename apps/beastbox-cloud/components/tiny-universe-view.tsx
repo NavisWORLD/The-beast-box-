@@ -1,5 +1,6 @@
 'use client';
 // Zoomed-out Tiny Universe view. Renders ONLY tiny-universe/v1 engine data; names come from Emeth's bible.
+import {allStorms} from '@/lib/universe/seeded-storms.mjs';
 import {useEffect,useRef,useState,useCallback} from 'react';
 import {grow} from '@/lib/universe/tiny-universe.mjs';
 import {biomeOf,BIOMES,starClass,lifeStage,entangledPairs,homeOf,hearthOf,zerefStar,planetFrame,starFrame,lifeFrame,stormFrame,threadFrame,hearthFrame,GENESIS_LABEL,GROWTH_LABEL,ZEREF_LINES,beastLine} from '@/lib/universe/tiny-universe-view.mjs'
@@ -77,7 +78,7 @@ export default function TinyUniverseView(){
   <div className={s.bottom} style={doorV>0?{opacity:1-doorV,pointerEvents:doorV>0.5?'none':undefined}:undefined}>
    {info?<div className={s.card}>{info}</div>:null}
    <div className={s.zeref} aria-live="polite">{line}</div>
-{err||!u?<span className={s.stat}>{err?`Couldn’t load genesis: ${err}`:'loading…'}</span>:<details className={s.stat} data-universe-details><summary>Details</summary>{u?`tick ${u.tick} · ${u.stars.length} stars · ${u.planets.length} planets · ${u.storms.length} storms · ${u.life.length} life worlds${last?` · sim E ${last.sim_E}`:` · IBM E ${u.entanglement_E}`}`:null}</details>}
+{err||!u?<span className={s.stat}>{err?`Couldn’t load genesis: ${err}`:'loading…'}</span>:<details className={s.stat} data-universe-details><summary>Details</summary>{u?`tick ${u.tick} · ${u.stars.length} stars · ${u.planets.length} planets · ${allStorms(u).length} storms (${u.storms.length} grown by the simulation, ${allStorms(u).length-u.storms.length} SEEDED) · ${u.life.length} life worlds${last?` · sim E ${last.sim_E}`:` · IBM E ${u.entanglement_E}`}`:null}</details>}
    <span className={s.stat} data-credit-line>Threads SIMULATED · Hearth</span>
    <div className={s.row}><a className={s.btn} href="/beast-cage/world" data-spawn-in>✦ Spawn in</a><button className={s.btn} onClick={()=>setThree(v=>{try{localStorage.setItem('u:3d',v?'0':'1');}catch{}return !v;})} data-universe-mode>{three?'2D map':'3D'}</button><button className={s.btn} onClick={()=>setRun(v=>!v)}>{run?'⏸ Pause':'▶ Grow'}</button><button className={s.btn} onClick={()=>{if(g0.current){uRef.current=g0.current;setU(g0.current);setLine('');}}}>↺ Genesis</button>
 </div>
