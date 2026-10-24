@@ -1,0 +1,360 @@
+{
+ "pack": "roadster_palette",
+ "version": 1,
+ "author": "Cosmo",
+ "honesty": {
+  "statement": "Colour constants only. Body variants 1-3 are SEEDED from the recorded ibm_marrakesh run through sha256 streams (recorded hardware counts as the seed, not live quantum). Nothing here was tested in the live engine, on a phone or on a GBA. The wake is decoration.",
+  "labels": {
+   "variants": "SEEDED",
+   "wake": "SEEDED (stepped test universe)",
+   "genesis": "RECORDED_IBM_HARDWARE (untouched)"
+  }
+ },
+ "color_space": "hex = sRGB; baseColorFactor / linear fields are linear light and authoritative; blends in linear light",
+ "look_targets": {
+  "15_roadster.jpg": {
+   "sha256": "a800a8b02f8f0900959fc48b416130cbd123528cafea706d33bad4cc5a370c58",
+   "sampled_body_hex": "#445F3F",
+   "note": "3x3 mean of the car body, cross-check only"
+  },
+  "17_roadster_parked.jpg": {
+   "sha256": "b5598ae2908814afd5a48657412cdd31ae2fe42f8c5df4fcde3e016cf8bacca5",
+   "sampled_body_hex": "#B27567",
+   "note": "parked, warm headlamps, crystal lamp beside it"
+  }
+ },
+ "seed": {
+  "stream": "sha256(\"beastbox-roadster-v1|<REC>|variant.<name>|<n>\")",
+  "REC_source": "genesis.json seed + counts_digest (RECORDED_IBM_HARDWARE, ibm_marrakesh, job db4l2uclf4us73c2td10)",
+  "label": "SEEDED from the recorded IBM run; not live quantum"
+ },
+ "body_variants": [
+  {
+   "index": 0,
+   "name": "cherry",
+   "body_hex": "#A3111B",
+   "baseColorFactor": [
+    0.3663,
+    0.0056,
+    0.011,
+    1.0
+   ],
+   "metallic": 0.35,
+   "roughness": 0.26,
+   "seeded": false,
+   "note": "Studio look target (15_roadster.jpg / 17_roadster_parked.jpg): open-top cherry red. FIXED, not seeded: it is the default and always first.",
+   "seat_hex": "#D6BDCD"
+  },
+  {
+   "index": 1,
+   "name": "plum",
+   "body_hex": "#7437B5",
+   "baseColorFactor": [
+    0.1746,
+    0.0382,
+    0.4621,
+    1.0
+   ],
+   "metallic": 0.35,
+   "roughness": 0.26,
+   "seeded": true,
+   "note": "night-garden violet; pairs with the wonder underglow",
+   "seat_hex": "#CEBEE0"
+  },
+  {
+   "index": 2,
+   "name": "lagoon",
+   "body_hex": "#43B3B2",
+   "baseColorFactor": [
+    0.0561,
+    0.4508,
+    0.4452,
+    1.0
+   ],
+   "metallic": 0.35,
+   "roughness": 0.26,
+   "seeded": true,
+   "note": "sea teal; pairs with the curious underglow",
+   "seat_hex": "#C9D2E0"
+  },
+  {
+   "index": 3,
+   "name": "honey",
+   "body_hex": "#A87F27",
+   "baseColorFactor": [
+    0.3916,
+    0.2122,
+    0.0203,
+    1.0
+   ],
+   "metallic": 0.35,
+   "roughness": 0.26,
+   "seeded": true,
+   "note": "lamp-amber gold; pairs with the joy underglow",
+   "seat_hex": "#D7C7CE"
+  }
+ ],
+ "materials_in_glb": {
+  "body_paint": "baseColorFactor from body_variants[i]",
+  "trim": "vertex COLOR_0 carries tyre/chrome/seat colours; seat tint may be multiplied by seat_hex at runtime",
+  "glass": [
+   0.55,
+   0.75,
+   0.85,
+   0.28
+  ],
+  "glow": "emissive set per node role: headlamp_warm / underglow_mood / bauble_cyan"
+ },
+ "headlamps": {
+  "note": "Headlamps glow warm. Colours reuse the landscape lamp ramp (landscapes_look.json lamp.by_mode). Parked next to a crystal lamp (Studio 17_roadster_parked) the car sits at the shelter warmth, dimmed.",
+  "hex": {
+   "drive": "#FFD9A0",
+   "idle": "#FFBE6E",
+   "parked": "#FFB35A"
+  },
+  "source": "livingworld/landscapes/landscapes_look.json lamp.by_mode.{gather,shelter,sleep}.emissive_hex",
+  "emissive_peak_linear": {
+   "parked": 0.9,
+   "idle": 0.9,
+   "drive": 1.5,
+   "boost": 2.0
+  },
+  "cone": {
+   "spot_angle_deg": 38,
+   "range_m": 14,
+   "decay": 2,
+   "cast_shadow": false,
+   "note": "real SpotLights only for the car the camera follows; others use the glow sprite"
+  }
+ },
+ "underglow": {
+  "note": "Underglow ring: one emissive colour per state, cage mood colours from livingworld/coexist/moods.json. Multiply white by this, additive, peak 1.4 linear at boost.",
+  "mood_colors": {
+   "curious": "#5fe7ff",
+   "social": "#ff8ad8",
+   "calm": "#7dffb0",
+   "joy": "#ffd94a",
+   "wonder": "#b48cff",
+   "fear": "#ff5a5a"
+  },
+  "by_state": {
+   "idle": "wonder",
+   "drive": "curious",
+   "boost": "joy",
+   "happy_passenger": "social",
+   "calm_cruise": "calm",
+   "scared": "fear"
+  },
+  "hex_by_state": {
+   "idle": "#b48cff",
+   "drive": "#5fe7ff",
+   "boost": "#ffd94a",
+   "happy_passenger": "#ff8ad8",
+   "calm_cruise": "#7dffb0",
+   "scared": "#ff5a5a"
+  },
+  "pulse": {
+   "idle": {
+    "period_s": 2.4,
+    "min": 0.35,
+    "max": 0.7
+   },
+   "drive": {
+    "period_s": 1.1,
+    "min": 0.55,
+    "max": 1.0
+   },
+   "boost": {
+    "period_s": 0.55,
+    "min": 0.8,
+    "max": 1.4
+   }
+  }
+ },
+ "bauble": {
+  "emissive_hex": "#5FE7FF",
+  "wire_hex": "#5FE7FF",
+  "pulse_period_s": 3.2,
+  "note": "cyan = curious mood colour; wireframe is a light layer only, no networks drawn"
+ },
+ "wake": {
+  "note": "Stardust wake: Studio's 15_roadster shows a violet strand with an amber strand twisting behind the car. Both ramps reuse the boom SHELL path of sky_palette.json (anchor 10000 K, t 0 = hot head -> t 1 = ember) and pull its hot end toward cage violet / lamp amber in LINEAR light. The engine's own boomState / blackBodyToRGB win wherever it has a number; these are stand-in constants.",
+  "source": {
+   "file": "universe/skypack/sky_palette.json",
+   "path": "BOOM.anchors.10000.phases.shell",
+   "sha256": "37da0672a8a316f8cbbcc8c2effd489dc74071c29ae82172cc9f0d0e6e3b2350"
+  },
+  "shell_ramp_reused": {
+   "hex": [
+    "#E1ECFF",
+    "#DEE5F6",
+    "#BCB0B9",
+    "#94726F",
+    "#753D29"
+   ],
+   "intensity_hint": [
+    0.45,
+    0.4,
+    0.33,
+    0.24,
+    0.16
+   ],
+   "alpha_hint": [
+    0.9,
+    0.85,
+    0.7,
+    0.5,
+    0.35
+   ]
+  },
+  "violet_strand": {
+   "t": [
+    0,
+    0.25,
+    0.5,
+    0.75,
+    1.0
+   ],
+   "hex": [
+    "#A583FF",
+    "#B19AFD",
+    "#AF98DA",
+    "#836464",
+    "#753D29"
+   ],
+   "linear": [
+    [
+     0.3747,
+     0.2275,
+     1.0
+    ],
+    [
+     0.4372,
+     0.3232,
+     0.978
+    ],
+    [
+     0.4274,
+     0.3123,
+     0.7014
+    ],
+    [
+     0.2278,
+     0.127,
+     0.1286
+    ],
+    [
+     0.1779,
+     0.0467,
+     0.0222
+    ]
+   ],
+   "intensity_hint": [
+    0.45,
+    0.4,
+    0.33,
+    0.24,
+    0.16
+   ],
+   "alpha_hint": [
+    0.9,
+    0.85,
+    0.7,
+    0.5,
+    0.35
+   ],
+   "pulls_toward": "#9A6AFF"
+  },
+  "amber_strand": {
+   "t": [
+    0,
+    0.25,
+    0.5,
+    0.75,
+    1.0
+   ],
+   "hex": [
+    "#FCBA79",
+    "#F8BF91",
+    "#E1B293",
+    "#A76552",
+    "#753D29"
+   ],
+   "linear": [
+    [
+     0.9753,
+     0.4896,
+     0.192
+    ],
+    [
+     0.9407,
+     0.524,
+     0.2825
+    ],
+    [
+     0.7514,
+     0.4425,
+     0.2937
+    ],
+    [
+     0.3877,
+     0.1307,
+     0.0853
+    ],
+    [
+     0.1779,
+     0.0467,
+     0.0222
+    ]
+   ],
+   "intensity_hint": [
+    0.45,
+    0.4,
+    0.33,
+    0.24,
+    0.16
+   ],
+   "alpha_hint": [
+    0.9,
+    0.85,
+    0.7,
+    0.5,
+    0.35
+   ],
+   "pulls_toward": "#FFB35A"
+  },
+  "ember_end": "#B8561C",
+  "dust_end": "#4A3144",
+  "sparkle": {
+   "note": "3% of wake particles flash white (#FFFFFF) for one frame, like the shell filament specks",
+   "fraction": 0.03
+  },
+  "param": {
+   "length_m": [
+    2.5,
+    4.0,
+    9.0
+   ],
+   "length_by_state": {
+    "idle": 0.0,
+    "drive": 2.5,
+    "boost": 4.0,
+    "orbit": 9.0
+   },
+   "particle_life_s": [
+    0.9,
+    1.6
+   ],
+   "spawn_per_s": {
+    "drive": 40,
+    "boost": 90
+   },
+   "width_m_head": 0.5,
+   "width_m_tail": 0.05,
+   "twist_turns": 1.5,
+   "strand_phase_offset": 0.5,
+   "note": "two strands twist round each other; head spawns at the rear axle, ramp t = age/life"
+  },
+  "label": "SEEDED (stepped test universe) when drawn with boom colours; the wake is decoration, not a recorded phenomenon"
+ }
+}
