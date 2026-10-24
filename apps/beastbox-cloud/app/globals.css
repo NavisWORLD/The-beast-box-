@@ -750,6 +750,8 @@ html[data-beast-3d] .cage-habitat-visual [data-spark-beast] [data-beast-sprite],
 .home-pocket-layer.is-roamer>:first-child{pointer-events:auto!important;touch-action:pan-y}
 .home-pocket-layer.is-roamer>.lc-roamer-tools,.home-pocket-layer.is-roamer>.cage-look-pill{pointer-events:auto!important}
 .home-pocket-layer.is-roamer>.cage-look-pill{z-index:6}
+.home-pocket-layer.is-roamer>.cage-look-pill[data-home-look-closer]{left:18%}
+@media(max-width:560px){.home-pocket-layer.is-roamer>.cage-look-pill[data-home-look-closer]{left:12px}}
 .beast-landing-art:has(.is-roamer){height:clamp(420px,46vw,680px)}
 @media(max-width:560px){.beast-landing-art:has(.is-roamer){height:clamp(380px,112vw,540px);border-radius:30%}}
 /* The roaming living-core creature IS the companion on Home: the separate floating pet + its eye/pause/mute toolbar step aside. */
