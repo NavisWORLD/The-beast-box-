@@ -3,6 +3,7 @@ import {useEffect,useState} from 'react';
 import {usePathname} from 'next/navigation';
 import {activeBeastName as activeBeastNameFromStore} from '@/lib/companion/beast-name.mjs';
 import {SITE_NAV,activeBeastName,navLabel} from '@/lib/site-nav';
+import {ONE_CAGE} from '@/lib/universe/growth-copy.mjs';
 import s from './site-nav.module.css';
 /** The one site menu: a slim top bar (+ a floating ☰ once scrolled) opening a grouped bottom sheet (phone) / side panel (desktop). */
 export default function SiteNav(){
@@ -21,7 +22,9 @@ export default function SiteNav(){
   {open?<><button type="button" className={s.scrim} aria-label="Close menu" onClick={()=>setOpen(false)}/>
   <nav id="site-nav-sheet" className={s.sheet} aria-label="Site menu" data-site-nav>
    <div className={s.head}><strong>BEAST BOX</strong><button type="button" onClick={()=>setOpen(false)} aria-label="Close menu" className={s.x}>✕</button></div>
+   <p className={s.hint} data-one-cage-hint>{ONE_CAGE.menu_hint}</p>
    {SITE_NAV.map(g=><section key={g.key} className={s.group} data-nav-group={g.key}><h2>{g.label}</h2><ul>{g.items.map(i=><li key={i.href}><a href={i.href} aria-current={cur(i.href)?'page':undefined} onClick={()=>setOpen(false)}><span aria-hidden>{i.icon}</span>{navLabel(i,beastName)}{i.note?<small>{i.note}</small>:null}</a></li>)}</ul></section>)}
+   <footer className={s.foot} data-one-cage-footer><strong>{ONE_CAGE.footer}</strong><small>{ONE_CAGE.honesty}</small></footer>
   </nav></>:null}
  </>;
 }
