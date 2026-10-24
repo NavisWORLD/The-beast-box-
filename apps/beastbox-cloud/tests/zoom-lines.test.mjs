@@ -30,3 +30,10 @@ test('notice gate spaces lines out and does not repeat one too soon',()=>{
  h=noticeGate(g.state,'sea_life_fish',25000);assert.ok(h.show);
  const r=noticeGate(h.state,'storm_far',50000);assert.ok(!r.show);assert.ok(noticeGate(h.state,'storm_far',100000).show);
 });
+
+import {readFileSync as _rf} from 'node:fs';
+test('creature_notices are wired into the 3D universe and the living world with the active beast name', () => {
+  const u3=_rf(new URL('../components/universe-3d.tsx',import.meta.url),'utf8'),lw=_rf(new URL('../components/living-world.tsx',import.meta.url),'utf8');
+  for(const k of ['black_hole_far','black_hole_near','black_hole_away','storm_far','storm_near','storm_passes'])assert.ok(u3.includes(`'${k}'`)||lw.includes(`'${k}'`),k);
+  assert.ok(u3.includes('noticeLine(key,beastRef.current'));assert.ok(lw.includes("noticeLine(key,beastName"));
+});

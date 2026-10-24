@@ -27,12 +27,12 @@ const THREADS_KEY='beastbox.oneMindThreads.v1';const SEG=24;
 const BIOME_MAP:Record<string,string>={ember:'ember_world',paper:'paper_sea',jelly:'jelly_geyser',sunflower:'sunflower_ring',moss:'crystal_moss',glacier:'glacier'};
 const BIOME_HEX:Record<string,number>={ember:0xff7a2a,paper:0xe9d9b0,jelly:0x8fa8ff,sunflower:0xffd24a,moss:0x8fd06a,glacier:0xdff2ff};
 function rand(seed:string){let h=0;for(const c of seed)h=(h*31+c.charCodeAt(0))>>>0;return()=>{h=(h*1664525+1013904223)>>>0;return h/2**32;};}
-import {zoomLineKind,doorLineKind,zoomLine} from '@/lib/universe/zoom-lines.mjs';
+import {zoomLineKind,doorLineKind,zoomLine,noticeLine,noticeGate} from '@/lib/universe/zoom-lines.mjs';
 export const ZOOM_MIN=1.2,ZOOM_MAX=1400;
 export function zoomStage(d:number){return d<6?'Surface':d<16?'Planet':d<40?'Orbit':d<120?'System':d<500?'Neighbours':'Universe';}
 const SPAN=420;
 export function starPos(st:any){const r=rand(st.id);return new THREE.Vector3((st.x-0.5)*SPAN,(r()-0.5)*SPAN*0.18,(st.y-0.5)*SPAN);}
-export default function Universe3D({u,onSelect,onAlive,doorOn=false,onDoor}:{u:any;onSelect?:(id:string|null)=>void;onAlive?:(kind:'zoom_planet'|'zoom_star'|'threads_visible')=>void;doorOn?:boolean;onDoor?:(v:number,preload:boolean)=>void}){
+export default function Universe3D({u,beast,onSelect,onAlive,doorOn=false,onDoor}:{u:any;beast?:string|null;onSelect?:(id:string|null)=>void;onAlive?:(kind:'zoom_planet'|'zoom_star'|'threads_visible')=>void;doorOn?:boolean;onDoor?:(v:number,preload:boolean)=>void}){
  const doorOnRef=useRef(doorOn);doorOnRef.current=doorOn;const onDoorRef=useRef(onDoor);onDoorRef.current=onDoor;
  const aliveRef=useRef(onAlive);aliveRef.current=onAlive;
  const [threadsOn,setThreadsOn]=useState(true);const threadsRef=useRef(true);threadsRef.current=threadsOn;const [threadsShown,setThreadsShown]=useState(false);const [activityNote,setActivityNote]=useState('');
@@ -43,6 +43,9 @@ export default function Universe3D({u,onSelect,onAlive,doorOn=false,onDoor}:{u:a
  const host=useRef<HTMLDivElement>(null);const uRef=useRef(u);uRef.current=u;const sel=useRef(onSelect);sel.current=onSelect;
  const [zline,setZline]=useState<{text:string;key:string;n:number}|null>(null);const zlineN=useRef(0);const zlineT=useRef(0);
  const showZLine=(kind:'zoom_out'|'zoom_in',key:string|null)=>{if(!key)return;const text=zoomLine(kind,key,String(uRef.current?.seed||'tiny'),zlineN.current);if(!text)return;zlineN.current++;setZline({text,key,n:zlineN.current});window.clearTimeout(zlineT.current);zlineT.current=window.setTimeout(()=>setZline(null),5200);};
+ const beastRef=useRef(beast);beastRef.current=beast;const nGate=useRef<any>(null),nN=useRef(0),nT=useRef(0);const [notice,setNotice]=useState<{text:string;key:string;n:number}|null>(null);
+ /* Emeth's creature_notices, text verbatim; {beast} = the active beast's name. One at a time, with a quiet gap (noticeGate). */
+ const showNotice=(key:string,gapMs?:number)=>{const g=noticeGate(nGate.current,key,performance.now(),gapMs);nGate.current=g.state;if(!g.show)return;const text=noticeLine(key,beastRef.current||'Your beast',String(uRef.current?.seed||'tiny'),nN.current);if(!text)return;nN.current++;setNotice({text,key,n:nN.current});window.clearTimeout(nT.current);nT.current=window.setTimeout(()=>setNotice(null),6000);};
  const [stage,setStage]=useState('Planet');const api=useRef<{zoom:(f:number)=>void;home:()=>void}|null>(null);
  useEffect(()=>{const el=host.current;if(!el)return;
   const renderer=new THREE.WebGLRenderer({antialias:true,alpha:false});renderer.setPixelRatio(Math.min(2,devicePixelRatio||1));el.appendChild(renderer.domElement);
@@ -62,7 +65,7 @@ vec3 c=texture2D(tScene,bhScreen+s).rgb;float ring=exp(-pow((r-1.5*rs)/(0.08*rs+
 #include <colorspace_fragment>
 }`});
   lensScene.add(new THREE.Mesh(new THREE.PlaneGeometry(2,2),lensMat));const bhV=new THREE.Vector3(),bhC=new THREE.Vector3();
-  let seededBH:THREE.Group|null=null;const renderLensed=()=>{let best:THREE.Object3D|null=null,bd=1e9;for(const g of [...starObj.values(),...(seededBH?[seededBH]:[])]){if(!g.userData.bh)continue;g.getWorldPosition(bhV);const dd=bhV.distanceTo(cam.position);if(dd<bd){bd=dd;best=g;}}
+  let seededBH:THREE.Group|null=null;let bhNear=false,bhFar=false;const renderLensed=()=>{let best:THREE.Object3D|null=null,bd=1e9;for(const g of [...starObj.values(),...(seededBH?[seededBH]:[])]){if(!g.userData.bh)continue;g.getWorldPosition(bhV);const dd=bhV.distanceTo(cam.position);if(dd<bd){bd=dd;best=g;}}
    if(!lensOn||!best){renderer.render(scene,cam);return;}
    best.getWorldPosition(bhC);const p=bhC.clone().project(cam);const on=p.z<1&&Math.abs(p.x)<1.3&&Math.abs(p.y)<1.3;if(!on){renderer.render(scene,cam);return;}
    const sz=renderer.getDrawingBufferSize(new THREE.Vector2());if(rt.width!==sz.x||rt.height!==sz.y)rt.setSize(sz.x,sz.y);
@@ -188,7 +191,7 @@ vec3 c=texture2D(tScene,bhScreen+s).rgb;float ring=exp(-pow((r-1.5*rs)/(0.08*rs+
    const live=new Set<string>();for(const sm of allStorms(U)){const p=planetMesh.get(sm.planet);if(!p)continue;live.add(sm.planet);let sp=stormObj.get(sm.planet);
     if(!sp){sp=new THREE.Sprite(new THREE.SpriteMaterial({map:stormTex[sm.planet.length%2],transparent:true,depthWrite:false,opacity:.75,blending:THREE.AdditiveBlending}));world.add(sp);stormObj.set(sm.planet,sp);}
     sp.position.copy(p.position);sp.scale.setScalar(p.scale.x*(3+2*Math.min(1,sm.intensity/0.5)));}
-   for(const[k,sp]of stormObj)if(!live.has(k)){world.remove(sp);stormObj.delete(k);}
+   for(const[k,sp]of stormObj)if(!live.has(k)){world.remove(sp);stormObj.delete(k);showNotice('storm_passes',6000);}
    for(const g of starObj.values()){const d=g.getObjectByName('disk');if(d)d.rotation.z=t*0.05;}updateSeededBH(simT);
    addDeco();lightning(t);}
   // camera rig: spherical around a target, log distance
@@ -221,6 +224,12 @@ vec3 c=texture2D(tScene,bhScreen+s).rgb;float ring=exp(-pow((r-1.5*rs)/(0.08*rs+
    const m:any=targetId?(planetMesh.get(targetId)||starObj.get(targetId)):null;const k=Math.min(1,Math.max(0,(d-260)/700));want.set(0,0,0);if(m)want.copy(m.position).multiplyScalar(1-k);tgt.lerp(want,1-Math.exp(-(lastDt||.016)*7.5)); /* frame-rate independent (0.125 at 60 fps): on a slow renderer the focus still keeps up with an orbiting planet */
    cam.position.set(tgt.x+d*Math.cos(pitch)*Math.sin(yaw),tgt.y+d*Math.sin(pitch),tgt.z+d*Math.cos(pitch)*Math.cos(yaw));cam.near=Math.max(0.02,d*0.01);cam.updateProjectionMatrix();cam.lookAt(tgt);
    if(targetId&&planetMesh.has(targetId)){const pm:any=planetMesh.get(targetId);const sg=starObj.get((uRef.current?.planets||[]).find((p:any)=>p.id===targetId)?.star);if(sg){const a1=pm.position.clone().project(cam),b1=sg.position.clone().project(cam);(window as any).__u3dSunDir={planet:targetId,screen:[+(b1.x-a1.x).toFixed(3),+(b1.y-a1.y).toFixed(3)],note:'NDC offset from the planet to its star; the lit limb must face this way'};}}
+   if(seededBH){const wp=new THREE.Vector3();seededBH.getWorldPosition(wp);const dB=cam.position.distanceTo(wp),R=seededBH.userData.bhR||4;const q=wp.clone().project(cam);const seen=q.z<1&&Math.abs(q.x)<1&&Math.abs(q.y)<1;
+    if(dB<R*14){if(!bhNear){bhNear=true;bhFar=true;showNotice('black_hole_near');}}
+    else if(bhNear&&dB>R*30){bhNear=false;showNotice('black_hole_away');}
+    else if(!bhNear&&!bhFar&&seen&&dB>R*30){bhFar=true;showNotice('black_hole_far');}
+    el.dataset.bhDist=String(Math.round(dB/R));{const lb=el.querySelector('[data-bh-label]') as HTMLElement|null;if(lb){const z2=zoomStage(d);lb.style.display=(dB<R*40||z2==='System'||z2==='Neighbours'||z2==='Universe')?'':'none';}}}
+   {const zs=zoomStage(d);if(targetId&&stormObj.has(targetId)&&(zs==='Planet'||zs==='Surface'))showNotice('storm_near');else if(stormObj.size&&(zs==='Orbit'||zs==='System'))showNotice('storm_far');}
    const s=zoomStage(d);if(s!==last){const wider=last==='Orbit'||last==='System'||last==='Neighbours'||last==='Universe';{const zk=zoomLineKind(last,s,{blackHole:!!seededBH||(uRef.current?.stars||[]).some((q:any)=>q.remnant==='black_hole')});if(zk)showZLine(zk.kind,zk.key);}last=s;setStage(s);el.dataset.zoomStage=s;
     // a real zoom-in reached a world: Emeth's line for a planet or a star
     if(s==='Planet'&&wider&&targetId)aliveRef.current?.(starObj.has(targetId)?'zoom_star':'zoom_planet');}
@@ -233,6 +242,7 @@ vec3 c=texture2D(tScene,bhScreen+s).rgb;float ring=exp(-pow((r-1.5*rs)/(0.08*rs+
  return <div ref={host} data-universe-3d style={{position:'absolute',inset:0}}>
   {(()=>{const hp=u?homeOf(u):null,pre=hp?String(hp).replace(/-p\d+$/,'-p'):'~';const st=(u?allStorms(u):[]).slice().sort((a:any,b:any)=>(b.planet.startsWith(pre)?1:0)-(a.planet.startsWith(pre)?1:0));return st.length?<details data-storm-list style={{position:'absolute',left:52,top:196,zIndex:3,maxWidth:'min(70vw,300px)',fontSize:12,color:'#e9ddff',background:'rgba(12,8,32,.62)',border:'1px solid #8f6bff55',borderRadius:10,padding:'4px 8px'}}><summary style={{cursor:'pointer'}}>Storms · {st.length}</summary>{st.slice(0,6).map((x:any)=><div key={x.id} data-storm={x.id} style={{padding:'1px 0'}}>{x.planet} · {x.kind||'storm'} · {x.night?'night side · ':''}{x.label==='SEEDED'?'SEEDED':'SIMULATED growth'}</div>)}{st.length>6?<details data-storm-more><summary style={{cursor:'pointer',opacity:.85}}>Show all {st.length}</summary>{st.slice(6).map((x:any)=><div key={x.id} data-storm={x.id} style={{padding:'1px 0'}}>{x.planet} · {x.kind||'storm'} · {x.night?'night side · ':''}{x.label==='SEEDED'?'SEEDED':'SIMULATED growth'}</div>)}</details>:null}<div style={{opacity:.7,paddingTop:2}}>The recorded genesis has no storms; these are seeded from its counts.</div></details>:null;})()}
   {zline?<div key={zline.n} data-zoom-line={zline.key} aria-live="polite" style={{position:'absolute',left:'50%',top:(typeof window!=='undefined'&&window.innerWidth<560)?'34%':'18%',transform:'translateX(-50%)',maxWidth:'min(86vw,520px)',textAlign:'center',zIndex:3,pointerEvents:'none',fontSize:15,lineHeight:1.35,color:'#f1e8ff',background:'rgba(12,8,32,.62)',border:'1px solid #8f6bff55',borderRadius:14,padding:'8px 14px',textShadow:'0 1px 6px #000'}}>{zline.text}</div>:null}
+  {notice?<div key={notice.n} data-creature-notice={notice.key} aria-live="polite" style={{position:'absolute',left:'50%',top:(typeof window!=='undefined'&&window.innerWidth<560)?'44%':'26%',transform:'translateX(-50%)',maxWidth:'min(86vw,520px)',textAlign:'center',zIndex:3,pointerEvents:'none',fontSize:15,lineHeight:1.35,color:'#f1e8ff',background:'rgba(12,8,32,.62)',border:'1px solid #8f6bff55',borderRadius:14,padding:'8px 14px',textShadow:'0 1px 6px #000'}}>{notice.text}</div>:null}
   <div data-u3d-zoom style={{position:'absolute',right:56,top:'calc(50% - 200px)',display:'flex',flexDirection:'column',gap:6,zIndex:2}}>
    <button type="button" aria-label="Zoom in" onClick={()=>api.current?.zoom(-0.5)} style={zbtn}>＋</button>
    <span data-zoom-stage style={{fontSize:11,color:'#d8c8ff',textAlign:'center',background:'rgba(10,6,30,.7)',borderRadius:8,padding:'3px 4px'}}>{stage}</span>
