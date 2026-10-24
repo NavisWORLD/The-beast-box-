@@ -1,6 +1,6 @@
 // Seeded moons. The recorded genesis file has planets but NO moons, so these are procedural: derived only from the universe seed and the
 // planet's recorded properties (no Math.random). They are labeled SEEDED everywhere they are shown; nothing here claims a measurement.
-export const MOONS_LABEL='Moons: SEEDED (procedural from the universe seed, not recorded)';
+export const MOONS_LABEL='Moons: SEEDED (procedural from the universe seed, not recorded). The recorded genesis has planets but no moons.';
 export const MOON_SEED_TAG='seeded';
 // small deterministic stream (same LCG as universe-3d's rand)
 export function rng(seed){let h=0;for(const c of seed)h=(h*31+c.charCodeAt(0))>>>0;return()=>{h=(h*1664525+1013904223)>>>0;return h/2**32;};}

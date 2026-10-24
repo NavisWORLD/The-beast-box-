@@ -65,7 +65,7 @@ export default function TinyUniverseView(){
  return <main className={s.wrap} data-tiny-universe>
   <canvas ref={cv} className={s.canvas} onPointerDown={tap} aria-label="Tiny Universe map" style={three?{visibility:'hidden'}:undefined}/>
   {three&&u?<Universe3D u={u} onSelect={setSel} onAlive={k=>{const f=aliveGate.current.fire(k,String(u.seed||'tiny'),performance.now()/1000);if(f)setLine(f.line);}}/>:null}
-  <div className={s.hud}><div className={s.title}>✦ TINY UNIVERSE</div><span className={s.tag} data-genesis-label>{GENESIS_LABEL}</span><span className={`${s.tag} ${s.sim}`} data-growth-label>{GROWTH_LABEL}</span>{three?<span className={`${s.tag} ${s.sim}`} data-moons-label>{MOONS_LABEL}</span>:null}</div>
+  <div className={s.hud}><div className={s.title}>✦ TINY UNIVERSE{three?<span className={`${s.tag} ${s.sim}`} data-moons-label title={MOONS_LABEL} style={{marginLeft:8,fontSize:10,verticalAlign:'middle'}}>Moons: SEEDED</span>:null}</div><span className={s.tag} data-genesis-label>{GENESIS_LABEL}</span><span className={`${s.tag} ${s.sim}`} data-growth-label>{GROWTH_LABEL}</span></div>
   <div className={s.bottom}>
    {info?<div className={s.card}>{info}</div>:null}
    <div className={s.zeref} aria-live="polite">{line}</div>
