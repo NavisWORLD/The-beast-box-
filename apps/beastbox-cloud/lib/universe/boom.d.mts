@@ -1,0 +1,11 @@
+export const BOOM_LABEL:'SEEDED (stepped test universe)';
+export const BOOM:Readonly<Record<string,any>>;
+export type BoomPhase='none'|'flash'|'shell'|'fade'|'remnant';
+export type BoomState={phase:BoomPhase;u:number;intensity:number;shellFrac:number;shellRadiusAu:number;colorRGB:number[];remnantType:'neutron_star'|'black_hole'|null;label:string};
+type S={id?:string;mass_solar:number;temperature_k?:number;luminosity?:number;remnant?:string|null};
+export function remnantFor(m:number):'neutron_star'|'black_hole'|null;
+export function boomLuminosity(s:S):number;
+export function boomState(star:S,eventTick:number,tick:number):BoomState;
+export function supernovaEvents(u:any):{star:string;tick:number}[];
+export function boomsAt(u:any,tick:number):{star:string;eventTick:number;state:BoomState}[];
+export function boomSkyTerm(star:S,eventTick:number,tick:number,distance:number,sunUp?:number):number;

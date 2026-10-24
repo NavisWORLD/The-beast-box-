@@ -1,0 +1,11 @@
+export const SEA:Readonly<Record<string,any>>;
+export type Sea={dir:number;wind:number;storm:number;amp:number;chop:number;whitecap:number};
+export function seaFrom(F:any):Sea;
+export function waveHeightAt(sea:Sea,d:number[],t:number):number;
+export const SEA_GLSL:string;
+export function crestFoam(sea:Sea,d:number[],t:number):number;
+export function shoreFoam(sea:Sea,dist:number,t:number,moisture?:number):{foam:number;wetSand:number;edge:number};
+export function sunGlitter(sunElev:number,sea:Sea,starRGB?:number[]):{intensity:number;width:number;color:number[]};
+export function fresnelMix(cosView:number,deepRGB:number[],skyRGB:number[]):number[];
+export function waterDeep(planet:any):number[];
+export function rideAt(sea:Sea,d:number[],fwd:number[],right:number[],t:number,half?:number):{heave:number;pitch:number;roll:number};
