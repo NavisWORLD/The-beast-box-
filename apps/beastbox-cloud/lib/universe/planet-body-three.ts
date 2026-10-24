@@ -1,4 +1,5 @@
 // A /universe planet built the way the pocket globe is built: a displaced, normal-mapped, sun-lit ground sphere with ocean depth,
+import {snowAmount} from './terrain-detail.mjs';
 // glint and foam, a night glow, cloud shell + cloud shadow and an atmosphere rim, using Cosmo's planets pack (public/universe/planets,
 // shaders generated from the pack's glsl). One light only: the real star (direction + colour + Cory's inverse-square falloff).
 // LOD per ZOOM_GUIDE.md: point sprite -> far mesh (512 maps) -> near mesh (2048 maps, displaced) -> (ground handoff: next PR).
@@ -39,7 +40,7 @@ export function createPlanetKit(){
       uAtmo:{value:sh.atmo_amount},uSkyColor:{value:v3(sh.sky_color)},uTwilightColor:{value:v3(sh.twilight_color)},uShallow:{value:v3(sh.shallow_color)},uDeep:{value:v3(sh.deep_color)},
       uCloudAlt:{value:S.clouds?.altitude_frac??0},uCloudShadow:{value:near&&S.clouds?S.clouds.shadow_strength:0},uCloudOn:{value:!near&&S.clouds?1:0},
       uNightLights:{value:sh.night_lights},uEmissiveDayKeep:{value:sh.emissive_day_keep},uGlintRough:{value:sh.glint_roughness},uWaveStrength:{value:sh.wave_strength},uTime:{value:0},uIsMoon:{value:moon?1:0},
-      uParentDir:{value:new THREE.Vector3(0,1,0)},uParentTint:{value:new THREE.Vector3(0.6,0.7,1)},uEarthshine:{value:sh.earthshine},uAlpha:{value:1},uOccC:{value:new THREE.Vector3()},uOccR:{value:0},uBiomeIdx:{value:blank},uTileAtlas:{value:blank},uDetailFade:{value:0},uTilesPerRadius:{value:3141}};}
+      uParentDir:{value:new THREE.Vector3(0,1,0)},uParentTint:{value:new THREE.Vector3(0.6,0.7,1)},uEarthshine:{value:sh.earthshine},uAlpha:{value:1},uOccC:{value:new THREE.Vector3()},uOccR:{value:0},uBiomeIdx:{value:blank},uTileAtlas:{value:blank},uDetailFade:{value:0},uTilesPerRadius:{value:3141},uSnow:{value:0}};}
   function create(type:string,variant:{lonDeg:number;tiltDeg:number;spinDegPerS:number;cloudLonDeg:number}){
     const S=PLANET_SHADING[type];const far=getSet(type,'512x256');let near:TexSet|null=null;
     const farMat=new THREE.ShaderMaterial({uniforms:uniformsFor(type,far,false),vertexShader:PLANET_VERT,fragmentShader:PLANET_FRAG,transparent:true,depthWrite:true});
@@ -60,6 +61,7 @@ export function createPlanetKit(){
       atmo=new THREE.Mesh(geoShell,am);atmo.scale.setScalar(S.shell||1.045);atmo.renderOrder=3;atmo.visible=false;mesh.add(atmo);}
     // far point sprite (star_glow tinted by the type's mean albedo)
     const tint=SPRITE_TINT[type];const sprite=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex('white'),color:new THREE.Color(tint[0],tint[1],tint[2]),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true,sizeAttenuation:false}));mesh.add(sprite);
+    let snow=snowAmount(type,NaN);
     const v=new THREE.Vector3(),inv=new THREE.Matrix4(),sd=new THREE.Vector3(),cen=new THREE.Vector3();
     function setSun(u:any,mesh_:THREE.Object3D,ctx:PlanetCtx,dirW:THREE.Vector3,col:THREE.Vector3){u.uSunDir.value.copy(dirW);u.uSunColor.value.copy(col);u.uPlanetCenter.value.copy(cen);
       if(ctx.occ){u.uOccC.value.copy(ctx.occ.c);u.uOccR.value=ctx.occ.r;}else u.uOccR.value=0;
@@ -76,7 +78,7 @@ export function createPlanetKit(){
       const u=farMat.uniforms;setSun(u,mesh,ctx,sd,col);u.uTime.value=ctx.t;
       const farReady=far.ready;u.uAlpha.value=farReady?lod.farAlpha:0;farMat.depthWrite=lod.farAlpha>0.5;farMat.transparent=lod.farAlpha<0.999;
       const nearOn=!!nearMesh&&near!.ready&&lod.nearAlpha>0.002;
-      if(nearMesh){nearMesh.visible=nearOn;if(nearOn){const nu=(nearMesh.material as THREE.ShaderMaterial).uniforms;setSun(nu,nearMesh,ctx,sd,col);nu.uTime.value=ctx.t;nu.uAlpha.value=lod.nearAlpha;nu.uDetailFade.value=lod.detail;(nearMesh.material as THREE.ShaderMaterial).depthWrite=lod.nearAlpha>0.99;}}
+      if(nearMesh){nearMesh.visible=nearOn;if(nearOn){const nu=(nearMesh.material as THREE.ShaderMaterial).uniforms;setSun(nu,nearMesh,ctx,sd,col);nu.uTime.value=ctx.t;nu.uAlpha.value=lod.nearAlpha;nu.uDetailFade.value=lod.detail;nu.uSnow.value=snow;(nearMesh.material as THREE.ShaderMaterial).depthWrite=lod.nearAlpha>0.99;}}
       if(cloudMesh){cloudMesh.visible=nearOn;if(nearOn){cloudMesh.rotation.y=(variant.cloudLonDeg-variant.lonDeg+(S.clouds.rotation_deg_per_min/60)*ctx.t)*Math.PI/180;cloudMesh.updateMatrixWorld(true);
         const cu=(cloudMesh.material as THREE.ShaderMaterial).uniforms;cu.uSunDir.value.copy(sd);cu.uSunColor.value.copy(col);cu.uAlpha.value=lod.nearAlpha;}}
       if(atmo){const au=(atmo.material as THREE.ShaderMaterial).uniforms;const on=lod.atmo>0.002;atmo.visible=on;if(on){au.uPlanetCenter.value.copy(cen);au.uPlanetR.value=R;au.uShellR.value=R*(S.shell||1.045);au.uSunDir.value.copy(sd);au.uSunColor.value.copy(col);au.uOpacity.value=lod.atmo;
@@ -85,7 +87,8 @@ export function createPlanetKit(){
       const px=9;sprite.scale.setScalar(px/Math.max(1,ctx.viewH)*2*Math.tan(ctx.cam.fov*Math.PI/360)/Math.max(1e-6,R));
       mesh.userData.lod=lod;
     }
-    return{mesh,update};
+    return{mesh,update,setTempK:(k:number)=>{snow=snowAmount(type,k);}};
   }
   return{create,glowTex};
 }
+

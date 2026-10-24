@@ -132,6 +132,12 @@ export default function LivingWorld({genome,beastKey,beastName,onClose,embedded=
       // Cosmo's ocean: depth from the height map (sea level .42) -> depth ramp (shore turquoise -> abyss indigo), shoreline foam
       if(uUseMap>.5){float hh=texture2D(uHeight,eqUV(n)).r;if(hh<.42){float dm=(.42-hh)*160.0;float tw=1.0-exp(-dm/12.0);vec3 wc=texture2D(uRamp,vec2(tw,.5)).rgb;
        float fo=texture2D(uFoam,eqUV(n)*vec2(60.0,30.0)+uT*.02).r*smoothstep(1.5,0.0,dm);col=mix(col,wc,mix(.55,.95,tw))+fo*.7;}}
+      // terrain texture: Cosmo's rock + snow tiles by slope / height from the height map, near the camera (additive; the biome tiles keep every other cell)
+      if(uUseMap>.5&&uUseTiles>.5){vec2 tq=eqUV(n);float th=texture2D(uHeight,tq).r;float tdc=distance(cameraPosition,vWp);float tnr=smoothstep(14.0,3.0,tdc);if(th>=.42&&tnr>0.0){
+       float thx=texture2D(uHeight,tq+vec2(1.0/2048.0,0.0)).r-th;float thy=texture2D(uHeight,tq+vec2(0.0,1.0/1024.0)).r-th;float tsl=clamp(length(vec2(thx,thy))*110.0,0.0,1.0);
+       vec2 tt=clamp(fract(tq*vec2(150.0,75.0)),.02,.98);vec3 trk=texture2D(uTiles,(vec2(3.0,1.0)+vec2(tt.x,1.0-tt.y))/vec2(5.0,4.0)).rgb;vec3 tsn=texture2D(uTiles,(vec2(4.0,1.0)+vec2(tt.x,1.0-tt.y))/vec2(5.0,4.0)).rgb;
+       col=mix(col,trk*(1.0+.1*g),smoothstep(.3,.7,tsl)*tnr*.75);col=mix(col,tsn,smoothstep(.7,.86,th)*(1.0-.5*tsl)*tnr*.8);
+       col*=1.0+(thx*-1.0+thy*0.6)*40.0*tnr;}}
       vec3 v=normalize(cameraPosition-n*${PR.toFixed(1)});float dif=max(0.0,dot(n,uSun));float l=.36+1.15*dif;col*=l;
       if(b==7)col+=vec3(.6,.2,.05)*pow(.5+.5*sin(bH(n)*50.0),8.0);if(b==10)col+=vec3(.2,.25,.4)*(1.0-dif);
       if(b==0)col+=vec3(.9,.95,1.0)*pow(max(0.0,dot(reflect(-uSun,n),v)),40.0)*.6;
