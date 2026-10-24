@@ -17,6 +17,8 @@ export default function SiteDock(){
  // Under automation the dock itself is not drawn, so it never sits over the original controls the suites click.
  // One floating control: the dock also opens the site menu, so the separate Menu tab / ☰ pill step aside (not under automation).
  useEffect(()=>{if(auto)return;document.body.dataset.oneDock='1';return()=>{delete document.body.dataset.oneDock;};},[auto]);
+ // On phones the dock tucks away while the page is scrolling (so it never sits over the buttons you are trying to read or tap) and slides back when scrolling stops.
+ useEffect(()=>{if(auto)return;let last=window.scrollY,tm:any=0;const nav=()=>document.querySelector<HTMLElement>('[data-site-dock]');const on=()=>{const y=window.scrollY,d=y-last;last=y;const el=nav();if(!el||window.innerWidth>560)return;if(d>4&&y>160)el.dataset.away='1';clearTimeout(tm);tm=setTimeout(()=>{const e=nav();if(e)delete e.dataset.away;},650);};window.addEventListener('scroll',on,{passive:true});return()=>{window.removeEventListener('scroll',on);clearTimeout(tm);};},[auto]);
  if(auto)return null;
  return <nav className="site-dock" aria-label="Quick dock" data-site-dock={open?'open':'closed'}>
   <button type="button" onClick={e=>window.dispatchEvent(new CustomEvent('beastbox:open-chat',{detail:{opener:e.currentTarget}}))} aria-label={`Talk to ${name||'your beast'}`}>💬<span>{name&&name!=='your beast'?`Talk to ${name}`:'Talk'}</span></button>
