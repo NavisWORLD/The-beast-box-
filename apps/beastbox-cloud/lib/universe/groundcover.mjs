@@ -47,7 +47,7 @@ export function plantTrees({seed,R,biomeAt,budget=1,cellM=4}){const g=cubeCells(
  * Continuous zoom: z=0 close over-the-shoulder, z=1 full planet orbit. Returns camera height above the surface (units)
  * and the blend toward the orbit framing. Log-spaced so pinch/wheel feel even across the whole range.
  */
-export const ZOOM=Object.freeze({min:0,max:1,closeH:1.3,orbitD:34.4,wheelK:.0012,pinchK:1.6});
+export const ZOOM=Object.freeze({min:0,max:1,closeH:1.3,orbitD:34.4,wheelK:.0032,pinchK:1.6});
 export function zoomBlend(z){const t=Math.max(0,Math.min(1,z));const s=t*t*(3-2*t);return {t,orbit:s};}
 export function zoomDistance(z,closeD,orbitD){const t=Math.max(0,Math.min(1,z));return Math.exp(Math.log(closeD)+(Math.log(orbitD)-Math.log(closeD))*t);}
 export function stepZoom(z,{wheel=0,pinch=1}={}){let n=z+wheel*ZOOM.wheelK;if(pinch!==1&&pinch>0)n-=Math.log(pinch)/ZOOM.pinchK;return Math.max(ZOOM.min,Math.min(ZOOM.max,n));}

@@ -68,7 +68,7 @@ export function createPlanetKit(){
       if(ctx.parent){u.uParentDir.value.copy(ctx.parent.c).sub(cen).normalize();u.uParentTint.value.set(ctx.parent.tint[0],ctx.parent.tint[1],ctx.parent.tint[2]);}
       inv.copy(mesh_.matrixWorld).invert();u.uSunDirObj.value.copy(dirW).transformDirection(inv);}
     function update(ctx:PlanetCtx){
-      const R=mesh.scale.x;mesh.getWorldPosition(cen);const d=ctx.cam.position.distanceTo(cen);const lod=planetLod(d,R,ctx.cam.fov);
+      const R=mesh.scale.x;mesh.updateWorldMatrix(true,false);/* the caller moved the parent this frame: without this the sun direction used last frame's planet position (wrong lit side on slow renderers) */mesh.getWorldPosition(cen);const d=ctx.cam.position.distanceTo(cen);const lod=planetLod(d,R,ctx.cam.fov);
       if(ctx.spinRad!==undefined)mesh.rotation.set(0,ctx.spinRad+variant.lonDeg*Math.PI/180,0); // tidally locked (moons): spin = orbital angle
       else mesh.rotation.set(0,(variant.lonDeg+variant.spinDegPerS*ctx.t)*Math.PI/180,variant.tiltDeg*Math.PI/180);mesh.updateMatrixWorld(true);
       sd.copy(ctx.sunPos).sub(cen).normalize();
