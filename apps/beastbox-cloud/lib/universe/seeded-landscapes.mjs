@@ -118,9 +118,9 @@ export function lampLevel({nightFactor=0,storm_t=0,lifeVolume=1,mode='gather'}={
 const KIND_LABEL=Object.freeze({court:'court',grove:'grove',sun_court:'sun court',shore_camp:'shore camp',shrine:'shrine',garden:'garden'});
 const pick=(pool,seed,key)=>{if(!Array.isArray(pool)||!pool.length)return null;const r=lwStream(seed+':landscape-line:'+key);return pool[Math.floor(r()*pool.length)%pool.length];};
 const fill=(t,v)=>t==null?null:t.replace(/\{beast\}/g,v.beast||'The beast').replace(/\{place\}/g,v.place).replace(/\{planet\}/g,v.planet||'this world');
-/** Authored notice for a mode (creature_notices.landscape_<mode>); the picks are seeded by (seed, place, n). */
-export function landscapeNotice(ls,mode,{beast,planet,seed='tiny',n=0}={}){return fill(pick(LW_LINES.creature_notices['landscape_'+mode],String(seed),ls.id+':'+mode+':'+n),{beast,place:ls.name,planet});}
-export function landscapeTapLine(ls,{beast,planet,seed='tiny',n=0}={}){return fill(pick(LW_LINES.creature_notices.landscape_tap,String(seed),ls.id+':tap:'+n),{beast,place:ls.name,planet});}
+/** Authored notice for a mode (landscape_notices.<mode> (a top-level group: the authored lines are longer than creature_notices' toast limit and must stay exact)); the picks are seeded by (seed, place, n). */
+export function landscapeNotice(ls,mode,{beast,planet,seed='tiny',n=0}={}){return fill(pick(LW_LINES.landscape_notices[mode],String(seed),ls.id+':'+mode+':'+n),{beast,place:ls.name,planet});}
+export function landscapeTapLine(ls,{beast,planet,seed='tiny',n=0}={}){return fill(pick(LW_LINES.landscape_notices.tap,String(seed),ls.id+':tap:'+n),{beast,place:ls.name,planet});}
 /** Zoom line: "{place} · {kind}" plus the live mode line, derived from landscapeMode (shelter text is the spec's; the others are the authored notice for that mode). */
 export function landscapeZoom(ls,mode,{beast,planet,seed='tiny'}={}){
  const title=ls.name+' · '+KIND_LABEL[ls.kind];

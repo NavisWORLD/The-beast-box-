@@ -100,12 +100,12 @@ test('text is authored: names, notices and zoom lines come from the tables, and 
  assert.deepEqual(names.A,["Chalk","Sunmark","Nap","Ember","Paper","Moss","Star","Low","Amber","Quiet","Little","First"]);
  assert.deepEqual(names.B.court,["Square","Court","Ring"]);assert.deepEqual(names.B.shrine,["Shrine","Lights","Still"]);
  const ls=seededLandscapes(g,{biomeAt:grass});for(const l of ls){const [A,B]=l.name.split(' ');assert.ok(names.A.includes(A)&&names.B[l.kind].includes(B));}
- const lines=J('../lib/universe/data/living_world_lines.json').creature_notices;
- assert.deepEqual(lines.landscape_gather,["{beast} watches the little ones play at {place}. Nobody is keeping score.","Games at {place} again. The ring on {planet} is worn smooth by feet."]);
- assert.deepEqual(lines.landscape_shelter,["Rain on {planet}. Everyone at {place} is under cover, waiting it out together."]);
- assert.deepEqual(lines.landscape_sleep,["{place} sleeps. The lamps stay lit so the dark knows it is expected."]);
- assert.deepEqual(lines.landscape_empty,["{place} is built and waiting. A place is patient. Life will find it."]);
- assert.deepEqual(lines.landscape_tap,["{beast} taps the edge of {place}. The whole little world looks up."]);
+ const lines=J('../lib/universe/data/living_world_lines.json').landscape_notices;
+ assert.deepEqual(lines.gather,["{beast} watches the little ones play at {place}. Nobody is keeping score.","Games at {place} again. The ring on {planet} is worn smooth by feet."]);
+ assert.deepEqual(lines.shelter,["Rain on {planet}. Everyone at {place} is under cover, waiting it out together."]);
+ assert.deepEqual(lines.sleep,["{place} sleeps. The lamps stay lit so the dark knows it is expected."]);
+ assert.deepEqual(lines.empty,["{place} is built and waiting. A place is patient. Life will find it."]);
+ assert.deepEqual(lines.tap,["{beast} taps the edge of {place}. The whole little world looks up."]);
  const l=ls[0];assert.equal(landscapeNotice(l,'sleep',{beast:'Zeref',planet:'P'}),l.name+' sleeps. The lamps stay lit so the dark knows it is expected.');
  assert.equal(landscapeTapLine(l,{beast:'Cosmo'}),'Cosmo taps the edge of '+l.name+'. The whole little world looks up.');
  const z=landscapeZoom(l,'shelter',{beast:'Zeref',planet:'P'});assert.equal(z.title,l.name+' · '+l.kind.replace('_',' '));assert.equal(z.line,l.name+' is sheltering from the storm.');
