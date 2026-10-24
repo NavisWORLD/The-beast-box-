@@ -26,7 +26,8 @@ def create_app(checkpoint,api_key,max_new_tokens=256,threads=4,expected_sha256=N
     @app.get('/health')
     def health(): return {'status':'alive'}
     @app.get('/ready')
-    def ready(): return {'ready':True,'model_id':'rawrphos-native','checkpoint_sha256':engine.metadata['checkpoint_sha256'],'hebbian':bool(engine.model.config.hebbian),'state_mode':engine.model.config.state_mode}
+    def ready(): return {'ready':True,'model_id':'rawrphos-native','checkpoint_sha256':engine.metadata['checkpoint_sha256'],'hebbian':bool(engine.model.config.hebbian),'state_mode':engine.model.config.state_mode,
+                'cond54':bool(engine.model.config.cond54),'condition54_used':c54 is not None}
     @app.get('/model/info')
     def info(): return engine.info()
     @app.get('/v1/models')
@@ -35,7 +36,7 @@ def create_app(checkpoint,api_key,max_new_tokens=256,threads=4,expected_sha256=N
     async def completion(request,chat=False):
         try:
             body=await request.json()
-            if not isinstance(body,dict) or set(body)-{'model','prompt','messages','max_tokens','temperature','stream','seed'}: raise ValueError('unsupported request fields')
+            if not isinstance(body,dict) or set(body)-{'model','prompt','messages','max_tokens','temperature','stream','seed','condition54'}: raise ValueError('unsupported request fields')
             if body.get('model')!='rawrphos-native': raise ValueError('unknown model')
             temperature=body.get('temperature',.8); count=body.get('max_tokens',64); seed=body.get('seed',67)
             if isinstance(temperature,bool) or not isinstance(temperature,(int,float)) or not math.isfinite(temperature) or temperature<0: raise ValueError('invalid temperature')
@@ -48,6 +49,10 @@ def create_app(checkpoint,api_key,max_new_tokens=256,threads=4,expected_sha256=N
                 prompt='\n'.join(f"{m['role']}: {m['content']}" for m in messages)+'\nassistant:'
             else: prompt=body.get('prompt')
             if not isinstance(prompt,str) or len(prompt.encode())>65536: raise ValueError('invalid prompt')
+            c54=body.get('condition54')
+            if c54 is not None:
+                Engine.validate_condition54(c54)
+                if not engine.model.config.cond54: raise ValueError('this model does not declare cond54')
             if len(engine.tokenizer.encode(prompt,add_bos=True))+count>engine.model.config.max_seq_len: raise ValueError('context limit exceeded')
         except (ValueError,TypeError,KeyError,UnicodeError):
             return JSONResponse({'error':'invalid request, model ID, or context/token limit'},status_code=400)
@@ -55,7 +60,7 @@ def create_app(checkpoint,api_key,max_new_tokens=256,threads=4,expected_sha256=N
         if body.get('stream',False):
             def events():
                 try:
-                    for delta in engine.tokens(prompt,max_tokens=count,temperature=temperature,seed=seed):
+                    for delta in engine.tokens(prompt,max_tokens=count,temperature=temperature,seed=seed,condition54=c54):
                         choice={'index':0,'delta':{'content':delta}} if chat else {'index':0,'text':delta}
                         yield 'data: '+json.dumps({'id':identifier,'model':'rawrphos-native','choices':[choice]})+'\n\n'
                     yield 'data: [DONE]\n\n'
@@ -65,7 +70,7 @@ def create_app(checkpoint,api_key,max_new_tokens=256,threads=4,expected_sha256=N
         try:
             # CPU generation runs off the asynchronous request loop.
             from starlette.concurrency import run_in_threadpool
-            text=await run_in_threadpool(engine.complete,prompt,max_tokens=count,temperature=temperature,seed=seed)
+            text=await run_in_threadpool(engine.complete,prompt,max_tokens=count,temperature=temperature,seed=seed,condition54=c54)
             choice={'index':0,'message':{'role':'assistant','content':text}} if chat else {'index':0,'text':text}
             choice['finish_reason']='length' if engine.last_metrics['generated_tokens']==count else 'stop'
             usage={'prompt_tokens':engine.last_metrics['prompt_tokens'],'completion_tokens':engine.last_metrics['generated_tokens']}

@@ -40,7 +40,7 @@ class Engine:
     def info(self):
         m=self.metadata
         return {'model_id':'rawrphos-native','display_name':'RAWRPHØS','family':'RAWRPHOS',
-            'architecture':self.model.config.to_dict(),'hebbian':bool(self.model.config.hebbian),'state_mode':self.model.config.state_mode,'parameter_count':self.model.parameter_count(),
+            'architecture':self.model.config.to_dict(),'hebbian':bool(self.model.config.hebbian),'state_mode':self.model.config.state_mode,'cond54':bool(self.model.config.cond54),'parameter_count':self.model.parameter_count(),
             'checkpoint_sha256':m['checkpoint_sha256'],'tokenizer_sha256':m['tokenizer_sha256'],
             'context_limit':self.model.config.max_seq_len,'training_seq_len':m.get('training_seq_len'),
             'context_extrapolation_validated':False,'training_steps':m['training_steps'],
@@ -48,12 +48,14 @@ class Engine:
             'release_status':m.get('release_status','trained-candidate'),'ready':True,
             'load_seconds':self.load_seconds,'last_successful_inference':self.last_success,
             'weight_bytes':sum(p.numel()*p.element_size() for p in self.model.parameters())}
-    def tokens(self,prompt,max_tokens=64,temperature=.8,seed=67,use_cache=True,timeout=60,cancelled=None,control_vector=None,repetition_penalty=None,no_repeat_ngram=None):
+    def tokens(self,prompt,max_tokens=64,temperature=.8,seed=67,use_cache=True,timeout=60,cancelled=None,control_vector=None,repetition_penalty=None,no_repeat_ngram=None,condition54=None):
         rp=self.REPETITION_PENALTY if repetition_penalty is None else repetition_penalty
         nr=self.NO_REPEAT_NGRAM if no_repeat_ngram is None else no_repeat_ngram
         if not isinstance(prompt,str) or len(prompt.encode('utf-8'))>65536: raise ValueError('invalid or oversized prompt')
         if type(max_tokens) is not int or not 1<=max_tokens<=self.max_new_tokens: raise ValueError('token budget exceeds host limit')
         cv=None if control_vector is None else torch.tensor([self.validate_control(control_vector)],dtype=torch.float32,device=self.device)
+        c54=None if condition54 is None else torch.tensor([self.validate_condition54(condition54)],dtype=torch.float32,device=self.device)
+        if c54 is not None and not self.model.config.cond54: raise ValueError('this model does not declare cond54')
         t0=time.perf_counter(); ids=self.tokenizer.encode(prompt,add_bos=True); tokenize=time.perf_counter()-t0
         if len(ids)+max_tokens>self.model.config.max_seq_len: raise ValueError('prompt plus output exceeds context limit')
         if not self.lock.acquire(blocking=False): raise RuntimeError('native provider is busy')
@@ -62,7 +64,7 @@ class Engine:
             for token,full in generate(self.model,torch.tensor([ids],device=self.device),max_new_tokens=max_tokens,
                     temperature=temperature,top_k=min(40,self.tokenizer.vocab_size),eos_token_id=self.tokenizer.eos_id,
                     generator=gen,use_cache=use_cache,deadline=time.monotonic()+timeout,cancelled=cancelled,
-                    control_vector=cv,repetition_penalty=rp,no_repeat_ngram=nr):
+                    control_vector=cv,repetition_penalty=rp,no_repeat_ngram=nr,condition54=c54):
                 if first is None: first=time.perf_counter()-started
                 generated.append(token); decoded=self.tokenizer.decode(generated); stable=decoded.rstrip('\ufffd')
                 delta=stable[len(emitted):]; emitted=stable
@@ -76,6 +78,13 @@ class Engine:
                 'total_tokens_per_second':len(generated)/max(seconds,1e-9),'cache_enabled':use_cache}
             self.last_success=time.time()
         finally: self.lock.release()
+    @staticmethod
+    def validate_condition54(value):
+        """Routed 12D+42D state as numbers only (masked slots are exactly 0.0 upstream)."""
+        if (not isinstance(value,list) or len(value)!=54 or
+            any(type(x) not in (int,float) or not math.isfinite(x) or abs(x)>1 for x in value)):
+            raise ValueError('condition54 must be 54 finite values in [-1,1]')
+        return [float(x) for x in value]
     @staticmethod
     def validate_control(value):
         """External numeric controls are data, never model tools or authority."""
