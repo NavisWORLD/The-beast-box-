@@ -545,8 +545,8 @@ uniform vec3 uPlay[8];
     // gentle seeded fly-over: in the planet view, after 6 s without input, the camera drifts between the beach, the volcano and the sea, then hands back on touch
     {const mo=sp?'s':watchRef.current?'w':'o';const idle=performance.now()-userAt>6000;
      if(mo==='o'&&idle&&beach){if(!touring){touring=true;tourN.copy(cN);tourT=0;}tourT-=dt;
-      if(tourT<=0){tourT=11+tourR()*5;tourI=(tourI+1)%3;zT=.3+tourR()*.06;}
-      const tgt=[beach.center(),island?.anchor('crater_center')||beach.center(),(window as any).__lwSeaN||gpts[0]][tourI].clone().normalize();tourN.lerp(tgt,Math.min(1,dt*.35)).normalize();cN.copy(tourN);cT.copy(tourN).multiplyScalar(PR);cW.copy(tourN).multiplyScalar(PR*1.6);
+      if(tourT<=0){tourT=11+tourR()*5;tourI=(tourI+1)%3;zT=.16+tourR()*.05;}
+      const tgt=[beach.center(),island?.anchor('crater_center')||beach.center(),(window as any).__lwSeaN||gpts[0]][tourI].clone().normalize();tourN.lerp(tgt,Math.min(1,dt*.35)).normalize();cN.copy(tourN);{const tg=new THREE.Vector3().crossVectors(tourN,new THREE.Vector3(0,1,0));if(tg.lengthSq()<1e-6)tg.set(1,0,0);tg.normalize();cT.copy(tourN).multiplyScalar(PR+.2);cW.copy(tourN).multiplyScalar(PR+2.2).addScaledVector(tg,-3.2);}
       (window as any).__lwTour={i:tourI,place:['beach','volcano','ocean'][tourI]};}
      else if(touring){touring=false;if(mo==='o')zT=1;(window as any).__lwTour=null;}}
     const mode=sp?'s':watchRef.current?'w':'o';if(mode!==zMode){zMode=mode;zT=mode==='s'?0:mode==='w'?.12:1;}
