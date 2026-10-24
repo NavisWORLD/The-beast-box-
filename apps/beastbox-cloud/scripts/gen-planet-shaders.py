@@ -4,7 +4,13 @@ The GLSL is Cosmo's verbatim; ADDED lines are marked '// ADDED'. Usage: python3 
 import sys,os,json
 P=sys.argv[1];G=P+'/glsl/';here=os.path.dirname(os.path.abspath(__file__))+'/../lib/universe/'
 r=lambda n:open(G+n).read()
-bd=r('biome_detail.glsl');common=r('common.glsl');term=r('terminator.glsl');ocean=r('ocean.glsl');cs=r('cloud_shadow.glsl');moon=r('phase_moon.glsl')
+bd=r('biome_detail.glsl')
+# Cosmo's handoff pack (planets/handoff): night lift + a tile-detail fade so sub-pixel tiles do not turn into stripes / grid / moire
+nl=open(P+'/handoff/glsl/night_lift.glsl').read()
+OLD='  return mix(baseAlbedo, baseAlbedo * mix(vec3(1.0), detail, 0.85), uDetailFade);'
+assert OLD in bd
+bd=bd.replace(OLD,'  vec2 tc = uv * vec2(uTilesPerRadius, uTilesPerRadius * 0.5);\n  float cyc = max(length(dFdx(tc)), length(dFdy(tc))); // ADDED: tile cycles per pixel\n  float aa = 1.0 - smoothstep(0.18, 0.55, cyc);        // ADDED: sub-pixel tiles repeat as stripes/grid, so fade to the base colour (the tile mean)\n  return mix(baseAlbedo, baseAlbedo * mix(vec3(1.0), detail, 0.85), uDetailFade * aa);')
+common=r('common.glsl');term=r('terminator.glsl');ocean=r('ocean.glsl');cs=r('cloud_shadow.glsl');moon=r('phase_moon.glsl')
 frag=r('planet_surface.frag').replace('precision highp float;\n','')
 frag=frag.replace('uniform vec3  uParentDir;','uniform float uAlpha; // ADDED: LOD cross-fade\nuniform vec3 uOccC; uniform float uOccR; // ADDED: one analytic eclipse occluder (moon on planet, planet on moon); uOccR=0 is off\nuniform vec3  uParentDir;')
 frag=frag.replace("  // night lights / lava / crystals","""  // ADDED: shore foam (the globe's foam rule): a lacy white band where the depth channel is ~0 (shore), lit by the sun
@@ -17,9 +23,12 @@ frag=frag.replace("  // night lights / lava / crystals","""  // ADDED: shore foa
 frag=frag.replace("  vec3 col = alb * uSunColor * diff * shadow;","  if (uOccR > 0.0) shadow *= sphereShadow(vWorldPos, L, uOccC, uOccR, 0.012); // ADDED: eclipse\n  vec3 col = alb * uSunColor * diff * shadow;")
 frag=frag.replace("gl_FragColor = vec4(linearToSrgb(col), 1.0);","gl_FragColor = vec4(linearToSrgb(col), uAlpha);")
 assert 'uAlpha);' in frag and 'shore foam' in frag
+OLDN='  col += alb * uSkyColor * (0.012 + 0.07 * uAtmo * tw);'
+assert OLDN in frag
+frag=frag.replace(OLDN,'  col += nightLiftGlobe(alb, Ng, L, V, uAtmo, tw);   // ADDED: Cosmo handoff night_lift.glsl (floor 0.105 night / 0.125 lit, cool tint)\n  col += alb * uSkyColor * (0.03 * uAtmo * tw);')
 frag=frag.replace('  float ocean = om.r;','  float ocean = om.r;\n  if (uDetailFade > 0.001) alb = mix(biomeDetail(vUv, alb), alb, ocean); // ADDED: close-range biome tiles on land (ground hand-off, biome_detail.glsl)')
 assert 'biomeDetail(vUv' in frag
-FRAG='precision highp float;\n'+'\n'.join([common,term,ocean,cs,moon,bd,frag])
+FRAG='precision highp float;\n'+'\n'.join([common,term,nl,ocean,cs,moon,bd,frag])
 vert=r('planet_surface.vert')
 vert=vert.replace("varying vec2 vUv;","uniform sampler2D uHeight; uniform float uDisp; uniform float uHasHeight; uniform float uSea; // ADDED: near-mesh displacement (h-0.25)*0.02, sea flat\nvarying vec2 vUv;",1)
 vert=vert.replace("  vObjDir = normalize(position);","  float hh = uHasHeight > 0.5 ? texture2D(uHeight, uv).r : uSea;\n  float dh = hh - uSea; if (uSea < 0.3) dh = max(dh, 0.0); // ADDED: sea flat on water worlds, signed relief on the moon (centred 0.5)\n  vec3 pos = position * (1.0 + uDisp * dh * 0.02);\n  vObjDir = normalize(position);")
