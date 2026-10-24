@@ -59,6 +59,49 @@ float nightFade(vec3 N_geo, vec3 L, float dayKeep){
 //   float sunElev = dot(surfaceUp, L);                  // sin(elevation)
 //   float groundSun = terminatorWeight(surfaceUp, L, width);   // multiply your DirectionalLight intensity by this
 
+// WEBGL1: yes (GLSL ES 1.00, texture2D only, no derivatives, no loops). Night-side lift for the GLOBE and the GROUND shader.
+// Paste after common.glsl + terminator.glsl.  Texture: ../night/night_ramp_256x4.png  (linear DATA, stored = value*4)
+//   three.js: tex.colorSpace = THREE.NoColorSpace; minFilter = magFilter = LinearFilter; generateMipmaps = false; wrapS = wrapT = ClampToEdgeWrapping;
+//             tex.premultiplyAlpha = false (the PNG is opaque RGB anyway)
+// What it adds (all LINEAR light, cool tint, never pure black):
+//   * ambient floor   0.058 .. 0.105 at night, up to 0.125 on the lit side  (row 0, x = N.L*0.5+0.5, monotone non-decreasing, so the lit side is always brighter than the night side)
+//   * albedo shaping  shape = 0.55 + 0.45*sqrt(2*luma(albedo)) and a 45% hue mix -> dark basalt still reads, snow stays brighter, biomes keep their hue
+//   * twilight bump   row 1, <= 0.012 warm violet at the terminator
+//   * faint rim       row 2, x = 1 - N.V, <= 0.07 cool, weighted by atmosphere, mostly on the night side
+// City lights / lava / crystals are NOT touched: keep adding  texture2D(uEmissive, uv).rgb * uNightLights * nightFade(Ng, L, uEmissiveDayKeep)  exactly as before.
+uniform sampler2D uNightRamp;
+uniform float uNightFloor;   // 1.0 = as authored; 0.6 .. 1.4 to taste (keeps the floor inside ~0.04 .. 0.15)
+uniform float uNightRim;     // 1.0 = as authored; 0.0 disables the rim
+float nlLuma(vec3 c){ return dot(c, vec3(0.2126, 0.7152, 0.0722)); }
+// texel-centre lookup: x = 0 -> first texel centre, x = 1 -> last texel centre (no half-texel bleed / clamp edge error)
+vec3 nightRamp(float row, float x){
+  return texture2D(uNightRamp, vec2((clamp(x, 0.0, 1.0) * 255.0 + 0.5) / 256.0, (row + 0.5) / 4.0)).rgb * 0.25;
+}
+float nightShape(vec3 alb){ return 0.55 + 0.45 * sqrt(clamp(nlLuma(alb) * 2.0, 0.0, 1.0)); }
+// keeps the biome hue readable in the dark (ocean vs land vs ice) without changing the luminance of the floor
+vec3 nightHue(vec3 alb){ return mix(vec3(1.0), clamp(alb / max(nlLuma(alb), 0.02), 0.0, 2.5), 0.45); }
+// ---- GLOBE: Ng = geometric normal, L = planet->sun, V = to camera, atmo = 0..1 (uAtmo), tw = terminatorWeight(Ng, L, width)
+// add the result to \`col\`; REMOVE the old  col += alb*uSkyColor*(0.012 + 0.07*uAtmo*tw)  line (sky ambient is now inside the ramp).
+vec3 nightLiftGlobe(vec3 alb, vec3 Ng, vec3 L, vec3 V, float atmo, float tw){
+  float ndl = dot(Ng, L);
+  vec3 amb = nightRamp(0.0, ndl * 0.5 + 0.5) * (uNightFloor * nightShape(alb)) * nightHue(alb);
+  vec3 twi = nightRamp(1.0, ndl * 0.5 + 0.5) * (0.35 + 0.65 * atmo) * nightShape(alb);
+  float nv = clamp(dot(Ng, V), 0.0, 1.0);
+  vec3 rim = nightRamp(2.0, 1.0 - nv) * (uNightRim * (0.30 + 0.70 * atmo) * (1.0 - 0.75 * tw));
+  return amb + twi + rim;
+}
+// ---- GROUND: N = shading normal (world), up = surface up (world, unit), L = sun dir (world), flat patch assumed.
+// Same row-0 ambient at the same sun elevation as the globe (so the hand-off has no brightness jump on a flat surface N = up) times a hemisphere
+// factor from row 3 (surfaces facing down / sideways get less starlight than N = up).
+vec3 nightLiftGround(vec3 alb, vec3 N, vec3 up, vec3 L, float atmo, float tw){
+  float elev = dot(up, L);
+  vec3 hemi = nightRamp(3.0, dot(N, up) * 0.5 + 0.5);
+  float hemiK = nlLuma(hemi) / max(nlLuma(nightRamp(3.0, 1.0)), 1e-4);
+  vec3 amb = nightRamp(0.0, elev * 0.5 + 0.5) * (uNightFloor * nightShape(alb) * hemiK) * nightHue(alb);
+  vec3 twi = nightRamp(1.0, elev * 0.5 + 0.5) * (0.35 + 0.65 * atmo) * nightShape(alb);
+  return amb + twi;
+}
+
 // WEBGL1: yes. Ocean sun glint (specular) + shallow-water colour (needs common.glsl). Use where oceanMask.r > 0.
 // mask.r = ocean coverage (0 for frozen sea / land), mask.g = depth 0 (shore) .. 1 (abyss).
 vec3 shallowWater(float depth01, float nv, vec3 shallowCol, vec3 deepCol){
@@ -146,7 +189,10 @@ vec3 biomeDetail(vec2 uv, vec3 baseAlbedo){
   vec3 tile = texture2D(uTileAtlas, (cell + tuv) * vec2(0.2, 0.25)).rgb;
   // tile is already the biome's mean colour +- detail; keep the planet colour's low frequency, take the tile's high frequency
   vec3 detail = tile / max(tile.r*0.3+tile.g*0.59+tile.b*0.11, 1e-3);
-  return mix(baseAlbedo, baseAlbedo * mix(vec3(1.0), detail, 0.85), uDetailFade);
+  vec2 tc = uv * vec2(uTilesPerRadius, uTilesPerRadius * 0.5);
+  float cyc = max(length(dFdx(tc)), length(dFdy(tc))); // ADDED: tile cycles per pixel
+  float aa = 1.0 - smoothstep(0.18, 0.55, cyc);        // ADDED: sub-pixel tiles repeat as stripes/grid, so fade to the base colour (the tile mean)
+  return mix(baseAlbedo, baseAlbedo * mix(vec3(1.0), detail, 0.85), uDetailFade * aa);
 }
 
 // ADDED: terrain texture layers (atlas tiles: id 8 = rock, id 9 = snow). uSnow 0..1 from the planet's recorded temperature.
@@ -220,7 +266,8 @@ void main(){
   if (uOccR > 0.0) shadow *= sphereShadow(vWorldPos, L, uOccC, uOccR, 0.012); // ADDED: eclipse
   vec3 col = alb * uSunColor * diff * shadow;
   // skylight + faint night ambient (planet never pure black: cute-creepy readable night)
-  col += alb * uSkyColor * (0.012 + 0.07 * uAtmo * tw);
+  col += nightLiftGlobe(alb, Ng, L, V, uAtmo, tw);   // ADDED: Cosmo handoff night_lift.glsl (floor 0.105 night / 0.125 lit, cool tint)
+  col += alb * uSkyColor * (0.03 * uAtmo * tw);
   col += alb * twilightBand(Ng, L, width, uTwilightColor, 0.35 * uAtmo);
   col += uIsMoon > 0.5 ? alb * earthshine(N, normalize(uParentDir), uParentTint, uEarthshine) : vec3(0.0);
 

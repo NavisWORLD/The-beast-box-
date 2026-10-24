@@ -122,7 +122,7 @@ export default function LivingWorld({genome,beastKey,beastName,onClose,embedded=
       if(b!=0&&b!=10)col=mix(col,col*1.1+grassT*gt*.4,g*(b==1||b==2||b==6?1.0:.6));
       if(uUseMap>.5){vec2 eq=eqUV(n);col=texture2D(uMap,eq).rgb*(.85+.3*det-.15)*(1.0+.12*g);
        // Cosmo's seamless biome tiles up close (atlas 5x4 in legend order, picked from the biome index map)
-       if(uUseTiles>.5){float dc=distance(cameraPosition,vWp);float near=smoothstep(9.0,2.5,dc);if(uField>.5&&texture2D(uIdx,eq).a>.5)near=max(near,.85);if(near>0.0){int bi=legIdx(texture2D(uIdx,eq).rgb);vec2 tuv=fract(vec2(eq.x*96.0,eq.y*48.0));tuv=clamp(tuv,.02,.98);vec2 cell=vec2(float(bi-(bi/5)*5),float(bi/5));vec3 tc=texture2D(uTiles,(cell+vec2(tuv.x,1.0-tuv.y))/vec2(5.0,4.0)*vec2(1.0,1.0)+vec2(0.0,0.0)).rgb;col=mix(col,tc*(1.0+.12*g),near*.8);}}}
+       if(uUseTiles>.5){float dc=distance(cameraPosition,vWp);float near=smoothstep(9.0,2.5,dc);if(uField>.5&&texture2D(uIdx,eq).a>.5)near=max(near,.85);if(near>0.0){int bi=legIdx(texture2D(uIdx,eq).rgb);vec2 tu0=vec2(eq.x*96.0,eq.y*48.0);vec2 tuv=fract(tu0);tuv=clamp(tuv,.02,.98);vec2 cell=vec2(float(bi-(bi/5)*5),float(bi/5));vec3 tc=textureGrad(uTiles,(cell+vec2(tuv.x,1.0-tuv.y))/vec2(5.0,4.0),dFdx(tu0)*vec2(.2,.25),dFdy(tu0)*vec2(.2,.25)).rgb;col=mix(col,tc*(1.0+.12*g),near*.8);}}}
       // Cosmo's cage meadow (near ~2 m repeat x far 40-60 m macro, blended by distance) on every meadow biome, tinted by the biome colour
       if(uUseMap>.5){float dmM=distance(cameraPosition,vWp)/${(TRAV_H/1.7).toFixed(4)};float wM=1.0-smoothstep(90.0,170.0,dmM);if(wM>0.0){int bm=legIdx(texture2D(uIdx,eqUV(n)).rgb);
        // soft meadow mask: 5 dithered taps across the field cells so meadow edges blend instead of showing square tiles
@@ -134,7 +134,7 @@ export default function LivingWorld({genome,beastKey,beastName,onClose,embedded=
        float fo=texture2D(uFoam,eqUV(n)*vec2(60.0,30.0)+uT*.02).r*smoothstep(1.5,0.0,dm);col=mix(col,wc,mix(.55,.95,tw))+fo*.7;}}
       if(uUseMap>.5&&uUseTiles>.5){vec2 tq=eqUV(n);float th=texture2D(uHeight,tq).r;float tdc=distance(cameraPosition,vWp);float tnr=smoothstep(14.0,3.0,tdc);if(th>=.42&&tnr>0.0){
        float thx=texture2D(uHeight,tq+vec2(1.0/2048.0,0.0)).r-th;float thy=texture2D(uHeight,tq+vec2(0.0,1.0/1024.0)).r-th;float tsl=clamp(length(vec2(thx,thy))*110.0,0.0,1.0);
-       vec2 tt=clamp(fract(tq*vec2(150.0,75.0)),.02,.98);vec3 trk=texture2D(uTiles,(vec2(3.0,1.0)+vec2(tt.x,1.0-tt.y))/vec2(5.0,4.0)).rgb;vec3 tsn=texture2D(uTiles,(vec2(4.0,1.0)+vec2(tt.x,1.0-tt.y))/vec2(5.0,4.0)).rgb;
+       vec2 tq2=tq*vec2(150.0,75.0);vec2 tt=clamp(fract(tq2),.02,.98);vec2 tgx=dFdx(tq2)*vec2(.2,.25),tgy=dFdy(tq2)*vec2(.2,.25);/* gradients from the UNWRAPPED uv: fract() would jump at every tile edge and the GPU would pick the lowest mip there (Cosmo's grid-line diagnosis) */vec3 trk=textureGrad(uTiles,(vec2(3.0,1.0)+vec2(tt.x,1.0-tt.y))/vec2(5.0,4.0),tgx,tgy).rgb;vec3 tsn=textureGrad(uTiles,(vec2(4.0,1.0)+vec2(tt.x,1.0-tt.y))/vec2(5.0,4.0),tgx,tgy).rgb;
        col=mix(col,trk*(1.0+.1*g),smoothstep(.3,.7,tsl)*tnr*.75);col=mix(col,tsn,smoothstep(.7,.86,th)*(1.0-.5*tsl)*tnr*.8);
        col*=1.0+(thx*-1.0+thy*0.6)*40.0*tnr;}}
       vec3 v=normalize(cameraPosition-n*${PR.toFixed(1)});float dif=max(0.0,dot(n,uSun));float l=.46+1.15*dif+uLift*.55*(1.0-dif);col*=l;
