@@ -1,0 +1,198 @@
+{
+ "rule_order": [
+  "atmosphere<0.05 -> moon",
+  "T>=700 -> volcanic",
+  "T<=150 -> ice",
+  "150<T<=350 -> temperate if water>=0.15 else ice",
+  "350<T<700 -> desert"
+ ],
+ "assignments": [
+  {
+   "id": "star-0-p0",
+   "type": "volcanic",
+   "star": "star-0",
+   "radius_earth": 4.732,
+   "texture_lon_offset_deg": 69.2,
+   "axial_tilt_deg": 28.3,
+   "spin_deg_per_s": 1.56,
+   "cloud_lon_offset_deg": 75.0,
+   "rule": "T>=700K"
+  },
+  {
+   "id": "star-0-p1",
+   "type": "volcanic",
+   "star": "star-0",
+   "radius_earth": 3.001,
+   "texture_lon_offset_deg": 169.2,
+   "axial_tilt_deg": 16.1,
+   "spin_deg_per_s": 0.63,
+   "cloud_lon_offset_deg": 107.6,
+   "rule": "T>=700K"
+  },
+  {
+   "id": "star-0-p2",
+   "type": "volcanic",
+   "star": "star-0",
+   "radius_earth": 7.214,
+   "texture_lon_offset_deg": 173.0,
+   "axial_tilt_deg": 2.8,
+   "spin_deg_per_s": 2.86,
+   "cloud_lon_offset_deg": 233.5,
+   "rule": "T>=700K"
+  },
+  {
+   "id": "star-0-p3",
+   "type": "volcanic",
+   "star": "star-0",
+   "radius_earth": 1.821,
+   "texture_lon_offset_deg": 336.8,
+   "axial_tilt_deg": 5.4,
+   "spin_deg_per_s": 2.39,
+   "cloud_lon_offset_deg": 153.5,
+   "rule": "T>=700K"
+  },
+  {
+   "id": "star-0-p4",
+   "type": "volcanic",
+   "star": "star-0",
+   "radius_earth": 0.537,
+   "texture_lon_offset_deg": 120.6,
+   "axial_tilt_deg": 29.5,
+   "spin_deg_per_s": 0.51,
+   "cloud_lon_offset_deg": 99.1,
+   "rule": "T>=700K"
+  },
+  {
+   "id": "star-1-p0",
+   "type": "temperate",
+   "star": "star-1",
+   "radius_earth": 4.829,
+   "texture_lon_offset_deg": 344.7,
+   "axial_tilt_deg": 33.2,
+   "spin_deg_per_s": 2.93,
+   "cloud_lon_offset_deg": 93.2,
+   "rule": "150<T<=350 and water>=0.15"
+  },
+  {
+   "id": "star-1-p1",
+   "type": "moon",
+   "star": "star-1",
+   "radius_earth": 1.091,
+   "texture_lon_offset_deg": 147.6,
+   "axial_tilt_deg": 7.0,
+   "spin_deg_per_s": 0.68,
+   "cloud_lon_offset_deg": 326.4,
+   "rule": "atmosphere<0.05"
+  },
+  {
+   "id": "star-1-p2",
+   "type": "moon",
+   "star": "star-1",
+   "radius_earth": 0.518,
+   "texture_lon_offset_deg": 27.9,
+   "axial_tilt_deg": 34.7,
+   "spin_deg_per_s": 2.1,
+   "cloud_lon_offset_deg": 105.0,
+   "rule": "atmosphere<0.05"
+  },
+  {
+   "id": "star-1-p3",
+   "type": "ice",
+   "star": "star-1",
+   "radius_earth": 1.335,
+   "texture_lon_offset_deg": 166.5,
+   "axial_tilt_deg": 13.9,
+   "spin_deg_per_s": 1.86,
+   "cloud_lon_offset_deg": 263.2,
+   "rule": "T<=150K (or 150-350K with water<0.15)"
+  },
+  {
+   "id": "star-1-p4",
+   "type": "ice",
+   "star": "star-1",
+   "radius_earth": 5.48,
+   "texture_lon_offset_deg": 311.5,
+   "axial_tilt_deg": 8.9,
+   "spin_deg_per_s": 0.74,
+   "cloud_lon_offset_deg": 71.7,
+   "rule": "T<=150K (or 150-350K with water<0.15)"
+  },
+  {
+   "id": "star-2-p0",
+   "type": "volcanic",
+   "star": "star-2",
+   "radius_earth": 1.922,
+   "texture_lon_offset_deg": 299.9,
+   "axial_tilt_deg": 23.7,
+   "spin_deg_per_s": 3.21,
+   "cloud_lon_offset_deg": 244.6,
+   "rule": "T>=700K"
+  },
+  {
+   "id": "star-2-p1",
+   "type": "desert",
+   "star": "star-2",
+   "radius_earth": 2.948,
+   "texture_lon_offset_deg": 84.7,
+   "axial_tilt_deg": 3.3,
+   "spin_deg_per_s": 1.84,
+   "cloud_lon_offset_deg": 339.7,
+   "rule": "350<T<700"
+  },
+  {
+   "id": "star-2-p2",
+   "type": "moon",
+   "star": "star-2",
+   "radius_earth": 2.022,
+   "texture_lon_offset_deg": 346.6,
+   "axial_tilt_deg": 12.1,
+   "spin_deg_per_s": 1.28,
+   "cloud_lon_offset_deg": 211.8,
+   "rule": "atmosphere<0.05"
+  },
+  {
+   "id": "star-3-p0",
+   "type": "volcanic",
+   "star": "star-3",
+   "radius_earth": 0.331,
+   "texture_lon_offset_deg": 17.9,
+   "axial_tilt_deg": 5.1,
+   "spin_deg_per_s": 1.72,
+   "cloud_lon_offset_deg": 80.6,
+   "rule": "T>=700K"
+  },
+  {
+   "id": "star-3-p1",
+   "type": "volcanic",
+   "star": "star-3",
+   "radius_earth": 0.597,
+   "texture_lon_offset_deg": 79.9,
+   "axial_tilt_deg": 30.3,
+   "spin_deg_per_s": 0.92,
+   "cloud_lon_offset_deg": 260.3,
+   "rule": "T>=700K"
+  },
+  {
+   "id": "star-4-p0",
+   "type": "volcanic",
+   "star": "star-4",
+   "radius_earth": 1.108,
+   "texture_lon_offset_deg": 342.4,
+   "axial_tilt_deg": 27.7,
+   "spin_deg_per_s": 0.96,
+   "cloud_lon_offset_deg": 159.4,
+   "rule": "T>=700K"
+  },
+  {
+   "id": "star-4-p1",
+   "type": "volcanic",
+   "star": "star-4",
+   "radius_earth": 2.749,
+   "texture_lon_offset_deg": 170.3,
+   "axial_tilt_deg": 23.7,
+   "spin_deg_per_s": 1.09,
+   "cloud_lon_offset_deg": 215.3,
+   "rule": "T>=700K"
+  }
+ ]
+}

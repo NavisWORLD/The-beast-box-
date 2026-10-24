@@ -1,0 +1,832 @@
+{
+ "schema": "planet-models/v1",
+ "seed_note": "seeded from the RECORDED ibm_marrakesh run (genesis.json counts_digest) via sha256 counter streams; not live quantum",
+ "units": "metres, Y up, unit sphere r=1 scaled in-app",
+ "uv_convention": "three.js SphereGeometry: x=-cos(phi)sin(theta), y=cos(theta), z=sin(phi)sin(theta); u=phi/2pi; glTF v=theta/pi, row 0 = north pole. u=atan2(z,-x)/2pi. NOTE: differs from the sky maps (u=atan2(z,x)/2pi).",
+ "normal_map": "tangent space, OpenGL (+Y = north = image up); tangent = east. glTF/three default normalScale (1,1) is correct. Analytic frame in glsl/common.glsl sphereFrame().",
+ "height_map": "8-bit, sea level = 0.25 (moon: centred at 0.5). displacement = (h - 0.25) * 0.02 * R for h>0.25, i.e. max relief 2% of radius. Ocean floor is clamped flat.",
+ "lod_metric": "s = tan(angular_radius)/tan(fov/2). angular_radius = asin(R/d).  See ZOOM_GUIDE.md",
+ "lod": {
+  "sprite_in": 0.004,
+  "sprite_full_out": 0.012,
+  "far_to_near_start": 0.3,
+  "far_to_near_end": 0.55,
+  "detail_start": 0.45,
+  "detail_end": 0.9,
+  "atmo_fade_in": 0.01,
+  "atmo_fade_full": 0.03
+ },
+ "types": {
+  "temperate": {
+   "biome_type": "temperate",
+   "lods": [
+    {
+     "name": "sprite",
+     "kind": "point_sprite",
+     "use": "sun/star_glow_*_256.png tinted by planet albedo mean; add 1px additive",
+     "s_visible_from": 0.0,
+     "s_fade_in": [
+      0.0,
+      0.004
+     ],
+     "s_fade_out": [
+      0.004,
+      0.012
+     ]
+    },
+    {
+     "name": "far",
+     "file": "models/temperate_far.glb",
+     "tris": 832,
+     "textures": {
+      "albedo": "textures/temperate_albedo_512x256.webp",
+      "normal": "textures/temperate_normal_512x256.png",
+      "roughness": "textures/temperate_roughness_512x256.png",
+      "height": "textures/temperate_height_512x256.png",
+      "emissive": "textures/temperate_emissive_512x256.png",
+      "clouds": "textures/temperate_clouds_512x256.webp",
+      "wire": "textures/temperate_wire_512x256.png",
+      "ocean_mask": "textures/temperate_ocean_mask_512x256.png"
+     },
+     "embedded_textures": [
+      "albedo",
+      "normal",
+      "roughness(G)",
+      "emissive"
+     ],
+     "s_fade_in": [
+      0.004,
+      0.012
+     ],
+     "s_fade_out": [
+      0.3,
+      0.55
+     ]
+    },
+    {
+     "name": "near",
+     "file": "models/temperate_near.glb",
+     "tris": 8064,
+     "textures": {
+      "albedo": "textures/temperate_albedo_2048x1024.webp",
+      "normal": "textures/temperate_normal_2048x1024.png",
+      "roughness": "textures/temperate_roughness_2048x1024.png",
+      "height": "textures/temperate_height_2048x1024.png",
+      "emissive": "textures/temperate_emissive_2048x1024.png",
+      "clouds": "textures/temperate_clouds_2048x1024.webp",
+      "wire": "textures/temperate_wire_2048x1024.png",
+      "ocean_mask": "textures/temperate_ocean_mask_2048x1024.png"
+     },
+     "embedded_textures": [],
+     "s_fade_in": [
+      0.3,
+      0.55
+     ],
+     "s_fade_out": null,
+     "note": "geometry-only GLB; bind textures/maps from this file; displacement via height map in the vertex shader"
+    }
+   ],
+   "biome_map": {
+    "palette_png": "textures/temperate_biomes_1024x512.png",
+    "index_png": "textures/temperate_biome_index_1024x512.png",
+    "ids": "universe/biomes/home_biomes.json index == groundcover/density_by_biome.json biome id order",
+    "coverage": {
+     "deep_ocean": 0.2009,
+     "shallow_ocean": 0.2268,
+     "beach": 0.0386,
+     "grassland": 0.2567,
+     "heartwood_forest": 0.0424,
+     "rainforest": 0.0576,
+     "savanna": 0.0902,
+     "mountain_rock": 0.0204,
+     "snow_cap": 0.0092,
+     "glacier": 0.0051,
+     "sunflower_ring": 0.0047,
+     "crystal_moss": 0.0061,
+     "volcano": 0.0033,
+     "ember_fields": 0.0002,
+     "pine_forest": 0.0101,
+     "frozen_sea": 0.0277
+    },
+    "note": "index map: NEAREST filter, no mips"
+   },
+   "shading": {
+    "sky_color": [
+     0.3,
+     0.52,
+     1.0
+    ],
+    "twilight_color": [
+     1.0,
+     0.52,
+     0.42
+    ],
+    "atmo_amount": 0.85,
+    "shallow_color": [
+     0.2,
+     0.62,
+     0.78
+    ],
+    "deep_color": [
+     0.04,
+     0.16,
+     0.42
+    ],
+    "glint_roughness": 0.2,
+    "wave_strength": 0.8,
+    "emissive_day_keep": 0.12,
+    "night_lights": 1.0,
+    "earthshine": 0,
+    "is_moon": false
+   },
+   "clouds": {
+    "texture_far": "textures/temperate_clouds_512x256.webp",
+    "texture_near": "textures/temperate_clouds_2048x1024.webp",
+    "altitude_frac": 0.006,
+    "shadow_strength": 0.55,
+    "near_shell": "models/temperate_near.glb scaled by 1+altitude_frac, transparent, depthWrite=false, no mipmaps if shadows use dirToUv",
+    "rotation_deg_per_min": 0.4
+   },
+   "displacement": {
+    "map": "textures/temperate_height_2048x1024.png",
+    "sea_level": 0.25,
+    "scale_frac_of_radius": 0.02,
+    "bias_frac": -0.005,
+    "note": "vertex displace only on the near mesh; 8k tris is coarse - use it for silhouette (mountains at the limb), normal map for the rest"
+   },
+   "ground_handoff": {
+    "biome_tiles": "detail/biome_tile_atlas_1280x1024.png",
+    "grade_overrides": {},
+    "alt_full_m": "min(3000, 0.05*R)",
+    "alt_zero_m": "2*alt_full_m",
+    "note": "palette == mean of the flat terrain tile, so the colours match; apply ground_tint_overrides from ZOOM_GUIDE.md for per-type ocean/beach recolours"
+   },
+   "atmosphere": {
+    "file": "models/temperate_atmo.glb",
+    "tris": 2208,
+    "shell_radius_frac": 1.045,
+    "shader": "glsl/atmosphere_rim.glsl",
+    "uniforms": {
+     "uDensity": 0.18,
+     "uMie": 0.6,
+     "uSkyColor": [
+      0.3,
+      0.52,
+      1.0
+     ],
+     "uTwilightColor": [
+      1.0,
+      0.52,
+      0.42
+     ]
+    },
+    "blending": "additive, depthWrite=false, side=BackSide when camera inside shell",
+    "fade": "alpha by s: 0 at s<0.01 (sprite/far glow carries it), 1 at s>0.03; keep through ground handoff (sky)"
+   }
+  },
+  "desert": {
+   "biome_type": "desert",
+   "lods": [
+    {
+     "name": "sprite",
+     "kind": "point_sprite",
+     "use": "sun/star_glow_*_256.png tinted by planet albedo mean; add 1px additive",
+     "s_visible_from": 0.0,
+     "s_fade_in": [
+      0.0,
+      0.004
+     ],
+     "s_fade_out": [
+      0.004,
+      0.012
+     ]
+    },
+    {
+     "name": "far",
+     "file": "models/desert_far.glb",
+     "tris": 832,
+     "textures": {
+      "albedo": "textures/desert_albedo_512x256.webp",
+      "normal": "textures/desert_normal_512x256.png",
+      "roughness": "textures/desert_roughness_512x256.png",
+      "height": "textures/desert_height_512x256.png",
+      "emissive": "textures/desert_emissive_512x256.png",
+      "clouds": "textures/desert_clouds_512x256.webp",
+      "wire": "textures/desert_wire_512x256.png",
+      "ocean_mask": "textures/desert_ocean_mask_512x256.png"
+     },
+     "embedded_textures": [
+      "albedo",
+      "normal",
+      "roughness(G)",
+      "emissive"
+     ],
+     "s_fade_in": [
+      0.004,
+      0.012
+     ],
+     "s_fade_out": [
+      0.3,
+      0.55
+     ]
+    },
+    {
+     "name": "near",
+     "file": "models/desert_near.glb",
+     "tris": 8064,
+     "textures": {
+      "albedo": "textures/desert_albedo_2048x1024.webp",
+      "normal": "textures/desert_normal_2048x1024.png",
+      "roughness": "textures/desert_roughness_2048x1024.png",
+      "height": "textures/desert_height_2048x1024.png",
+      "emissive": "textures/desert_emissive_2048x1024.png",
+      "clouds": "textures/desert_clouds_2048x1024.webp",
+      "wire": "textures/desert_wire_2048x1024.png",
+      "ocean_mask": "textures/desert_ocean_mask_2048x1024.png"
+     },
+     "embedded_textures": [],
+     "s_fade_in": [
+      0.3,
+      0.55
+     ],
+     "s_fade_out": null,
+     "note": "geometry-only GLB; bind textures/maps from this file; displacement via height map in the vertex shader"
+    }
+   ],
+   "biome_map": {
+    "palette_png": "textures/desert_biomes_1024x512.png",
+    "index_png": "textures/desert_biome_index_1024x512.png",
+    "ids": "universe/biomes/home_biomes.json index == groundcover/density_by_biome.json biome id order",
+    "coverage": {
+     "deep_ocean": 0.0119,
+     "shallow_ocean": 0.1194,
+     "beach": 0.0189,
+     "savanna": 0.0593,
+     "desert_dunes": 0.4091,
+     "mountain_rock": 0.2893,
+     "snow_cap": 0.0009,
+     "glacier": 0.0039,
+     "crystal_moss": 0.0082,
+     "volcano": 0.0022,
+     "ember_fields": 0.0605,
+     "paper_marsh": 0.0101,
+     "celestial_peaks": 0.0063
+    },
+    "note": "index map: NEAREST filter, no mips"
+   },
+   "shading": {
+    "sky_color": [
+     0.95,
+     0.62,
+     0.38
+    ],
+    "twilight_color": [
+     0.75,
+     0.4,
+     0.95
+    ],
+    "atmo_amount": 0.55,
+    "shallow_color": [
+     0.18,
+     0.62,
+     0.66
+    ],
+    "deep_color": [
+     0.05,
+     0.3,
+     0.4
+    ],
+    "glint_roughness": 0.26,
+    "wave_strength": 0.7,
+    "emissive_day_keep": 0.12,
+    "night_lights": 1.0,
+    "earthshine": 0,
+    "is_moon": false
+   },
+   "clouds": {
+    "texture_far": "textures/desert_clouds_512x256.webp",
+    "texture_near": "textures/desert_clouds_2048x1024.webp",
+    "altitude_frac": 0.005,
+    "shadow_strength": 0.35,
+    "near_shell": "models/desert_near.glb scaled by 1+altitude_frac, transparent, depthWrite=false, no mipmaps if shadows use dirToUv",
+    "rotation_deg_per_min": 0.4
+   },
+   "displacement": {
+    "map": "textures/desert_height_2048x1024.png",
+    "sea_level": 0.25,
+    "scale_frac_of_radius": 0.02,
+    "bias_frac": -0.005,
+    "note": "vertex displace only on the near mesh; 8k tris is coarse - use it for silhouette (mountains at the limb), normal map for the rest"
+   },
+   "ground_handoff": {
+    "biome_tiles": "detail/biome_tile_atlas_1280x1024.png",
+    "grade_overrides": {
+     "deep_ocean": [
+      0.05,
+      0.3,
+      0.4
+     ],
+     "shallow_ocean": [
+      0.18,
+      0.62,
+      0.66
+     ]
+    },
+    "alt_full_m": "min(3000, 0.05*R)",
+    "alt_zero_m": "2*alt_full_m",
+    "note": "palette == mean of the flat terrain tile, so the colours match; apply ground_tint_overrides from ZOOM_GUIDE.md for per-type ocean/beach recolours"
+   },
+   "atmosphere": {
+    "file": "models/desert_atmo.glb",
+    "tris": 2208,
+    "shell_radius_frac": 1.035,
+    "shader": "glsl/atmosphere_rim.glsl",
+    "uniforms": {
+     "uDensity": 0.14,
+     "uMie": 0.8,
+     "uSkyColor": [
+      0.95,
+      0.62,
+      0.38
+     ],
+     "uTwilightColor": [
+      0.75,
+      0.4,
+      0.95
+     ]
+    },
+    "blending": "additive, depthWrite=false, side=BackSide when camera inside shell",
+    "fade": "alpha by s: 0 at s<0.01 (sprite/far glow carries it), 1 at s>0.03; keep through ground handoff (sky)"
+   }
+  },
+  "ice": {
+   "biome_type": "ice",
+   "lods": [
+    {
+     "name": "sprite",
+     "kind": "point_sprite",
+     "use": "sun/star_glow_*_256.png tinted by planet albedo mean; add 1px additive",
+     "s_visible_from": 0.0,
+     "s_fade_in": [
+      0.0,
+      0.004
+     ],
+     "s_fade_out": [
+      0.004,
+      0.012
+     ]
+    },
+    {
+     "name": "far",
+     "file": "models/ice_far.glb",
+     "tris": 832,
+     "textures": {
+      "albedo": "textures/ice_albedo_512x256.webp",
+      "normal": "textures/ice_normal_512x256.png",
+      "roughness": "textures/ice_roughness_512x256.png",
+      "height": "textures/ice_height_512x256.png",
+      "emissive": "textures/ice_emissive_512x256.png",
+      "clouds": "textures/ice_clouds_512x256.webp",
+      "wire": "textures/ice_wire_512x256.png",
+      "ocean_mask": "textures/ice_ocean_mask_512x256.png"
+     },
+     "embedded_textures": [
+      "albedo",
+      "normal",
+      "roughness(G)",
+      "emissive"
+     ],
+     "s_fade_in": [
+      0.004,
+      0.012
+     ],
+     "s_fade_out": [
+      0.3,
+      0.55
+     ]
+    },
+    {
+     "name": "near",
+     "file": "models/ice_near.glb",
+     "tris": 8064,
+     "textures": {
+      "albedo": "textures/ice_albedo_2048x1024.webp",
+      "normal": "textures/ice_normal_2048x1024.png",
+      "roughness": "textures/ice_roughness_2048x1024.png",
+      "height": "textures/ice_height_2048x1024.png",
+      "emissive": "textures/ice_emissive_2048x1024.png",
+      "clouds": "textures/ice_clouds_2048x1024.webp",
+      "wire": "textures/ice_wire_2048x1024.png",
+      "ocean_mask": "textures/ice_ocean_mask_2048x1024.png"
+     },
+     "embedded_textures": [],
+     "s_fade_in": [
+      0.3,
+      0.55
+     ],
+     "s_fade_out": null,
+     "note": "geometry-only GLB; bind textures/maps from this file; displacement via height map in the vertex shader"
+    }
+   ],
+   "biome_map": {
+    "palette_png": "textures/ice_biomes_1024x512.png",
+    "index_png": "textures/ice_biome_index_1024x512.png",
+    "ids": "universe/biomes/home_biomes.json index == groundcover/density_by_biome.json biome id order",
+    "coverage": {
+     "deep_ocean": 0.0039,
+     "mountain_rock": 0.0347,
+     "snow_cap": 0.3032,
+     "glacier": 0.3005,
+     "crystal_moss": 0.0286,
+     "celestial_peaks": 0.0046,
+     "pine_forest": 0.0127,
+     "frozen_sea": 0.3119
+    },
+    "note": "index map: NEAREST filter, no mips"
+   },
+   "shading": {
+    "sky_color": [
+     0.55,
+     0.8,
+     1.0
+    ],
+    "twilight_color": [
+     0.6,
+     0.55,
+     1.0
+    ],
+    "atmo_amount": 0.5,
+    "shallow_color": [
+     0.1,
+     0.3,
+     0.52
+    ],
+    "deep_color": [
+     0.05,
+     0.14,
+     0.3
+    ],
+    "glint_roughness": 0.16,
+    "wave_strength": 0.4,
+    "emissive_day_keep": 0.2,
+    "night_lights": 1.0,
+    "earthshine": 0,
+    "is_moon": false
+   },
+   "clouds": {
+    "texture_far": "textures/ice_clouds_512x256.webp",
+    "texture_near": "textures/ice_clouds_2048x1024.webp",
+    "altitude_frac": 0.005,
+    "shadow_strength": 0.3,
+    "near_shell": "models/ice_near.glb scaled by 1+altitude_frac, transparent, depthWrite=false, no mipmaps if shadows use dirToUv",
+    "rotation_deg_per_min": 0.4
+   },
+   "displacement": {
+    "map": "textures/ice_height_2048x1024.png",
+    "sea_level": 0.25,
+    "scale_frac_of_radius": 0.02,
+    "bias_frac": -0.005,
+    "note": "vertex displace only on the near mesh; 8k tris is coarse - use it for silhouette (mountains at the limb), normal map for the rest"
+   },
+   "ground_handoff": {
+    "biome_tiles": "detail/biome_tile_atlas_1280x1024.png",
+    "grade_overrides": {
+     "deep_ocean": [
+      0.05,
+      0.14,
+      0.3
+     ],
+     "shallow_ocean": [
+      0.1,
+      0.3,
+      0.52
+     ]
+    },
+    "alt_full_m": "min(3000, 0.05*R)",
+    "alt_zero_m": "2*alt_full_m",
+    "note": "palette == mean of the flat terrain tile, so the colours match; apply ground_tint_overrides from ZOOM_GUIDE.md for per-type ocean/beach recolours"
+   },
+   "atmosphere": {
+    "file": "models/ice_atmo.glb",
+    "tris": 2208,
+    "shell_radius_frac": 1.035,
+    "shader": "glsl/atmosphere_rim.glsl",
+    "uniforms": {
+     "uDensity": 0.12,
+     "uMie": 0.5,
+     "uSkyColor": [
+      0.55,
+      0.8,
+      1.0
+     ],
+     "uTwilightColor": [
+      0.6,
+      0.55,
+      1.0
+     ]
+    },
+    "blending": "additive, depthWrite=false, side=BackSide when camera inside shell",
+    "fade": "alpha by s: 0 at s<0.01 (sprite/far glow carries it), 1 at s>0.03; keep through ground handoff (sky)"
+   }
+  },
+  "volcanic": {
+   "biome_type": "volcanic",
+   "lods": [
+    {
+     "name": "sprite",
+     "kind": "point_sprite",
+     "use": "sun/star_glow_*_256.png tinted by planet albedo mean; add 1px additive",
+     "s_visible_from": 0.0,
+     "s_fade_in": [
+      0.0,
+      0.004
+     ],
+     "s_fade_out": [
+      0.004,
+      0.012
+     ]
+    },
+    {
+     "name": "far",
+     "file": "models/volcanic_far.glb",
+     "tris": 832,
+     "textures": {
+      "albedo": "textures/volcanic_albedo_512x256.webp",
+      "normal": "textures/volcanic_normal_512x256.png",
+      "roughness": "textures/volcanic_roughness_512x256.png",
+      "height": "textures/volcanic_height_512x256.png",
+      "emissive": "textures/volcanic_emissive_512x256.png",
+      "clouds": "textures/volcanic_clouds_512x256.webp",
+      "wire": "textures/volcanic_wire_512x256.png",
+      "ocean_mask": "textures/volcanic_ocean_mask_512x256.png"
+     },
+     "embedded_textures": [
+      "albedo",
+      "normal",
+      "roughness(G)",
+      "emissive"
+     ],
+     "s_fade_in": [
+      0.004,
+      0.012
+     ],
+     "s_fade_out": [
+      0.3,
+      0.55
+     ]
+    },
+    {
+     "name": "near",
+     "file": "models/volcanic_near.glb",
+     "tris": 8064,
+     "textures": {
+      "albedo": "textures/volcanic_albedo_2048x1024.webp",
+      "normal": "textures/volcanic_normal_2048x1024.png",
+      "roughness": "textures/volcanic_roughness_2048x1024.png",
+      "height": "textures/volcanic_height_2048x1024.png",
+      "emissive": "textures/volcanic_emissive_2048x1024.png",
+      "clouds": "textures/volcanic_clouds_2048x1024.webp",
+      "wire": "textures/volcanic_wire_2048x1024.png",
+      "ocean_mask": "textures/volcanic_ocean_mask_2048x1024.png"
+     },
+     "embedded_textures": [],
+     "s_fade_in": [
+      0.3,
+      0.55
+     ],
+     "s_fade_out": null,
+     "note": "geometry-only GLB; bind textures/maps from this file; displacement via height map in the vertex shader"
+    }
+   ],
+   "biome_map": {
+    "palette_png": "textures/volcanic_biomes_1024x512.png",
+    "index_png": "textures/volcanic_biome_index_1024x512.png",
+    "ids": "universe/biomes/home_biomes.json index == groundcover/density_by_biome.json biome id order",
+    "coverage": {
+     "deep_ocean": 0.0355,
+     "shallow_ocean": 0.1303,
+     "beach": 0.0247,
+     "mountain_rock": 0.1256,
+     "crystal_moss": 0.0077,
+     "volcano": 0.6256,
+     "ember_fields": 0.0506
+    },
+    "note": "index map: NEAREST filter, no mips"
+   },
+   "shading": {
+    "sky_color": [
+     0.85,
+     0.32,
+     0.22
+    ],
+    "twilight_color": [
+     1.0,
+     0.3,
+     0.45
+    ],
+    "atmo_amount": 0.6,
+    "shallow_color": [
+     0.13,
+     0.07,
+     0.2
+    ],
+    "deep_color": [
+     0.05,
+     0.03,
+     0.09
+    ],
+    "glint_roughness": 0.3,
+    "wave_strength": 0.5,
+    "emissive_day_keep": 1.0,
+    "night_lights": 0.5,
+    "earthshine": 0,
+    "is_moon": false
+   },
+   "clouds": {
+    "texture_far": "textures/volcanic_clouds_512x256.webp",
+    "texture_near": "textures/volcanic_clouds_2048x1024.webp",
+    "altitude_frac": 0.006,
+    "shadow_strength": 0.5,
+    "near_shell": "models/volcanic_near.glb scaled by 1+altitude_frac, transparent, depthWrite=false, no mipmaps if shadows use dirToUv",
+    "rotation_deg_per_min": 0.4
+   },
+   "displacement": {
+    "map": "textures/volcanic_height_2048x1024.png",
+    "sea_level": 0.25,
+    "scale_frac_of_radius": 0.02,
+    "bias_frac": -0.005,
+    "note": "vertex displace only on the near mesh; 8k tris is coarse - use it for silhouette (mountains at the limb), normal map for the rest"
+   },
+   "ground_handoff": {
+    "biome_tiles": "detail/biome_tile_atlas_1280x1024.png",
+    "grade_overrides": {
+     "beach": [
+      0.16,
+      0.13,
+      0.15
+     ],
+     "deep_ocean": [
+      0.05,
+      0.03,
+      0.09
+     ],
+     "shallow_ocean": [
+      0.13,
+      0.07,
+      0.2
+     ]
+    },
+    "alt_full_m": "min(3000, 0.05*R)",
+    "alt_zero_m": "2*alt_full_m",
+    "note": "palette == mean of the flat terrain tile, so the colours match; apply ground_tint_overrides from ZOOM_GUIDE.md for per-type ocean/beach recolours"
+   },
+   "atmosphere": {
+    "file": "models/volcanic_atmo.glb",
+    "tris": 2208,
+    "shell_radius_frac": 1.04,
+    "shader": "glsl/atmosphere_rim.glsl",
+    "uniforms": {
+     "uDensity": 0.16,
+     "uMie": 0.5,
+     "uSkyColor": [
+      0.85,
+      0.32,
+      0.22
+     ],
+     "uTwilightColor": [
+      1.0,
+      0.3,
+      0.45
+     ]
+    },
+    "blending": "additive, depthWrite=false, side=BackSide when camera inside shell",
+    "fade": "alpha by s: 0 at s<0.01 (sprite/far glow carries it), 1 at s>0.03; keep through ground handoff (sky)"
+   }
+  },
+  "moon": {
+   "biome_type": "moon",
+   "lods": [
+    {
+     "name": "sprite",
+     "kind": "point_sprite",
+     "use": "sun/star_glow_*_256.png tinted by planet albedo mean; add 1px additive",
+     "s_visible_from": 0.0,
+     "s_fade_in": [
+      0.0,
+      0.004
+     ],
+     "s_fade_out": [
+      0.004,
+      0.012
+     ]
+    },
+    {
+     "name": "far",
+     "file": "models/moon_far.glb",
+     "tris": 832,
+     "textures": {
+      "albedo": "textures/moon_albedo_512x256.webp",
+      "normal": "textures/moon_normal_512x256.png",
+      "roughness": "textures/moon_roughness_512x256.png",
+      "height": "textures/moon_height_512x256.png",
+      "emissive": "textures/moon_emissive_512x256.png",
+      "clouds": "textures/moon_clouds_512x256.webp",
+      "wire": "textures/moon_wire_512x256.png"
+     },
+     "embedded_textures": [
+      "albedo",
+      "normal",
+      "roughness(G)",
+      "emissive"
+     ],
+     "s_fade_in": [
+      0.004,
+      0.012
+     ],
+     "s_fade_out": [
+      0.3,
+      0.55
+     ]
+    },
+    {
+     "name": "near",
+     "file": "models/moon_near.glb",
+     "tris": 8064,
+     "textures": {
+      "albedo": "textures/moon_albedo_2048x1024.webp",
+      "normal": "textures/moon_normal_2048x1024.png",
+      "roughness": "textures/moon_roughness_2048x1024.png",
+      "height": "textures/moon_height_2048x1024.png",
+      "emissive": "textures/moon_emissive_2048x1024.png",
+      "clouds": "textures/moon_clouds_2048x1024.webp",
+      "wire": "textures/moon_wire_2048x1024.png"
+     },
+     "embedded_textures": [],
+     "s_fade_in": [
+      0.3,
+      0.55
+     ],
+     "s_fade_out": null,
+     "note": "geometry-only GLB; bind textures/maps from this file; displacement via height map in the vertex shader"
+    }
+   ],
+   "biome_map": {
+    "palette_png": "textures/moon_biomes_1024x512.png",
+    "index_png": "textures/moon_biome_index_1024x512.png",
+    "ids": "universe/biomes/home_biomes.json index == groundcover/density_by_biome.json biome id order",
+    "coverage": {
+     "mountain_rock": 0.602,
+     "crystal_moss": 0.0036,
+     "volcano": 0.2366,
+     "celestial_peaks": 0.1578
+    },
+    "note": "index map: NEAREST filter, no mips"
+   },
+   "shading": {
+    "sky_color": [
+     0,
+     0,
+     0
+    ],
+    "twilight_color": [
+     0,
+     0,
+     0
+    ],
+    "atmo_amount": 0.0,
+    "shallow_color": [
+     0,
+     0,
+     0
+    ],
+    "deep_color": [
+     0,
+     0,
+     0
+    ],
+    "glint_roughness": 0.2,
+    "wave_strength": 0,
+    "emissive_day_keep": 0.3,
+    "night_lights": 1.0,
+    "earthshine": 0.035,
+    "is_moon": true
+   },
+   "clouds": null,
+   "displacement": {
+    "map": "textures/moon_height_2048x1024.png",
+    "sea_level": null,
+    "scale_frac_of_radius": 0.02,
+    "bias_frac": -0.005,
+    "note": "vertex displace only on the near mesh; 8k tris is coarse - use it for silhouette (mountains at the limb), normal map for the rest"
+   },
+   "ground_handoff": {
+    "biome_tiles": "detail/biome_tile_atlas_1280x1024.png",
+    "grade_overrides": {},
+    "alt_full_m": "min(3000, 0.05*R)",
+    "alt_zero_m": "2*alt_full_m",
+    "note": "palette == mean of the flat terrain tile, so the colours match; apply ground_tint_overrides from ZOOM_GUIDE.md for per-type ocean/beach recolours"
+   },
+   "atmosphere": null
+  }
+ }
+}
