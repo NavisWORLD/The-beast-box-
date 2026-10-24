@@ -1,0 +1,1240 @@
+{
+ "note": "Placement is SEEDED (home world exception, recorded habitability unchanged), the growth drive is SIMULATED, genesis is RECORDED.",
+ "universe": {
+  "schema": "tiny-universe/v1",
+  "seed": "a499467496db4a702494aae1faddf2c8322b59cab46555935728e867ab82ac0c",
+  "source": {
+   "class": "RECORDED_IBM_HARDWARE",
+   "backend": "ibm_marrakesh",
+   "job_id": "db4l2uclf4us73c2td10",
+   "counts_digest": "6b5438dc3ad1ab02cd6440822ea8fe89e1b66fa664174454c9471a65196d2910"
+  },
+  "entanglement_E": 0.97461,
+  "tick": 65,
+  "growth_label": "SIMULATED (Rigetti Bell simulator, not hardware)",
+  "stars": [
+   {
+    "id": "star-0",
+    "type": "star",
+    "mass_solar": 9.918,
+    "temperature_k": 15831,
+    "luminosity": 0,
+    "age": 65,
+    "hue": 0.9197,
+    "x": 0.7768,
+    "y": 0.8602,
+    "remnant": "neutron_star"
+   },
+   {
+    "id": "star-1",
+    "type": "star",
+    "mass_solar": 0.327,
+    "temperature_k": 5513,
+    "luminosity": 0.02,
+    "age": 65,
+    "hue": 0.1778,
+    "x": 0.4641,
+    "y": 0.5989
+   },
+   {
+    "id": "star-2",
+    "type": "star",
+    "mass_solar": 2.752,
+    "temperature_k": 13653,
+    "luminosity": 34.5756,
+    "age": 65,
+    "hue": 0.2219,
+    "x": 0.4937,
+    "y": 0.1301
+   },
+   {
+    "id": "star-3",
+    "type": "star",
+    "mass_solar": 6.898,
+    "temperature_k": 20684,
+    "luminosity": 862.0474,
+    "age": 65,
+    "hue": 0.4223,
+    "x": 0.3231,
+    "y": 0.8593
+   },
+   {
+    "id": "star-4",
+    "type": "star",
+    "mass_solar": 5.271,
+    "temperature_k": 18878,
+    "luminosity": 336.2216,
+    "age": 65,
+    "hue": 0.8784,
+    "x": 0.4552,
+    "y": 0.3573
+   },
+   {
+    "id": "star-5",
+    "type": "star",
+    "mass_solar": 0.709,
+    "temperature_k": 7141,
+    "luminosity": 0.3001,
+    "age": 65,
+    "hue": 0.138,
+    "x": 0.2359,
+    "y": 0.6665
+   }
+  ],
+  "planets": [
+   {
+    "id": "star-0-p0",
+    "type": "planet",
+    "star": "star-0",
+    "orbit_au": 0.2,
+    "radius_earth": 4.732,
+    "water": 0.6552,
+    "atmosphere": 0.4246,
+    "flux": 76811.1675,
+    "temperature_k": 4628,
+    "phase": 0.8602,
+    "habitability": 0
+   },
+   {
+    "id": "star-0-p1",
+    "type": "planet",
+    "star": "star-0",
+    "orbit_au": 1.294,
+    "radius_earth": 3.001,
+    "water": 0.6165,
+    "atmosphere": 0.5531,
+    "flux": 1834.9144,
+    "temperature_k": 1819,
+    "phase": 0.1279,
+    "habitability": 0
+   },
+   {
+    "id": "star-0-p2",
+    "type": "planet",
+    "star": "star-0",
+    "orbit_au": 2.467,
+    "radius_earth": 7.214,
+    "water": 0.3752,
+    "atmosphere": 0.721,
+    "flux": 504.831,
+    "temperature_k": 1318,
+    "phase": 0.2446,
+    "habitability": 0
+   },
+   {
+    "id": "star-0-p3",
+    "type": "planet",
+    "star": "star-0",
+    "orbit_au": 2.666,
+    "radius_earth": 1.821,
+    "water": 0.4209,
+    "atmosphere": 0.4621,
+    "flux": 432.2789,
+    "temperature_k": 1268,
+    "phase": 0.8348,
+    "habitability": 0
+   },
+   {
+    "id": "star-0-p4",
+    "type": "planet",
+    "star": "star-0",
+    "orbit_au": 4.814,
+    "radius_earth": 0.537,
+    "water": 0.0359,
+    "atmosphere": 0.4369,
+    "flux": 132.5782,
+    "temperature_k": 943,
+    "phase": 0.3067,
+    "habitability": 0
+   },
+   {
+    "id": "star-1-p0",
+    "type": "planet",
+    "star": "star-1",
+    "orbit_au": 0.2,
+    "radius_earth": 4.829,
+    "water": 0.7752,
+    "atmosphere": 0.2051,
+    "flux": 0.5,
+    "temperature_k": 234,
+    "phase": 0.6455,
+    "habitability": 0.1749
+   },
+   {
+    "id": "star-1-p1",
+    "type": "planet",
+    "star": "star-1",
+    "orbit_au": 0.956,
+    "radius_earth": 1.091,
+    "water": 0.3317,
+    "atmosphere": 0.0257,
+    "flux": 0.0219,
+    "temperature_k": 107,
+    "phase": 0.7745,
+    "habitability": 0
+   },
+   {
+    "id": "star-1-p2",
+    "type": "planet",
+    "star": "star-1",
+    "orbit_au": 1.553,
+    "radius_earth": 0.518,
+    "water": 0.426,
+    "atmosphere": 0.006,
+    "flux": 0.0083,
+    "temperature_k": 84,
+    "phase": 0.6738,
+    "habitability": 0
+   },
+   {
+    "id": "star-1-p3",
+    "type": "planet",
+    "star": "star-1",
+    "orbit_au": 3.144,
+    "radius_earth": 1.335,
+    "water": 0.2431,
+    "atmosphere": 0.6183,
+    "flux": 0.002,
+    "temperature_k": 59,
+    "phase": 0.2307,
+    "habitability": 0
+   },
+   {
+    "id": "star-1-p4",
+    "type": "planet",
+    "star": "star-1",
+    "orbit_au": 4.717,
+    "radius_earth": 5.48,
+    "water": 0.1828,
+    "atmosphere": 0.1448,
+    "flux": 0.0009,
+    "temperature_k": 48,
+    "phase": 0.0019,
+    "habitability": 0
+   },
+   {
+    "id": "star-2-p0",
+    "type": "planet",
+    "star": "star-2",
+    "orbit_au": 0.2,
+    "radius_earth": 1.922,
+    "water": 0.1827,
+    "atmosphere": 0.7791,
+    "flux": 864.39,
+    "temperature_k": 1507,
+    "phase": 0.5181,
+    "habitability": 0
+   },
+   {
+    "id": "star-2-p1",
+    "type": "planet",
+    "star": "star-2",
+    "orbit_au": 0.932,
+    "radius_earth": 2.948,
+    "water": 0.2616,
+    "atmosphere": 0.9578,
+    "flux": 39.805,
+    "temperature_k": 698,
+    "phase": 0.5995,
+    "habitability": 0
+   },
+   {
+    "id": "star-2-p2",
+    "type": "planet",
+    "star": "star-2",
+    "orbit_au": 2.348,
+    "radius_earth": 2.022,
+    "water": 0.171,
+    "atmosphere": 0.0208,
+    "flux": 6.2715,
+    "temperature_k": 440,
+    "phase": 0.0955,
+    "habitability": 0
+   },
+   {
+    "id": "star-3-p0",
+    "type": "planet",
+    "star": "star-3",
+    "orbit_au": 0.2,
+    "radius_earth": 0.331,
+    "water": 0.8509,
+    "atmosphere": 0.4997,
+    "flux": 21551.185,
+    "temperature_k": 3368,
+    "phase": 0.9691,
+    "habitability": 0
+   },
+   {
+    "id": "star-3-p1",
+    "type": "planet",
+    "star": "star-3",
+    "orbit_au": 1.182,
+    "radius_earth": 0.597,
+    "water": 0.4166,
+    "atmosphere": 0.4067,
+    "flux": 617.0157,
+    "temperature_k": 1386,
+    "phase": 0.6011,
+    "habitability": 0
+   },
+   {
+    "id": "star-4-p0",
+    "type": "planet",
+    "star": "star-4",
+    "orbit_au": 0.2,
+    "radius_earth": 1.108,
+    "water": 0.3699,
+    "atmosphere": 0.2498,
+    "flux": 8405.54,
+    "temperature_k": 2662,
+    "phase": 0.9418,
+    "habitability": 0
+   },
+   {
+    "id": "star-4-p1",
+    "type": "planet",
+    "star": "star-4",
+    "orbit_au": 1.238,
+    "radius_earth": 2.749,
+    "water": 0.3,
+    "atmosphere": 0.341,
+    "flux": 219.3736,
+    "temperature_k": 1070,
+    "phase": 0.9588,
+    "habitability": 0
+   }
+  ],
+  "storms": [
+   {
+    "id": "storm-58",
+    "type": "storm",
+    "planet": "star-2-p0",
+    "intensity": 0.3751,
+    "lifetime": 12,
+    "born": 58
+   }
+  ],
+  "life": [],
+  "history": [
+   {
+    "tick": 2,
+    "source": "SIMULATED",
+    "sim_E": 0.97461,
+    "counts": {
+     "10": 6,
+     "11": 507,
+     "00": 504,
+     "01": 7
+    },
+    "events": []
+   },
+   {
+    "tick": 3,
+    "source": "SIMULATED",
+    "sim_E": 0.97852,
+    "counts": {
+     "10": 5,
+     "11": 496,
+     "00": 517,
+     "01": 6
+    },
+    "events": []
+   },
+   {
+    "tick": 4,
+    "source": "SIMULATED",
+    "sim_E": 0.98242,
+    "counts": {
+     "10": 2,
+     "11": 512,
+     "00": 503,
+     "01": 7
+    },
+    "events": []
+   },
+   {
+    "tick": 5,
+    "source": "SIMULATED",
+    "sim_E": 0.99023,
+    "counts": {
+     "10": 2,
+     "11": 505,
+     "00": 514,
+     "01": 3
+    },
+    "events": []
+   },
+   {
+    "tick": 6,
+    "source": "SIMULATED",
+    "sim_E": 0.97266,
+    "counts": {
+     "10": 9,
+     "11": 526,
+     "00": 484,
+     "01": 5
+    },
+    "events": []
+   },
+   {
+    "tick": 7,
+    "source": "SIMULATED",
+    "sim_E": 0.9668,
+    "counts": {
+     "10": 11,
+     "11": 506,
+     "00": 501,
+     "01": 6
+    },
+    "events": []
+   },
+   {
+    "tick": 8,
+    "source": "SIMULATED",
+    "sim_E": 0.98242,
+    "counts": {
+     "10": 3,
+     "11": 513,
+     "00": 502,
+     "01": 6
+    },
+    "events": []
+   },
+   {
+    "tick": 9,
+    "source": "SIMULATED",
+    "sim_E": 0.96484,
+    "counts": {
+     "10": 8,
+     "11": 505,
+     "00": 501,
+     "01": 10
+    },
+    "events": []
+   },
+   {
+    "tick": 10,
+    "source": "SIMULATED",
+    "sim_E": 0.9668,
+    "counts": {
+     "10": 13,
+     "11": 516,
+     "00": 491,
+     "01": 4
+    },
+    "events": []
+   },
+   {
+    "tick": 11,
+    "source": "SIMULATED",
+    "sim_E": 0.98047,
+    "counts": {
+     "10": 5,
+     "11": 549,
+     "00": 465,
+     "01": 5
+    },
+    "events": []
+   },
+   {
+    "tick": 12,
+    "source": "SIMULATED",
+    "sim_E": 0.97656,
+    "counts": {
+     "10": 5,
+     "11": 513,
+     "00": 499,
+     "01": 7
+    },
+    "events": []
+   },
+   {
+    "tick": 13,
+    "source": "SIMULATED",
+    "sim_E": 0.98242,
+    "counts": {
+     "10": 4,
+     "11": 496,
+     "00": 519,
+     "01": 5
+    },
+    "events": []
+   },
+   {
+    "tick": 14,
+    "source": "SIMULATED",
+    "sim_E": 0.97852,
+    "counts": {
+     "10": 5,
+     "11": 526,
+     "00": 487,
+     "01": 6
+    },
+    "events": []
+   },
+   {
+    "tick": 15,
+    "source": "SIMULATED",
+    "sim_E": 0.97266,
+    "counts": {
+     "10": 9,
+     "11": 520,
+     "00": 490,
+     "01": 5
+    },
+    "events": []
+   },
+   {
+    "tick": 16,
+    "source": "SIMULATED",
+    "sim_E": 0.98438,
+    "counts": {
+     "10": 6,
+     "11": 517,
+     "00": 499,
+     "01": 2
+    },
+    "events": []
+   },
+   {
+    "tick": 17,
+    "source": "SIMULATED",
+    "sim_E": 0.98047,
+    "counts": {
+     "10": 7,
+     "11": 544,
+     "00": 470,
+     "01": 3
+    },
+    "events": []
+   },
+   {
+    "tick": 18,
+    "source": "SIMULATED",
+    "sim_E": 0.96484,
+    "counts": {
+     "10": 9,
+     "11": 527,
+     "00": 479,
+     "01": 9
+    },
+    "events": []
+   },
+   {
+    "tick": 19,
+    "source": "SIMULATED",
+    "sim_E": 0.97656,
+    "counts": {
+     "10": 6,
+     "11": 481,
+     "00": 531,
+     "01": 6
+    },
+    "events": []
+   },
+   {
+    "tick": 20,
+    "source": "SIMULATED",
+    "sim_E": 0.98047,
+    "counts": {
+     "10": 6,
+     "11": 501,
+     "00": 513,
+     "01": 4
+    },
+    "events": []
+   },
+   {
+    "tick": 21,
+    "source": "SIMULATED",
+    "sim_E": 0.97266,
+    "counts": {
+     "10": 7,
+     "11": 496,
+     "00": 514,
+     "01": 7
+    },
+    "events": []
+   },
+   {
+    "tick": 22,
+    "source": "SIMULATED",
+    "sim_E": 0.97461,
+    "counts": {
+     "10": 9,
+     "11": 517,
+     "00": 494,
+     "01": 4
+    },
+    "events": []
+   },
+   {
+    "tick": 23,
+    "source": "SIMULATED",
+    "sim_E": 0.9668,
+    "counts": {
+     "10": 6,
+     "11": 508,
+     "00": 499,
+     "01": 11
+    },
+    "events": []
+   },
+   {
+    "tick": 24,
+    "source": "SIMULATED",
+    "sim_E": 0.98242,
+    "counts": {
+     "10": 5,
+     "11": 504,
+     "00": 511,
+     "01": 4
+    },
+    "events": []
+   },
+   {
+    "tick": 25,
+    "source": "SIMULATED",
+    "sim_E": 0.97461,
+    "counts": {
+     "10": 6,
+     "11": 514,
+     "00": 497,
+     "01": 7
+    },
+    "events": []
+   },
+   {
+    "tick": 26,
+    "source": "SIMULATED",
+    "sim_E": 0.9707,
+    "counts": {
+     "10": 9,
+     "11": 533,
+     "00": 476,
+     "01": 6
+    },
+    "events": []
+   },
+   {
+    "tick": 27,
+    "source": "SIMULATED",
+    "sim_E": 0.95898,
+    "counts": {
+     "10": 10,
+     "11": 515,
+     "00": 488,
+     "01": 11
+    },
+    "events": []
+   },
+   {
+    "tick": 28,
+    "source": "SIMULATED",
+    "sim_E": 0.9668,
+    "counts": {
+     "10": 8,
+     "11": 497,
+     "00": 510,
+     "01": 9
+    },
+    "events": []
+   },
+   {
+    "tick": 29,
+    "source": "SIMULATED",
+    "sim_E": 0.98242,
+    "counts": {
+     "10": 2,
+     "11": 517,
+     "00": 498,
+     "01": 7
+    },
+    "events": []
+   },
+   {
+    "tick": 30,
+    "source": "SIMULATED",
+    "sim_E": 0.95898,
+    "counts": {
+     "10": 13,
+     "11": 485,
+     "00": 518,
+     "01": 8
+    },
+    "events": []
+   },
+   {
+    "tick": 31,
+    "source": "SIMULATED",
+    "sim_E": 0.97852,
+    "counts": {
+     "10": 7,
+     "11": 509,
+     "00": 504,
+     "01": 4
+    },
+    "events": []
+   },
+   {
+    "tick": 32,
+    "source": "SIMULATED",
+    "sim_E": 0.98242,
+    "counts": {
+     "10": 2,
+     "11": 495,
+     "00": 520,
+     "01": 7
+    },
+    "events": []
+   },
+   {
+    "tick": 33,
+    "source": "SIMULATED",
+    "sim_E": 0.97461,
+    "counts": {
+     "10": 7,
+     "11": 493,
+     "00": 518,
+     "01": 6
+    },
+    "events": []
+   },
+   {
+    "tick": 34,
+    "source": "SIMULATED",
+    "sim_E": 0.98242,
+    "counts": {
+     "10": 7,
+     "11": 521,
+     "00": 494,
+     "01": 2
+    },
+    "events": []
+   },
+   {
+    "tick": 35,
+    "source": "SIMULATED",
+    "sim_E": 0.98828,
+    "counts": {
+     "10": 4,
+     "11": 528,
+     "00": 490,
+     "01": 2
+    },
+    "events": []
+   },
+   {
+    "tick": 36,
+    "source": "SIMULATED",
+    "sim_E": 0.97852,
+    "counts": {
+     "10": 7,
+     "11": 504,
+     "00": 509,
+     "01": 4
+    },
+    "events": []
+   },
+   {
+    "tick": 37,
+    "source": "SIMULATED",
+    "sim_E": 0.98047,
+    "counts": {
+     "10": 2,
+     "11": 483,
+     "00": 531,
+     "01": 8
+    },
+    "events": []
+   },
+   {
+    "tick": 38,
+    "source": "SIMULATED",
+    "sim_E": 0.96484,
+    "counts": {
+     "10": 12,
+     "11": 489,
+     "00": 517,
+     "01": 6
+    },
+    "events": []
+   },
+   {
+    "tick": 39,
+    "source": "SIMULATED",
+    "sim_E": 0.98242,
+    "counts": {
+     "10": 4,
+     "11": 523,
+     "00": 492,
+     "01": 5
+    },
+    "events": []
+   },
+   {
+    "tick": 40,
+    "source": "SIMULATED",
+    "sim_E": 0.9668,
+    "counts": {
+     "10": 6,
+     "11": 514,
+     "00": 493,
+     "01": 11
+    },
+    "events": []
+   },
+   {
+    "tick": 41,
+    "source": "SIMULATED",
+    "sim_E": 0.97852,
+    "counts": {
+     "10": 6,
+     "11": 510,
+     "00": 503,
+     "01": 5
+    },
+    "events": []
+   },
+   {
+    "tick": 42,
+    "source": "SIMULATED",
+    "sim_E": 0.97266,
+    "counts": {
+     "10": 7,
+     "11": 503,
+     "00": 507,
+     "01": 7
+    },
+    "events": []
+   },
+   {
+    "tick": 43,
+    "source": "SIMULATED",
+    "sim_E": 0.98242,
+    "counts": {
+     "10": 5,
+     "11": 494,
+     "00": 521,
+     "01": 4
+    },
+    "events": []
+   },
+   {
+    "tick": 44,
+    "source": "SIMULATED",
+    "sim_E": 0.96484,
+    "counts": {
+     "10": 11,
+     "11": 516,
+     "00": 490,
+     "01": 7
+    },
+    "events": []
+   },
+   {
+    "tick": 45,
+    "source": "SIMULATED",
+    "sim_E": 0.98242,
+    "counts": {
+     "10": 6,
+     "11": 511,
+     "00": 504,
+     "01": 3
+    },
+    "events": []
+   },
+   {
+    "tick": 46,
+    "source": "SIMULATED",
+    "sim_E": 0.97656,
+    "counts": {
+     "10": 5,
+     "11": 503,
+     "00": 509,
+     "01": 7
+    },
+    "events": [
+     {
+      "kind": "supernova",
+      "star": "star-0"
+     }
+    ]
+   },
+   {
+    "tick": 47,
+    "source": "SIMULATED",
+    "sim_E": 0.99023,
+    "counts": {
+     "10": 1,
+     "11": 522,
+     "00": 497,
+     "01": 4
+    },
+    "events": []
+   },
+   {
+    "tick": 48,
+    "source": "SIMULATED",
+    "sim_E": 0.98242,
+    "counts": {
+     "10": 8,
+     "11": 504,
+     "00": 511,
+     "01": 1
+    },
+    "events": []
+   },
+   {
+    "tick": 49,
+    "source": "SIMULATED",
+    "sim_E": 0.97852,
+    "counts": {
+     "10": 5,
+     "11": 541,
+     "00": 472,
+     "01": 6
+    },
+    "events": []
+   },
+   {
+    "tick": 50,
+    "source": "SIMULATED",
+    "sim_E": 0.98633,
+    "counts": {
+     "10": 3,
+     "11": 542,
+     "00": 475,
+     "01": 4
+    },
+    "events": []
+   },
+   {
+    "tick": 51,
+    "source": "SIMULATED",
+    "sim_E": 0.98242,
+    "counts": {
+     "10": 2,
+     "11": 505,
+     "00": 510,
+     "01": 7
+    },
+    "events": []
+   },
+   {
+    "tick": 52,
+    "source": "SIMULATED",
+    "sim_E": 0.9668,
+    "counts": {
+     "10": 6,
+     "11": 511,
+     "00": 496,
+     "01": 11
+    },
+    "events": []
+   },
+   {
+    "tick": 53,
+    "source": "SIMULATED",
+    "sim_E": 0.96484,
+    "counts": {
+     "10": 7,
+     "11": 498,
+     "00": 508,
+     "01": 11
+    },
+    "events": []
+   },
+   {
+    "tick": 54,
+    "source": "SIMULATED",
+    "sim_E": 0.98633,
+    "counts": {
+     "10": 3,
+     "11": 521,
+     "00": 496,
+     "01": 4
+    },
+    "events": []
+   },
+   {
+    "tick": 55,
+    "source": "SIMULATED",
+    "sim_E": 0.97266,
+    "counts": {
+     "10": 4,
+     "11": 513,
+     "00": 497,
+     "01": 10
+    },
+    "events": []
+   },
+   {
+    "tick": 56,
+    "source": "SIMULATED",
+    "sim_E": 0.97852,
+    "counts": {
+     "10": 4,
+     "11": 507,
+     "00": 506,
+     "01": 7
+    },
+    "events": []
+   },
+   {
+    "tick": 57,
+    "source": "SIMULATED",
+    "sim_E": 0.98047,
+    "counts": {
+     "10": 4,
+     "11": 485,
+     "00": 529,
+     "01": 6
+    },
+    "events": []
+   },
+   {
+    "tick": 58,
+    "source": "SIMULATED",
+    "sim_E": 0.97266,
+    "counts": {
+     "10": 4,
+     "11": 515,
+     "00": 495,
+     "01": 10
+    },
+    "events": []
+   },
+   {
+    "tick": 59,
+    "source": "SIMULATED",
+    "sim_E": 0.97852,
+    "counts": {
+     "10": 7,
+     "11": 486,
+     "00": 527,
+     "01": 4
+    },
+    "events": []
+   },
+   {
+    "tick": 60,
+    "source": "SIMULATED",
+    "sim_E": 0.96875,
+    "counts": {
+     "10": 12,
+     "11": 510,
+     "00": 498,
+     "01": 4
+    },
+    "events": []
+   },
+   {
+    "tick": 61,
+    "source": "SIMULATED",
+    "sim_E": 0.96484,
+    "counts": {
+     "10": 8,
+     "11": 498,
+     "00": 508,
+     "01": 10
+    },
+    "events": []
+   },
+   {
+    "tick": 62,
+    "source": "SIMULATED",
+    "sim_E": 0.97266,
+    "counts": {
+     "10": 8,
+     "11": 526,
+     "00": 484,
+     "01": 6
+    },
+    "events": []
+   },
+   {
+    "tick": 63,
+    "source": "SIMULATED",
+    "sim_E": 0.98242,
+    "counts": {
+     "10": 5,
+     "11": 522,
+     "00": 493,
+     "01": 4
+    },
+    "events": []
+   },
+   {
+    "tick": 64,
+    "source": "SIMULATED",
+    "sim_E": 0.99414,
+    "counts": {
+     "10": 0,
+     "11": 505,
+     "00": 516,
+     "01": 3
+    },
+    "events": []
+   },
+   {
+    "tick": 65,
+    "source": "SIMULATED",
+    "sim_E": 0.96289,
+    "counts": {
+     "10": 7,
+     "11": 497,
+     "00": 508,
+     "01": 12
+    },
+    "events": []
+   }
+  ],
+  "pairs": [
+   {
+    "a": "star-0-p3",
+    "b": "star-2-p2",
+    "E": 0.97461,
+    "E_source": "RECORDED_IBM_HARDWARE",
+    "sim_E": 0.99219,
+    "sim_source": "SIMULATED",
+    "sim_tick": 65
+   },
+   {
+    "a": "star-1-p2",
+    "b": "star-0-p2",
+    "E": 0.97461,
+    "E_source": "RECORDED_IBM_HARDWARE",
+    "sim_E": 0.98438,
+    "sim_source": "SIMULATED",
+    "sim_tick": 65
+   },
+   {
+    "a": "star-4-p1",
+    "b": "star-3-p0",
+    "E": 0.97461,
+    "E_source": "RECORDED_IBM_HARDWARE",
+    "sim_E": 0.99219,
+    "sim_source": "SIMULATED",
+    "sim_tick": 65
+   },
+   {
+    "a": "star-2-p0",
+    "b": "star-0-p0",
+    "E": 0.97461,
+    "E_source": "RECORDED_IBM_HARDWARE",
+    "sim_E": 0.96875,
+    "sim_source": "SIMULATED",
+    "sim_tick": 65
+   },
+   {
+    "a": "star-3-p1",
+    "b": "star-1-p4",
+    "E": 0.97461,
+    "E_source": "RECORDED_IBM_HARDWARE",
+    "sim_E": 0.98438,
+    "sim_source": "SIMULATED",
+    "sim_tick": 65
+   },
+   {
+    "a": "star-4-p0",
+    "b": "star-1-p1",
+    "E": 0.97461,
+    "E_source": "RECORDED_IBM_HARDWARE",
+    "sim_E": 0.97656,
+    "sim_source": "SIMULATED",
+    "sim_tick": 65
+   },
+   {
+    "a": "star-1-p3",
+    "b": "star-0-p4",
+    "E": 0.97461,
+    "E_source": "RECORDED_IBM_HARDWARE",
+    "sim_E": 1,
+    "sim_source": "SIMULATED",
+    "sim_tick": 65
+   },
+   {
+    "a": "star-2-p1",
+    "b": "star-0-p1",
+    "E": 0.97461,
+    "E_source": "RECORDED_IBM_HARDWARE",
+    "sim_E": 0.96875,
+    "sim_source": "SIMULATED",
+    "sim_tick": 65
+   }
+  ]
+ },
+ "growth_nodes": [
+  {
+   "id": "growth-node-star-1-p0-0",
+   "type": "growth_node",
+   "planet": "star-1-p0",
+   "kind": "shrub",
+   "lat": 4.5182,
+   "lon": 174.0804,
+   "born": 0,
+   "label": "SEEDED",
+   "phase": 0.2742,
+   "vigor": 0.4103,
+   "hue": 0.0512,
+   "spread": 18.4748,
+   "goldShift": 0.4094,
+   "lifespan": 104,
+   "lean": 1.0912,
+   "recorded_habitability": 0.1749,
+   "home_exception": true,
+   "home_label": "Home world · growth SEEDED",
+   "tick": 65,
+   "stage": "bloom",
+   "scale": 1.4,
+   "norm": 1,
+   "tint": 0,
+   "fruit": true,
+   "shed": 0,
+   "x": 0.625,
+   "generation": 0,
+   "front": 43.2792,
+   "rate": 0.6658,
+   "drive": 1.4629,
+   "gold": 0.7746,
+   "scars": 0,
+   "scarred": false
+  },
+  {
+   "id": "growth-node-star-1-p0-1",
+   "type": "growth_node",
+   "planet": "star-1-p0",
+   "kind": "patch",
+   "lat": 43.4457,
+   "lon": 53.4218,
+   "born": 0,
+   "label": "SEEDED",
+   "phase": 0.7186,
+   "vigor": 0.2943,
+   "hue": 0.2761,
+   "spread": 20.0324,
+   "goldShift": 0.6193,
+   "lifespan": 152,
+   "lean": -0.5599,
+   "recorded_habitability": 0.1749,
+   "home_exception": true,
+   "home_label": "Home world · growth SEEDED",
+   "tick": 65,
+   "stage": "full",
+   "scale": 0.8985,
+   "norm": 0.8985,
+   "tint": 0,
+   "fruit": false,
+   "shed": 0,
+   "x": 0.4276,
+   "generation": 0,
+   "front": 37.7641,
+   "rate": 0.581,
+   "drive": 1.4629,
+   "gold": 0.7872,
+   "scars": 0,
+   "scarred": false
+  }
+ ]
+}

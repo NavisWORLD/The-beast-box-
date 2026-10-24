@@ -1,0 +1,17 @@
+export const GROWTH_NODE_LABEL:'SEEDED';
+export const HOME_WORLD_LABEL:'Home world · growth SEEDED';
+export const NODE_KINDS:readonly ['ring','patch','shrub','canopy'];
+export const NODE_STAGES:readonly ['sprout','tuft','full','bloom','gold','shed'];
+export const GROWTH:Readonly<{minHabitability:number;frontCellsPerTick:number;goldAfter:number;scarGold:number;minGold:number;cellRad:number;rim:number;unborn:number;spreadCells:readonly [number,number];lifespan:readonly [number,number];kinds:Readonly<Record<string,{size:number;life:number}>>;fruitKinds:readonly string[]}>;
+export type GrowthNode={id:string;type:'growth_node';planet:string;kind:'ring'|'patch'|'shrub'|'canopy';lat:number;lon:number;born:number;label:'SEEDED';phase:number;vigor:number;hue:number;spread:number;goldShift:number;lifespan:number;lean:number;recorded_habitability:number;home_exception?:true;home_label?:'Home world · growth SEEDED'};
+export type GrowthState={stage:'sprout'|'tuft'|'full'|'bloom'|'gold'|'shed';scale:number;norm:number;tint:number;fruit:boolean;lean:number;shed:number;x:number;generation:number;front:number;rate:number;drive:number;gold:number;scars:number;scarred:boolean};
+export type GrowthNodeAt=GrowthNode&GrowthState&{tick:number};
+type U={seed?:any;planets?:any[];history?:any[];storms?:any[];entanglement_E?:number;tick?:number};
+export function growthHomeWorld(u:U):string|null;
+export function seededGrowthNodes(u:U,o?:{home?:string|null}):GrowthNode[];
+export function growthDrive(u:U,tick:number):number;
+export function stageAt(x:number,gold?:number):GrowthState['stage'];
+export function stageScale(x:number,gold?:number):number;
+export function growthNodeState(node:GrowthNode,u:U,tick:number):GrowthState;
+export function growthNodesAt(u:U,tick?:number,o?:{home?:string|null}):GrowthNodeAt[];
+export function growthScaleAt(nodes:GrowthNodeAt[],tick:number,dir:number[],o?:{cellRad?:number;planet?:string}):number;
