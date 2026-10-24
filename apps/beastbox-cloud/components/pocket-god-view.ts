@@ -9,6 +9,8 @@
  */
 type T=typeof import('three');
 export const ZOOM_MIN=3.2,ZOOM_MAX=12000;
+/** No hard stop on zoom-out any more: ZOOM_MAX is the old comfortable range; ZOOM_LIMIT is only a float32-precision guard. The camera far plane grows with the distance. */
+export const ZOOM_LIMIT=1e6;
 export const PLANET_R=14;
 /** Smooth 0..1 ramp in log-zoom space. */
 export function scaleMix(zoom:number,from:number,to:number){const t=(Math.log(zoom)-Math.log(from))/(Math.log(to)-Math.log(from));const c=Math.max(0,Math.min(1,t));return c*c*(3-2*c);}
