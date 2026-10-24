@@ -841,3 +841,6 @@ body:has([data-go-screen]) .site-dock{display:none}
  .home-pocket-layer.is-roamer>.cage-look-pill[data-home-look-closer],.home-pocket-layer.is-roamer>.cage-look-pill{bottom:calc(34px + 44px)!important;top:auto!important}
  .lc-roamer-tools{right:12px!important;bottom:34px!important}
 }
+
+/* 404: no quick dock / Talk launcher on a page that does not exist */
+body:has([data-not-found]) .site-dock{display:none!important}
