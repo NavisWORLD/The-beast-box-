@@ -21,7 +21,7 @@ const ROOM_BLURBS:Record<string,string>={
 const P=[
  {icon:Sparkles,title:'MEET YOUR BEAST',copy:'Create or load one companion, care for it, name it, and keep the same identity as you move through Beast Box.',href:'/spark/index.html'},
  {icon:Orbit,title:'EXPLORE + PLAY',copy:'Take your Beast into the Cage and LOST COSMOS. You can just play; the technical layers never have to get in the way.',href:'/beast-cage'},
- {icon:BrainCircuit,title:'GO DEEPER WHEN YOU WANT',copy:'Brain Bay and the Lab hold the models, experiments, sensors, evidence and advanced controls for people who want them.',href:'/brain-bay'}
+ {icon:BrainCircuit,title:'GO DEEPER WHEN YOU WANT',copy:'Brain Bay and the Research Lab hold the models, experiments, sensors, evidence and advanced controls for people who want them.',href:'/brain-bay'}
 ];
 
 export const metadata={title:'Beast Box · Meet your Beast'};
@@ -36,7 +36,7 @@ export default function Home(){
    <Link href="/sol-game" prefetch={false}><span className="journey-icon" aria-hidden="true">🎮</span>Lost COSMOS</Link>
    <Link href="/beast-cage/field" prefetch={false}><span className="journey-icon" aria-hidden="true">📷</span>Lost Cosmos Field</Link>
    <Link href="/brain-bay" prefetch={false}><span className="journey-icon" aria-hidden="true">🧠</span>Brain Bay</Link>
-   <Link href="/research" prefetch={false}><span className="journey-icon" aria-hidden="true">🔬</span>Lab</Link>
+   <Link href="/research" prefetch={false}><span className="journey-icon" aria-hidden="true">🔬</span>Research Lab</Link>
    <Link href="/workspace" prefetch={false}><span className="journey-icon" aria-hidden="true">🛠️</span>Workstation</Link>
   </nav>
   <span className="pill"><span className="pulse"/> DREAMERS · IDLERS · PLAYERS · BUILDERS</span>
