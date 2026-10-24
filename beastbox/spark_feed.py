@@ -48,3 +48,43 @@ def age_seconds(latest: Mapping[str, Any] | None, now: float | None = None) -> f
     if not isinstance(latest, Mapping) or not isinstance(latest.get("at_epoch"), (int, float)):
         return None
     return round((time.time() if now is None else now) - float(latest["at_epoch"]), 1)
+
+
+TICKS_URL = "https://raw.githubusercontent.com/NavisWORLD/The-beast-box-/zeref-spark/zeref/ticks.jsonl"
+
+
+def load_ticks(path_or_url: str, limit: int = 400) -> list[dict[str, Any]]:
+    """Last `limit` successful spark ticks (file path or https URL). Failed ticks are skipped, never filled in."""
+    try:
+        if path_or_url.startswith("https://"):
+            with urllib.request.urlopen(path_or_url, timeout=20) as resp:  # noqa: S310 (fixed https URL)
+                raw = resp.read(40_000_000).decode("utf-8", "replace")
+        else:
+            with open(path_or_url, encoding="utf-8") as fh:
+                raw = fh.read()
+    except OSError:
+        return []
+    out = []
+    for line in raw.splitlines():
+        try:
+            row = json.loads(line)
+        except ValueError:
+            continue
+        if isinstance(row, dict) and row.get("beast_id") == BEAST_ID and row.get("simulated") is True \
+                and row.get("status") == "ok" and isinstance(row.get("growth_source"), dict):
+            out.append(row)
+    return out[-limit:]
+
+
+def tick_condition54(row: Mapping[str, Any]) -> dict[str, Any]:
+    """Route ONE recorded spark tick (SIMULATED) into the 54 numbers (D1-D12 + the 42 band slots).
+    Only the quantum band (and the D-slots it feeds) is live; every other slot is masked to exactly 0.0,
+    and the receipt says so. Returns {cond54, tally, receipt_sha256}."""
+    from .routing import route
+    g = row["growth_source"]
+    record = {"target": g.get("target", QVM_TARGET), "counts": g.get("counts"), "shots": g.get("shots"),
+              "job_id": g.get("job_id")}
+    at = float(row["at_epoch"])
+    routed = route({"quantum_rigetti": rigetti_source(record, at)}, now=at + 1.0)
+    return {"cond54": [float(v) for v in routed["d12"] + routed["d42"]], "tally": routed["tally"],
+            "receipt_sha256": routed["receipt_sha256"], "tick": row.get("tick")}
