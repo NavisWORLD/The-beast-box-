@@ -20,7 +20,7 @@ import {attachSynapse,addRoamExtras,synapseClick} from '../lib/living-core/roam-
 import {nextGoal,UNIVERSE_R,rng as lcRng,SHAPES} from '../lib/living-core/roam-brain.mjs';
 import {recordArrival} from '../lib/zeref/pocket-journal';
 import {motionPersona,createActor,stepActor} from '../lib/companion/film-motion.mjs';
-import {addGodView,ZOOM_MIN,ZOOM_MAX} from './pocket-god-view';
+import {addGodView,ZOOM_MIN,ZOOM_LIMIT} from './pocket-god-view';
 import {ARTIST_RESIDENTS} from '../lib/companion/artist-residents.mjs';
 import {addPocketResidents} from './pocket-residents';
 import {addPocketSand} from './pocket-sand-layer';
@@ -123,7 +123,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     if(other){
      const before=Math.hypot(prev.x-other.x,prev.y-other.y);
      const after=Math.hypot(event.clientX-other.x,event.clientY-other.y);
-     if(before>18&&after>18)cameraView.current.zoom=clamp(cameraView.current.zoom*before/after,ZOOM_MIN,ZOOM_MAX);
+     if(before>18&&after>18)cameraView.current.zoom=clamp(cameraView.current.zoom*before/after,ZOOM_MIN,ZOOM_LIMIT);
     }
    }
    activePointers.set(event.pointerId,{x:event.clientX,y:event.clientY});
@@ -145,7 +145,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
    // desktop wheel zoom works over the creature and its tap target too; only real form fields keep the wheel
    if(event.target instanceof Element&&event.target.closest('input,select,textarea,[contenteditable="true"]'))return;
    event.preventDefault();
-   cameraView.current.zoom=clamp(cameraView.current.zoom*Math.exp(event.deltaY*.0016),ZOOM_MIN,ZOOM_MAX);
+   cameraView.current.zoom=clamp(cameraView.current.zoom*Math.exp(event.deltaY*.0016),ZOOM_MIN,ZOOM_LIMIT);
   };
   const keyboard=(event:KeyboardEvent)=>{
    if(event.target!==parent||isControl(event.target))return;
@@ -154,9 +154,9 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
    }else if(event.key==='ArrowUp'||event.key==='ArrowDown'){
     event.preventDefault();cameraView.current.phi=clamp(cameraView.current.phi+(event.key==='ArrowUp'?-.14:.14),.06,3.08);
    }else if(event.key==='+'||event.key==='='){
-    event.preventDefault();cameraView.current.zoom=clamp(cameraView.current.zoom/1.3,ZOOM_MIN,ZOOM_MAX);
+    event.preventDefault();cameraView.current.zoom=clamp(cameraView.current.zoom/1.3,ZOOM_MIN,ZOOM_LIMIT);
    }else if(event.key==='-'){
-    event.preventDefault();cameraView.current.zoom=clamp(cameraView.current.zoom*1.3,ZOOM_MIN,ZOOM_MAX);
+    event.preventDefault();cameraView.current.zoom=clamp(cameraView.current.zoom*1.3,ZOOM_MIN,ZOOM_LIMIT);
    }else if(event.key==='Home'){
     event.preventDefault();cameraView.current={theta:.7,phi:1.22,zoom:13.5};
    }
@@ -518,7 +518,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
       if(!reduced&&lcS.nerveF>.08){lcS.syn?.kick(Math.min(.25,lcS.nerveF*dt*3));const U=lcS.LC?.__surf?.U;if(U?.uFlowA)U.uFlowA.value=Math.min(1.5,U.uFlowA.value+lcS.nerveF*dt*.6);}
       if(tf&&tf.id==='zeref'&&tf.f>.7&&!lcS.ov){lcS.ov='curious';lcS.ovT=1.5;if(lcS.goal==null)lcS.pause=Math.min(lcS.pause??2,.4);}
       sensors.hush(null,0);}
-     camera.near=Math.max(.05,zd*.01);camera.updateProjectionMatrix();
+     camera.near=Math.max(.05,zd*.01);camera.far=Math.max(30000,zd*5);camera.updateProjectionMatrix();
      camera.position.set(f.x+zd*Math.sin(v.phi)*Math.sin(v.theta),f.y+zd*Math.cos(v.phi),f.z+zd*Math.sin(v.phi)*Math.cos(v.theta));{const bods:any[]=[{x:zHolder.position.x,y:zHolder.position.y+.3,z:zHolder.position.z,r:.4},{x:beastNode.position.x,y:beastNode.position.y+.3,z:beastNode.position.z,r:.45}];for(const r of ((window as any).__lcResidents||[]))bods.push({x:r.x,y:.35,z:r.z,r:.4});for(const b of uw.bodies())bods.push(b);
       if(pushCameraOut(camera.position,bods)>0)camera.lookAt(f);}// creatures can never get inside the lens
      if(elapsed-((camera as any).__capT||-9)>1){(camera as any).__capT=elapsed;capScenePoints(scene);

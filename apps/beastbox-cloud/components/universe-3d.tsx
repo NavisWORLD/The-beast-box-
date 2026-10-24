@@ -29,6 +29,9 @@ const BIOME_HEX:Record<string,number>={ember:0xff7a2a,paper:0xe9d9b0,jelly:0x8fa
 function rand(seed:string){let h=0;for(const c of seed)h=(h*31+c.charCodeAt(0))>>>0;return()=>{h=(h*1664525+1013904223)>>>0;return h/2**32;};}
 import {zoomLineKind,doorLineKind,zoomLine,noticeLine,noticeGate} from '@/lib/universe/zoom-lines.mjs';
 export const ZOOM_MIN=1.2,ZOOM_MAX=1400;
+/* Zoom-out has no hard stop any more: ZOOM_MAX is the old comfortable range, ZOOM_LIMIT is only a float32-precision guard (10,000x beyond it).
+   Past ZOOM_MAX the far plane and the background star shell grow with the camera distance, so nothing is cut or clipped. */
+export const ZOOM_LIMIT=1e7;
 export function zoomStage(d:number){return d<6?'Surface':d<16?'Planet':d<40?'Orbit':d<120?'System':d<500?'Neighbours':'Universe';}
 const SPAN=420;
 export function starPos(st:any){const r=rand(st.id);return new THREE.Vector3((st.x-0.5)*SPAN,(r()-0.5)*SPAN*0.18,(st.y-0.5)*SPAN);}
@@ -76,9 +79,10 @@ vec3 c=texture2D(tScene,bhScreen+s).rgb;float ring=exp(-pow((r-1.5*rs)/(0.08*rs+
   const tl=new THREE.TextureLoader();const tex=(n:string)=>{const t=tl.load('/universe/deepspace/'+n);t.colorSpace=THREE.SRGBColorSpace;return t;};
   /* storm art has a square edge: multiply it by a radial fade (canvas, destination-in) so only the swirl shows */
   const roundTex=(n:string)=>{const t=new THREE.Texture();t.colorSpace=THREE.SRGBColorSpace;const img=new Image();img.onload=()=>{const c=document.createElement('canvas');c.width=c.height=512;const g=c.getContext('2d')!;g.drawImage(img,0,0,512,512);g.globalCompositeOperation='destination-in';const gr=g.createRadialGradient(256,256,0,256,256,256);gr.addColorStop(0,'rgba(0,0,0,1)');gr.addColorStop(.55,'rgba(0,0,0,.85)');gr.addColorStop(.92,'rgba(0,0,0,0)');g.fillStyle=gr;g.fillRect(0,0,512,512);t.image=c;t.needsUpdate=true;};img.src='/universe/deepspace/'+n;return t;};
-  // seeded background stars
+  // seeded background stars (the shell follows the camera and scales with its distance, so zoom-out never leaves it behind)
+  let bgStars:THREE.Points|null=null;
   {const r=rand(String(uRef.current?.seed||'tiny'));const n=1800,p=new Float32Array(n*3);for(let i=0;i<n;i++){const th=r()*Math.PI*2,ph=Math.acos(2*r()-1),R=2500+r()*800;p[i*3]=R*Math.sin(ph)*Math.cos(th);p[i*3+1]=R*Math.cos(ph);p[i*3+2]=R*Math.sin(ph)*Math.sin(th);}
-   const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(p,3));scene.add(new THREE.Points(g,new THREE.PointsMaterial({color:0xffffff,size:2.2,sizeAttenuation:false,transparent:true,opacity:.75})));}
+   const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(p,3));bgStars=new THREE.Points(g,new THREE.PointsMaterial({color:0xffffff,size:2.2,sizeAttenuation:false,transparent:true,opacity:.75}));scene.add(bgStars);}
   const world=new THREE.Group();scene.add(world);
   const MAXT=160;const tPos=new Float32Array(MAXT*SEG*2*3),tCol=new Float32Array(MAXT*SEG*2*3);const tGeo=new THREE.BufferGeometry();
   tGeo.setAttribute('position',new THREE.BufferAttribute(tPos,3));tGeo.setAttribute('color',new THREE.BufferAttribute(tCol,3));tGeo.setDrawRange(0,0);
@@ -200,7 +204,7 @@ vec3 c=texture2D(tScene,bhScreen+s).rgb;float ring=exp(-pow((r-1.5*rs)/(0.08*rs+
   const minLogD=()=>{const m:any=targetId?planetMesh.get(targetId):null;if(m&&doorLive())return Math.log(m.scale.x*(DOOR_NEAR-0.02));return Math.log(m?Math.max(0.02,m.scale.x*1.1):ZOOM_MIN);}; /* with the door on, the universe camera stops at the pocket orbit framing and the pocket world takes over */ // planets can be approached to ~10% of their radius above the surface (the maps are ~2048 px around, so closer needs the flat-ground layer, not built yet)
   const setZoom=(f:number)=>{ // door open: zoom input drives the pocket world, and leaves it from full orbit
    if(doorV>=0.999){const w:any=window;const z=w.__lwZoom?.target??1;const r=doorZoomStep(z,Math.sign(f),Math.max(.01,Math.min(.2,Math.abs(f)*1.2)));if(r.leave){const m:any=planetMesh.get(targetId||'');goal=Math.log((m?m.scale.x:1)*5.6);}else w.__lwSetZoom?.(r.z);return;}
-   goal=Math.min(Math.log(ZOOM_MAX),Math.max(minLogD(),goal+f));};
+   goal=Math.min(Math.log(ZOOM_LIMIT),Math.max(minLogD(),goal+f));};
   const leave=()=>{if(doorV>0){const m:any=planetMesh.get(targetId||'');goal=Math.log((m?m.scale.x:1)*5.6);}};window.addEventListener('u3d-door-leave',leave);
   api.current={zoom:setZoom,home:()=>{targetId=homeOf(uRef.current);goal=Math.log(10);pinned=false;}};
   const ptrs=new Map<number,{x:number,y:number}>();let pinch=0,moved=0;
@@ -222,7 +226,7 @@ vec3 c=texture2D(tScene,bhScreen+s).rgb;float ring=exp(-pow((r-1.5*rs)/(0.08*rs+
    {let v=0,pre=false;if(doorLive()){const rr=d/(planetMesh.get(targetId!) as any).scale.x;v=doorProgress(rr);pre=doorPreload(rr);}if(Math.abs(v-doorV)>0.002||pre!==doorPre||(v===0&&doorV!==0)||(v===1&&doorV!==1)){{const dk=doorLineKind(doorV,v);if(dk)showZLine(dk.kind,dk.key);}doorV=v;doorPre=pre;onDoorRef.current?.(v,pre);}}
    // past the neighbourhood the camera eases its focus from the chosen world back to the universe centre
    const m:any=targetId?(planetMesh.get(targetId)||starObj.get(targetId)):null;const k=Math.min(1,Math.max(0,(d-260)/700));want.set(0,0,0);if(m)want.copy(m.position).multiplyScalar(1-k);tgt.lerp(want,1-Math.exp(-(lastDt||.016)*7.5)); /* frame-rate independent (0.125 at 60 fps): on a slow renderer the focus still keeps up with an orbiting planet */
-   cam.position.set(tgt.x+d*Math.cos(pitch)*Math.sin(yaw),tgt.y+d*Math.sin(pitch),tgt.z+d*Math.cos(pitch)*Math.cos(yaw));cam.near=Math.max(0.02,d*0.01);cam.updateProjectionMatrix();cam.lookAt(tgt);
+   cam.position.set(tgt.x+d*Math.cos(pitch)*Math.sin(yaw),tgt.y+d*Math.sin(pitch),tgt.z+d*Math.cos(pitch)*Math.cos(yaw));cam.near=Math.max(0.02,d*0.01);cam.far=Math.max(6000,d*5);if(bgStars){const k=Math.max(1,d/1000);bgStars.position.copy(cam.position);bgStars.scale.setScalar(k);}cam.updateProjectionMatrix();cam.lookAt(tgt);
    if(targetId&&planetMesh.has(targetId)){const pm:any=planetMesh.get(targetId);const sg=starObj.get((uRef.current?.planets||[]).find((p:any)=>p.id===targetId)?.star);if(sg){const a1=pm.position.clone().project(cam),b1=sg.position.clone().project(cam);(window as any).__u3dSunDir={planet:targetId,screen:[+(b1.x-a1.x).toFixed(3),+(b1.y-a1.y).toFixed(3)],note:'NDC offset from the planet to its star; the lit limb must face this way'};}}
    if(seededBH){const wp=new THREE.Vector3();seededBH.getWorldPosition(wp);const dB=cam.position.distanceTo(wp),R=seededBH.userData.bhR||4;const q=wp.clone().project(cam);const seen=q.z<1&&Math.abs(q.x)<1&&Math.abs(q.y)<1;
     if(dB<R*14){if(!bhNear){bhNear=true;bhFar=true;showNotice('black_hole_near');}}
