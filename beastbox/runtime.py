@@ -49,6 +49,9 @@ class CosmosRuntime:
         self.heartbeat = Heartbeat()
         self.ledger = EvidenceLedger()
         self.turn = 0
+        # Opt-in live routing (BEASTBOX_LIVE_ROUTING=on): owner sensors + Rigetti SIMULATED spark -> 12D/42D/54D each turn.
+        from .live_routing import from_env as _live_router
+        self.live_router = _live_router(self.config.data_dir)
         self.heartbeat.add("memory_consolidation", self.config.heartbeat_every_ticks, self._consolidate)
         self.heartbeat.add("system_health", self.config.heartbeat_every_ticks, self._health_tick)
 
@@ -85,6 +88,12 @@ class CosmosRuntime:
             packet.audio_features = [float(v) for v in fresh.features.values() if isinstance(v, (int, float))]
 
         syn = self.synaptic.step(audio_features=packet.audio_features, quantum_spark=packet.quantum_spark)
+        routing = None
+        if self.live_router is not None:
+            from .routing import update_routed
+            routing = self.live_router.route_turn(self.turn)
+            update_routed(self.synaptic.state_family, routing["routed"])
+            syn = dict(syn, states=self.synaptic.state_family.as_dict())
         state = MissionState(
             mission_id=f"conversation-{self.turn}",
             objective=text,
@@ -93,7 +102,8 @@ class CosmosRuntime:
             audio_features=list(packet.audio_features),
             quantum_spark=list(packet.quantum_spark),
             dyn12=list(syn["states"]["dyn12"]),
-            provenance={"turn": self.turn, "bridge_hash": packet.safe_dict()["packet_sha256"]},
+            provenance={"turn": self.turn, "bridge_hash": packet.safe_dict()["packet_sha256"],
+                        **({"routing_receipt_sha256": routing["summary"]["receipt_sha256"]} if routing else {})},
         )
         cns_state = self.cns.tick(state, packet.safe_dict())
         self._trace_stage("state_cns")
@@ -149,6 +159,7 @@ class CosmosRuntime:
                 "fresh_sensory": bool(fresh),
                 "cns": cns_state,
                 "heartbeat_tasks": ran,
+                **({"routing": routing["summary"]} if routing else {}),
             },
         )
         self._trace_stage("provenance")

@@ -96,5 +96,5 @@ def status():
             or info.get("checkpoint_sha256") != SHA or info.get("serving_backend") != "pytorch-cpu"):
         result["readiness"] = "FAILED_CHECKPOINT_VERIFICATION"
         return result
-    result.update(readiness="INSTALLED_AND_READY", loaded_step=STEP, checkpoint_sha256=SHA)
+    result.update(readiness="INSTALLED_AND_READY", loaded_step=STEP, checkpoint_sha256=SHA, cond54=info.get("cond54") is True)
     return result
