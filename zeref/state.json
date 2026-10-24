@@ -1,30 +1,32 @@
 {
  "angles": [
-  0.852011,
-  0.729012,
-  0.932646
+  0.394829,
+  0.376252,
+  0.567559
  ],
  "beast_id": "bb-deada969",
  "consecutive_failures": 0,
  "label": "Rigetti SIMULATED (Azure Quantum rigetti.sim.qvm, not a QPU)",
- "last_at": 1792867668.2868135,
- "last_counts_sha256": "17dbd8217cd5688c5a18cc50f5af99d0c87712fcde039e16daf5153a7e1ba07d",
- "last_hash": "cf18d62c7f10fee340a12797ea998f2b91e89db6bf50c033b5628642ce7f37a2",
+ "last_at": 1792867726.870731,
+ "last_counts_sha256": "a690134a28e25144eaf8523c8851f818ee433246ba12f67bdead9e5c58bae7ba",
+ "last_hash": "c7d6f0f407656f40be7c65838721e38c49bc6b8fd47c3ff886150e3b349324ff",
  "last_ok": {
-  "at_epoch": 1792867668.3,
+  "at_epoch": 1792867726.9,
   "counts": {
-   "000": 233,
-   "001": 12,
-   "011": 6,
-   "110": 1,
-   "111": 4
+   "000": 140,
+   "001": 40,
+   "010": 5,
+   "011": 18,
+   "100": 5,
+   "110": 15,
+   "111": 33
   },
-  "counts_sha256": "17dbd8217cd5688c5a18cc50f5af99d0c87712fcde039e16daf5153a7e1ba07d",
-  "job_id": "62eaae6c-cfdb-11f1-a9dd-7ced8de12929",
+  "counts_sha256": "a690134a28e25144eaf8523c8851f818ee433246ba12f67bdead9e5c58bae7ba",
+  "job_id": "86ad080e-cfdb-11f1-a9dd-7ced8de12929",
   "shots": 256,
-  "tick": 911
+  "tick": 912
  },
- "last_ok_at": 1792867668.2868135,
+ "last_ok_at": 1792867726.870731,
  "schema": "zeref-spark-state/v1",
  "seed": {
   "backend": "ibm_fez",
@@ -46,5 +48,5 @@
   "note": "Zeref's own cosmos loop was blocked on game stats and a provenance seed the owner never supplied. Seeded from his recorded IBM spark instead; no stats were invented and bb-7f9c2a03 is not used.",
   "seed_sha256": "41c926b14a9f586cb8fcd664e4ec79877a7766737243d2475245b30e85fd8665"
  },
- "tick": 911
+ "tick": 912
 }
