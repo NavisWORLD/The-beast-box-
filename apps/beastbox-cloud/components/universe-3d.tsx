@@ -228,7 +228,7 @@ vec3 c=texture2D(tScene,bhScreen+s).rgb;float ring=exp(-pow((r-1.5*rs)/(0.08*rs+
     if(dB<R*14){if(!bhNear){bhNear=true;bhFar=true;showNotice('black_hole_near');}}
     else if(bhNear&&dB>R*30){bhNear=false;showNotice('black_hole_away');}
     else if(!bhNear&&!bhFar&&seen&&dB>R*30){bhFar=true;showNotice('black_hole_far');}
-    el.dataset.bhDist=String(Math.round(dB/R));{const lb=el.querySelector('[data-bh-label]') as HTMLElement|null;if(lb){const z2=zoomStage(d);lb.style.display=(doorV<.05&&(dB<R*40||z2==='System'||z2==='Neighbours'||z2==='Universe'))?'':'none';}}}
+    el.dataset.bhDist=String(Math.round(dB/R));{const lb=el.querySelector('[data-bh-label]') as HTMLElement|null;if(lb){const z2=zoomStage(d);lb.style.display=(doorV<.05&&(z2!=='Surface'||targetId==='seeded-bh-0')&&(dB<R*40||z2==='System'||z2==='Neighbours'||z2==='Universe'))?'':'none';}}}
    {const zs=zoomStage(d);if(targetId&&stormObj.has(targetId)&&(zs==='Planet'||zs==='Surface'))showNotice('storm_near');else if(stormObj.size&&(zs==='Orbit'||zs==='System'))showNotice('storm_far');}
    const s=zoomStage(d);if(s!==last){const wider=last==='Orbit'||last==='System'||last==='Neighbours'||last==='Universe';{const zk=zoomLineKind(last,s,{blackHole:!!seededBH||(uRef.current?.stars||[]).some((q:any)=>q.remnant==='black_hole')});if(zk)showZLine(zk.kind,zk.key);}last=s;setStage(s);el.dataset.zoomStage=s;
     // a real zoom-in reached a world: Emeth's line for a planet or a star
