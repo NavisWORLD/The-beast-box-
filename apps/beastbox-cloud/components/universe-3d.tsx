@@ -1,9 +1,10 @@
 'use client';
 // Zoomable, rotatable 3D Tiny Universe (Cosmo's visual audit, Oct 23 2026). Renders ONLY tiny-universe/v1 engine data:
-// stars, planets, storms, life and black-hole remnants come from the grown universe; nothing is invented.
+// stars, planets, storms, life and black-hole remnants come from the grown universe; nothing is invented: storms the growth has not produced yet are added as SEEDED (lib/universe/seeded-storms.mjs), labelled as such.
 // Log zoom: surface -> planet -> neighbours -> universe. Drag rotates, wheel/pinch zooms, tap a world to fly to it.
 // Art: Cosmo's deepspace sheets (accretion disk + photon ring on real black-hole remnants, storm clouds on real storms).
 // Seeded only (string hash LCG from the universe seed); no Math.random.
+import {allStorms} from '@/lib/universe/seeded-storms.mjs';
 import {useEffect,useRef,useState} from 'react';
 import * as THREE from 'three';
 import {isSoftwareGL} from '@/lib/three/soft-gl';
@@ -69,6 +70,8 @@ vec3 c=texture2D(tScene,bhScreen+s).rgb;float ring=exp(-pow((r-1.5*rs)/(0.08*rs+
    renderer.setRenderTarget(rt);renderer.render(scene,cam);renderer.setRenderTarget(null);renderer.render(lensScene,lensCam);};
 
   const tl=new THREE.TextureLoader();const tex=(n:string)=>{const t=tl.load('/universe/deepspace/'+n);t.colorSpace=THREE.SRGBColorSpace;return t;};
+  /* storm art has a square edge: multiply it by a radial fade (canvas, destination-in) so only the swirl shows */
+  const roundTex=(n:string)=>{const t=new THREE.Texture();t.colorSpace=THREE.SRGBColorSpace;const img=new Image();img.onload=()=>{const c=document.createElement('canvas');c.width=c.height=512;const g=c.getContext('2d')!;g.drawImage(img,0,0,512,512);g.globalCompositeOperation='destination-in';const gr=g.createRadialGradient(256,256,0,256,256,256);gr.addColorStop(0,'rgba(0,0,0,1)');gr.addColorStop(.55,'rgba(0,0,0,.85)');gr.addColorStop(.92,'rgba(0,0,0,0)');g.fillStyle=gr;g.fillRect(0,0,512,512);t.image=c;t.needsUpdate=true;};img.src='/universe/deepspace/'+n;return t;};
   // seeded background stars
   {const r=rand(String(uRef.current?.seed||'tiny'));const n=1800,p=new Float32Array(n*3);for(let i=0;i<n;i++){const th=r()*Math.PI*2,ph=Math.acos(2*r()-1),R=2500+r()*800;p[i*3]=R*Math.sin(ph)*Math.cos(th);p[i*3+1]=R*Math.cos(ph);p[i*3+2]=R*Math.sin(ph)*Math.sin(th);}
    const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(p,3));scene.add(new THREE.Points(g,new THREE.PointsMaterial({color:0xffffff,size:2.2,sizeAttenuation:false,transparent:true,opacity:.75})));}
@@ -98,7 +101,7 @@ vec3 c=texture2D(tScene,bhScreen+s).rgb;float ring=exp(-pow((r-1.5*rs)/(0.08*rs+
   const moonsOf=new Map<string,{m:any;mesh:any;body:any}[]>();let moonsBuilt=false;const mv=new THREE.Vector3(),mc=new THREE.Vector3();
   const planetMesh=new Map<string,THREE.Mesh>();const starObj=new Map<string,THREE.Object3D>();const stormObj=new Map<string,THREE.Sprite>();
   const _sv=new THREE.Vector3();const sphere=new THREE.SphereGeometry(1,32,20);
-  const diskTex=tex('accretion_disk_1024.png'),ringTex=tex('photon_ring_512.png'),stormTex=[tex('storm_cloud_violet_1024.png'),tex('storm_cloud_teal_1024.png')];
+  const diskTex=tex('accretion_disk_1024.png'),ringTex=tex('photon_ring_512.png'),stormTex=[roundTex('storm_cloud_violet_1024.png'),roundTex('storm_cloud_teal_1024.png')];
   // E5c (Cosmo deepspace art): a wormhole ring and an asteroid belt are ART placed from the real star layout (seeded, no Math.random);
   // storms get seeded lightning flashes. GLBs load lazily after the first frame so the universe opens fast.
   let decoDone=false;const boltTex=tex('lightning_4x2_256.png');boltTex.repeat.set(1/4,1/2);const bolts=new Map<string,THREE.Sprite>();let mixer:THREE.AnimationMixer|null=null;const belt:THREE.Object3D[]=[];
@@ -117,7 +120,7 @@ vec3 c=texture2D(tScene,bhScreen+s).rgb;float ring=exp(-pow((r-1.5*rs)/(0.08*rs+
      const g=new THREE.Group();g.position.copy(hs.position);g.add(im);g.userData.spin=0.01+r()*0.02;world.add(g);belt.push(g);});
    }).catch(()=>{});}
   let lastT=0;function lightning(t:number){const U=uRef.current;const live=new Set<string>();
-   for(const sm of U?.storms||[]){const sp=stormObj.get(sm.planet);if(!sp)continue;live.add(sm.planet);let b=bolts.get(sm.planet);
+   for(const sm of (U?allStorms(U):[])){const sp=stormObj.get(sm.planet);if(!sp)continue;live.add(sm.planet);let b=bolts.get(sm.planet);
     if(!b){const tx=boltTex.clone();tx.needsUpdate=true;b=new THREE.Sprite(new THREE.SpriteMaterial({map:tx,blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));world.add(b);bolts.set(sm.planet,b);}
     const bucket=Math.floor(t/1.6),ph=t/1.6-bucket,rr=rand(sm.planet+':bolt:'+bucket);const fire=rr()<0.35+0.4*Math.min(1,sm.intensity/0.5);const f=Math.floor(ph*1.6*24);
     b.visible=fire&&f<8;if(b.visible){const m=b.material.map!;m.offset.set((f%4)/4,1-(Math.floor(f/4)+1)/2);b.position.copy(sp.position).add(new THREE.Vector3((rr()-0.5)*sp.scale.x*.6,(rr()-0.3)*sp.scale.x*.4,(rr()-0.5)*sp.scale.x*.6));b.scale.setScalar(sp.scale.x*.7);}}
@@ -165,8 +168,8 @@ vec3 c=texture2D(tScene,bhScreen+s).rgb;float ring=exp(-pow((r-1.5*rs)/(0.08*rs+
      if(m.userData.sunV)m.userData.sunV.value.copy(sv).transformDirection(cam.matrixWorldInverse);
      const at=m.userData.atm;if(at){const u=at.material.uniforms;u.cameraPos.value.copy(cam.position);u.lightDir.value.copy(sv);u.time.value=t;const c=g.userData.sunColor as THREE.Color;const hsl=c.getHSL({h:0,s:0,l:0});u.intensityBoost.value=0.8+Math.min(1.5,hsl.s*1.2+hsl.l);}}
     const cor=g.children.find((c:any)=>c.userData.isStarCorona) as any;if(cor)cor.material.uniforms.time.value=t;}
-   const live=new Set<string>();for(const sm of U.storms||[]){const p=planetMesh.get(sm.planet);if(!p)continue;live.add(sm.planet);let sp=stormObj.get(sm.planet);
-    if(!sp){sp=new THREE.Sprite(new THREE.SpriteMaterial({map:stormTex[sm.planet.length%2],transparent:true,depthWrite:false,opacity:.75}));world.add(sp);stormObj.set(sm.planet,sp);}
+   const live=new Set<string>();for(const sm of allStorms(U)){const p=planetMesh.get(sm.planet);if(!p)continue;live.add(sm.planet);let sp=stormObj.get(sm.planet);
+    if(!sp){sp=new THREE.Sprite(new THREE.SpriteMaterial({map:stormTex[sm.planet.length%2],transparent:true,depthWrite:false,opacity:.75,blending:THREE.AdditiveBlending}));world.add(sp);stormObj.set(sm.planet,sp);}
     sp.position.copy(p.position);sp.scale.setScalar(p.scale.x*(3+2*Math.min(1,sm.intensity/0.5)));}
    for(const[k,sp]of stormObj)if(!live.has(k)){world.remove(sp);stormObj.delete(k);}
    for(const g of starObj.values()){const d=g.getObjectByName('disk');if(d)d.rotation.z=t*0.05;}
@@ -211,6 +214,7 @@ vec3 c=texture2D(tScene,bhScreen+s).rgb;float ring=exp(-pow((r-1.5*rs)/(0.08*rs+
   return()=>{cancelAnimationFrame(raf);cv.removeEventListener('wheel',wheel);window.removeEventListener('u3d-door-leave',leave);rt.dispose();lensMat.dispose();renderer.dispose();el.removeChild(cv);};
  },[]);
  return <div ref={host} data-universe-3d style={{position:'absolute',inset:0}}>
+  {(()=>{const hp=u?homeOf(u):null,pre=hp?String(hp).replace(/-p\d+$/,'-p'):'~';const st=(u?allStorms(u):[]).slice().sort((a:any,b:any)=>(b.planet.startsWith(pre)?1:0)-(a.planet.startsWith(pre)?1:0));return st.length?<details data-storm-list style={{position:'absolute',left:52,top:196,zIndex:3,maxWidth:'min(70vw,300px)',fontSize:12,color:'#e9ddff',background:'rgba(12,8,32,.62)',border:'1px solid #8f6bff55',borderRadius:10,padding:'4px 8px'}}><summary style={{cursor:'pointer'}}>Storms · {st.length}</summary>{st.slice(0,6).map((x:any)=><div key={x.id} data-storm={x.id} style={{padding:'1px 0'}}>{x.planet} · {x.kind||'storm'} · {x.night?'night side · ':''}{x.label==='SEEDED'?'SEEDED':'SIMULATED growth'}</div>)}<div style={{opacity:.7,paddingTop:2}}>The recorded genesis has no storms; these are seeded from its counts.</div></details>:null;})()}
   {zline?<div key={zline.n} data-zoom-line={zline.key} aria-live="polite" style={{position:'absolute',left:'50%',top:(typeof window!=='undefined'&&window.innerWidth<560)?'34%':'18%',transform:'translateX(-50%)',maxWidth:'min(86vw,520px)',textAlign:'center',zIndex:3,pointerEvents:'none',fontSize:15,lineHeight:1.35,color:'#f1e8ff',background:'rgba(12,8,32,.62)',border:'1px solid #8f6bff55',borderRadius:14,padding:'8px 14px',textShadow:'0 1px 6px #000'}}>{zline.text}</div>:null}
   <div data-u3d-zoom style={{position:'absolute',right:56,top:'calc(50% - 200px)',display:'flex',flexDirection:'column',gap:6,zIndex:2}}>
    <button type="button" aria-label="Zoom in" onClick={()=>api.current?.zoom(-0.5)} style={zbtn}>＋</button>
