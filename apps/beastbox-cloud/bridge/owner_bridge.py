@@ -39,17 +39,21 @@ from beastbox.rawrphos_hf import (MODEL as HF_NATIVE_MODEL, SPACE_URL as HF_NATI
                                   profile as hosted_native_profile, PrivateSpaceProvider)
 from beastbox.chat_jobs import ChatJobs
 from beastbox.guest_local import guest_local_infer
+from beastbox.private_features import FeatureStore, extract_numeric, make_source, AUDIO_KINDS
 from beastbox.cns_model_probe import cns_model_probe
 from beastbox.signal_model_probe import signal_model_probe
 from beastbox.soul.archive_summary import archive_manifest
 
 MAX_BYTES = 256_000
 GET_ALLOW = frozenset({"orbit", "memory", "trace", "provider", "conversation", "storage", "context", "connections", "bio", "chat-job", "observations", "models", "model-inventory", "hf-model-inventory", "engine-growth", "engine-loop", "activation"})
-POST_ALLOW = frozenset({"chat", "chat-start", "context", "connections", "bio", "observations", "models", "azure-read", "guest-local", "cns-model-probe", "signal-model-probe", "activation", "authority"})
+POST_ALLOW = frozenset({"chat", "chat-start", "context", "connections", "bio", "observations", "models", "azure-read", "guest-local", "cns-model-probe", "signal-model-probe", "activation", "authority", "features"})
 
 
 class OwnerBridge:
     def __init__(self, root: Path, token: str):
+        # Live routing on by default for the owner bridge: sensors + Rigetti SIMULATED spark -> 12D/42D/54D each turn.
+        os.environ.setdefault("BEASTBOX_LIVE_ROUTING", "on")
+        os.environ.setdefault("BEASTBOX_FEATURE_DIR", str(Path(root) / "features"))
         if not isinstance(token, str) or len(token) < 32:
             raise ValueError("missing strong bridge token")
         self.token = token
@@ -586,6 +590,9 @@ class OwnerBridge:
             "text_sha256": receipt["text_sha256"],
         }
 
+    def _features_action(self, data: dict) -> tuple[int, dict]:
+        return _features_action_impl(data)
+
     def _bio_action(self, data: dict) -> tuple[int, dict]:
         """Process only owner-consented numerical summaries; never access devices."""
         if not self.bio_enabled:
@@ -795,9 +802,34 @@ class OwnerBridge:
                 return self.chat_jobs.run_when_idle(lambda: self._azure_read_action(data))
         if name == "bio":
             return self._bio_action(data)
+        if name == "features":
+            return self._features_action(data)
         if name == "observations":
             return self._observation_action(data)
         return self.app.dispatch(method, parsed.path, data)
+
+
+def _features_action_impl(data: dict) -> tuple[int, dict]:
+    """Owner device pushes numbers it extracted ON the device (never a recording): RR intervals, light samples,
+    Muse band powers, or audio/voice/music/heart feature maps. Stored as features + hashes only."""
+    if data.get("opt_in") is not True:
+        return 400, {"error": "owner opt-in required"}
+    kind = data.get("kind")
+    try:
+        if set(data) == {"kind", "opt_in", "payload"} and kind in ("heart", "light", "eeg_muse"):
+            src = extract_numeric(kind, data["payload"], opt_in=True, site="on-device")
+        elif set(data) == {"kind", "opt_in", "features"} and kind in (AUDIO_KINDS | {"heart", "light", "eeg_muse"}):
+            feats = data["features"]
+            if not isinstance(feats, dict) or not feats or any(isinstance(v, bool) or not isinstance(v, (int, float)) for v in feats.values()):
+                return 400, {"error": "features must be a map of numbers"}
+            src = make_source(kind, feats, site="on-device")
+        else:
+            return 400, {"error": "send {kind, opt_in, payload} for heart/light/eeg_muse numbers or {kind, opt_in, features}"}
+        FeatureStore().put(kind, src)
+    except (ValueError, KeyError, TypeError):
+        return 400, {"error": "invalid or unrecognized features; raw recordings are not accepted"}
+    return 200, {"stored": kind, "feature_sha256": src["provenance"]["feature_sha256"], "raw_retained": False,
+                 "extraction_site": "on-device", "fresh_for": "see routing freshness window; keep pushing to stay fresh"}
 
 
 class Handler(BaseHTTPRequestHandler):
