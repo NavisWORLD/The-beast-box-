@@ -1,0 +1,995 @@
+{
+ "frames_per_row": 8,
+ "layout": "row-major, frame 0 top-left; rows listed per creature",
+ "views": "az 0 = seen from -X (creature faces screen-right); az 90 = head-on; pitch deg above horizon",
+ "note": "rendered from the actual posed meshes by a software numpy rasteriser (not three.js); fish side rows use a sprite-only up/down stroke because the real sideways bend is edge-on in a side view",
+ "creatures": {
+  "fish_a": {
+   "rows": [
+    {
+     "row": 0,
+     "name": "swim",
+     "clip": "swim",
+     "view": "side",
+     "az_pitch": [
+      0,
+      6
+     ],
+     "sprite_only_axis_swap": true
+    },
+    {
+     "row": 1,
+     "name": "swim",
+     "clip": "swim",
+     "view": "q34",
+     "az_pitch": [
+      42,
+      20
+     ],
+     "sprite_only_axis_swap": false
+    }
+   ],
+   "px_per_m_128": 282.367,
+   "px_per_m_32": 67.454,
+   "palette32": [
+    [
+     193,
+     83,
+     71
+    ],
+    [
+     169,
+     105,
+     73
+    ],
+    [
+     225,
+     140,
+     97
+    ],
+    [
+     113,
+     70,
+     48
+    ],
+    [
+     119,
+     112,
+     92
+    ],
+    [
+     178,
+     168,
+     138
+    ],
+    [
+     147,
+     255,
+     255
+    ],
+    [
+     252,
+     110,
+     94
+    ],
+    [
+     10,
+     15,
+     33
+    ],
+    [
+     134,
+     56,
+     48
+    ],
+    [
+     105,
+     255,
+     255
+    ],
+    [
+     237,
+     224,
+     184
+    ],
+    [
+     126,
+     255,
+     255
+    ],
+    [
+     223,
+     255,
+     255
+    ],
+    [
+     5,
+     8,
+     13
+    ],
+    [
+     10,
+     15,
+     33
+    ]
+   ],
+   "frames": 8,
+   "sheet_128": "sprites/fish_a_sheet_128.png",
+   "glow_128_additive": "sprites/fish_a_glow_128.png",
+   "gba_32": "sprites/fish_a_gba_32.png",
+   "size_m": 0.32,
+   "fps": 14
+  },
+  "fish_b": {
+   "rows": [
+    {
+     "row": 0,
+     "name": "swim",
+     "clip": "swim",
+     "view": "side",
+     "az_pitch": [
+      0,
+      6
+     ],
+     "sprite_only_axis_swap": true
+    },
+    {
+     "row": 1,
+     "name": "swim",
+     "clip": "swim",
+     "view": "q34",
+     "az_pitch": [
+      42,
+      20
+     ],
+     "sprite_only_axis_swap": false
+    }
+   ],
+   "px_per_m_128": 304.041,
+   "px_per_m_32": 72.632,
+   "palette32": [
+    [
+     66,
+     43,
+     164
+    ],
+    [
+     52,
+     92,
+     158
+    ],
+    [
+     39,
+     69,
+     119
+    ],
+    [
+     84,
+     56,
+     209
+    ],
+    [
+     26,
+     46,
+     79
+    ],
+    [
+     74,
+     102,
+     117
+    ],
+    [
+     10,
+     15,
+     33
+    ],
+    [
+     48,
+     31,
+     120
+    ],
+    [
+     110,
+     153,
+     176
+    ],
+    [
+     255,
+     255,
+     191
+    ],
+    [
+     223,
+     255,
+     255
+    ],
+    [
+     147,
+     204,
+     235
+    ],
+    [
+     255,
+     255,
+     159
+    ],
+    [
+     10,
+     15,
+     33
+    ]
+   ],
+   "frames": 8,
+   "sheet_128": "sprites/fish_b_sheet_128.png",
+   "glow_128_additive": "sprites/fish_b_glow_128.png",
+   "gba_32": "sprites/fish_b_gba_32.png",
+   "size_m": 0.26,
+   "fps": 16
+  },
+  "fish_c": {
+   "rows": [
+    {
+     "row": 0,
+     "name": "swim",
+     "clip": "swim",
+     "view": "side",
+     "az_pitch": [
+      0,
+      6
+     ],
+     "sprite_only_axis_swap": true
+    },
+    {
+     "row": 1,
+     "name": "swim",
+     "clip": "swim",
+     "view": "q34",
+     "az_pitch": [
+      42,
+      20
+     ],
+     "sprite_only_axis_swap": false
+    }
+   ],
+   "px_per_m_128": 209.901,
+   "px_per_m_32": 50.143,
+   "palette32": [
+    [
+     194,
+     171,
+     60
+    ],
+    [
+     81,
+     158,
+     128
+    ],
+    [
+     60,
+     119,
+     96
+    ],
+    [
+     40,
+     79,
+     64
+    ],
+    [
+     102,
+     117,
+     89
+    ],
+    [
+     105,
+     255,
+     255
+    ],
+    [
+     251,
+     222,
+     79
+    ],
+    [
+     10,
+     15,
+     33
+    ],
+    [
+     153,
+     176,
+     134
+    ],
+    [
+     138,
+     120,
+     41
+    ],
+    [
+     147,
+     255,
+     255
+    ],
+    [
+     5,
+     8,
+     13
+    ],
+    [
+     223,
+     255,
+     255
+    ],
+    [
+     126,
+     255,
+     255
+    ],
+    [
+     10,
+     15,
+     33
+    ]
+   ],
+   "frames": 8,
+   "sheet_128": "sprites/fish_c_sheet_128.png",
+   "glow_128_additive": "sprites/fish_c_glow_128.png",
+   "gba_32": "sprites/fish_c_gba_32.png",
+   "size_m": 0.44,
+   "fps": 12
+  },
+  "whale": {
+   "rows": [
+    {
+     "row": 0,
+     "name": "tail_swim",
+     "clip": "tail_swim",
+     "view": "side",
+     "az_pitch": [
+      0,
+      6
+     ],
+     "sprite_only_axis_swap": false
+    },
+    {
+     "row": 1,
+     "name": "tail_swim",
+     "clip": "tail_swim",
+     "view": "q34",
+     "az_pitch": [
+      42,
+      20
+     ],
+     "sprite_only_axis_swap": false
+    }
+   ],
+   "px_per_m_128": 9.095,
+   "px_per_m_32": 2.173,
+   "palette32": [
+    [
+     47,
+     69,
+     107
+    ],
+    [
+     85,
+     99,
+     110
+    ],
+    [
+     36,
+     52,
+     80
+    ],
+    [
+     128,
+     149,
+     164
+    ],
+    [
+     36,
+     51,
+     87
+    ],
+    [
+     27,
+     38,
+     65
+    ],
+    [
+     24,
+     34,
+     54
+    ],
+    [
+     105,
+     255,
+     255
+    ],
+    [
+     171,
+     199,
+     219
+    ],
+    [
+     10,
+     15,
+     33
+    ]
+   ],
+   "frames": 8,
+   "sheet_128": "sprites/whale_sheet_128.png",
+   "glow_128_additive": "sprites/whale_glow_128.png",
+   "gba_32": "sprites/whale_gba_32.png",
+   "size_m": 12.0,
+   "fps": 3
+  },
+  "jelly": {
+   "rows": [
+    {
+     "row": 0,
+     "name": "pulse",
+     "clip": "pulse",
+     "view": "side",
+     "az_pitch": [
+      0,
+      4
+     ],
+     "sprite_only_axis_swap": false
+    },
+    {
+     "row": 1,
+     "name": "pulse",
+     "clip": "pulse",
+     "view": "q34",
+     "az_pitch": [
+      40,
+      22
+     ],
+     "sprite_only_axis_swap": false
+    }
+   ],
+   "px_per_m_128": 72.196,
+   "px_per_m_32": 17.247,
+   "palette32": [
+    [
+     173,
+     255,
+     255
+    ],
+    [
+     210,
+     141,
+     255
+    ],
+    [
+     126,
+     255,
+     255
+    ],
+    [
+     223,
+     255,
+     255
+    ],
+    [
+     137,
+     255,
+     255
+    ],
+    [
+     147,
+     255,
+     255
+    ],
+    [
+     210,
+     133,
+     255
+    ],
+    [
+     113,
+     248,
+     238
+    ],
+    [
+     81,
+     187,
+     181
+    ],
+    [
+     105,
+     255,
+     255
+    ],
+    [
+     146,
+     255,
+     255
+    ],
+    [
+     102,
+     255,
+     255
+    ],
+    [
+     255,
+     209,
+     255
+    ],
+    [
+     10,
+     15,
+     33
+    ],
+    [
+     255,
+     217,
+     255
+    ],
+    [
+     10,
+     15,
+     33
+    ]
+   ],
+   "frames": 8,
+   "sheet_128": "sprites/jelly_sheet_128.png",
+   "glow_128_additive": "sprites/jelly_glow_128.png",
+   "gba_32": "sprites/jelly_gba_32.png",
+   "size_m": 0.72,
+   "fps": 6
+  },
+  "manta": {
+   "rows": [
+    {
+     "row": 0,
+     "name": "glide",
+     "clip": "glide",
+     "view": "side",
+     "az_pitch": [
+      90,
+      58
+     ],
+     "sprite_only_axis_swap": false
+    },
+    {
+     "row": 1,
+     "name": "glide",
+     "clip": "glide",
+     "view": "q34",
+     "az_pitch": [
+      48,
+      40
+     ],
+     "sprite_only_axis_swap": false
+    }
+   ],
+   "px_per_m_128": 27.433,
+   "px_per_m_32": 6.553,
+   "palette32": [
+    [
+     64,
+     89,
+     133
+    ],
+    [
+     48,
+     67,
+     99
+    ],
+    [
+     160,
+     178,
+     184
+    ],
+    [
+     107,
+     119,
+     122
+    ],
+    [
+     105,
+     255,
+     255
+    ],
+    [
+     32,
+     45,
+     66
+    ],
+    [
+     242,
+     153,
+     255
+    ],
+    [
+     10,
+     15,
+     33
+    ]
+   ],
+   "frames": 8,
+   "sheet_128": "sprites/manta_sheet_128.png",
+   "glow_128_additive": "sprites/manta_glow_128.png",
+   "gba_32": "sprites/manta_gba_32.png",
+   "size_m": 4.2,
+   "fps": 3
+  },
+  "turtle": {
+   "rows": [
+    {
+     "row": 0,
+     "name": "paddle",
+     "clip": "paddle",
+     "view": "side",
+     "az_pitch": [
+      12,
+      12
+     ],
+     "sprite_only_axis_swap": false
+    },
+    {
+     "row": 1,
+     "name": "paddle",
+     "clip": "paddle",
+     "view": "q34",
+     "az_pitch": [
+      48,
+      26
+     ],
+     "sprite_only_axis_swap": false
+    }
+   ],
+   "px_per_m_128": 74.675,
+   "px_per_m_32": 17.839,
+   "palette32": [
+    [
+     66,
+     117,
+     76
+    ],
+    [
+     105,
+     255,
+     255
+    ],
+    [
+     50,
+     88,
+     57
+    ],
+    [
+     130,
+     168,
+     97
+    ],
+    [
+     242,
+     153,
+     255
+    ],
+    [
+     110,
+     138,
+     80
+    ],
+    [
+     98,
+     126,
+     73
+    ],
+    [
+     74,
+     92,
+     54
+    ],
+    [
+     157,
+     157,
+     111
+    ],
+    [
+     147,
+     184,
+     107
+    ],
+    [
+     126,
+     255,
+     255
+    ],
+    [
+     33,
+     59,
+     38
+    ],
+    [
+     104,
+     105,
+     74
+    ],
+    [
+     147,
+     255,
+     255
+    ],
+    [
+     65,
+     84,
+     48
+    ],
+    [
+     10,
+     15,
+     33
+    ]
+   ],
+   "frames": 8,
+   "sheet_128": "sprites/turtle_sheet_128.png",
+   "glow_128_additive": "sprites/turtle_glow_128.png",
+   "gba_32": "sprites/turtle_gba_32.png",
+   "size_m": 1.0,
+   "fps": 5
+  },
+  "seabird": {
+   "rows": [
+    {
+     "row": 0,
+     "name": "flap",
+     "clip": "flap",
+     "view": "side",
+     "az_pitch": [
+      0,
+      5
+     ],
+     "sprite_only_axis_swap": false
+    },
+    {
+     "row": 1,
+     "name": "flap",
+     "clip": "flap",
+     "view": "q34",
+     "az_pitch": [
+      38,
+      16
+     ],
+     "sprite_only_axis_swap": false
+    },
+    {
+     "row": 2,
+     "name": "float",
+     "clip": "float",
+     "view": "side",
+     "az_pitch": [
+      0,
+      5
+     ],
+     "sprite_only_axis_swap": false
+    },
+    {
+     "row": 3,
+     "name": "float",
+     "clip": "float",
+     "view": "q34",
+     "az_pitch": [
+      38,
+      16
+     ],
+     "sprite_only_axis_swap": false
+    }
+   ],
+   "px_per_m_128": 179.613,
+   "px_per_m_32": 42.908,
+   "palette32": [
+    [
+     19,
+     20,
+     31
+    ],
+    [
+     114,
+     122,
+     120
+    ],
+    [
+     14,
+     15,
+     23
+    ],
+    [
+     11,
+     11,
+     19
+    ],
+    [
+     14,
+     15,
+     26
+    ],
+    [
+     109,
+     117,
+     120
+    ],
+    [
+     9,
+     10,
+     15
+    ],
+    [
+     139,
+     71,
+     18
+    ],
+    [
+     164,
+     176,
+     180
+    ],
+    [
+     198,
+     103,
+     27
+    ],
+    [
+     144,
+     66,
+     13
+    ],
+    [
+     203,
+     96,
+     19
+    ],
+    [
+     255,
+     135,
+     36
+    ],
+    [
+     7,
+     8,
+     13
+    ],
+    [
+     255,
+     125,
+     26
+    ],
+    [
+     10,
+     15,
+     33
+    ]
+   ],
+   "frames": 8,
+   "sheet_128": "sprites/seabird_sheet_128.png",
+   "glow_128_additive": "sprites/seabird_glow_128.png",
+   "gba_32": "sprites/seabird_gba_32.png",
+   "size_m": 0.4,
+   "fps": 14
+  }
+ },
+ "billboard_atlas": {
+  "file": "sprites/billboard_atlas_64.png",
+  "cell": 64,
+  "columns": 8,
+  "azimuths_deg": [
+   0,
+   45,
+   90,
+   135,
+   180,
+   225,
+   270,
+   315
+  ],
+  "pitch_deg": 10,
+  "rows": [
+   {
+    "row": 0,
+    "name": "fish_a",
+    "cell_extent_m": 0.457,
+    "kind": "creature",
+    "pitch_deg": 10,
+    "fish": 1
+   },
+   {
+    "row": 1,
+    "name": "fish_b",
+    "cell_extent_m": 0.369,
+    "kind": "creature",
+    "pitch_deg": 10,
+    "fish": 1
+   },
+   {
+    "row": 2,
+    "name": "fish_c",
+    "cell_extent_m": 0.631,
+    "kind": "creature",
+    "pitch_deg": 10,
+    "fish": 1
+   },
+   {
+    "row": 3,
+    "name": "whale",
+    "cell_extent_m": 14.952,
+    "kind": "creature",
+    "pitch_deg": 10,
+    "fish": 1
+   },
+   {
+    "row": 4,
+    "name": "jelly",
+    "cell_extent_m": 1.729,
+    "kind": "creature",
+    "pitch_deg": 10,
+    "fish": 1
+   },
+   {
+    "row": 5,
+    "name": "manta",
+    "cell_extent_m": 4.663,
+    "kind": "creature",
+    "pitch_deg": 45,
+    "fish": 1
+   },
+   {
+    "row": 6,
+    "name": "turtle",
+    "cell_extent_m": 1.631,
+    "kind": "creature",
+    "pitch_deg": 10,
+    "fish": 1
+   },
+   {
+    "row": 7,
+    "name": "seabird",
+    "cell_extent_m": 0.68,
+    "kind": "creature",
+    "pitch_deg": 10,
+    "fish": 1
+   },
+   {
+    "row": 8,
+    "name": "school_fish_a",
+    "cell_extent_m": 2.498,
+    "kind": "school_cluster",
+    "pitch_deg": 10,
+    "fish": 18
+   },
+   {
+    "row": 9,
+    "name": "school_fish_b",
+    "cell_extent_m": 2.534,
+    "kind": "school_cluster",
+    "pitch_deg": 10,
+    "fish": 18
+   },
+   {
+    "row": 10,
+    "name": "school_fish_c",
+    "cell_extent_m": 3.042,
+    "kind": "school_cluster",
+    "pitch_deg": 10,
+    "fish": 18
+   }
+  ],
+  "note": "rows 0-7 one pose per creature; rows 8-10 = 18-fish school clusters (fish_a, fish_b, fish_c). Pick the column nearest the camera-relative heading."
+ },
+ "planet_points": {
+  "file": "sprites/planet_points_16.png",
+  "cell": 16,
+  "order": [
+   "fish_a",
+   "fish_b",
+   "fish_c",
+   "whale",
+   "jelly",
+   "manta",
+   "turtle",
+   "seabird"
+  ],
+  "note": "one 16x16 additive glow dot per creature for planet-scale / orbit-scale reads"
+ }
+}

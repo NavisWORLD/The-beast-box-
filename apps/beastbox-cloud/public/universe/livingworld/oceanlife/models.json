@@ -1,0 +1,1080 @@
+{
+ "_note": "metres, Y up, forward +Z, creature-left = +X. One primitive per material. Near = skinned + clips, far = static (vertex-shader swim for schools).",
+ "_sea_level": "y=0 == ocean shader water plane",
+ "_anchors_island_proposed": {
+  "whale_surface_0": {
+   "pos": [
+    108.85,
+    0.0,
+    -103.21
+   ],
+   "heading_rad": 0.812,
+   "note": "surface slot: blowhole at y~0, breach_origin = pos; dive target y=-30"
+  },
+  "whale_surface_1": {
+   "pos": [
+    22.31,
+    0.0,
+    176.6
+   ],
+   "heading_rad": 3.0159,
+   "note": "surface slot: blowhole at y~0, breach_origin = pos; dive target y=-30"
+  },
+  "whale_surface_2": {
+   "pos": [
+    -202.48,
+    0.0,
+    -55.71
+   ],
+   "heading_rad": 4.9809,
+   "note": "surface slot: blowhole at y~0, breach_origin = pos; dive target y=-30"
+  }
+ },
+ "_anchors_island_existing_in_landforms": "crater_center, lava_source, geyser_vent, village_0..3, boat_0..2, lava_channel_0..2_end, sea_level (NO whale anchor exists there; whale_surface_0..2 here are proposals)",
+ "fish_a_near": {
+  "file": "models/fish_a_near.glb",
+  "tris": 199,
+  "bytes": 126564,
+  "joints": 5,
+  "materials": [
+   "fish_a_body",
+   "fish_a_belly",
+   "fish_a_fin",
+   "eye",
+   "eye_glow",
+   "wire_teal",
+   "photophore"
+  ],
+  "bbox_min": [
+   -0.101,
+   -0.106,
+   -0.208
+  ],
+  "bbox_max": [
+   0.101,
+   0.126,
+   0.16
+  ],
+  "clips": {
+   "swim": {
+    "period_s": 0.7,
+    "loop": true,
+    "keys": 17
+   }
+  },
+  "anchors": {
+   "mouth": [
+    0.0,
+    0.0,
+    0.16
+   ],
+   "eye_L": [
+    0.032,
+    0.016,
+    0.096
+   ],
+   "tail_tip": [
+    0.0,
+    0.0,
+    -0.166
+   ]
+  },
+  "textures": {
+   "normal_1024": "textures/fish_a_normal_1024.png",
+   "normal_256": "textures/fish_a_normal_256.png",
+   "detail_512": "textures/fish_a_detail_512.png",
+   "emissive": "textures/fish_a_emissive_1024x512.png",
+   "repeat": [
+    1,
+    1
+   ],
+   "apply_to_materials": [
+    "fish_a_body",
+    "fish_a_belly"
+   ]
+  },
+  "embedded": "normal_256 on fish_a_body, fish_a_belly"
+ },
+ "fish_a_far": {
+  "file": "models/fish_a_far.glb",
+  "tris": 35,
+  "bytes": 4288,
+  "joints": 0,
+  "materials": [
+   "fish_a_body",
+   "fish_a_belly",
+   "fish_a_fin"
+  ],
+  "bbox_min": [
+   -0.04,
+   -0.096,
+   -0.202
+  ],
+  "bbox_max": [
+   0.04,
+   0.096,
+   0.159
+  ]
+ },
+ "fish_a": {
+  "common": "reef fish (coral-orange, teal lateral line)",
+  "size_m": 0.32,
+  "lod": {
+   "near_to_far_m": 4.6,
+   "far_to_billboard_m": 18.5,
+   "billboard_to_point_m": 73.9,
+   "crossfade_m": 0.9,
+   "basis": "distance where the body is ~48 / 12 / 3 px tall at 800 px viewport height, 60 deg fov"
+  },
+  "speed": {
+   "cruise_mps": 0.9,
+   "burst_mps": 2.2
+  },
+  "depth_m": [
+   0.5,
+   8.0
+  ],
+  "y_band": "sunlit",
+  "biomes": [
+   "shallow_ocean",
+   "rainforest",
+   "beach",
+   "grassland",
+   "savanna"
+  ],
+  "school": {
+   "n": [
+    12,
+    40
+   ],
+   "radius_m": 1.6,
+   "spacing_m": 0.18
+  },
+  "glow": "lateral line + belly photophores (teal/gold)",
+  "luminous_depth": "dim by day; brightens past 4 m",
+  "near": "fish_a_near",
+  "far": "fish_a_far"
+ },
+ "fish_b_near": {
+  "file": "models/fish_b_near.glb",
+  "tris": 211,
+  "bytes": 144912,
+  "joints": 5,
+  "materials": [
+   "fish_b_body",
+   "fish_b_belly",
+   "fish_b_fin",
+   "eye",
+   "eye_glow",
+   "wire_violet",
+   "photophore",
+   "lure_glow"
+  ],
+  "bbox_min": [
+   -0.077,
+   -0.088,
+   -0.169
+  ],
+  "bbox_max": [
+   0.077,
+   0.088,
+   0.164
+  ],
+  "clips": {
+   "swim": {
+    "period_s": 0.55,
+    "loop": true,
+    "keys": 17
+   }
+  },
+  "anchors": {
+   "mouth": [
+    0.0,
+    0.0,
+    0.13
+   ],
+   "eye_L": [
+    0.026,
+    0.013,
+    0.078
+   ],
+   "tail_tip": [
+    0.0,
+    0.0,
+    -0.135
+   ]
+  },
+  "textures": {
+   "normal_1024": "textures/fish_b_normal_1024.png",
+   "normal_256": "textures/fish_b_normal_256.png",
+   "detail_512": "textures/fish_b_detail_512.png",
+   "emissive": "textures/fish_b_emissive_1024x512.png",
+   "repeat": [
+    1,
+    1
+   ],
+   "apply_to_materials": [
+    "fish_b_body",
+    "fish_b_belly"
+   ]
+  },
+  "embedded": "normal_256 on fish_b_body, fish_b_belly"
+ },
+ "fish_b_far": {
+  "file": "models/fish_b_far.glb",
+  "tris": 35,
+  "bytes": 4296,
+  "joints": 0,
+  "materials": [
+   "fish_b_body",
+   "fish_b_belly",
+   "fish_b_fin"
+  ],
+  "bbox_min": [
+   -0.027,
+   -0.088,
+   -0.164
+  ],
+  "bbox_max": [
+   0.027,
+   0.088,
+   0.128
+  ]
+ },
+ "fish_b": {
+  "common": "deep blue lure fish (violet wire, gold lure)",
+  "size_m": 0.26,
+  "lod": {
+   "near_to_far_m": 3.8,
+   "far_to_billboard_m": 15.0,
+   "billboard_to_point_m": 60.1,
+   "crossfade_m": 0.8,
+   "basis": "distance where the body is ~48 / 12 / 3 px tall at 800 px viewport height, 60 deg fov"
+  },
+  "speed": {
+   "cruise_mps": 0.7,
+   "burst_mps": 1.8
+  },
+  "depth_m": [
+   6.0,
+   40.0
+  ],
+  "y_band": "mid",
+  "biomes": [
+   "deep_ocean",
+   "frozen_sea",
+   "jelly_geyser",
+   "crystal_moss"
+  ],
+  "school": {
+   "n": [
+    8,
+    24
+   ],
+   "radius_m": 2.2,
+   "spacing_m": 0.3
+  },
+  "glow": "violet lateral line + gold lure bulb",
+  "luminous_depth": "readable from 8 m down",
+  "near": "fish_b_near",
+  "far": "fish_b_far"
+ },
+ "fish_c_near": {
+  "file": "models/fish_c_near.glb",
+  "tris": 207,
+  "bytes": 118016,
+  "joints": 5,
+  "materials": [
+   "fish_c_body",
+   "fish_c_belly",
+   "fish_c_fin",
+   "eye",
+   "eye_glow",
+   "wire_teal",
+   "photophore",
+   "smile_glow"
+  ],
+  "bbox_min": [
+   -0.129,
+   -0.123,
+   -0.286
+  ],
+  "bbox_max": [
+   0.129,
+   0.163,
+   0.218
+  ],
+  "clips": {
+   "swim": {
+    "period_s": 0.9,
+    "loop": true,
+    "keys": 17
+   }
+  },
+  "anchors": {
+   "mouth": [
+    0.0,
+    0.0,
+    0.22
+   ],
+   "eye_L": [
+    0.044,
+    0.022,
+    0.132
+   ],
+   "tail_tip": [
+    0.0,
+    0.0,
+    -0.229
+   ]
+  },
+  "textures": {
+   "normal_1024": "textures/fish_c_normal_1024.png",
+   "normal_256": "textures/fish_c_normal_256.png",
+   "detail_512": "textures/fish_c_detail_512.png",
+   "emissive": "textures/fish_c_emissive_1024x512.png",
+   "repeat": [
+    1,
+    1
+   ],
+   "apply_to_materials": [
+    "fish_c_body",
+    "fish_c_belly"
+   ]
+  },
+  "embedded": "normal_256 on fish_c_body, fish_c_belly"
+ },
+ "fish_c_far": {
+  "file": "models/fish_c_far.glb",
+  "tris": 35,
+  "bytes": 4284,
+  "joints": 0,
+  "materials": [
+   "fish_c_body",
+   "fish_c_belly",
+   "fish_c_fin"
+  ],
+  "bbox_min": [
+   -0.044,
+   -0.123,
+   -0.277
+  ],
+  "bbox_max": [
+   0.044,
+   0.123,
+   0.216
+  ]
+ },
+ "fish_c": {
+  "common": "grin fish (green-gold, glowing smile)",
+  "size_m": 0.44,
+  "lod": {
+   "near_to_far_m": 6.4,
+   "far_to_billboard_m": 25.4,
+   "billboard_to_point_m": 101.6,
+   "crossfade_m": 1.3,
+   "basis": "distance where the body is ~48 / 12 / 3 px tall at 800 px viewport height, 60 deg fov"
+  },
+  "speed": {
+   "cruise_mps": 1.1,
+   "burst_mps": 2.6
+  },
+  "depth_m": [
+   2.0,
+   20.0
+  ],
+  "y_band": "sunlit..mid",
+  "biomes": [
+   "shallow_ocean",
+   "deep_ocean",
+   "paper_marsh",
+   "sunflower_ring"
+  ],
+  "school": {
+   "n": [
+    10,
+    30
+   ],
+   "radius_m": 2.0,
+   "spacing_m": 0.25
+  },
+  "glow": "teal lateral line + smile",
+  "luminous_depth": "dim by day; brightens past 4 m",
+  "near": "fish_c_near",
+  "far": "fish_c_far"
+ },
+ "whale_near": {
+  "file": "models/whale_near.glb",
+  "tris": 2900,
+  "bytes": 217044,
+  "joints": 11,
+  "materials": [
+   "whale_skin",
+   "whale_belly",
+   "whale_flipper",
+   "eye",
+   "eye_glow",
+   "smile_glow",
+   "wire_teal",
+   "wire_violet"
+  ],
+  "bbox_min": [
+   -2.739,
+   -2.096,
+   -6.751
+  ],
+  "bbox_max": [
+   2.739,
+   2.205,
+   5.938
+  ],
+  "clips": {
+   "tail_swim": {
+    "period_s": 4.0,
+    "loop": true,
+    "keys": 25
+   },
+   "fin_sweep": {
+    "period_s": 5.0,
+    "loop": true,
+    "keys": 21
+   },
+   "breach": {
+    "period_s": 6.0,
+    "loop": false,
+    "keys": 31
+   }
+  },
+  "anchors": {
+   "blowhole": [
+    0.0,
+    1.78,
+    3.2
+   ],
+   "mouth": [
+    0.0,
+    -0.5,
+    5.9
+   ],
+   "eye_L": [
+    0.9,
+    0.05,
+    4.45
+   ],
+   "fluke_tip_L": [
+    2.3,
+    0.0,
+    -6.2
+   ],
+   "fluke_tip_R": [
+    -2.3,
+    0.0,
+    -6.2
+   ],
+   "splash_origin": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "water_line_pivot": [
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  "textures": {
+   "normal_1024": "textures/whale_normal_1024.png",
+   "normal_256": "textures/whale_normal_256.png",
+   "detail_512": "textures/whale_detail_512.png",
+   "emissive": "textures/whale_emissive_1024x512.png",
+   "repeat": [
+    2,
+    2
+   ],
+   "apply_to_materials": [
+    "whale_skin",
+    "whale_belly"
+   ]
+  },
+  "embedded": "normal_256 on whale_skin, whale_belly"
+ },
+ "whale_far": {
+  "file": "models/whale_far.glb",
+  "tris": 320,
+  "bytes": 12132,
+  "joints": 0,
+  "materials": [
+   "whale_skin",
+   "whale_belly",
+   "whale_flipper"
+  ],
+  "bbox_min": [
+   -2.739,
+   -2.096,
+   -6.676
+  ],
+  "bbox_max": [
+   2.739,
+   2.027,
+   5.938
+  ]
+ },
+ "whale": {
+  "common": "gentle whale (blue-slate, cream belly, neon contour bands)",
+  "size_m": 12.0,
+  "lod": {
+   "near_to_far_m": 173.2,
+   "far_to_billboard_m": 693.0,
+   "billboard_to_point_m": 2772.0,
+   "crossfade_m": 34.6,
+   "basis": "distance where the body is ~48 / 12 / 3 px tall at 800 px viewport height, 60 deg fov"
+  },
+  "speed": {
+   "cruise_mps": 2.5,
+   "burst_mps": 7.5
+  },
+  "depth_m": [
+   0.0,
+   60.0
+  ],
+  "y_band": "mid..deep (surfaces to blow)",
+  "biomes": [
+   "deep_ocean",
+   "frozen_sea",
+   "volcano (island whale slots)"
+  ],
+  "school": {
+   "n": [
+    1,
+    3
+   ],
+   "radius_m": 40.0,
+   "spacing_m": 18.0
+  },
+  "glow": "contour bands, flank dots, throat grooves, smile",
+  "luminous_depth": "bands visible even at surface at dusk",
+  "near": "whale_near",
+  "far": "whale_far"
+ },
+ "jelly_near": {
+  "file": "models/jelly_near.glb",
+  "tris": 670,
+  "bytes": 120608,
+  "joints": 16,
+  "materials": [
+   "jelly_bell",
+   "jelly_core",
+   "eye",
+   "eye_glow",
+   "smile_glow",
+   "wire_teal",
+   "wire_violet",
+   "jelly_tentacle",
+   "jelly_arm"
+  ],
+  "bbox_min": [
+   -0.374,
+   -1.219,
+   -0.374
+  ],
+  "bbox_max": [
+   0.374,
+   0.36,
+   0.374
+  ],
+  "clips": {
+   "pulse": {
+    "period_s": 2.4,
+    "loop": true,
+    "keys": 25
+   }
+  },
+  "anchors": {
+   "bell_top": [
+    0.0,
+    0.36,
+    0.0
+   ],
+   "face": [
+    0.0,
+    0.15,
+    0.3
+   ],
+   "tentacle_tip": [
+    0.0,
+    -1.1,
+    0.0
+   ],
+   "glow_center": [
+    0.0,
+    0.1,
+    0.0
+   ]
+  },
+  "textures": {
+   "normal_1024": "textures/jelly_normal_1024.png",
+   "normal_256": "textures/jelly_normal_256.png",
+   "detail_512": "textures/jelly_detail_512.png",
+   "emissive": "textures/jelly_emissive_1024x512.png",
+   "repeat": [
+    1,
+    1
+   ],
+   "apply_to_materials": [
+    "jelly_bell"
+   ]
+  },
+  "embedded": "normal_256 on jelly_bell"
+ },
+ "jelly_far": {
+  "file": "models/jelly_far.glb",
+  "tris": 56,
+  "bytes": 4396,
+  "joints": 0,
+  "materials": [
+   "jelly_bell",
+   "jelly_tentacle"
+  ],
+  "bbox_min": [
+   -0.358,
+   -1.3,
+   -0.358
+  ],
+  "bbox_max": [
+   0.358,
+   0.36,
+   0.358
+  ]
+ },
+ "jelly": {
+  "common": "moon jelly (teal bell, violet arms, trailing tentacles)",
+  "size_m": 0.72,
+  "lod": {
+   "near_to_far_m": 10.4,
+   "far_to_billboard_m": 41.6,
+   "billboard_to_point_m": 166.3,
+   "crossfade_m": 2.1,
+   "basis": "distance where the body is ~48 / 12 / 3 px tall at 800 px viewport height, 60 deg fov"
+  },
+  "speed": {
+   "cruise_mps": 0.2,
+   "burst_mps": 0.5
+  },
+  "depth_m": [
+   3.0,
+   45.0
+  ],
+  "y_band": "sunlit..deep (the bioluminescence star)",
+  "biomes": [
+   "jelly_geyser",
+   "deep_ocean",
+   "crystal_moss",
+   "celestial_peaks"
+  ],
+  "school": {
+   "n": [
+    5,
+    25
+   ],
+   "radius_m": 4.0,
+   "spacing_m": 0.9
+  },
+  "glow": "bell rim, core, arms and tentacles (soft, whole body)",
+  "luminous_depth": "strongest 10 m and deeper",
+  "near": "jelly_near",
+  "far": "jelly_far"
+ },
+ "manta_near": {
+  "file": "models/manta_near.glb",
+  "tris": 830,
+  "bytes": 149416,
+  "joints": 10,
+  "materials": [
+   "manta_back",
+   "manta_belly",
+   "eye",
+   "eye_glow",
+   "smile_glow",
+   "wire_teal",
+   "wire_violet"
+  ],
+  "bbox_min": [
+   -2.1,
+   -0.22,
+   -2.1
+  ],
+  "bbox_max": [
+   2.1,
+   0.231,
+   1.671
+  ],
+  "clips": {
+   "glide": {
+    "period_s": 6.0,
+    "loop": true,
+    "keys": 25
+   }
+  },
+  "anchors": {
+   "mouth": [
+    0.0,
+    -0.04,
+    1.0
+   ],
+   "wing_tip_L": [
+    2.1,
+    0.0,
+    -0.6
+   ],
+   "wing_tip_R": [
+    -2.1,
+    0.0,
+    -0.6
+   ],
+   "tail_tip": [
+    0.0,
+    0.0,
+    -2.1
+   ]
+  },
+  "textures": {
+   "normal_1024": "textures/manta_normal_1024.png",
+   "normal_256": "textures/manta_normal_256.png",
+   "detail_512": "textures/manta_detail_512.png",
+   "emissive": "textures/manta_emissive_1024x512.png",
+   "repeat": [
+    3,
+    2
+   ],
+   "apply_to_materials": [
+    "manta_back",
+    "manta_belly"
+   ]
+  },
+  "embedded": "normal_256 on manta_back, manta_belly"
+ },
+ "manta_far": {
+  "file": "models/manta_far.glb",
+  "tris": 172,
+  "bytes": 7372,
+  "joints": 0,
+  "materials": [
+   "manta_back",
+   "manta_belly"
+  ],
+  "bbox_min": [
+   -2.1,
+   -0.22,
+   -1.3
+  ],
+  "bbox_max": [
+   2.1,
+   0.22,
+   1.671
+  ]
+ },
+ "manta": {
+  "common": "manta ray (slate back, white belly, shoulder spots)",
+  "size_m": 4.2,
+  "lod": {
+   "near_to_far_m": 60.6,
+   "far_to_billboard_m": 242.5,
+   "billboard_to_point_m": 970.2,
+   "crossfade_m": 12.1,
+   "basis": "distance where the body is ~48 / 12 / 3 px tall at 800 px viewport height, 60 deg fov"
+  },
+  "speed": {
+   "cruise_mps": 2.0,
+   "burst_mps": 4.5
+  },
+  "depth_m": [
+   1.0,
+   18.0
+  ],
+  "y_band": "sunlit..mid",
+  "biomes": [
+   "shallow_ocean",
+   "deep_ocean",
+   "beach (drop-off)"
+  ],
+  "school": {
+   "n": [
+    1,
+    5
+   ],
+   "radius_m": 12.0,
+   "spacing_m": 5.0
+  },
+  "glow": "chord contour rings + shoulder spot pair",
+  "luminous_depth": "rings read from 3 m down",
+  "near": "manta_near",
+  "far": "manta_far"
+ },
+ "turtle_near": {
+  "file": "models/turtle_near.glb",
+  "tris": 740,
+  "bytes": 176640,
+  "joints": 11,
+  "materials": [
+   "turtle_shell",
+   "turtle_plastron",
+   "turtle_skin",
+   "turtle_flipper",
+   "eye",
+   "eye_glow",
+   "smile_glow",
+   "wire_teal",
+   "wire_violet"
+  ],
+  "bbox_min": [
+   -0.919,
+   -0.188,
+   -0.634
+  ],
+  "bbox_max": [
+   0.919,
+   0.346,
+   0.692
+  ],
+  "clips": {
+   "paddle": {
+    "period_s": 3.2,
+    "loop": true,
+    "keys": 25
+   }
+  },
+  "anchors": {
+   "mouth": [
+    0.0,
+    0.06,
+    0.68
+   ],
+   "shell_top": [
+    0.0,
+    0.35,
+    0.0
+   ],
+   "flipper_tip_L": [
+    0.95,
+    -0.12,
+    0.1
+   ],
+   "flipper_tip_R": [
+    -0.95,
+    -0.12,
+    0.1
+   ]
+  },
+  "textures": {
+   "normal_1024": "textures/turtle_normal_1024.png",
+   "normal_256": "textures/turtle_normal_256.png",
+   "detail_512": "textures/turtle_detail_512.png",
+   "emissive": "textures/turtle_emissive_1024x512.png",
+   "repeat": [
+    1,
+    1
+   ],
+   "apply_to_materials": [
+    "turtle_shell",
+    "turtle_plastron",
+    "turtle_skin"
+   ]
+  },
+  "embedded": "normal_256 on turtle_shell, turtle_plastron, turtle_skin"
+ },
+ "turtle_far": {
+  "file": "models/turtle_far.glb",
+  "tris": 204,
+  "bytes": 10308,
+  "joints": 0,
+  "materials": [
+   "turtle_shell",
+   "turtle_plastron",
+   "turtle_skin",
+   "turtle_flipper"
+  ],
+  "bbox_min": [
+   -0.919,
+   -0.188,
+   -0.634
+  ],
+  "bbox_max": [
+   0.919,
+   0.34,
+   0.69
+  ]
+ },
+ "turtle": {
+  "common": "sea turtle (green scutes, neon seams)",
+  "size_m": 1.0,
+  "lod": {
+   "near_to_far_m": 14.4,
+   "far_to_billboard_m": 57.8,
+   "billboard_to_point_m": 231.0,
+   "crossfade_m": 2.9,
+   "basis": "distance where the body is ~48 / 12 / 3 px tall at 800 px viewport height, 60 deg fov"
+  },
+  "speed": {
+   "cruise_mps": 0.6,
+   "burst_mps": 1.4
+  },
+  "depth_m": [
+   0.0,
+   10.0
+  ],
+  "y_band": "surface..sunlit (surfaces to breathe)",
+  "biomes": [
+   "shallow_ocean",
+   "beach",
+   "grassland",
+   "heartwood_forest"
+  ],
+  "school": {
+   "n": [
+    1,
+    4
+   ],
+   "radius_m": 6.0,
+   "spacing_m": 2.5
+  },
+  "glow": "scute seam lattice",
+  "luminous_depth": "dim by day",
+  "near": "turtle_near",
+  "far": "turtle_far"
+ },
+ "seabird_near": {
+  "file": "models/seabird_near.glb",
+  "tris": 258,
+  "bytes": 125248,
+  "joints": 8,
+  "materials": [
+   "bird_back",
+   "bird_belly",
+   "bird_beak",
+   "bird_face",
+   "eye",
+   "eye_glow",
+   "bird_wing",
+   "bird_feet"
+  ],
+  "bbox_min": [
+   -0.4,
+   -0.065,
+   -0.27
+  ],
+  "bbox_max": [
+   0.4,
+   0.265,
+   0.295
+  ],
+  "clips": {
+   "flap": {
+    "period_s": 0.35,
+    "loop": true,
+    "keys": 17
+   },
+   "float": {
+    "period_s": 3.2,
+    "loop": true,
+    "keys": 17
+   }
+  },
+  "anchors": {
+   "waterline": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "beak_tip": [
+    0.0,
+    0.165,
+    0.265
+   ],
+   "wing_tip_L": [
+    0.37,
+    0.085,
+    -0.1
+   ],
+   "wing_tip_R": [
+    -0.37,
+    0.085,
+    -0.1
+   ]
+  },
+  "textures": {
+   "normal_1024": "textures/seabird_normal_1024.png",
+   "normal_256": "textures/seabird_normal_256.png",
+   "detail_512": "textures/seabird_detail_512.png",
+   "emissive": "textures/seabird_emissive_1024x512.png",
+   "repeat": [
+    1,
+    1
+   ],
+   "apply_to_materials": [
+    "bird_back",
+    "bird_belly"
+   ]
+  },
+  "embedded": "normal_256 on bird_back, bird_belly"
+ },
+ "seabird_far": {
+  "file": "models/seabird_far.glb",
+  "tris": 66,
+  "bytes": 5096,
+  "joints": 0,
+  "materials": [
+   "bird_back",
+   "bird_belly",
+   "bird_beak"
+  ],
+  "bbox_min": [
+   -0.121,
+   -0.06,
+   -0.194
+  ],
+  "bbox_max": [
+   0.121,
+   0.265,
+   0.295
+  ]
+ },
+ "seabird": {
+  "common": "puffin-like sea bird (black/white, orange beak)",
+  "size_m": 0.4,
+  "lod": {
+   "near_to_far_m": 5.8,
+   "far_to_billboard_m": 23.1,
+   "billboard_to_point_m": 92.4,
+   "crossfade_m": 1.2,
+   "basis": "distance where the body is ~48 / 12 / 3 px tall at 800 px viewport height, 60 deg fov"
+  },
+  "speed": {
+   "cruise_mps": 0.15,
+   "burst_mps": 9.0
+  },
+  "depth_m": [
+   -0.05,
+   0.05
+  ],
+  "y_band": "surface film (floats at y=0; flies above)",
+  "biomes": [
+   "beach",
+   "glacier",
+   "frozen_sea",
+   "volcano (island ledges)",
+   "shallow_ocean"
+  ],
+  "school": {
+   "n": [
+    3,
+    14
+   ],
+   "radius_m": 5.0,
+   "spacing_m": 0.9
+  },
+  "glow": "almost none (breast dots only)",
+  "luminous_depth": "n/a",
+  "near": "seabird_near",
+  "far": "seabird_far"
+ }
+}
