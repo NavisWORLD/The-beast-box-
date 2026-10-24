@@ -3,8 +3,8 @@ from pathlib import Path
 
 import pytest
 
-from beastbox.routing import ROUTING, banded_step, rigetti_source, route
-from beastbox.state_family import StateFamily, update_routed
+from beastbox.routing import ROUTING, ROUTING_PATH, banded_step, rigetti_source, route, update_routed
+from beastbox.state_family import StateFamily
 
 NOW = 1_000_000.0
 REC = json.loads(Path("apps/beastbox-cloud/public/spark/rigetti-qvm-sim.json").read_text())["scenario_records"][0]["batches"][0]
@@ -72,3 +72,7 @@ def test_routed_update_is_additive_and_banded():
 def test_banded_bands_have_distinct_decay():
     x = banded_step([0.5] * 42, [0.0] * 42)
     assert x[0] != x[36]
+
+
+def test_json_table_matches_embedded():
+    assert json.loads(ROUTING_PATH.read_text()) == ROUTING

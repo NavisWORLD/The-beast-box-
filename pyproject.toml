@@ -51,7 +51,7 @@ beastbox-muse = "beastbox_muse.cli:main"
 include-package-data = false
 
 [tool.setuptools.package-data]
-beastbox = ["ui_theme.css", "cosmic_layout.css", "routing.json"]
+beastbox = ["ui_theme.css", "cosmic_layout.css"]
 beastbox_muse = ["muse_browser.js"]
 
 [tool.setuptools.packages.find]

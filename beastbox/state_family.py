@@ -72,17 +72,3 @@ class StateFamily:
             variance = sum((x - mean) ** 2 for x in vec) / len(vec)
             out[name] = {"live": variance > 1e-12, "min": lo, "max": hi, "variance": variance}
         return out
-
-
-def update_routed(family: StateFamily, routed: dict) -> dict[str, list[float]]:
-    """Additive routed update: dyn12 from the typed D1..D12 slots, dyn42 per organ band.
-    StateFamily.update() is unchanged; this is the opt-in real-signal path."""
-    from .routing import banded_step
-
-    family.step += 1
-    family.dyn12 = update_dyn12(family.dyn12, routed["d12"], step=family.step)
-    family.dyn42 = banded_step(family.dyn42, routed["d42"])
-    family.dyn54 = list(family.dyn12) + list(family.dyn42)
-    family.static54 = static_projection(routed["d12"] + routed["d42"], 54)
-    family.tri3 = _coupled_step(family.tri3, list(family.dyn54) + routed["d12"] + routed["d42"], coupling=0.03)
-    return family.as_dict()
