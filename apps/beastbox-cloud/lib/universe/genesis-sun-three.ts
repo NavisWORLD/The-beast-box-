@@ -3,10 +3,11 @@
 // marked ADDED: atmosphere thickness from the recorded planet.atmosphere, and the night-side-only glow map.
 import * as THREE from 'three';
 import {coronaParams} from './genesis-sun.mjs';
-export function starTexture():THREE.CanvasTexture{ // createStarTexture, verbatim
+export function starTexture(opaque=false):THREE.CanvasTexture{ // createStarTexture, verbatim; opaque=true paints the corners orange so the sphere's poles are not black (the map is wrapped on a sphere)
   const size=256,c=document.createElement('canvas');c.width=size;c.height=size;const x=c.getContext('2d')!;
   const g=x.createRadialGradient(size/2,size/2,0,size/2,size/2,size/2);
   g.addColorStop(0,'rgba(255,255,255,1)');g.addColorStop(0.2,'rgba(255,255,200,1)');g.addColorStop(0.4,'rgba(255,200,0,1)');g.addColorStop(1,'rgba(255,150,0,0)');
+  if(opaque){x.fillStyle='rgb(255,150,0)';x.fillRect(0,0,size,size);}
   x.fillStyle=g;x.fillRect(0,0,size,size);return new THREE.CanvasTexture(c);
 }
 export function glowTexture():THREE.CanvasTexture{ // soft radial falloff for the universe origin (replaces the map-less flat square sprite)

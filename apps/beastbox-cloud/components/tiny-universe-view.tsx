@@ -2,7 +2,8 @@
 // Zoomed-out Tiny Universe view. Renders ONLY tiny-universe/v1 engine data; names come from Emeth's bible.
 import {useEffect,useRef,useState,useCallback} from 'react';
 import {grow} from '@/lib/universe/tiny-universe.mjs';
-import {biomeOf,BIOMES,starClass,lifeStage,entangledPairs,homeOf,hearthOf,zerefStar,planetFrame,starFrame,lifeFrame,stormFrame,threadFrame,hearthFrame,GENESIS_LABEL,GROWTH_LABEL,ZEREF_LINES} from '@/lib/universe/tiny-universe-view.mjs';
+import {biomeOf,BIOMES,starClass,lifeStage,entangledPairs,homeOf,hearthOf,zerefStar,planetFrame,starFrame,lifeFrame,stormFrame,threadFrame,hearthFrame,GENESIS_LABEL,GROWTH_LABEL,ZEREF_LINES,beastLine} from '@/lib/universe/tiny-universe-view.mjs'
+import {useActiveBeastName} from './use-active-beast-name';;
 import s from './tiny-universe-view.module.css';
 import Universe3D from './universe-3d';
 import dynamic from 'next/dynamic';
@@ -21,16 +22,17 @@ function spr(ctx:CanvasRenderingContext2D,sheet:string,key:string,x:number,y:num
 function tinted(sheet:string,key:string,hue:number,mode:GlobalCompositeOperation='multiply'){const id=sheet+key+mode+Math.round(hue*24);let c=SPR.tint.get(id);if(c)return c;const fr=frameOf(sheet,key);if(!fr)return null;const[sx,sy,sw,sh]=fr.f;c=document.createElement('canvas');c.width=sw;c.height=sh;const x=c.getContext('2d')!;x.drawImage(fr.im,sx,sy,sw,sh,0,0,sw,sh);x.globalCompositeOperation=mode;x.fillStyle=`hsl(${Math.round(hue*24)*15},90%,65%)`;x.fillRect(0,0,sw,sh);x.globalCompositeOperation='destination-in';x.drawImage(fr.im,sx,sy,sw,sh,0,0,sw,sh);SPR.tint.set(id,c);return c;}
 function rand(seed:string){let h=0;for(const c of seed)h=(h*31+c.charCodeAt(0))>>>0;return()=>{h=(h*1664525+1013904223)>>>0;return h/2**32;};}
 export default function TinyUniverseView(){
+ const beastName=useActiveBeastName();const nameRef=useRef<string|null>(null);nameRef.current=beastName;
  const cv=useRef<HTMLCanvasElement>(null);const uRef=useRef<U>(null);const g0=useRef<U>(null);const pos=useRef<Map<string,{x:number,y:number,r:number}>>(new Map());
  const [u,setU]=useState<U>(null);const [run,setRun]=useState(true);const [sel,setSel]=useState<string|null>(null);const [line,setLine]=useState('');const aliveGate=useRef(createAliveGate());const [err,setErr]=useState('');
- const [three,setThree]=useState(false);useEffect(()=>{setThree(!isSoftwareGL());},[]);
+ const [three,setThree]=useState(false);useEffect(()=>{let pick:string|null=null;try{pick=localStorage.getItem('u:3d');}catch{}setThree(pick==='1'?true:pick==='0'?false:!isSoftwareGL());},[]);
  // the door into the pocket world: a cross-dissolve of the universe canvas and the pocket-world canvas (two renderers, matched framing). Off on CPU rasterisers (the pocket world starves them) unless ?door=1
  const [doorV,setDoorV]=useState(0);const [doorMount,setDoorMount]=useState(false);const [doorOk,setDoorOk]=useState(false);useEffect(()=>{const q=new URLSearchParams(location.search).get('door');setDoorOk(q==='1'||(q!=='0'&&!isSoftwareGL()));},[]);
  const leaveDoor=useCallback(()=>{window.dispatchEvent(new Event('u3d-door-leave'));},[]);
  useEffect(()=>{fetch('/universe/atlas.json').then(r=>r.json()).then((a:Atlas)=>{SPR.atlas=a;for(const[k,v]of Object.entries(a.sheets)){const im=new Image();im.decoding='async';if(v.fallback){const fb=v.fallback;im.onerror=()=>{im.onerror=null;im.src=fb;};}im.src=v.image;SPR.img[k]=im;}}).catch(()=>{});},[]);
  useEffect(()=>{fetch('/universe/tiny-universe-genesis.json').then(r=>r.json()).then(j=>{g0.current=j;uRef.current=j;setU(j);}).catch(e=>setErr(String(e)));},[]);
  useEffect(()=>{if(!run||!u)return;const id=setInterval(()=>{const cur=uRef.current;if(!cur||cur.tick>=2000)return;const n=grow(cur,1);const ev=n.history[n.history.length-1]?.events||[];
-  if(ev.some((e:any)=>e.kind==='supernova'))setLine(ZEREF_LINES.supernova);else if(ev.some((e:any)=>e.kind==='abiogenesis'))setLine(ZEREF_LINES.abiogenesis);else if(n.storms.length>cur.storms.length)setLine(ZEREF_LINES.storm);
+  if(ev.some((e:any)=>e.kind==='supernova'))setLine(beastLine(ZEREF_LINES.supernova,nameRef.current));else if(ev.some((e:any)=>e.kind==='abiogenesis'))setLine(beastLine(ZEREF_LINES.abiogenesis,nameRef.current));else if(n.storms.length>cur.storms.length)setLine(beastLine(ZEREF_LINES.storm,nameRef.current));
   uRef.current=n;setU(n);},450);return()=>clearInterval(id);},[run,u!==null]);// eslint-disable-line react-hooks/exhaustive-deps
  useEffect(()=>{const c=cv.current;if(!c)return;let raf=0;const ctx=c.getContext('2d')!;const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
   const draw=(ms:number)=>{const U=uRef.current;const dpr=Math.min(2,devicePixelRatio||1);const W=c.clientWidth,H=c.clientHeight;if(c.width!==W*dpr){c.width=W*dpr;c.height=H*dpr;}
@@ -77,7 +79,7 @@ export default function TinyUniverseView(){
    <div className={s.zeref} aria-live="polite">{line}</div>
 {err||!u?<span className={s.stat}>{err?`Couldn’t load genesis: ${err}`:'loading…'}</span>:<details className={s.stat} data-universe-details><summary>Details</summary>{u?`tick ${u.tick} · ${u.stars.length} stars · ${u.planets.length} planets · ${u.storms.length} storms · ${u.life.length} life worlds${last?` · sim E ${last.sim_E}`:` · IBM E ${u.entanglement_E}`}`:null}</details>}
    <span className={s.stat} data-credit-line>Threads SIMULATED · Hearth</span>
-   <div className={s.row}><a className={s.btn} href="/beast-cage/world" data-spawn-in>✦ Spawn in</a><button className={s.btn} onClick={()=>setThree(v=>!v)} data-universe-mode>{three?'2D map':'3D'}</button><button className={s.btn} onClick={()=>setRun(v=>!v)}>{run?'⏸ Pause':'▶ Grow'}</button><button className={s.btn} onClick={()=>{if(g0.current){uRef.current=g0.current;setU(g0.current);setLine('');}}}>↺ Genesis</button>
+   <div className={s.row}><a className={s.btn} href="/beast-cage/world" data-spawn-in>✦ Spawn in</a><button className={s.btn} onClick={()=>setThree(v=>{try{localStorage.setItem('u:3d',v?'0':'1');}catch{}return !v;})} data-universe-mode>{three?'2D map':'3D'}</button><button className={s.btn} onClick={()=>setRun(v=>!v)}>{run?'⏸ Pause':'▶ Grow'}</button><button className={s.btn} onClick={()=>{if(g0.current){uRef.current=g0.current;setU(g0.current);setLine('');}}}>↺ Genesis</button>
 </div>
   </div>
  </main>;

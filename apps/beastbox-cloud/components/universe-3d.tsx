@@ -25,8 +25,9 @@ const THREADS_KEY='beastbox.oneMindThreads.v1';const SEG=24;
 const BIOME_MAP:Record<string,string>={ember:'ember_world',paper:'paper_sea',jelly:'jelly_geyser',sunflower:'sunflower_ring',moss:'crystal_moss',glacier:'glacier'};
 const BIOME_HEX:Record<string,number>={ember:0xff7a2a,paper:0xe9d9b0,jelly:0x8fa8ff,sunflower:0xffd24a,moss:0x8fd06a,glacier:0xdff2ff};
 function rand(seed:string){let h=0;for(const c of seed)h=(h*31+c.charCodeAt(0))>>>0;return()=>{h=(h*1664525+1013904223)>>>0;return h/2**32;};}
+import {zoomLineKind,doorLineKind,zoomLine} from '@/lib/universe/zoom-lines.mjs';
 export const ZOOM_MIN=1.2,ZOOM_MAX=1400;
-export function zoomStage(d:number){return d<6?'Surface':d<40?'Planet':d<260?'Neighbours':'Universe';}
+export function zoomStage(d:number){return d<6?'Surface':d<16?'Planet':d<40?'Orbit':d<120?'System':d<500?'Neighbours':'Universe';}
 const SPAN=420;
 export function starPos(st:any){const r=rand(st.id);return new THREE.Vector3((st.x-0.5)*SPAN,(r()-0.5)*SPAN*0.18,(st.y-0.5)*SPAN);}
 export default function Universe3D({u,onSelect,onAlive,doorOn=false,onDoor}:{u:any;onSelect?:(id:string|null)=>void;onAlive?:(kind:'zoom_planet'|'zoom_star'|'threads_visible')=>void;doorOn?:boolean;onDoor?:(v:number,preload:boolean)=>void}){
@@ -38,6 +39,8 @@ export default function Universe3D({u,onSelect,onAlive,doorOn=false,onDoor}:{u:a
  const activity=useRef<any[]>([]);
  useEffect(()=>{let dead=false;const load=()=>fetch('/api/cosmos/activity',{cache:'no-store'}).then(r=>r.ok?r.json():null).then(j=>{if(dead||!j?.creatures)return;activity.current=j.creatures;const n=j.creatures.length;setActivityNote(n?`${n} creature${n===1?'':'s'} · brightness = how recently its own loop ticked`:'no creature loop activity reported');}).catch(()=>{if(!dead)setActivityNote('loop activity unavailable · threads drawn at the faint floor');});load();const iv=setInterval(load,300000);return()=>{dead=true;clearInterval(iv);};},[]);
  const host=useRef<HTMLDivElement>(null);const uRef=useRef(u);uRef.current=u;const sel=useRef(onSelect);sel.current=onSelect;
+ const [zline,setZline]=useState<{text:string;key:string;n:number}|null>(null);const zlineN=useRef(0);const zlineT=useRef(0);
+ const showZLine=(kind:'zoom_out'|'zoom_in',key:string|null)=>{if(!key)return;const text=zoomLine(kind,key,String(uRef.current?.seed||'tiny'),zlineN.current);if(!text)return;zlineN.current++;setZline({text,key,n:zlineN.current});window.clearTimeout(zlineT.current);zlineT.current=window.setTimeout(()=>setZline(null),5200);};
  const [stage,setStage]=useState('Planet');const api=useRef<{zoom:(f:number)=>void;home:()=>void}|null>(null);
  useEffect(()=>{const el=host.current;if(!el)return;
   const renderer=new THREE.WebGLRenderer({antialias:true,alpha:false});renderer.setPixelRatio(Math.min(2,devicePixelRatio||1));el.appendChild(renderer.domElement);
@@ -94,7 +97,7 @@ vec3 c=texture2D(tScene,bhScreen+s).rgb;float ring=exp(-pow((r-1.5*rs)/(0.08*rs+
   const legacyPlanets=typeof location!=='undefined'&&/[?&]planets=biome/.test(location.search);const planetKit=createPlanetKit();
   const moonsOf=new Map<string,{m:any;mesh:any;body:any}[]>();let moonsBuilt=false;const mv=new THREE.Vector3(),mc=new THREE.Vector3();
   const planetMesh=new Map<string,THREE.Mesh>();const starObj=new Map<string,THREE.Object3D>();const stormObj=new Map<string,THREE.Sprite>();
-  const sphere=new THREE.SphereGeometry(1,32,20);
+  const _sv=new THREE.Vector3();const sphere=new THREE.SphereGeometry(1,32,20);
   const diskTex=tex('accretion_disk_1024.png'),ringTex=tex('photon_ring_512.png'),stormTex=[tex('storm_cloud_violet_1024.png'),tex('storm_cloud_teal_1024.png')];
   // E5c (Cosmo deepspace art): a wormhole ring and an asteroid belt are ART placed from the real star layout (seeded, no Math.random);
   // storms get seeded lightning flashes. GLBs load lazily after the first frame so the universe opens fast.
@@ -120,21 +123,22 @@ vec3 c=texture2D(tScene,bhScreen+s).rgb;float ring=exp(-pow((r-1.5*rs)/(0.08*rs+
     b.visible=fire&&f<8;if(b.visible){const m=b.material.map!;m.offset.set((f%4)/4,1-(Math.floor(f/4)+1)/2);b.position.copy(sp.position).add(new THREE.Vector3((rr()-0.5)*sp.scale.x*.6,(rr()-0.3)*sp.scale.x*.4,(rr()-0.5)*sp.scale.x*.6));b.scale.setScalar(sp.scale.x*.7);}}
    for(const[k,b]of bolts)if(!live.has(k)){world.remove(b);bolts.delete(k);}
    const dt=Math.max(0,Math.min(.1,t-lastT));lastT=t;mixer?.update(dt);for(const g of belt)g.rotation.y=t*g.userData.spin;}
-  const bioCache=new Map<string,THREE.Texture>();const bioLoader=new THREE.TextureLoader();
+  const bioCache=new Map<string,THREE.Texture>();const bioLoader=new THREE.TextureLoader();let csT:THREE.Texture|null=null,ccT:THREE.Texture|null=null;const cleanSunTex=()=>{if(!csT){csT=bioLoader.load('/universe/planets/handoff/sun_clean/sun_clean_sprite_add_1024.png');csT.colorSpace=THREE.SRGBColorSpace;csT.anisotropy=4;}return csT!;};const cleanCoronaTex=()=>{if(!ccT){ccT=bioLoader.load('/universe/planets/handoff/sun_clean/sun_clean_corona_add_4x4_256.png');ccT.colorSpace=THREE.SRGBColorSpace;}return ccT!;};let coronaT:THREE.Texture|null=null;const coronaTex=()=>{if(!coronaT){coronaT=bioLoader.load('/universe/livingworld/landforms/sky/sun_corona_512.png');coronaT.colorSpace=THREE.SRGBColorSpace;}return coronaT;};
   const biomeTex=(k:string,kind:'color'|'glow')=>{const key=k+'_'+kind;let t=bioCache.get(key);if(!t){t=bioLoader.load('/universe/livingworld/biomes/'+key+'.webp');if(kind==='color')t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=4;bioCache.set(key,t);}return t;};
   function build(){const U=uRef.current;if(!U)return;
    for(const st of U.stars){if(starObj.has(st.id))continue;const g=new THREE.Group();g.position.copy(starPos(st));
     if(st.remnant==='black_hole'){g.userData.bh=true;g.add(new THREE.Mesh(new THREE.SphereGeometry(2.2,32,16),new THREE.MeshBasicMaterial({color:0x000000})));
      const disk=new THREE.Mesh(new THREE.PlaneGeometry(16,16),new THREE.MeshBasicMaterial({map:diskTex,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide}));disk.rotation.x=-Math.PI/2+0.25;disk.name='disk';g.add(disk);
      const ring=new THREE.Sprite(new THREE.SpriteMaterial({map:ringTex,blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));ring.scale.setScalar(7.2);g.add(ring);}
-    else{const rr=1.2+0.9*Math.log10(1+st.mass_solar*3);const sc=new THREE.Color(...blackBodyToRGB(st.temperature_k));g.userData.sunColor=sc;g.userData.star=st;const m=new THREE.Mesh(sphere,new THREE.MeshBasicMaterial({color:sc,map:starTexture()}));m.scale.setScalar(rr);g.add(m);g.add(coronaMesh(sc,st.temperature_k,rr));
-     const glow=new THREE.Sprite(new THREE.SpriteMaterial({map:ringTex,color:sc,blending:THREE.AdditiveBlending,depthWrite:false,transparent:true,opacity:.35}));glow.scale.setScalar(rr*7);g.add(glow);
+    else{const rr=1.2+0.9*Math.log10(1+st.mass_solar*3);const sc=new THREE.Color(...blackBodyToRGB(st.temperature_k));g.userData.sunColor=sc;g.userData.star=st;/* no black occluder sphere: it poked in front of the sprite plane off-axis and drew a hard black blob on the disc. The clean sprite is depth-tested, so nearer planets still cover it *//* the old hash-noise corona shell read as a grainy grey ring: Cosmo's corona billboard + soft glow (below) replace it */
+     {const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:cleanSunTex(),color:new THREE.Color(sc.r/1.0,sc.g/0.86,sc.b/0.58).multiplyScalar(0.9),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));sp.scale.setScalar(rr*2*4);sp.name='sun-clean-sprite';g.add(sp);
+      const ct=bioLoader.load('/universe/planets/handoff/sun_clean/sun_clean_corona_add_4x4_256.png');ct.colorSpace=THREE.SRGBColorSpace;ct.repeat.set(.25,.25);const cs=new THREE.Sprite(new THREE.SpriteMaterial({map:ct,color:sp.material.color,blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));cs.scale.setScalar(rr*2*4);cs.name='sun-corona-sprite';cs.userData.frames=ct;g.add(cs);} // Cosmo's sun_clean (additive twin, premultiplied-alpha fix): disc + halo, then a 16-frame looping corona
      const L=new THREE.PointLight(sc,sunIntensity(st.luminosity),0,2);g.add(L);}/* inverse-square, like the pens' PointLight(color,2,20000,2) */
     g.userData.id=st.id;world.add(g);starObj.set(st.id,g);}
    for(const pl of U.planets){if(planetMesh.has(pl.id))continue;
     if(!legacyPlanets){ // the pocket globe's material on every planet (Cosmo's pack): displaced terrain, ocean depth/foam, clouds, atmosphere
      const type=pickType(pl),pv:any=(PLANET_VARIANTS as any)[pl.id],vr=pv?{lonDeg:pv[0],tiltDeg:pv[1],spinDegPerS:pv[2],cloudLonDeg:pv[3]}:variantFor(pl.id,rand);
-     const body=planetKit.create(type,vr);const m=body.mesh as any;m.scale.setScalar(0.35+0.18*Math.sqrt(pl.radius_earth));m.userData.id=pl.id;m.userData.body=body;m.userData.ptype=type;world.add(m);planetMesh.set(pl.id,m);continue;}
+     const body=planetKit.create(type,vr);const m=body.mesh as any;m.scale.setScalar(0.35+0.18*Math.sqrt(pl.radius_earth));m.userData.id=pl.id;m.userData.body=body;(body as any).setTempK?.(pl.temperature_k);m.userData.ptype=type;world.add(m);planetMesh.set(pl.id,m);continue;}
     const bk=biomeOf(pl),bm=BIOME_MAP[bk];const mat=new THREE.MeshStandardMaterial({color:bm?0xffffff:(BIOME_HEX[bk]||0x9988ff),roughness:.85,metalness:0,emissive:bm?0xffffff:0x110822,emissiveIntensity:bm?.35:1});if(bm){mat.map=biomeTex(bm,'color');mat.emissiveMap=biomeTex(bm,'glow');}const sunV=nightGlowOnly(mat);const m=new THREE.Mesh(sphere,mat);
     m.scale.setScalar(0.35+0.18*Math.sqrt(pl.radius_earth));m.userData.id=pl.id;m.userData.sunV=sunV;if((pl.atmosphere||0)>0.08){const at=atmosphereMesh(Math.min(1,0.35+pl.atmosphere));m.add(at);m.userData.atm=at;}world.add(m);planetMesh.set(pl.id,m);}
    if(!legacyPlanets&&!moonsBuilt&&planetMesh.size>=U.planets.length){moonsBuilt=true; // SEEDED moons (the recorded genesis has none): labeled in the HUD, derived only from the universe seed
@@ -147,6 +151,7 @@ vec3 c=texture2D(tScene,bhScreen+s).rgb;float ring=exp(-pow((r-1.5*rs)/(0.08*rs+
    for(const st of U.stars){const g=starObj.get(st.id);if(!g||g.userData.bh)continue;const pls=U.planets.filter((p:any)=>p.star===st.id);if(!pls.length)continue;const key=pls.map((p:any)=>p.id).join('|');
     let S=systems.get(st.id);if(!S||S.key!==key){S={sys:initSystem(st,pls),state:{t:t},key};systems.set(st.id,S);}
     advanceTo(S.sys,S.state,t);
+    {const fr=Math.floor(performance.now()/125)%16;for(const g of starObj.values()){const c:any=g.children.find((x:any)=>x.name==='sun-corona-sprite');const ft=c?.userData.frames;if(ft)ft.offset.set((fr%4)*.25,1-(Math.floor(fr/4)+1)*.25);}}
     for(const sp of S.sys.planets){const m=planetMesh.get(sp.id);if(!m)continue;m.position.set(g.position.x+sp.p[0],g.position.y+sp.p[1],g.position.z+sp.p[2]);
      // the star is the light: direction from this world to its star (view space) drives day/night, phases and the scatter shell
      sv.copy(g.position).sub(m.position).normalize();
@@ -167,14 +172,14 @@ vec3 c=texture2D(tScene,bhScreen+s).rgb;float ring=exp(-pow((r-1.5*rs)/(0.08*rs+
    for(const g of starObj.values()){const d=g.getObjectByName('disk');if(d)d.rotation.z=t*0.05;}
    addDeco();lightning(t);}
   // camera rig: spherical around a target, log distance
-  let yaw=0.6,pitch=0.5,logD=Math.log(30),goal=Math.log(30),doorV=0,doorPre=false,lastMs=0,lastDt=0,targetId:string|null=homeOf(uRef.current||{planets:[],life:[]});const tgt=new THREE.Vector3(),want=new THREE.Vector3();
+  let simT=0,simRate=1,pinned=false,yaw=0.6,pitch=0.5,logD=Math.log(30),goal=Math.log(30),doorV=0,doorPre=false,lastMs=0,lastDt=0,targetId:string|null=homeOf(uRef.current||{planets:[],life:[]});const tgt=new THREE.Vector3(),want=new THREE.Vector3();
   const doorLive=()=>doorOnRef.current&&!!targetId&&targetId===homeOf(uRef.current)&&!!planetMesh.get(targetId);
   const minLogD=()=>{const m:any=targetId?planetMesh.get(targetId):null;if(m&&doorLive())return Math.log(m.scale.x*(DOOR_NEAR-0.02));return Math.log(m?Math.max(0.02,m.scale.x*1.1):ZOOM_MIN);}; /* with the door on, the universe camera stops at the pocket orbit framing and the pocket world takes over */ // planets can be approached to ~10% of their radius above the surface (the maps are ~2048 px around, so closer needs the flat-ground layer, not built yet)
   const setZoom=(f:number)=>{ // door open: zoom input drives the pocket world, and leaves it from full orbit
-   if(doorV>=0.999){const w:any=window;const z=w.__lwZoom?.target??1;const r=doorZoomStep(z,Math.sign(f));if(r.leave){const m:any=planetMesh.get(targetId||'');goal=Math.log((m?m.scale.x:1)*5.6);}else w.__lwSetZoom?.(r.z);return;}
+   if(doorV>=0.999){const w:any=window;const z=w.__lwZoom?.target??1;const r=doorZoomStep(z,Math.sign(f),Math.max(.01,Math.min(.2,Math.abs(f)*1.2)));if(r.leave){const m:any=planetMesh.get(targetId||'');goal=Math.log((m?m.scale.x:1)*5.6);}else w.__lwSetZoom?.(r.z);return;}
    goal=Math.min(Math.log(ZOOM_MAX),Math.max(minLogD(),goal+f));};
   const leave=()=>{if(doorV>0){const m:any=planetMesh.get(targetId||'');goal=Math.log((m?m.scale.x:1)*5.6);}};window.addEventListener('u3d-door-leave',leave);
-  api.current={zoom:setZoom,home:()=>{targetId=homeOf(uRef.current);goal=Math.log(10);}};
+  api.current={zoom:setZoom,home:()=>{targetId=homeOf(uRef.current);goal=Math.log(10);pinned=false;}};
   const ptrs=new Map<number,{x:number,y:number}>();let pinch=0,moved=0;
   const cv=renderer.domElement;
   const down=(e:PointerEvent)=>{cv.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});moved=0;if(ptrs.size===2){const [a,b]=[...ptrs.values()];pinch=Math.hypot(a.x-b.x,a.y-b.y);}cv.style.cursor='grabbing';};
@@ -182,20 +187,21 @@ vec3 c=texture2D(tScene,bhScreen+s).rgb;float ring=exp(-pow((r-1.5*rs)/(0.08*rs+
    if(ptrs.size===2){const [a,b]=[...ptrs.values()];const d=Math.hypot(a.x-b.x,a.y-b.y);if(pinch)setZoom(-Math.log(d/pinch));pinch=d;return;}
    yaw-=dx*0.006;pitch=Math.max(-1.45,Math.min(1.45,pitch+dy*0.006));};
   const up=(e:PointerEvent)=>{ptrs.delete(e.pointerId);pinch=0;cv.style.cursor='grab';if(moved<6&&ptrs.size===0)tap(e);};
-  const wheel=(e:WheelEvent)=>{e.preventDefault();setZoom(e.deltaY*0.0015);};
+  const wheel=(e:WheelEvent)=>{e.preventDefault();setZoom(e.deltaY*0.0028);};
   const ray=new THREE.Raycaster();
   function tap(e:PointerEvent){const b=cv.getBoundingClientRect();ray.setFromCamera(new THREE.Vector2((e.clientX-b.left)/b.width*2-1,-(e.clientY-b.top)/b.height*2+1),cam);
-   const hit=ray.intersectObjects([...planetMesh.values()],false)[0];if(hit){targetId=hit.object.userData.id;goal=Math.log(6);sel.current?.(targetId);return;}
-   const sh=ray.intersectObjects([...starObj.values()],true)[0];if(sh){let o:any=sh.object;while(o&&!o.userData?.id)o=o.parent;if(o){targetId=o.userData.id;goal=Math.log(14);sel.current?.(targetId);return;}}sel.current?.(null);}
+   let hit:any=ray.intersectObjects([...planetMesh.values()],false)[0];if(!hit){/* small worlds are hard to hit: take the nearest one within 30 px of the tap */let best=30;for(const m of planetMesh.values()){const q=(m as any).position.clone().project(cam);if(q.z>1)continue;const dx=(q.x*.5+.5)*b.width-(e.clientX-b.left),dy=(-q.y*.5+.5)*b.height-(e.clientY-b.top);const dd=Math.hypot(dx,dy);if(dd<best){best=dd;hit={object:m};}}}if(hit){targetId=hit.object.userData.id;goal=Math.log(6);pinned=true;sel.current?.(targetId);return;}
+   const sh=ray.intersectObjects([...starObj.values()],true)[0];if(sh){let o:any=sh.object;while(o&&!o.userData?.id)o=o.parent;if(o){targetId=o.userData.id;goal=Math.log(14);pinned=false;sel.current?.(targetId);return;}}pinned=false;sel.current?.(null);}
   cv.addEventListener('pointerdown',down);cv.addEventListener('pointermove',move);cv.addEventListener('pointerup',up);cv.addEventListener('pointercancel',up);cv.addEventListener('wheel',wheel,{passive:false});
   const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;let raf=0,last='';const t0=performance.now();
   const frame=(ms:number)=>{const W=el.clientWidth,H=el.clientHeight;if(cv.width!==Math.floor(W*renderer.getPixelRatio())){renderer.setSize(W,H,false);cam.aspect=W/Math.max(1,H);cam.updateProjectionMatrix();}
-   const t=reduce?0:(ms-t0)/1000;place(t);{const dts=lastMs?Math.min(.1,(ms-lastMs)/1000):.016;lastMs=ms;lastDt=dts;goal=Math.max(goal,minLogD());logD=reduce?goal:logD+(goal-logD)*Math.min(1,dts*7);} /* eased so a zoom click or tap glides instead of jumping */ const d=Math.exp(logD);
-   {let v=0,pre=false;if(doorLive()){const rr=d/(planetMesh.get(targetId!) as any).scale.x;v=doorProgress(rr);pre=doorPreload(rr);}if(Math.abs(v-doorV)>0.002||pre!==doorPre||(v===0&&doorV!==0)||(v===1&&doorV!==1)){doorV=v;doorPre=pre;onDoorRef.current?.(v,pre);}}
+   const t=reduce?0:(ms-t0)/1000;{const dts0=lastMs?Math.min(.1,(ms-lastMs)/1000):.016;simRate+=((pinned?.1:1)-simRate)*Math.min(1,dts0*4);simT+=reduce?0:dts0*simRate;}place(simT);{const dts=lastMs?Math.min(.1,(ms-lastMs)/1000):.016;lastMs=ms;lastDt=dts;goal=Math.max(goal,minLogD());logD=reduce?goal:logD+(goal-logD)*Math.min(1,dts*7);} /* eased so a zoom click or tap glides instead of jumping */ const d=Math.exp(logD);
+   {let v=0,pre=false;if(doorLive()){const rr=d/(planetMesh.get(targetId!) as any).scale.x;v=doorProgress(rr);pre=doorPreload(rr);}if(Math.abs(v-doorV)>0.002||pre!==doorPre||(v===0&&doorV!==0)||(v===1&&doorV!==1)){{const dk=doorLineKind(doorV,v);if(dk)showZLine(dk.kind,dk.key);}doorV=v;doorPre=pre;onDoorRef.current?.(v,pre);}}
    // past the neighbourhood the camera eases its focus from the chosen world back to the universe centre
    const m:any=targetId?(planetMesh.get(targetId)||starObj.get(targetId)):null;const k=Math.min(1,Math.max(0,(d-260)/700));want.set(0,0,0);if(m)want.copy(m.position).multiplyScalar(1-k);tgt.lerp(want,1-Math.exp(-(lastDt||.016)*7.5)); /* frame-rate independent (0.125 at 60 fps): on a slow renderer the focus still keeps up with an orbiting planet */
    cam.position.set(tgt.x+d*Math.cos(pitch)*Math.sin(yaw),tgt.y+d*Math.sin(pitch),tgt.z+d*Math.cos(pitch)*Math.cos(yaw));cam.near=Math.max(0.02,d*0.01);cam.updateProjectionMatrix();cam.lookAt(tgt);
-   const s=zoomStage(d);if(s!==last){const wider=last==='Neighbours'||last==='Universe';last=s;setStage(s);el.dataset.zoomStage=s;
+   if(targetId&&planetMesh.has(targetId)){const pm:any=planetMesh.get(targetId);const sg=starObj.get((uRef.current?.planets||[]).find((p:any)=>p.id===targetId)?.star);if(sg){const a1=pm.position.clone().project(cam),b1=sg.position.clone().project(cam);(window as any).__u3dSunDir={planet:targetId,screen:[+(b1.x-a1.x).toFixed(3),+(b1.y-a1.y).toFixed(3)],note:'NDC offset from the planet to its star; the lit limb must face this way'};}}
+   const s=zoomStage(d);if(s!==last){const wider=last==='Orbit'||last==='System'||last==='Neighbours'||last==='Universe';{const zk=zoomLineKind(last,s,{blackHole:(uRef.current?.stars||[]).some((q:any)=>q.remnant==='black_hole')});if(zk)showZLine(zk.kind,zk.key);}last=s;setStage(s);el.dataset.zoomStage=s;
     // a real zoom-in reached a world: Emeth's line for a planet or a star
     if(s==='Planet'&&wider&&targetId)aliveRef.current?.(starObj.has(targetId)?'zoom_star':'zoom_planet');}
    {const f=threadsRef.current?threadFade(d):0;const on=f>.02;threads.visible=on;origin.visible=on;if(on)drawThreads(f);
@@ -205,6 +211,7 @@ vec3 c=texture2D(tScene,bhScreen+s).rgb;float ring=exp(-pow((r-1.5*rs)/(0.08*rs+
   return()=>{cancelAnimationFrame(raf);cv.removeEventListener('wheel',wheel);window.removeEventListener('u3d-door-leave',leave);rt.dispose();lensMat.dispose();renderer.dispose();el.removeChild(cv);};
  },[]);
  return <div ref={host} data-universe-3d style={{position:'absolute',inset:0}}>
+  {zline?<div key={zline.n} data-zoom-line={zline.key} aria-live="polite" style={{position:'absolute',left:'50%',top:(typeof window!=='undefined'&&window.innerWidth<560)?'34%':'18%',transform:'translateX(-50%)',maxWidth:'min(86vw,520px)',textAlign:'center',zIndex:3,pointerEvents:'none',fontSize:15,lineHeight:1.35,color:'#f1e8ff',background:'rgba(12,8,32,.62)',border:'1px solid #8f6bff55',borderRadius:14,padding:'8px 14px',textShadow:'0 1px 6px #000'}}>{zline.text}</div>:null}
   <div data-u3d-zoom style={{position:'absolute',right:56,top:'calc(50% - 200px)',display:'flex',flexDirection:'column',gap:6,zIndex:2}}>
    <button type="button" aria-label="Zoom in" onClick={()=>api.current?.zoom(-0.5)} style={zbtn}>＋</button>
    <span data-zoom-stage style={{fontSize:11,color:'#d8c8ff',textAlign:'center',background:'rgba(10,6,30,.7)',borderRadius:8,padding:'3px 4px'}}>{stage}</span>

@@ -171,6 +171,14 @@ export function createBeastAudio({ createContext = null, storage = null, setTime
     },
     /** The live context and SFX bus, or null when gated. */
     output() { return ensureContext() ? { ctx, dest: master.sfx } : null; },
+    /** Music loudness 0..1 for visuals; 0 whenever music is not audible (muted, hidden, locked). Never creates a context. */
+    level() {
+      if (!ctx || !master || !musicAudible()) return 0;
+      try {
+        if (!master.__an) { const an = ctx.createAnalyser(); an.fftSize = 256; const sink = ctx.createGain(); sink.gain.value = 0; master.music.connect(an); an.connect(sink); sink.connect(ctx.destination); master.__an = an; master.__buf = new Float32Array(an.fftSize); }
+        master.__an.getFloatTimeDomainData(master.__buf); let s = 0; for (const v of master.__buf) s += v * v; return Math.min(1, Math.sqrt(s / master.__buf.length) * 4);
+      } catch { return 0; }
+    },
     tick,
     subscribe(fn) { listeners.add(fn); return () => listeners.delete(fn); },
     getSnapshot() { return cached; },
