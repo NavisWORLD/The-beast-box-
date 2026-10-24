@@ -8,7 +8,7 @@
   "control": "deterministic software control (hash, Lorenz, matched); never a measurement; masked from real drive",
   "missing": "no source; masked"
  },
- "privacy": "Only numeric scalar summaries enter. Raw audio, voice, heartbeat waveforms, images, music are rejected at the routing boundary and never stored in receipts.",
+ "privacy": "Raw voice, heartbeat, music, audio, light and Muse data stay on the owner's device or box. Only features extracted there (finite numeric scalars named in this table) enter routing, and receipts carry sha256 hashes of those features, never the data.",
  "freshness_seconds": {
   "audio": 5,
   "light": 5,
@@ -16,7 +16,7 @@
   "eeg_muse": 5,
   "game": 5,
   "world": 60,
-  "quantum_rigetti": 3600
+  "quantum_rigetti": 900
  },
  "d12": [
   {
@@ -184,5 +184,20 @@
    ],
    "gamma": 0.15
   }
+ ],
+ "source_aliases": {
+  "audio": [
+   "audio",
+   "voice",
+   "music"
+  ]
+ },
+ "private_sources": [
+  "audio",
+  "voice",
+  "music",
+  "light",
+  "heart",
+  "eeg_muse"
  ]
 }

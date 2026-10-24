@@ -197,6 +197,47 @@ def rigetti_order_seed(cycle,fresh_digest=None,run_id=None):
 HEBBIAN=os.environ.get("ZEREF_HEBBIAN","1")=="1"
 HEBBIAN_DIM=int(os.environ.get("ZEREF_HEBBIAN_DIM","32"))
 TRINITY=os.environ.get("ZEREF_TRINITY","1")=="1"  # original-kit Trinity 12D+42D state (QC67_cosmo)
+# 2026-10-23: routed 54D conditioning (12D+42D) paired with training text rows. State = the Rigetti SIMULATED
+# spark ticks of bb-deada969 (routed; every slot with no real feed is masked to exactly 0.0). Pairing is by
+# TRAINING-STEP TIME, not by meaning: no owner sensor feed reaches training yet. Half the rows get zeros so the
+# unconditioned model (the one the gate scores, unchanged) is trained too. Gate evaluation never passes a condition.
+COND54=os.environ.get("ZEREF_COND54","0")=="1"
+COND54_TICKS=os.environ.get("ZEREF_SPARK_TICKS","")
+COND54_DROP=float(os.environ.get("ZEREF_COND54_DROP","0.5"))
+COND_INFO={}
+_COND_BANK=[]
+def cond54_bank():
+ """Routed 54-vectors, one per recorded spark tick (oldest to newest). Empty = no conditioning this round."""
+ if _COND_BANK or not (COND54 and COND54_TICKS):return _COND_BANK
+ import sys;sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
+ from beastbox.spark_feed import load_ticks,tick_condition54
+ ticks=load_ticks(COND54_TICKS,int(os.environ.get("ZEREF_COND54_MAX_TICKS","600")))
+ rows=[tick_condition54(t) for t in ticks]
+ _COND_BANK.extend(r["cond54"] for r in rows)
+ COND_INFO.update({"ticks":len(rows),"first_tick":rows[0]["tick"] if rows else None,"last_tick":rows[-1]["tick"] if rows else None,
+  "bank_sha256":sha(json.dumps([r["receipt_sha256"] for r in rows]).encode()),"drop":COND54_DROP,
+  "label":"Rigetti SIMULATED spark ticks (bb-deada969); other bands masked 0.0",
+  "pairing":"by training-step time, not by meaning (no owner sensor feed in training yet)"})
+ print("ZEREF_COND54_BANK="+json.dumps(COND_INFO,sort_keys=True),flush=True)
+ return _COND_BANK
+def cond54_ab(model,rows):
+ """REPORT-ONLY: held pair NLL with no condition vs real routed ticks vs mismatched ticks vs zeros."""
+ bank=cond54_bank()
+ if not (bank and model.config.cond54 and rows):return None
+ model.eval();res={}
+ def run(pick):
+  tot=0.
+  with torch.inference_mode():
+   for i,r in enumerate(rows):
+    x=torch.tensor([r["input"]]);y=torch.tensor([r["target"]])
+    c=None if pick is None else torch.tensor([pick(i)],dtype=torch.float32)
+    tot+=float(model(x,targets=y,**({} if c is None else {"condition54":c}))["loss"])
+  return tot/len(rows)
+ M=len(bank)
+ res["unconditioned"]=run(None);res["zeros"]=run(lambda i:[0.]*54)
+ res["real_ticks"]=run(lambda i:bank[i%M]);res["mismatched_ticks"]=run(lambda i:bank[(i*7+M//2+1)%M])
+ res["gain_abs_sum"]=float(model.cond_gain.detach().abs().sum());res["gain_nonzero_slots"]=int((model.cond_gain.detach().abs()>1e-9).sum())
+ model.train();return res
 EMA_DECAY=float(os.environ.get("ZEREF_006_EMA_DECAY","0.98"))  # 008 steadier training (0 = off)
 GROW_LAYERS=int(os.environ.get("ZEREF_GROW_LAYERS","0"))  # set by scripts/zeref_growth_trigger.py on plateau
 # 009 unbounded growth: the only limits are physical. Time budget is detected at runtime; when hit,
@@ -285,13 +326,16 @@ def train_variant(parent_path,tokenizer,pool,seed,chat_pool=(),chat_eval=None):
  """64 bounded AdamW updates with action-balanced sampling and parent anchor."""
  from collections import defaultdict
  parent=load_checkpoint(parent_path,load_training_state=True)
- model=parent["model"]
+ model=parent["model"];cond54_bank()
  if HEBBIAN and not model.config.hebbian:
   from rawrphos.architecture.model import upgrade_to_hebbian
   torch.manual_seed(seed);model=upgrade_to_hebbian(model,HEBBIAN_DIM)  # zero-output start: identical logits
  if TRINITY and model.config.state_mode!="tri":
   from rawrphos.architecture.model import upgrade_to_trinity
   model=upgrade_to_trinity(model)  # zeroed drive: identical logits at upgrade
+ if COND54 and model.config.state_mode=="tri" and not model.config.cond54 and cond54_bank():
+  from rawrphos.architecture.model import upgrade_to_cond54
+  model=upgrade_to_cond54(model)  # zero gain: identical logits at upgrade; gain joins the fresh optimizer group
  base=model.base_parameters();hebb=model.hebbian_parameters();parent_model=model
  if GROW_LAYERS:
   # 008 repeatable growth: function-preserving depth expansion (identical logits at growth).
@@ -321,6 +365,7 @@ def train_variant(parent_path,tokenizer,pool,seed,chat_pool=(),chat_eval=None):
  classes=sorted(by)
  class_w=torch.tensor([len(by[c])**0.5 for c in classes],dtype=torch.float)
  g=torch.Generator().manual_seed(seed)
+ gc=torch.Generator().manual_seed(seed^0xC054)  # separate stream: data order (g) is unchanged by conditioning
  logs=[];best=None;gnorms=[];SKIPPED.clear()
  ema={k:v.detach().clone() for k,v in model.state_dict().items()} if EMA_DECAY>0 else None  # 008 running average
  t0=time.perf_counter()
@@ -348,7 +393,11 @@ def train_variant(parent_path,tokenizer,pool,seed,chat_pool=(),chat_eval=None):
   if PRETRAIN_POOL and PRETRAIN_PER_BATCH>0:
    batch+=[PRETRAIN_POOL[int(torch.randint(len(PRETRAIN_POOL),(1,),generator=g))] for _ in range(PRETRAIN_PER_BATCH)];src["pretrain"]+=PRETRAIN_PER_BATCH
   x,y,m=collate(batch)
-  out=model(x,targets=y,attention_mask=m);loss=out["loss"]
+  cond=None
+  if model.config.cond54 and _COND_BANK:
+   rowsc=[[0.]*54 if float(torch.rand(1,generator=gc))<COND54_DROP else _COND_BANK[(n*len(batch)+j)%len(_COND_BANK)] for j in range(len(batch))]
+   cond=torch.tensor(rowsc,dtype=torch.float32)
+  out=model(x,targets=y,attention_mask=m,**({} if cond is None else {"condition54":cond}));loss=out["loss"]
   # Decision-token loss: the shared "ACTION: " prefix dominated the mean
   # token loss, so the one token that names the key barely trained.
   dec=[]
@@ -543,6 +592,8 @@ def main():
  new_ret=nll(model,retention)
  new_chat=pair_nll(model,chat_t)
  new_chat_b=pair_nll(model,chat_b)
+ try:cond_report=cond54_ab(model,chat_b)  # report-only; gate numbers above are unconditioned
+ except Exception as exc:cond_report={"error":type(exc).__name__}
  # Candidate evaluation must NEVER use the heldout actions as training targets.
  temp=ROOT/"unreviewed-candidate"
  meta={"schema":"rawrphos-zeref-resumable-native-006",
@@ -622,6 +673,7 @@ def main():
     "chat_b_before_nll":original_chat_b,"chat_b_after_nll":new_chat_b,"chat_b_rule":"fresh set B (scripts/zeref_heldout_b.py), never trained or selected on; candidate must not be worse than the pin",
     "chat_gate_public14k_ref_nll":public_ref_chat,"chat_metric":"fix-003 per-pair mean (same as rawrphos_chat_eval.ref_nll), no margin","character_check":{k:character[k] for k in("warmth_delta","no_rude_or_unsafe_regression")},"chat_gate_rule":"fix-002: not worse than the public-pin parent (absolute); promotion additionally requires rawrphos_chat_eval not worse than 14000 AND ref_nll below the current pin","lr_schedule":"cosine to 10%","best_in_cycle":True,"fresh_train_rows":len(train)},
   "rigetti_batch_order":rigetti,
+  "cond54":{"enabled":bool(model.config.cond54),"gate_evaluation":"unconditioned (unchanged)","bank":COND_INFO or None,"report_only_ab_on_set_b":cond_report},
   "rigetti_on_off":{"on_candidate":{"heldout_nll":new_held,"chat_nll":new_chat,"retention_nll":new_ret,**trial,
       "unique_actions":len({r["legal_action"] for r in trial_out if r["legal_action"]})},
     "off_control_torch_seed":control,"off_seed":control_seed},

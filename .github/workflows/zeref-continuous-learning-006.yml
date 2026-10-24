@@ -242,8 +242,17 @@ jobs:
           psha="$(python -c "import json,os;print(json.load(open(os.environ['BEAST_006_PARENT_PATH']+'/metadata.json'))['checkpoint_sha256'])" 2>/dev/null || echo unknown)"
           python scripts/zeref_growth_trigger.py decide "$lin" "$layers" "$psha" build/zeref-006/experiences.jsonl
           if [ -s build/zeref-006/growth/growth-wip.pt ]; then echo "wip=build/zeref-006/growth/growth-wip.pt" >> "$GITHUB_OUTPUT"; fi
+      - name: Fetch Zeref's Rigetti SIMULATED spark ticks (public data branch; routed into the 54D conditioning)
+        run: |
+          set -Eeuo pipefail
+          mkdir -p build/zeref-006
+          curl -fsSL --max-time 60 https://raw.githubusercontent.com/${{ github.repository }}/zeref-spark/zeref/ticks.jsonl -o build/zeref-006/spark-ticks.jsonl \
+            && echo "ZEREF_SPARK_TICKS=$(wc -l < build/zeref-006/spark-ticks.jsonl) lines (SIMULATED, bb-deada969)" \
+            || { echo 'ZEREF_SPARK_TICKS_UNAVAILABLE (training continues unconditioned)'; : > build/zeref-006/spark-ticks.jsonl; }
       - name: Resume exact AdamW state, perform up to 64 new CPU updates and test heldout/retention
         env:
+          ZEREF_COND54: '1'  # routed 54D conditioning with learnable zero-init gain; gate scoring stays unconditioned
+          ZEREF_SPARK_TICKS: build/zeref-006/spark-ticks.jsonl
           ZEREF_006_PUBLIC_REF_DIR: build/public-14k
           # 007: train a Hebbian-enabled candidate from the approved pin (zero-output start).
           ZEREF_HEBBIAN: '1'
