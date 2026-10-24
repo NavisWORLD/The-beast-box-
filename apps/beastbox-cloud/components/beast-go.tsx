@@ -371,7 +371,6 @@ export default function BeastGo() {
           {PLACES.map((spot) => <button key={spot.id} type="button" aria-pressed={trail.place === spot.id} onClick={() => { sfx('blip'); setTrail(goTo(trail, spot.id)); }}>{spot.name}</button>)}
         </div>
         <p>Nearby: {place.nearby.join(', ')}.</p>
-        <p><a href="/universe?region=beach-two" data-go-beach-two>🏖 Beach Two (a region in the universe)</a></p>
       </> : null}
       {sheet === 'settings' ? <>
         <h2>Settings</h2>
