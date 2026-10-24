@@ -24,6 +24,7 @@ const P=[
  {icon:BrainCircuit,title:'GO DEEPER WHEN YOU WANT',copy:'Brain Bay and the Lab hold the models, experiments, sensors, evidence and advanced controls for people who want them.',href:'/brain-bay'}
 ];
 
+export const metadata={title:'Beast Box · Meet your Beast'};
 export default function Home(){
  return <main className="landing">
  <div className="starscape" aria-hidden="true"><span/><span/><span/><span/><span/><span/></div>

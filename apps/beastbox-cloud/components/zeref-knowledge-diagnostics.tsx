@@ -25,7 +25,7 @@ export default function ZerefKnowledgeDiagnostics({loop,beastId}:{loop:Loop;beas
  useEffect(()=>{let alive=true;fetch('/spark/zeref-learning/status.json',{cache:'no-store'}).then(r=>r.ok?r.json():null).then(j=>{if(alive){if(j)setSt(j);else setErr(true);}}).catch(()=>alive&&setErr(true));return()=>{alive=false;};},[]);
  const e=st?.eval;
  return <div className={styles.card} data-zeref-knowledge data-neural-status={st?.status||'unknown'}>
-  <h3>What {beastName} knows · diagnostics</h3>
+  <h3>What {beastName} has learned</h3>
   <p className={styles.small}>A deterministic pocket learner (live) and a separate neural experiment (historical). IBM seed recorded · growth SIMULATED.</p>
   <Details>
   <p className={styles.small}><b>Pocket learner</b> ({beastId}, deterministic rules, live): {loop?<>{loop.cells_visited}/{loop.cells_total} patches explored · {loop.known_rifts??'?'} rifts learned by bumping · {loop.moves_succeeded} moves ok / {loop.moves_blocked} blocked{loop.favorite_spot?<> · favourite: {loop.favorite_spot}</>:null}</>:'no loop data yet'}. Simple running averages over its own outcomes; this is what moves him in the habitat.</p>
