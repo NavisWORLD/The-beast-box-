@@ -7,6 +7,7 @@ r=lambda n:open(G+n).read()
 bd=r('biome_detail.glsl')
 # Cosmo's handoff pack (planets/handoff): night lift + a tile-detail fade so sub-pixel tiles do not turn into stripes / grid / moire
 nl=open(P+'/handoff/glsl/night_lift.glsl').read()
+hg=open(P+'/handoff/glsl/handoff_ground.glsl').read()  # globe->ground hand-off: bicubic globe on a no-mip copy, integer-count ground tiles x globe colour
 OLD='  return mix(baseAlbedo, baseAlbedo * mix(vec3(1.0), detail, 0.85), uDetailFade);'
 assert OLD in bd
 bd=bd.replace(OLD,'  vec2 tc = uv * vec2(uTilesPerRadius, uTilesPerRadius * 0.5);\n  float cyc = max(length(dFdx(tc)), length(dFdy(tc))); // ADDED: tile cycles per pixel\n  float aa = 1.0 - smoothstep(0.18, 0.55, cyc);        // ADDED: sub-pixel tiles repeat as stripes/grid, so fade to the base colour (the tile mean)\n  return mix(baseAlbedo, baseAlbedo * mix(vec3(1.0), detail, 0.85), uDetailFade * aa);')
@@ -26,8 +27,10 @@ assert 'uAlpha);' in frag and 'shore foam' in frag
 OLDN='  col += alb * uSkyColor * (0.012 + 0.07 * uAtmo * tw);'
 assert OLDN in frag
 frag=frag.replace(OLDN,'  col += nightLiftGlobe(alb, Ng, L, V, uAtmo, tw);   // ADDED: Cosmo handoff night_lift.glsl (floor 0.105 night / 0.125 lit, cool tint)\n  col += alb * uSkyColor * (0.03 * uAtmo * tw);')
-frag=frag.replace('  float ocean = om.r;','  float ocean = om.r;\n  if (uDetailFade > 0.001) alb = mix(biomeDetail(vUv, alb), alb, ocean); // ADDED: close-range biome tiles on land (ground hand-off, biome_detail.glsl)')
-assert 'biomeDetail(vUv' in frag
+frag=frag.replace('  float ocean = om.r;','  float ocean = om.r;\n  if (uHandoff > 0.001) alb = handoffAlbedo(vUv, alb, Ng, ocean); // ADDED: Cosmo handoff pack: per-type ground tiles (integer counts, RepeatWrapping, mips) x globe colour, replaces the fract() biome atlas')
+frag=frag.replace('  vec3 alb = texture2D(uAlbedo, vUv).rgb;','  vec3 alb = (uHandoff > 0.001) ? globeAlbedo(vUv) : texture2D(uAlbedo, vUv).rgb; // ADDED: bicubic globe on a no-mip copy near the ground (no diamond blocks)')
+assert 'globeAlbedo(vUv)' in frag
+assert 'handoffAlbedo(vUv' in frag
 # ADDED (terrain texture): slope rock, snow caps and a tile-derived bump on the near mesh. Pure texture lookups, no randomness.
 TERRAIN='''
 // ADDED: terrain texture layers (atlas tiles: id 8 = rock, id 9 = snow). uSnow 0..1 from the planet's recorded temperature.
@@ -59,7 +62,7 @@ frag=frag.replace('  float nv = max(dot(Ng, V), 0.0);','''  if (uDetailFade > 0.
   }
   float nv = max(dot(Ng, V), 0.0);''')
 assert 'terrain texture (rock' in frag
-FRAG='precision highp float;\n'+'\n'.join([common,term,nl,ocean,cs,moon,bd+TERRAIN,frag])
+FRAG='precision highp float;\n'+'\n'.join([common,term,nl,ocean,cs,moon,hg,bd+TERRAIN,frag])
 vert=r('planet_surface.vert')
 vert=vert.replace("varying vec2 vUv;","uniform sampler2D uHeight; uniform float uDisp; uniform float uHasHeight; uniform float uSea; // ADDED: near-mesh displacement (h-0.25)*0.02, sea flat\nvarying vec2 vUv;",1)
 vert=vert.replace("  vObjDir = normalize(position);","  float hh = uHasHeight > 0.5 ? texture2D(uHeight, uv).r : uSea;\n  float dh = hh - uSea; if (uSea < 0.3) dh = max(dh, 0.0); // ADDED: sea flat on water worlds, signed relief on the moon (centred 0.5)\n  vec3 pos = position * (1.0 + uDisp * dh * 0.02);\n  vObjDir = normalize(position);")
