@@ -155,7 +155,7 @@ export default function LivingWorld({genome,beastKey,beastName,onClose,embedded=
     biomeOf=(n)=>{const id=legendAt(field,[n.x,n.y,n.z]);return (COSMO_TO_LW[id]||'plains');};cosmoNameOf=(n)=>legendAt(field,[n.x,n.y,n.z]).replace(/_/g,' ').replace(/\b\w/g,(m:string)=>m.toUpperCase());
     (window as any).__lwField=()=>({tick:field.tick,changed:field.changed,tension:+field.storm.toFixed(3),lorenz:{...field.S.L},records:expLog.length,beast:beastLoop.S.ch,zeref:zerefLoop.S.ch});};
    // ---- the Cage surface everywhere: Cosmo's ground cover + trees, instanced, planted from the seed per biome (one renderer: lib/universe/surface-three)
-   let surface:any=null;let island:any=null;let beach:any=null;let lwArea:string|null=null;let placeN=0;let mech:any=null;let water:any=null;let weather:any={cloud:.3,rain:0,wind:[0,0]};const mover=createMover();const ascii=createAsciiPass(THREE,renderer,{phone});cleanup.push(()=>ascii.dispose());
+   let surface:any=null;let island:any=null;let beach:any=null;let lwArea:string|null=null;let placeN=0;let roamGoal:any=null;let beachLift=0;let roamT=20;const roamR=lwStream(u.seed+':roam');const tourR=lwStream(u.seed+':flyover');let tourI=-1,tourT=0;const tourN=new THREE.Vector3();let touring=false;let mech:any=null;let water:any=null;let weather:any={cloud:.3,rain:0,wind:[0,0]};const mover=createMover();const ascii=createAsciiPass(THREE,renderer,{phone});cleanup.push(()=>ascii.dispose());
    const buildSurface=()=>{if(surface||disposed)return;const tintOf:Record<string,[number,number,number]>={};for(const L of (legend?.biomes||[])){const c=parseInt(L.rgb.slice(1),16);tintOf[L.id]=[(c>>16)/255,((c>>8)&255)/255,(c&255)/255];}
     const tv=new THREE.Vector3();
     surface=addCageSurface(THREE,scene,{seed:u.seed+':surface',R:PR,mpu:TRAV_H/1.7,size:1.5,budget:phone?.22:.55,
@@ -342,12 +342,12 @@ uniform vec3 uPlay[8];
    const kd=(e:KeyboardEvent)=>{keys.current.add(e.key.toLowerCase());if(e.key.toLowerCase()==='f')setFlying(v=>!v);},ku=(e:KeyboardEvent)=>{keys.current.delete(e.key.toLowerCase());};
    addEventListener('keydown',kd);addEventListener('keyup',ku);cleanup.push(()=>{removeEventListener('keydown',kd);removeEventListener('keyup',ku);});
    // orbit drag when not spawned
-   let oy=.3,ox=0,drag:{x:number;y:number}|null=null;
+   let oy=.3,ox=0,drag:{x:number;y:number}|null=null;let userAt=performance.now();const poke=()=>{userAt=performance.now();};
    // zoom: wheel on desktop, two-finger pinch on iPhone (pointer events; the canvas is touch-action:none)
    let zT=1,zC=1,zMode='';const ptrs=new Map<number,{x:number;y:number}>();let pinch0=0;
    const pinchD=()=>{const a=[...ptrs.values()];return a.length<2?0:Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y);};
-   const wheel=(e:WheelEvent)=>{e.preventDefault();zT=stepZoom(zT,{wheel:e.deltaY*(e.deltaMode===1?16:1)});};canvas.addEventListener('wheel',wheel,{passive:false});cleanup.push(()=>canvas.removeEventListener('wheel',wheel));
-   const pdz=(e:PointerEvent)=>{ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});if(ptrs.size===2){pinch0=pinchD();drag=null;}},pmz=(e:PointerEvent)=>{if(!ptrs.has(e.pointerId))return;ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});if(ptrs.size===2&&pinch0>0){const d=pinchD();zT=stepZoom(zT,{pinch:d/pinch0});pinch0=d;}},puz=(e:PointerEvent)=>{ptrs.delete(e.pointerId);if(ptrs.size<2)pinch0=0;};
+   const wheel=(e:WheelEvent)=>{e.preventDefault();poke();zT=stepZoom(zT,{wheel:e.deltaY*(e.deltaMode===1?16:1)});};canvas.addEventListener('wheel',wheel,{passive:false});cleanup.push(()=>canvas.removeEventListener('wheel',wheel));
+   const pdz=(e:PointerEvent)=>{poke();ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});if(ptrs.size===2){pinch0=pinchD();drag=null;}},pmz=(e:PointerEvent)=>{if(!ptrs.has(e.pointerId))return;ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});if(ptrs.size===2&&pinch0>0){const d=pinchD();zT=stepZoom(zT,{pinch:d/pinch0});pinch0=d;}},puz=(e:PointerEvent)=>{ptrs.delete(e.pointerId);if(ptrs.size<2)pinch0=0;};
    canvas.addEventListener('pointerdown',pdz);addEventListener('pointermove',pmz);addEventListener('pointerup',puz);addEventListener('pointercancel',puz);cleanup.push(()=>{canvas.removeEventListener('pointerdown',pdz);removeEventListener('pointermove',pmz);removeEventListener('pointerup',puz);removeEventListener('pointercancel',puz);});
    (window as any).__lwSetZoom=(z:number)=>{zT=Math.max(0,Math.min(1,z));};
    const pd=(e:PointerEvent)=>{if((!spawnRef.current||zC>.55)&&ptrs.size<2)drag={x:e.clientX,y:e.clientY};},pm=(e:PointerEvent)=>{if(drag&&ptrs.size<2){ox-=(e.clientX-drag.x)*.006;oy=Math.max(-1.3,Math.min(1.3,oy+(e.clientY-drag.y)*.006));drag={x:e.clientX,y:e.clientY};}},pu=()=>{drag=null;};
@@ -508,8 +508,11 @@ uniform vec3 uPlay[8];
      else if(greetT<0||greetT>2){bSpeed=wander();}
      if(greetT>=0)greetT+=dt;}
     else{bSpeed=wander();}
-    function wander(){const nt=nearestThing(bN);if(nt&&nt.d<.4){if(touch(nt.t,'beast')){const k=nt.t.kind;learned[k]=(learned[k]||0)+1;traits=driftTraits(traits,u,bKey,(THING_LESSON as any)[k]||'day');try{localStorage.setItem('lw:learned:'+bKey,JSON.stringify(learned));}catch{}}}
-     if(nt&&nt.d<5*(.3+traits.curiosity))steerTo(bN,bF,nt.t.n,dt*1.2);const v=(.2+.35*traits.curiosity)*bFeel();walkOn(bN,bF,v*dt);if(curBiome==='ocean')steerTo(bN,bF,gpts[0],dt*3);return .35;}
+    function wander(){const nt=nearestThing(bN);if((window as any).__lwHold)return 0;if(nt&&nt.d<.4){if(touch(nt.t,'beast')){const k=nt.t.kind;learned[k]=(learned[k]||0)+1;traits=driftTraits(traits,u,bKey,(THING_LESSON as any)[k]||'day');try{localStorage.setItem('lw:learned:'+bKey,JSON.stringify(learned));}catch{}}}
+     // seeded roaming errands: now and then the beast heads for a landscape place (beach / volcano shore / the cage), so it travels the whole pocket
+     roamT-=dt;if(roamT<=0&&!roamGoal){roamT=40+roamR()*50;const opts=[beach?.center(),island?.anchor('crater_center'),gpts[0]].filter(Boolean);if(opts.length)roamGoal=(opts[Math.floor(roamR()*opts.length)] as any).clone().normalize();}
+     if(roamGoal){steerTo(bN,bF,roamGoal,dt*2.5);if(bN.angleTo(roamGoal)<(beach?beach.radius*.35:.02))roamGoal=null;}
+     else if(nt&&nt.d<5*(.3+traits.curiosity))steerTo(bN,bF,nt.t.n,dt*1.2);const v=(roamGoal?.6:.2+.35*traits.curiosity)*bFeel();walkOn(bN,bF,v*dt);if(curBiome==='ocean'&&!roamGoal)steerTo(bN,bF,gpts[0],dt*3);return .35;}
     if(sp&&spawnT<0){const nt=nearestThing(pN);if(nt&&nt.d<.5&&touch(nt.t,'you'))lineRef.current('You touched a '+nt.t.kind+'. It answers.');}
     brain.speed+=(bSpeed-brain.speed)*Math.min(1,dt*4);brain.bob+=dt*(4+brain.speed*8);brain.mode=brain.speed>.5?'run':greetT>=0&&greetT<RG.count/RG.fps?'glance':'walk';
     place(beastNode,bN,bF);
@@ -539,6 +542,13 @@ uniform vec3 uPlay[8];
      const side=new THREE.Vector3().crossVectors(bN,bF).normalize();const sw=Math.sin(t*.15);cW.copy(bN).multiplyScalar(PR+1.5).addScaledVector(bF,-2.6*Math.cos(sw)).addScaledVector(side,2.2*sw);
      cT.copy(beastNode.position).addScaledVector(bN,TRAV_H*.6);cN.copy(bN);}
     // ---- one continuous zoom: close over-the-shoulder (z=0) to full planet orbit (z=1); pinch / wheel / buttons all move zT
+    // gentle seeded fly-over: in the planet view, after 6 s without input, the camera drifts between the beach, the volcano and the sea, then hands back on touch
+    {const mo=sp?'s':watchRef.current?'w':'o';const idle=performance.now()-userAt>6000;
+     if(mo==='o'&&idle&&beach){if(!touring){touring=true;tourN.copy(cN);tourT=0;}tourT-=dt;
+      if(tourT<=0){tourT=11+tourR()*5;tourI=(tourI+1)%3;zT=.16+tourR()*.05;}
+      const tgt=[beach.center(),island?.anchor('crater_center')||beach.center(),(window as any).__lwSeaN||gpts[0]][tourI].clone().normalize();tourN.lerp(tgt,Math.min(1,dt*.35)).normalize();cN.copy(tourN);{const tg=new THREE.Vector3().crossVectors(tourN,new THREE.Vector3(0,1,0));if(tg.lengthSq()<1e-6)tg.set(1,0,0);tg.normalize();cT.copy(tourN).multiplyScalar(PR+.2);cW.copy(tourN).multiplyScalar(PR+2.2).addScaledVector(tg,-3.2);}
+      (window as any).__lwTour={i:tourI,place:['beach','volcano','ocean'][tourI]};}
+     else if(touring){touring=false;if(mo==='o')zT=1;(window as any).__lwTour=null;}}
     const mode=sp?'s':watchRef.current?'w':'o';if(mode!==zMode){zMode=mode;zT=mode==='s'?0:mode==='w'?.12:1;}
     zC+=(zT-zC)*Math.min(1,dt*5);const zb=zoomBlend(zC);(window as any).__lwZoom={z:+zC.toFixed(3),target:zT,orbit:+zb.orbit.toFixed(3)};
     {const oW=cN.clone().multiplyScalar(1.2).add(new THREE.Vector3(Math.cos(oy)*Math.sin(ox),Math.sin(oy),Math.cos(oy)*Math.cos(ox))).normalize().multiplyScalar(PR*4.3);
@@ -560,15 +570,16 @@ uniform vec3 uPlay[8];
       if(!(scene.fog as any)?.isFogExp2)scene.fog=new THREE.FogExp2(uc.getHex(),.1);(scene.fog as any).color.copy(uc);(scene.fog as any).density=THREE.MathUtils.lerp(.035,.09,tD)/(TRAV_H/1.7)*sw*.5;(scene.background as any).lerp(uc,sw);}
      else if((scene.fog as any)?.isFogExp2)scene.fog=null;(window as any).__lwUnder=sw>.4;}
      // Emeth's world lines, fired by the real loop's state edges (sun height, weather, swim/fly, lava, water paths)
-     // Emeth's landscape_places lines: fire once when the beast walks into an area (beach / volcano / ocean); seeded pick
+     if(beach&&!beachLift&&hData){beachLift=1;const c=beach.center().clone().normalize();const L=Math.max(0,hAt(c)-.004);if(L>0)beach.group.position.copy(c).multiplyScalar(L);(window as any).__lwBeachLift=L;}
+    // Emeth's landscape_places lines: fire once when the beast walks into an area (beach / volcano / ocean); seeded pick
      {const here=(spawnRef.current?pN:bN);let area:string|null=null;
       if(beach&&here.angleTo(beach.center())<beach.radius)area='beach';else if(island&&here.angleTo(island.anchor('crater_center'))<.06)area='volcano';else if(field&&WATER_IDS.has(legendAt(field,[here.x,here.y,here.z])))area='ocean';
-      if(area!==lwArea){lwArea=area;if(area){placeN++;const others=(residents as any[]).some((q:any)=>beach&&area==='beach'&&q.n.angleTo(beach.center())<beach.radius);const pl=placeLine(others?'beach_games':'reach_'+area,u.seed,placeN);if(pl)say(beastNm+': '+pl,5);(window as any).__lwPlace={area,n:placeN,line:pl};}}}
+      if(area!==lwArea){lwArea=area;if(area){placeN++;const others=(residents as any[]).some((q:any)=>beach&&area==='beach'&&q.n.angleTo(beach.center())<beach.radius);const pl=placeLine(others?'beach_games':'reach_'+area,u.seed,placeN);if(pl){lineRef.current(beastNm+': '+pl);evCool=5;}(window as any).__lwPlace={area,n:placeN,line:pl};}}}
      {const ck=stepWorldCues(cues,{sunH:(spawnRef.current?pN:bN).dot(sunDir),rain:weather.rain,under:(window as any).__lwUnder===true,fly:sp?mover.w.fly:0,bursts:island?.state?.().bursts||0,wet:lwWet});if(ck){cueN++;const wl=worldLine(ck,u.seed,cueN);if(wl)say(beastNm+': '+wl,5);(window as any).__lwCue={kind:ck,n:cueN};}}
     if(asciiRef.current)ascii.render(scene,camera);else renderer.render(scene,camera);
     hudT+=dt;if(hudT>.5){hudT=0;const last=u.history?.[u.history.length-1];setHud({tick:u.tick,simE:last?.sim_E??null,life:u.life.length,storms:u.storms.length,cover:Math.min(1,UG.uSpread.value/Math.PI),traits,learned:{...learned},awake:things.filter((x:any)=>x.awake).length,blades:bladeCap,fps:+fps.toFixed(0)});}
    };
-   frame();(window as any).__lw={spawn:()=>setSpawned(true),toSea:()=>{if(!island)return false;const v=island.anchor('sea_level').clone().normalize();const r=lwStream(u.seed+':sea-test');for(let i=0;i<400;i++){const d=unitFrom(r) as number[];const w=new THREE.Vector3(d[0],d[1],d[2]);if(w.dot(v)>.8&&WATER_IDS.has(field?legendAt(field,d):(cosmoBiome(w)||''))&&w.dot(v)<.97){pN.copy(w);pF.copy(v).addScaledVector(w,-v.dot(w)).normalize();return true;}}return false;}};
+   frame();(window as any).__lw={spawn:()=>setSpawned(true),tourTo:(i:number)=>{userAt=-1e9;tourI=i-1;tourT=0;},beachInfo:()=>{if(!beach)return null;const c=beach.center().clone().normalize();return {hAt:hAt(c),hAtLand:hAt(beach.landward().clone().normalize()),TRAV_H,PR,k:TRAV_H/1.7*.07};},toBeach:(f:number=.12)=>{if(!beach)return false;const sp0=(beach.anchor('shore_spawn')||beach.center()).clone().normalize();const sea=beach.sea().clone().normalize();bN.copy(sp0).addScaledVector(beach.center().clone().normalize().sub(sp0),0).normalize();bN.copy(beach.center().clone().normalize().lerp(beach.landward().clone().normalize(),f)).normalize();bF.copy(sea).addScaledVector(bN,-sea.dot(bN)).normalize();roamGoal=null;roamT=999;return true;},toSea:()=>{if(!island)return false;const v=island.anchor('sea_level').clone().normalize();const r=lwStream(u.seed+':sea-test');for(let i=0;i<400;i++){const d=unitFrom(r) as number[];const w=new THREE.Vector3(d[0],d[1],d[2]);if(w.dot(v)>.8&&WATER_IDS.has(field?legendAt(field,d):(cosmoBiome(w)||''))&&w.dot(v)<.97){pN.copy(w);pF.copy(v).addScaledVector(w,-v.dot(w)).normalize();return true;}}return false;}};
    cleanup.push(()=>{renderer.dispose();plush?.dispose();scene.traverse((o:any)=>{o.geometry?.dispose?.();o.material?.dispose?.();});});
   })().catch(e=>{if(!disposed)setErr(String(e?.message||e));});
   return()=>{disposed=true;cancelAnimationFrame(raf);cleanup.forEach(f=>{try{f();}catch{}});};

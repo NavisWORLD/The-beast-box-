@@ -52,8 +52,10 @@ export function addBeachShore(THREE:T,scene:import('three').Scene,o:{seed:string
    const pick=biome==='beach'?'driftwood':/ocean|jelly/.test(biome||'')?'tidepool_rock':'shell_spiral';const p=props[pick].clone(true);p.position.copy(v);p.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),v.clone().normalize());p.scale.setScalar(k*(pick==='shell_spiral'?6:1));group.add(p);slots.push({slot:i,biome,prop:pick});}
   return true;}catch(e){(globalThis as any).__lwBeachErr=String(e);return false;}})();
  const toWorld=(p:number[])=>bendToSphere(THREE,n,t,b,o.R,k,p[0],p[1],p[2],new THREE.Vector3());
+ // a soft lantern-glow above the tide line so the beach reads at night too (neon-teal, matches the shore's wire layer)
+ const glow=new THREE.PointLight(0xbfeeff,2.2,170*k,1.6);glow.position.copy(bendToSphere(THREE,n,t,b,o.R,k,0,14,-6,new THREE.Vector3()));glow.name='beach-glow';group.add(glow);
  const phase=r()*Math.PI*2;let clock=0;
- return {group,ready,center:()=>toWorld([0,0,-12]),anchor:(nm:string)=>anchors[nm]?toWorld(anchors[nm]):null,path:(nm:string)=>(paths[nm]||[]).map(toWorld),radius:70*k/o.R,
+ return {group,ready,center:()=>toWorld([0,0,-12]),landward:()=>toWorld([0,0,-140]),sea:()=>toWorld([0,0,140]),anchor:(nm:string)=>anchors[nm]?toWorld(anchors[nm]):null,path:(nm:string)=>(paths[nm]||[]).map(toWorld),radius:70*k/o.R,
   update(dt:number){clock+=dt;for(const m of mixers)m.update(dt);tideMat.opacity=.35+.3*(.5+.5*Math.sin(clock*.6+phase));},
   state:()=>({palms:real?palms:nPalm,placeholder:!real,slots,anchors:Object.keys(anchors),n:n.toArray().map(x=>+x.toFixed(3))})};
 }
