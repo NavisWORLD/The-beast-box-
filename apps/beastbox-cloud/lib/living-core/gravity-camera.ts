@@ -1,3 +1,4 @@
+import {seededStream} from '../seeded-stream.mjs';const __rs=seededStream('lib/living-core/gravity-camera.ts');
 /** "Gravity tunneling" depth for the Cage camera (cage look unchanged):
  *  1) mass-weighted follow: Zeref and nearby points of interest act as gravity wells; the focus has inertia and a small overshoot;
  *  2) dolly zoom: when Zeref accelerates or travels far, the camera pushes in while the FOV widens (45°→60°), then eases back;
@@ -11,7 +12,7 @@ export const dollyDistance=(d:number,fov0:number,fov:number)=>d*Math.tan(fov0*Ma
 export function createGravityCam(THREE:T,{camera,scene,renderer,low,dof}:{camera:any;scene:any;renderer:any;low:boolean;dof:boolean}){
  const F=new THREE.Vector3(),V=new THREE.Vector3(),tgt=new THREE.Vector3();let init=false,s=0,prev:{x:number;z:number}|null=null,spd=0,t=0;
  // near-lens layer (camera-anchored → strong parallax against the world)
- const N=low?28:64,pos=new Float32Array(N*3),seed=new Float32Array(N);for(let i=0;i<N;i++){seed[i]=Math.random();pos[i*3]=(Math.random()-.5)*1.6;pos[i*3+1]=(Math.random()-.5)*1.1;pos[i*3+2]=-(.55+Math.random()*1.4);}
+ const N=low?28:64,pos=new Float32Array(N*3),seed=new Float32Array(N);for(let i=0;i<N;i++){seed[i]=__rs();pos[i*3]=(__rs()-.5)*1.6;pos[i*3+1]=(__rs()-.5)*1.1;pos[i*3+2]=-(.55+__rs()*1.4);}
  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(pos,3));
  const near=new THREE.Points(g,new THREE.PointsMaterial({size:.012,color:0xb9a2ff,transparent:true,opacity:.32,blending:THREE.AdditiveBlending,depthWrite:false,depthTest:false,fog:false}));
  near.renderOrder=20;near.frustumCulled=false;camera.add(near);

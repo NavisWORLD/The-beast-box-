@@ -13,12 +13,13 @@ import {buildGenome} from '../public/spark/genome.mjs';
 import {expandRun} from '../public/spark/runs.mjs';
 import {buildQbeast,serializeQbeast} from '../public/spark/qbeast.mjs';
 import {publicProfileFromBeast} from '../public/spark/cosmos-profile.mjs';
+import {seededStream} from '../lib/seeded-stream.mjs';const __rs=seededStream('scripts/private-cosmos-http-probe.mjs');
 
 const out=process.argv[2]||'build/private-cosmos',cfg=storageConfig();mkdirSync(out,{recursive:true});
 const report={schema:'private-cosmos-http-acceptance/v1',status:'BLOCKED_EXTERNAL',checks:[],cleanup:false,physicalDevice:false};
 if(!cfg||process.env.BEASTBOX_PRIVATE_PROBE_APPROVAL!=='YES_ISOLATED_PRIVATE_TEST'){writeFileSync(out+'/http-report.json',JSON.stringify(report,null,2));process.exit(2);}
 const io=azurePrivateIO(cfg),scope='integration-tests/issue-323/http-'+randomUUID(),secret=randomBytes(48).toString('hex');
-const port=30000+Math.floor(Math.random()*20000),origin='http://127.0.0.1:'+port;let server,check='start production Next.js';
+const port=30000+Math.floor(__rs()*20000),origin='http://127.0.0.1:'+port;let server,check='start production Next.js';
 const hash=x=>createHash('sha256').update(JSON.stringify(x)).digest('hex');
 const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 async function start(){
