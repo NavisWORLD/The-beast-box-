@@ -609,9 +609,14 @@ uniform vec3 uPlay[8];
  const T=hud.traits;
  return <div ref={host} className="lw-root" data-living-world={spawned?'spawned':'orbit'} data-lw-embedded={embedded?'':undefined} style={{pointerEvents:'auto',position:embedded||door?'absolute':'fixed',inset:0,zIndex:embedded||door?1:2147483000,borderRadius:embedded?18:0,overflow:'hidden',background:'#05030f',touchAction:embedded&&!spawned?'pan-y':'none',fontSize:embedded?11:13,color:'#efeaff',font:'13px/1.35 system-ui,sans-serif'}}>
   <canvas ref={canvasRef} style={{position:'absolute',inset:0,width:'100%',height:'100%',display:'block',touchAction:'none'}}/>
-  <div data-lw-chips style={{position:'absolute',top:'calc(env(safe-area-inset-top) + 10px)',left:10,right:10,display:'flex',flexWrap:'wrap',gap:6,pointerEvents:'none'}}>
+  {embedded?<details data-lw-chips data-lw-info style={{position:'absolute',top:'calc(env(safe-area-inset-top) + 8px)',left:8,maxWidth:'calc(100% - 16px)',zIndex:3}}>
+   <summary aria-label="About this world: what is recorded, simulated or modelled" style={{listStyle:'none',cursor:'pointer',width:30,height:30,borderRadius:'50%',display:'grid',placeItems:'center',background:'rgba(10,6,30,.78)',border:'1px solid rgba(190,170,255,.6)',color:'#efeaff',font:'700 15px system-ui'}}>ⓘ</summary>
+   <div style={{display:'flex',flexWrap:'wrap',gap:6,marginTop:6,padding:8,borderRadius:12,background:'rgba(10,6,30,.86)'}}>
+    <span style={pill('#2b6cb0')} data-lw-spark>{LW_LABELS.spark}</span><span style={pill('#9b2c2c')} data-lw-growth>{LW_LABELS.growth}</span><span style={pill('#553c9a')} data-lw-model>{LW_LABELS.model}</span><span style={pill('#276749')} data-lw-biome ref={hudBiome}>Biome</span>
+   </div></details>
+  :<div data-lw-chips style={{position:'absolute',top:'calc(env(safe-area-inset-top) + 10px)',left:10,right:10,display:'flex',flexWrap:'wrap',gap:6,pointerEvents:'none'}}>
    <span style={pill('#2b6cb0')} data-lw-spark>{LW_LABELS.spark}</span><span style={pill('#9b2c2c')} data-lw-growth>{LW_LABELS.growth}</span><span style={pill('#553c9a')} data-lw-model>{LW_LABELS.model}</span><span style={pill('#276749')} data-lw-biome ref={hudBiome}>Biome</span>
-  </div>
+  </div>}
   <div style={{position:'absolute',left:10,right:10,bottom:'calc(env(safe-area-inset-bottom) + 10px)',display:'flex',justifyContent:'space-between',alignItems:'flex-end',gap:8,pointerEvents:'none'}}>
    <div data-lw-card style={{background:'rgba(10,6,30,.72)',borderRadius:12,padding:'8px 10px',maxWidth:'62%',pointerEvents:'auto',display:embedded&&!spawned?'none':undefined}}>
     <b>{beastName||'Your beast'}</b> {genome||(typeof window!=='undefined'&&(window as any).__beastGenome)?'':'(no saved beast yet — hatch one in the Cage)'}<br/>
@@ -622,7 +627,7 @@ uniform vec3 uPlay[8];
     </details>
     {err?<div style={{color:'#ffb4b4'}}>Couldn’t load the world: {err}</div>:null}
    </div>
-   <div style={{display:'flex',flexDirection:'column',gap:6,pointerEvents:'auto'}}>
+   <div data-lw-actions style={embedded?{display:'flex',flexDirection:'row',flexWrap:'wrap',justifyContent:'flex-end',gap:5,pointerEvents:'auto',marginLeft:'auto',maxWidth:'100%'}:{display:'flex',flexDirection:'column',gap:6,pointerEvents:'auto'}}>
     {!spawned?<><button type="button" data-lw-beachcam aria-pressed={beachCam} onClick={()=>setBeachCam(v=>!v)} style={btn(beachCam?'#b7791f':'#333')}>{beachCam?'🏖 Beach view: on':'🏖 Beach view'}</button><button type="button" data-lw-spawn onClick={()=>setSpawned(true)} style={btn('#6b46c1')}>✦ Spawn in</button><button type="button" data-lw-watch onClick={()=>setWatch(w=>!w)} style={btn('#2c5282')}>{watch?'🌍 Orbit view':'👁 Watch your beast'}</button></>:<><button type="button" data-lw-fly onClick={()=>setFlying(v=>!v)} style={btn(flying?'#2b6cb0':'#333')}>{flying?'🪽 Flying':'🪽 Fly'}</button><button type="button" data-lw-exit onClick={()=>setSpawned(false)} style={btn('#444')}>Exit to orbit</button></>}{!embedded||spawned?<button type="button" data-lw-ascii onClick={()=>setAscii(v=>!v)} style={btn(ascii?'#2f855a':'#333')}>{ascii?'▦ ASCII on':'▦ ASCII'}</button>:null}
     {embedded&&onExpand?<button type="button" data-lw-expand onClick={onExpand} style={btn('#553c9a')}>⤢ Full screen</button>:null}
     {onClose?<button type="button" data-lw-close onClick={onClose} style={btn('#222')}>Close world</button>:null}
@@ -641,3 +646,4 @@ uniform vec3 uPlay[8];
 }
 const pill=(c:string)=>({background:c,borderRadius:999,padding:'3px 8px',fontSize:11,opacity:.92}) as const;
 const btn=(c:string)=>({background:c,color:'#fff',border:0,borderRadius:10,padding:'10px 14px',fontSize:14,fontWeight:600}) as const;
+// (embedded worlds shrink the buttons via the [data-lw-embedded] rule in globals.css)
