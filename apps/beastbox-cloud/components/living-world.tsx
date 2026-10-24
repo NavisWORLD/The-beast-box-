@@ -47,7 +47,7 @@ import {growthNodesAt,GROWTH} from '@/lib/universe/seeded-growth-nodes.mjs';
 import {snapNodesToHabitat,TINT_BIOMES} from '@/lib/universe/growth-view.mjs';
 import {REDUCED_MOTION_KEY} from '@/components/use-universe-motion';
 import {createAliveGate} from '@/lib/universe/alive-props.mjs';
-import {seededLandscapes} from '@/lib/universe/seeded-landscapes.mjs';
+import {seededLandscapes,withHomeLandscapes,landscapeNotice,landscapeTapLine} from '@/lib/universe/seeded-landscapes.mjs';
 import {addLandscapes} from '@/lib/universe/landscape-three';
 import {zoomBlend,zoomDistance,stepZoom,clampAboveGround,isMeadow} from '@/lib/universe/groundcover.mjs';
 import {addHeaven} from '@/lib/worlds/heaven';
@@ -178,7 +178,7 @@ export default function LivingWorld({genome,beastKey,beastName,onClose,embedded=
     biomeOf=(n)=>{const id=legendAt(field,[n.x,n.y,n.z]);return (COSMO_TO_LW[id]||'plains');};cosmoNameOf=(n)=>legendAt(field,[n.x,n.y,n.z]).replace(/_/g,' ').replace(/\b\w/g,(m:string)=>m.toUpperCase());
     (window as any).__lwField=()=>({tick:field.tick,changed:field.changed,tension:+field.storm.toFixed(3),lorenz:{...field.S.L},records:expLog.length,beast:beastLoop.S.ch,zeref:zerefLoop.S.ch});};
    // ---- the Cage surface everywhere: Cosmo's ground cover + trees, instanced, planted from the seed per biome (one renderer: lib/universe/surface-three)
-   let ocean:any=null;let surface:any=null;let lwLand:any=null;let island:any=null;let beach:any=null;let lwArea:string|null=null;let placeN=0;let roamGoal:any=null;let beachLift=0;let roamT=20;const roamR=lwStream(u.seed+':roam');const tourR=lwStream(u.seed+':flyover');let tourI=-1,tourT=0;const tourN=new THREE.Vector3();let touring=false;let mech:any=null;let water:any=null;let weather:any={cloud:.3,rain:0,wind:[0,0]};const mover=createMover();const ascii=createAsciiPass(THREE,renderer,{phone});cleanup.push(()=>ascii.dispose());
+   let ocean:any=null;let surface:any=null;let lwLand:any=null;let lmPrev:string|null=null,lmGate:any=null,lmN=0;const landGoal=new THREE.Vector3();let island:any=null;let beach:any=null;let lwArea:string|null=null;let placeN=0;let roamGoal:any=null;let beachLift=0;let roamT=20;const roamR=lwStream(u.seed+':roam');const tourR=lwStream(u.seed+':flyover');let tourI=-1,tourT=0;const tourN=new THREE.Vector3();let touring=false;let mech:any=null;let water:any=null;let weather:any={cloud:.3,rain:0,wind:[0,0]};const mover=createMover();const ascii=createAsciiPass(THREE,renderer,{phone});cleanup.push(()=>ascii.dispose());
    // test-only URL params (default behaviour unchanged): ?hold=1 freezes the camera (no drift, no zoom) and holds the time of day; ?growthdebug=1 shows a readout of the nearest growth node and tap counts
     const HOLD=/[?&]hold=1\b/.test(location.search),GDBG=/[?&]growthdebug=1\b/.test(location.search);const hz:{m:string;z:number;a:number|null}={m:'',z:0,a:null};const gTaps:Record<string,number>={};let gDbgEl:HTMLElement|null=null,gDbgT=0;
     (window as any).__lwTestParams={hold:HOLD,growthdebug:GDBG};
@@ -194,7 +194,7 @@ export default function LivingWorld({genome,beastKey,beastName,onClose,embedded=
      biomeAt:(d:number[])=>field?legendAt(field,d):(cosmoBiome(tv.set(d[0],d[1],d[2]))||'grassland'),lift:(n:any)=>hAt(n)-.004,tint:(b:string)=>tintOf[b]||null});
     // Landscapes (SEEDED, Oct 24 2026): the engine's places for THIS planet, drawn from Cosmo's look pack. ?landscapes=off turns the layer off; ?place=1 stands the beast on the first one.
     if(!/[?&]landscapes=off\b/.test(location.search)){try{const lsAll=seededLandscapes(u,{home:homeId0,biomeAt:(p:any,d:number[])=>p.id===homePl?.id?biomeFn(d):null}).filter((l:any)=>l.planet===homePl?.id);
-     if(lsAll.length){lwLand=addLandscapes(THREE,scene,{landscapes:lsAll,R:PR,mpu:TRAV_H/1.7,hAt,phone,seed:u.seed});(window as any).__lwLandscapes=()=>lwLand?.snapshot();
+     if(lsAll.length){lwLand=addLandscapes(THREE,scene,{landscapes:lsAll,R:PR,mpu:TRAV_H/1.7,hAt,phone,seed:u.seed});(window as any).__lwLifeView=withHomeLandscapes(u,lsAll);(window as any).__lwLandscapes=()=>lwLand?.snapshot();
       if(/[?&]place=1\b/.test(location.search)){const a=lsAll[0].anchors.play;const pin=()=>{bN.set(a[0],a[1],a[2]).normalize();bF.set(0,1,0).addScaledVector(bN,-bN.y).normalize();if(bF.lengthSq()<1e-6)bF.set(1,0,0);};pin();(window as any).__lwPlacePin=pin;}}}catch(e){console.warn('landscapes',e);}}
     // ASCII-CRAFT-style mechanics (engine-driven weather, flowing water, sea life, torch, mountains): additive, seeded
     mech=softGL?null:addMechanics(THREE,scene,{seed:u.seed,R:PR,mpu:TRAV_H/1.7,phone,unitFrom:(r:any)=>unitFrom(r) as number[],isWater:(v:any)=>WATER_IDS.has(field?legendAt(field,[v.x,v.y,v.z]):(cosmoBiome(v)||''))});
@@ -299,7 +299,7 @@ uniform vec3 uPlay[8];
    const residents=(ARTIST_RESIDENTS as any[]).map((r:any)=>{const node=new THREE.Group();const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:L.load(r.views.front),transparent:true,depthWrite:false}));
     (sp.material.map as any).colorSpace=THREE.SRGBColorSpace;const h=.75*r.scale;sp.scale.set(h,h,1);sp.center.set(.5,.05);node.add(sp);node.add(mkShadow(h*.9));scene.add(node);
     const n=new THREE.Vector3(...(unitFrom(rr) as [number,number,number]));const f=new THREE.Vector3(...(unitFrom(rr) as [number,number,number]));f.addScaledVector(n,-f.dot(n)).normalize();return {node,n,f,sp,h,spd:.25+rr()*.35,wob:rr()*10,name:r.name};});
-   residents.slice(0,7).forEach((r,i)=>gpts[i+1].copy(r.n));// grass starts under the beasts' feet
+   residents.slice(0,7).forEach((r,i)=>gpts[i+1].copy(r.n));(window as any).__lwResidents=()=>(residents as any[]).map((r:any)=>({name:r.name,n:[r.n.x,r.n.y,r.n.z]}));// grass starts under the beasts' feet
    // ---- things to explore: seeded flowers, crystals, cairns, ponds, burrows, trees; they wake as the grass reaches them
    const COL:Record<string,number>={flower:0xff7ad9,crystal:0x7fe8ff,cairn:0xb9b0c8,pond:0x3a7bd5,burrow:0x2a1c14,tree:0x2f8f5b};
    const mkThing=(kind:string)=>{const g=new THREE.Group();const m=(geo:any,c:number,em=0)=>{const x=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({color:c,emissive:c,emissiveIntensity:em,roughness:.7}));g.add(x);return x;};
@@ -413,6 +413,8 @@ uniform vec3 uPlay[8];
     const tpu=(e:PointerEvent)=>{const d=t0;t0=null;if(!d||Math.hypot(e.clientX-d.x,e.clientY-d.y)>8||performance.now()-d.t>450)return;
      const rc=canvas.getBoundingClientRect();tapNdc.set((e.clientX-rc.left)/rc.width*2-1,-(e.clientY-rc.top)/rc.height*2+1);tapRay.setFromCamera(tapNdc,camera);
      if(plush&&tapRay.intersectObject(beastNode,true).length){window.dispatchEvent(new CustomEvent('beastbox:look-closer',{detail:{id:'beast'}}));return;}
+     // a tap on a landscape: its authored tap line (active beast + place name), view state only
+     {const hl=tapRay.ray.intersectSphere(new THREE.Sphere(new THREE.Vector3(),PR+.02),new THREE.Vector3());if(hl&&lwLand){const lsT=lwLand.tapAt([hl.x/hl.length(),hl.y/hl.length(),hl.z/hl.length()]);if(lsT){const g=noticeGate(lmGate,'land:tap',performance.now(),3000,6000);lmGate=g.state;if(g.show){const tx=landscapeTapLine(lsT,{beast:beastName||'Your beast',planet:(homePl as any)?.name||'this world',seed:String(u.seed),n:lmN++});if(tx)lineRef.current(tx);}}}}
      // a tap on a growth node's ground: scale bounce + gold burst (view state only) and one creature-notice line (Emeth's growth_tap_*, active beast name substituted)
      if(surface&&gSnap.length){const hit=tapRay.ray.intersectSphere(new THREE.Sphere(new THREE.Vector3(),PR+.02),new THREE.Vector3());if(hit){const g=surface.tapGrowth([hit.x/hit.length(),hit.y/hit.length(),hit.z/hit.length()],performance.now());if(g?.key)notice(g.key,1500);if(g?.node?.id)gTaps[g.node.id]=(gTaps[g.node.id]||0)+1;}}};
     canvas.addEventListener('pointerdown',tpd);canvas.addEventListener('pointerup',tpu);cleanup.push(()=>{canvas.removeEventListener('pointerdown',tpd);canvas.removeEventListener('pointerup',tpu);});}
@@ -558,6 +560,7 @@ uniform vec3 uPlay[8];
      else if(nt&&nt.d<4&&Math.sin(t*.2+r.wob)>0)steerTo(r.n,r.f,nt.t.n,dt*1.5);else turn(r.n,r.f,Math.sin(t*.4+r.wob)*dt*.8);
      for(const o of residents as any[])if(o!==r&&ang(r.n,o.n)<.5){steerTo(r.n,r.f,r.n.clone().multiplyScalar(2).sub(o.n),dt*2);if(socialCool<=0&&!spawnRef.current){socialCool=25;lineRef.current(r.name+' and '+o.name+' bumped noses.');}alive.meet(r,o,t);}
      if(ang(r.n,bN)<.6){steerTo(r.n,r.f,r.n.clone().multiplyScalar(2).sub(bN),dt*2);if(!(metCool[r.name]>t)){metCool[r.name]=t+40;r.hopT=0;say(beastNm+' met '+r.name+' and sniffed hello.',5);hop(1.2);traits=driftTraits(traits,u,bKey,'greet');}}
+     {const gl=lwLand?.goalFor?.('res:'+r.name,String(u.seed));if(gl){landGoal.set(gl.target[0],gl.target[1],gl.target[2]);if(ang(r.n,landGoal)>gl.arrive*PR){steerTo(r.n,r.f,landGoal,dt*2.2);r.pause=0;}else if(gl.mode!=='gather')r.pause=Math.max(r.pause,.25);}} // landscape routine: gather at the ring and seats, huddle at the shelter in rain and at night (roam-brain SPOTS pattern)
      if(r.pause<=0){const rb=biomeOf(r.n);walkOn(r.n,r.f,r.spd*dt*((BIOME_FEEL as any)[rb]?.speed??1));if(rb==='ocean')steerTo(r.n,r.f,gpts[0],dt*2);}place(r.node,r.n,r.f);
      {const lk=(RESIDENT_LIFE_KEY as any)[r.name];if(lk&&r.sp){const sl=r.nap>0?1:0;r.sk=(r.sk||0)+(sl-(r.sk||0))*Math.min(1,dt*2.1);r.wk=(r.wk||0)+(((r.pause<=0&&!sl)?1:0)-(r.wk||0))*Math.min(1,dt*4);
       let hu:number|null=null;if(typeof r.hopT==='number'){r.hopT+=dt;if(r.hopT>=hopSeconds(lk))r.hopT=null;else hu=r.hopT/hopSeconds(lk);}
@@ -655,7 +658,8 @@ uniform vec3 uPlay[8];
      if(seaF&&seaF.snap>0){camPos.copy(want);}else camPos.lerp(want,Math.min(1,dt*(sp?4:2.5)));camPos.setLength(clampAboveGround(camPos.length(),ground0,0));
      const tgt=cT.clone().lerp(cN.clone().multiplyScalar(PR*.15),zb.orbit);if(seaF&&seaF.snap>0){camLook.copy(tgt);seaF.snap--;}else camLook.lerp(tgt,Math.min(1,dt*4));
      camera.position.copy(camPos);camera.up.copy(cN).lerp(new THREE.Vector3(0,1,0),zb.orbit).normalize();camera.lookAt(camLook);{const L=camPos.length(),farW=Math.max(400,L*12);if(lwStars){const tk=Math.min(1,zXc*2);lwStars.position.copy(camera.position).multiplyScalar(tk);lwStars.scale.setScalar(1+(Math.max(1,L/60)-1)*tk);}if(Math.abs(camera.far-farW)>1){camera.far=farW;camera.near=zXc>.02?Math.max(.05,L*.004):.05;camera.updateProjectionMatrix();}}}
-    try{(window as any).__lwPlacePin?.();lwLand?.update(t,dt,{sunDir,storm:Math.max(field?.storm||0,storming||0),hasLife:residents.length>0||(u.life||[]).some((l:any)=>l.planet===homePl?.id),cam:camera.position,reduced:reducedNow()});}catch{}
+    try{(window as any).__lwPlacePin?.();lwLand?.update(t,dt,{sunDir,storm:Math.max(field?.storm||0,storming||0,(window as any).__lwStormForce||0),hasLife:residents.length>0||(u.life||[]).some((l:any)=>l.planet===homePl?.id),cam:camera.position,reduced:reducedNow()});
+     {const it0=lwLand?.items?.[0];if(it0){const m=it0.mode;if(m!==lmPrev){const prev=lmPrev;lmPrev=m;if(prev!==null){const g=noticeGate(lmGate,'land:'+m,performance.now(),8000,60000);lmGate=g.state;if(g.show){const tx=landscapeNotice(it0.ls,m,{beast:beastName||'Your beast',planet:(homePl as any)?.name||'this world',seed:String(u.seed),n:lmN++});if(tx)lineRef.current(tx);}}}}}}catch{}
     {const lc=(window as any).__lwLandCam;if(lc&&lwLand)try{lwLand.inspectCam(camera,lc);}catch{}}
     // Alive props: real events only (a breath peak in view, a creature entering a crystal's 3 m, flowers visibly turning) -> one of Emeth's lines, picked by seed.
     {const evs=surface?.update(t,{sunDir,creatures:[bN,...residents.map((r:any)=>r.n)],cam:camera.position})||[];if(surface&&gSnap.length){gRedT-=dt;if(gRedT<=0){gRedT=.5;gReduced=reducedNow();}gBeast.copy(bN).multiplyScalar(PR);surface.growthFrame({t,wind:[field?.mp?.wind?.x||0,field?.mp?.wind?.z||0],turb:field?.mp?.turbulence||0,storm:field?.storm||0,reduced:gReduced,beast:gBeast,px:renderer.domElement.height/(2*Math.tan(camera.fov*Math.PI/360)),nowMs:performance.now()});}for(const k of evs){const f=aliveGate.fire(k,String(u.seed),t);if(f){lineRef.current(f.line);break;}}}heaven.update(t);{const wid=field?legendAt(field,[cN.x,cN.y,cN.z]):(cosmoBiome(cN.clone())||'');heaven.root.visible=zC<.55&&cN.dot(sunDir)>-.08&&!WATER_IDS.has(wid);} /* the heaven shaft is a land feature: over open water it read as a pale triangular wedge */heaven.root.position.copy(cN).multiplyScalar(PR+hAt(cN));heaven.root.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),cN);

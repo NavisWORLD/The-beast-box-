@@ -2,8 +2,9 @@
 // four ticks, a shelter, rim trees, seats and crystal lamps. Cosmo's look pack (landscape-look-data.mjs) supplies colours; the ENGINE supplies
 // every position, size and mode. Nothing here draws a random number or reads a clock (time arrives as the frame's `t`). All art is existing GLBs.
 // Honest limits: the pad FOLLOWS the terrain (it cannot flatten the GPU terrain), and the rim blend is colour/alpha only, so there is never a cliff.
-import {landscapeSlots,landscapeAnchors,landscapeMode,nightT,lampLevel,LANDSCAPE,pointAt,dirOf} from './seeded-landscapes.mjs';
+import {landscapeSlots,landscapeAnchors,landscapeMode,nightT,lampLevel,LANDSCAPE,pointAt,dirOf,homeLandscapeId,landscapeGoal,angleBetween} from './seeded-landscapes.mjs';
 import {nightFactor} from './genesis-sun.mjs';
+import {lwStream} from './living-world.mjs';
 import {LANDSCAPE_LOOK as LOOK} from './landscape-look-data.mjs';
 import {SURFACE_ART,ALIVE_ART} from './surface-three';
 type T=typeof import('three');type V3=import('three').Vector3;
@@ -76,13 +77,20 @@ export function addLandscapes(THREE:T,parent:import('three').Object3D,o:Landscap
   const LAMPS=['crystal_spire_alive','crystal_cluster_alive','crystal_small_alive'];
   slots.lamps.forEach((d:number[],i:number)=>{tasks.push(put(ALIVE_ART+LAMPS[i%3]+'.glb',d,mpu*1.8,jy(14+i),detail,true));});
   Promise.all(tasks).then(()=>{it.ready=true;});
+  // ---- rain (the storm beat): seeded streaks over the pad radius only, none inside the sheltered zone, additive, fading with storm_t. Caps 220 desktop / 90 phone. No new weather system.
+  {const RS=LOOK.rain,cap=o.phone?RS.max_instances_phone:RS.max_instances_desktop;const cnt=Math.min(cap,Math.round(RS.density_per_m2_of_pad*Math.PI*ls.radiusM*ls.radiusM));const rr=lwStream(o.seed+':rain:'+ls.id);
+   const cull=RS.sheltered_zone.cull_radius_frac_of_pad;const drops:any[]=[];const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.BufferAttribute(new Float32Array(cnt*6),3));
+   for(let i=0;i<cnt;i++){const f=cull+(1-cull)*Math.sqrt(rr());const d=pointAt(n,rr()*TAU,f*rad);const S=spMax(d,0,new THREE.Vector3());const up=S.clone().normalize();const sl=new THREE.Vector3().crossVectors(up,UP);if(sl.lengthSq()<1e-6)sl.set(1,0,0);sl.normalize();
+    drops.push({S,up,sl,ph:rr(),len:RS.length_m[0]+(RS.length_m[1]-RS.length_m[0])*rr()});}
+   const mat=new THREE.LineBasicMaterial({color:new THREE.Color(RS.color_day),transparent:true,opacity:0,depthWrite:false,blending:THREE.AdditiveBlending});
+   const lines=new THREE.LineSegments(geo,mat);lines.frustumCulled=false;lines.visible=false;lines.name='rain:'+ls.id;group.add(lines);it.rain={drops,geo,mat,lines,count:cnt,cull};}
   items.push(it);
  }
  // ---- at most 2 real point lights per planet (phone: none, emissive-only), assigned to the nearest lit landscapes each frame
  const lights:any[]=[];if(!o.phone)for(let i=0;i<2;i++){const l=new THREE.PointLight(0xffb35a,0,9*mpu*3,2);root.add(l);lights.push(l);}
  const cPad=new THREE.Color(),cDay=new THREE.Color(),tmpC=new THREE.Color();
  const native=col(LOOK.lamp.crystal_native.native_emissive_hex);
- const snapshot=()=>items.map(it=>({id:it.ls.id,name:it.ls.name,kind:it.ls.kind,mode:it.mode,storm_t:+it.storm_t.toFixed(3),night_t:+it.night_t.toFixed(3),lamp:+it.lampLevel.toFixed(3),far:it.far,pieces:it.pieces,ready:it.ready,label:it.ls.home_exception?'Home world · place SEEDED':'SEEDED'}));
+ const snapshot=()=>items.map(it=>({id:it.ls.id,name:it.ls.name,kind:it.ls.kind,mode:it.mode,storm_t:+it.storm_t.toFixed(3),night_t:+it.night_t.toFixed(3),lamp:+it.lampLevel.toFixed(3),far:it.far,pieces:it.pieces,ready:it.ready,rain:it.rain?(it.rain.lines.visible?it.rain.count:0):0,label:it.ls.home_exception?'Home world · place SEEDED':'SEEDED'}));
  function update(t:number,dt:number,env:LandscapeEnv){
   const lit:any[]=[];
   for(const it of items){
@@ -98,6 +106,13 @@ export function addLandscapes(THREE:T,parent:import('three').Object3D,o:Landscap
    it.padMat.color.setRGB(Math.min(2,cPad.r/Math.max(1e-3,cDay.r)),Math.min(2,cPad.g/Math.max(1e-3,cDay.g)),Math.min(2,cPad.b/Math.max(1e-3,cDay.b)));
    // ring alpha by mode (gather<->sleep by night_t, shelter by storm_t, empty on its own)
    const A=LOOK.ring.alpha_by_mode;let a=A.gather+(A.sleep-A.gather)*it.night_t;a+=(A.shelter-a)*it.storm_t;if(it.mode==='empty')a=A.empty;it.ringMat.opacity=a;
+   // rain streaks follow storm_t (already time-smoothed 1.5 s in / 3.5 s out); wet only while the mode is the storm shelter
+   if(it.rain){const RS=LOOK.rain,R_=it.rain;const on=it.storm_t>0.01&&!it.far&&it.mode!=='empty';R_.lines.visible=on;
+    if(on){const al=RS.alpha_range[0]+(RS.alpha_range[1]-RS.alpha_range[0])*0.5,aln=RS.alpha_range_night[0]+(RS.alpha_range_night[1]-RS.alpha_range_night[0])*0.5;R_.mat.opacity=it.storm_t*(al+(aln-al)*it.night_t);R_.mat.color.set(RS.color_day).lerp(tmpC.set(RS.color_night),it.night_t);
+     const H=RS.height_above_pad_m,v=RS.fall_speed_m_s*(env.reduced?0.3:1),tn_=Math.tan(RS.slant_deg*Math.PI/180);const a=R_.geo.attributes.position.array as Float32Array;
+     R_.drops.forEach((d:any,k:number)=>{const y=H-((t*v+d.ph*H)%H);const y2=y+d.len;a[k*6]=d.S.x+d.up.x*y*mpu;a[k*6+1]=d.S.y+d.up.y*y*mpu;a[k*6+2]=d.S.z+d.up.z*y*mpu;
+      const s2=y2*mpu;a[k*6+3]=d.S.x+d.up.x*s2+d.sl.x*(y2-y)*tn_*mpu;a[k*6+4]=d.S.y+d.up.y*s2+d.sl.y*(y2-y)*tn_*mpu;a[k*6+5]=d.S.z+d.up.z*s2+d.sl.z*(y2-y)*tn_*mpu;});
+     R_.geo.attributes.position.needsUpdate=true;}}
    // far LOD: pad + shelter only (rim trees, seats, lamps and ring drop)
    const d=env.cam.distanceTo(it.pos);it.far=d>LOOK_FAR_M*mpu;it.detail.visible=!it.far;
    // lamps: spec s4 emissive = lin(hex) x peak x nightFactor x lifeVolume x mode factor, with the documented storm deviation inside lampLevel()
@@ -111,9 +126,17 @@ export function addLandscapes(THREE:T,parent:import('three').Object3D,o:Landscap
   lights.forEach((l,i)=>{const e=lit[i];if(!e){l.intensity=0;return;}const pl=LOOK.lamp.point_light;l.position.copy(e.it.pos);l.color.set(pl.color[e.it.mode]||'#FFB35A');
    l.distance=Math.min(9,Math.max(5,0.9*e.it.ls.radiusM))*mpu;const pm=Math.max(0.05,LANDSCAPE.mix[e.it.mode]||0.05);l.intensity=(pl.intensity[e.it.mode]||0)*(e.lvl/pm)*mpu*mpu*4;});
  }
+
+ /** The roam goal for one resident right now (null when its home place is empty or not here). */
+ const goalCache:Record<string,any>={};
+ function goalFor(key:string,seed:string){const it=items.find(x=>x.ls.id===homeLandscapeId(seed,key,items.map(y=>y.ls)));if(!it)return null;const ck=it.ls.id+'|'+key+'|'+it.mode;if(!(ck in goalCache))goalCache[ck]=landscapeGoal(it.ls,it.mode,key,seed);const g=goalCache[ck];return g?{...g,mode:it.mode,id:it.ls.id}:null;}
+ /** A tap on the ground (unit direction): the landscape whose pad it falls inside, else null. */
+ function tapAt(d:number[]){for(const it of items){const rad=it.ls.radiusM/LANDSCAPE.worldRadiusM;if(angleBetween(it.n.toArray(),d)<=rad*1.05)return it.ls;}return null;}
+ /** Mode of a landscape now (for notices and zoom lines). */
+ const modeOf=(id:string)=>items.find(x=>x.ls.id===id)?.mode??null;
  const LOOK_FAR_M=90;
  /** Test/inspection camera: hover `up` metres over the first landscape's play anchor and `back` metres behind it (bearing `by`), looking at the ring centre. Only used when asked (window.__lwLandCam). */
  function inspectCam(camera:any,c:{up:number;back:number;by?:number}){const it=items[0];if(!it)return;const ls=it.ls;const rad=ls.radiusM/LANDSCAPE.worldRadiusM;const dd=pointAt(dirOf(ls.lat,ls.lon),ls.yaw+(c.by||0),Math.min(1.2,c.back/LANDSCAPE.worldRadiusM));
   const base=sp(dirOf(ls.lat,ls.lon),0);const nrm=base.clone().normalize();const cp=sp(dd,c.up*mpu);camera.position.copy(cp);camera.up.copy(nrm);camera.lookAt(base);camera.near=0.02;camera.updateProjectionMatrix();void rad;}
- return {update,items,snapshot,inspectCam,group:root,dispose(){root.traverse((x:any)=>{x.geometry?.dispose?.();});parent.remove(root);}};
+ return {update,items,snapshot,inspectCam,goalFor,tapAt,modeOf,group:root,dispose(){root.traverse((x:any)=>{x.geometry?.dispose?.();});parent.remove(root);}};
 }

@@ -31,7 +31,10 @@ function rand(seed:string){let h=0;for(const c of seed)h=(h*31+c.charCodeAt(0))>
 import {zoomLineKind,doorLineKind,zoomLine,noticeLine,noticeGate} from '@/lib/universe/zoom-lines.mjs';
 import {growthNodesAt,growthHomeWorld} from '@/lib/universe/seeded-growth-nodes.mjs';
 import {growthZoomLine,planetWords} from '@/lib/universe/growth-copy.mjs';
+import {seededLandscapes,landscapeMode,landscapeZoom} from '@/lib/universe/seeded-landscapes.mjs';
 /** Emeth zoom_growth line for the home world, derived from the SEEDED nodes' SIMULATED state (null when there are none). */
+// Landscape zoom line: "{place} · {kind}" plus the mode line from landscapeMode. This view has no live insolation or storm signal, so it reads the calm-day case (hasLife from the engine's life[]); the living world shows the live mode.
+const landscapeLineFor=(u:any):string|null=>{try{const ls=seededLandscapes(u).find((l:any)=>l.home_exception)||seededLandscapes(u)[0];if(!ls)return null;const m=landscapeMode(ls,{ins:1,storm:0,hasLife:(u.life||[]).some((l:any)=>l.planet===ls.planet)});const z=landscapeZoom(ls,m,{beast:'Your beast',seed:String(u.seed||'tiny')});return z.line?z.title+'. '+z.line:z.title;}catch{return null;}};
 const growthLineFor=(u:any):string|null=>{try{if(!u?.planets?.length)return null;const home=growthHomeWorld(u);const nodes=growthNodesAt(u,u.tick).filter((n:any)=>n.planet===home);return nodes.length?growthZoomLine(nodes,planetWords(home,home),String(u.seed||'tiny'),Math.floor((u.tick||0)/20)):null;}catch{return null;}};
 export const ZOOM_MIN=1.2,ZOOM_MAX=1400;
 /* Zoom-out has no hard stop any more: ZOOM_MAX is the old comfortable range, ZOOM_LIMIT is only a float32-precision guard (10,000x beyond it).
@@ -242,7 +245,7 @@ vec3 c=texture2D(tScene,bhScreen+s).rgb;float ring=exp(-pow((r-1.5*rs)/(0.08*rs+
     else if(!bhNear&&!bhFar&&seen&&dB>R*30){bhFar=true;showNotice('black_hole_far');}
     el.dataset.bhDist=String(Math.round(dB/R));{const lb=el.querySelector('[data-bh-label]') as HTMLElement|null;if(lb){const z2=zoomStage(d);lb.style.display=(doorV<.05&&(z2!=='Surface'||targetId==='seeded-bh-0')&&(dB<R*40||z2==='System'||z2==='Neighbours'||z2==='Universe'))?'':'none';}}}
    {const zs=zoomStage(d);if(targetId&&stormObj.has(targetId)&&(zs==='Planet'||zs==='Surface'))showNotice('storm_near');else if(stormObj.size&&(zs==='Orbit'||zs==='System'))showNotice('storm_far');}
-   const s=zoomStage(d);if(s!==last){const wider=last==='Orbit'||last==='System'||last==='Neighbours'||last==='Universe';{const zk=zoomLineKind(last,s,{blackHole:!!seededBH||(uRef.current?.stars||[]).some((q:any)=>q.remnant==='black_hole')});if(zk){const gl=zk.kind==='zoom_in'&&(s==='Orbit'||s==='Planet')?growthLineFor(uRef.current):null;showZLine(zk.kind,zk.key,gl);}}last=s;setStage(s);el.dataset.zoomStage=s;
+   const s=zoomStage(d);if(s!==last){const wider=last==='Orbit'||last==='System'||last==='Neighbours'||last==='Universe';{const zk=zoomLineKind(last,s,{blackHole:!!seededBH||(uRef.current?.stars||[]).some((q:any)=>q.remnant==='black_hole')});if(zk){const gl=zk.kind==='zoom_in'&&(s==='Orbit'||s==='Planet')?((zlineN.current%2===1?landscapeLineFor(uRef.current):null)||growthLineFor(uRef.current)||landscapeLineFor(uRef.current)):null;showZLine(zk.kind,zk.key,gl);}}last=s;setStage(s);el.dataset.zoomStage=s;
     // a real zoom-in reached a world: Emeth's line for a planet or a star
     if(s==='Planet'&&wider&&targetId)aliveRef.current?.(starObj.has(targetId)?'zoom_star':'zoom_planet');}
    {const f=threadsRef.current?threadFade(d):0;const on=f>.02;threads.visible=on;origin.visible=on;if(on)drawThreads(f);
