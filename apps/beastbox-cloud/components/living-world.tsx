@@ -545,7 +545,7 @@ uniform vec3 uPlay[8];
     // gentle seeded fly-over: in the planet view, after 6 s without input, the camera drifts between the beach, the volcano and the sea, then hands back on touch
     {const mo=sp?'s':watchRef.current?'w':'o';const idle=performance.now()-userAt>6000;
      if(mo==='o'&&idle&&beach){if(!touring){touring=true;tourN.copy(cN);tourT=0;}tourT-=dt;
-      if(tourT<=0){tourT=11+tourR()*5;tourI=(tourI+1)%3;zT=.42+tourR()*.1;}
+      if(tourT<=0){tourT=11+tourR()*5;tourI=(tourI+1)%3;zT=.3+tourR()*.06;}
       const tgt=[beach.center(),island?.anchor('crater_center')||beach.center(),(window as any).__lwSeaN||gpts[0]][tourI].clone().normalize();tourN.lerp(tgt,Math.min(1,dt*.35)).normalize();cN.copy(tourN);cT.copy(tourN).multiplyScalar(PR);cW.copy(tourN).multiplyScalar(PR*1.6);
       (window as any).__lwTour={i:tourI,place:['beach','volcano','ocean'][tourI]};}
      else if(touring){touring=false;if(mo==='o')zT=1;(window as any).__lwTour=null;}}
