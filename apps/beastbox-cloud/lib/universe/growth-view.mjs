@@ -58,6 +58,8 @@ export function desatAmount(layer,storm,scarred){
  return Math.min(P.desaturation.total_cap,s+(scarred?P.desaturation.scarred.amount:0));
 }
 /** Linear emissive colour added to foliage for a stage (already scaled: stage * kind mul, +tap pulse, total <= max_total). */
+/** Linear emissive tint colour for a stage (the shader multiplies it by the packed strength). */
+export function emissiveTintLinear(stage){const c=P.emissive_boost_linear.emissive_tint_by_stage[stage];return c?hexToLinear(c):[0,0,0];}
 export function emissiveAdd(layer,stage,tap=0){
  const e=P.emissive_boost_linear;const a=Math.min(e.max_total,(e.by_stage[stage]||0)*(e.by_kind_mul[layer]||1)+(tap>0?e.tap_pulse_add*clamp(tap):0));
  const c=e.emissive_tint_by_stage[stage];if(!c||a<=0)return [0,0,0];const l=hexToLinear(c);return [l[0]*a,l[1]*a,l[2]*a];

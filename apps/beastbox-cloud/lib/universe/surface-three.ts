@@ -6,8 +6,8 @@ import {GC_MODELS,TREE_MODELS} from './surface-data.mjs';
 // creature), swaying mushrooms and flower heads turning to the sun (aFacing/uSunDir in object space). Per-instance aPhase/aLife
 // come from lwStream (recorded-IBM seed), never an unseeded RNG. Each flower type's heads are merged into ONE InstancedMesh.
 import {ALIVE_PROPS,aliveInstances,crossedPeak,nearness,sunFacing,easeFacing,angleBetween,CRYSTAL_RADIUS_M} from './alive-props.mjs';
-import {GROWTH_LAYER,TINT_STRENGTH,instanceGrowth,tapNode,tapNoticeKey,tapBounce,tapGlow,leanAffinity,fruitOffsets,fruitPalette,fruitDensity,CANOPY_SPILL,LEAN_MAX_DEG,TAP_MS} from './growth-view.mjs';
-import {GROWTH,growthCellAt} from './seeded-growth-nodes.mjs';
+import {emissiveTintLinear,GROWTH_LAYER,TINT_STRENGTH,instanceGrowth,tapNode,tapNoticeKey,tapBounce,tapGlow,leanAffinity,fruitOffsets,fruitPalette,fruitDensity,CANOPY_SPILL,LEAN_MAX_DEG,TAP_MS} from './growth-view.mjs';
+import {GROWTH,NODE_STAGES,growthCellAt} from './seeded-growth-nodes.mjs';
 import {createGrowthShed} from './growth-three';
 const MAXC=16;
 const ROT_UP=`mat3 rotUp(vec3 f){vec3 u=vec3(0.,1.,0.);float c=dot(u,f);if(c>.9999)return mat3(1.);vec3 ax=normalize(cross(u,f));float s=sqrt(max(0.,1.-c*c));float t=1.-c;
@@ -21,7 +21,7 @@ export type SurfaceOpts={growth?:GrowthOpts;seed:string;R:number;mpu:number;biom
 type Slot={u:Record<string,{value:any}>};
 function patch(THREE:T,mat:any,cfg:{h:number;near:number;far:number;inner:number;thin:number;wind:number;alive?:Alive;gl?:boolean},shared:any){
  const m=mat.clone();const al=cfg.alive;const U:any={uPeriod:{value:al?.period||1},uCreaturePos:shared.uCreaturePos,uCreatureCount:shared.uCreatureCount,uRadius:shared.uRadius,uMPU:shared.uMPU,uTime:shared.uTime,uH:{value:cfg.h},uNear:{value:cfg.near},uFar:{value:cfg.far},uIn:{value:cfg.inner},uThin:{value:cfg.thin},uWind:{value:cfg.wind},uGT:{value:cfg.gl?TINT_STRENGTH(mat.name||''):0}};
- const gl=!!cfg.gl;if(gl)for(const k of ['uGBeast','uGWind','uGTurb','uGShiver','uGMotion','uGStorm','uGPulseC','uGPulseA','uGGlow','uGLean'])U[k]=shared[k];
+ const gl=!!cfg.gl;if(gl)for(const k of ['uGBeast','uGWind','uGTurb','uGShiver','uGMotion','uGStorm','uGPulseC','uGPulseA','uGGlow','uGLean','uGEm'])U[k]=shared[k];
  const live=!!al&&al.part==='live',head=live&&al!.kind==='head',k=al?.kind;
  const aliveHead=!al?'':`uniform float uPeriod;uniform vec3 uCreaturePos[${MAXC}];uniform int uCreatureCount;uniform float uRadius;attribute float aPhase;attribute float aLife;varying float vGlow;\n`+(head?'attribute vec3 aFacing;attribute vec3 aPivot;\n'+ROT_UP+'\n':'');
  const aliveVS=!al?'':`
@@ -35,15 +35,16 @@ function patch(THREE:T,mat:any,cfg:{h:number;near:number;far:number;inner:number
    `{float ph=6.28318*(uTime/uPeriod+aPhase);float am=mix(.3,1.,aLife);vec3 f=normalize(aFacing+vec3(sin(ph)*.05*am,0.,cos(ph*1.1)*.04*am));transformed=rotUp(f)*(transformed-aPivot)+aPivot;}vGlow=mix(.7,1.,brA)*lifeA;`);
  const GV=`
    float gS=1.;vGc=vec3(1.);vGm=0.;vGd=0.;vGe=vec3(0.);
-   if(aGa.w>.5){gS=aGa.x;float ph=aHash*6.2831;float hh2=hh;float swg=(sin(uTime*1.7+ph)*.6+sin(uTime*2.9+ph*1.7)*.4*uGTurb)*uGMotion;
+   float gk=floor(aGa.w+.001);float gf=mod(gk,3.);float gst=floor(gk/3.);float gei=floor(aGc.w);float aGl=(aGc.w-gei)/.99;
+   if(gf>.5){gS=aGa.x;float ph=aHash*6.2831;float hh2=hh;float swg=(sin(uTime*1.7+ph)*.6+sin(uTime*2.9+ph*1.7)*.4*uGTurb)*uGMotion;
     transformed.x+=uGWind.x*swg*hh2*hh2*uH*.12;transformed.z+=uGWind.y*swg*hh2*hh2*uH*.12;
-    if(aGa.w>1.5){float sv=sin(uTime*31.+ph*3.)*uGShiver*uGMotion;transformed.x+=sv*hh2*uH*.025;transformed.z+=sv*cos(ph)*hh2*uH*.02;}
+    if(gf>1.5){float sv=sin(uTime*31.+ph*3.)*uGShiver*uGMotion;transformed.x+=sv*hh2*uH*.025;transformed.z+=sv*cos(ph)*hh2*uH*.02;}
     vec3 lo=transpose(mat3(instanceMatrix))*(uGBeast-wp0);lo.y=0.;float ll=length(lo);if(ll>1e-4&&aGl>0.){lo/=ll;float lm=tan(uGLean)*aGl*uGMotion*hh2*hh2*uH;transformed.x+=lo.x*lm;transformed.z+=lo.z*lm;}
     float pc=dot(normalize(wp0),uGPulseC.xyz);float pin=smoothstep(cos(uGPulseC.w),1.,pc);gS*=1.+uGPulseA*pin;
-    vGc=aGc;vGm=aGa.y*uGT;vGd=min(.3,aGa.z+uGStorm*.22*step(1.5,aGa.w))*step(.001,uGT);vGe=(aGe+aGc*uGGlow*pin)*step(.001,uGT);}
+    vGc=aGc.xyz;vGm=aGa.y*uGT;vGd=min(.3,aGa.z+uGStorm*.22*step(1.5,gf))*step(.001,uGT);vGe=(uGEm[int(gst)]*(gei*.001)+aGc.xyz*uGGlow*pin)*step(.001,uGT);}
    `;
  m.onBeforeCompile=(s:any)=>{Object.assign(s.uniforms,U);
-  s.vertexShader='uniform float uMPU,uTime,uH,uNear,uFar,uIn,uThin,uWind,uGT;attribute float aHash;\n'+(gl?'uniform vec2 uGWind;uniform float uGTurb,uGShiver,uGMotion,uGStorm,uGPulseA,uGGlow,uGLean;uniform vec4 uGPulseC;uniform vec3 uGBeast;attribute vec4 aGa;attribute vec3 aGc;attribute vec3 aGe;attribute float aGl;varying vec3 vGc,vGe;varying float vGm,vGd;\n':'')+aliveHead+s.vertexShader.replace('#include <begin_vertex>',`#include <begin_vertex>`+aliveVS+`
+  s.vertexShader='uniform float uMPU,uTime,uH,uNear,uFar,uIn,uThin,uWind,uGT;attribute float aHash;\n'+(gl?'uniform vec2 uGWind;uniform float uGTurb,uGShiver,uGMotion,uGStorm,uGPulseA,uGGlow,uGLean;uniform vec4 uGPulseC;uniform vec3 uGBeast;uniform vec3 uGEm[6];attribute vec4 aGa;attribute vec4 aGc;varying vec3 vGc,vGe;varying float vGm,vGd;\n':'')+aliveHead+s.vertexShader.replace('#include <begin_vertex>',`#include <begin_vertex>`+aliveVS+`
    vec3 wp0=(modelMatrix*instanceMatrix*vec4(0.,0.,0.,1.)).xyz;float dM=distance(cameraPosition,wp0)/uMPU;
    float fs;if(uThin>.5){fs=aHash<.3?mix(1.,1.5,smoothstep(uNear*.8,uNear,dM))*clamp((mix(uNear,uFar,aHash/.3)-dM)/(uFar*.2),0.,1.):clamp((uNear-dM)/(uNear*.2),0.,1.);}
    else{float lim=mix(uNear,uFar,aHash);fs=clamp((lim-dM)/(lim*.2),0.,1.);}
@@ -68,7 +69,7 @@ async function mergeHeads(THREE:T,heads:any[]){const {mergeGeometries}=await imp
  const perMat=byMat.map(l=>l.length>1?mergeGeometries(l,false):l[0]);return {geo:mergeGeometries(perMat,true),mats};}
 export function addCageSurface(THREE:T,parent:import('three').Object3D,o:SurfaceOpts){
  const group=new THREE.Group();group.name='cage-surface';parent.add(group);
- const shared:any={uGBeast:{value:new THREE.Vector3(1e9,1e9,1e9)},uGWind:{value:new THREE.Vector2(0,0)},uGTurb:{value:0},uGShiver:{value:0},uGMotion:{value:1},uGStorm:{value:0},uGPulseC:{value:new THREE.Vector4(0,1,0,.2)},uGPulseA:{value:0},uGGlow:{value:0},uGLean:{value:LEAN_MAX_DEG*Math.PI/180},uMPU:{value:o.mpu},uTime:{value:0},uCreaturePos:{value:Array.from({length:MAXC},()=>new THREE.Vector3(1e9,1e9,1e9))},uCreatureCount:{value:0},uRadius:{value:CRYSTAL_RADIUS_M*o.mpu}};const aliveSets:any[]=[];const counts:Record<string,number>={};const meshes:any[]=[];
+ const shared:any={uGBeast:{value:new THREE.Vector3(1e9,1e9,1e9)},uGWind:{value:new THREE.Vector2(0,0)},uGTurb:{value:0},uGShiver:{value:0},uGMotion:{value:1},uGStorm:{value:0},uGPulseC:{value:new THREE.Vector4(0,1,0,.2)},uGPulseA:{value:0},uGGlow:{value:0},uGLean:{value:LEAN_MAX_DEG*Math.PI/180},uGEm:{value:NODE_STAGES.map((st:string)=>new THREE.Vector3(...(emissiveTintLinear(st) as [number,number,number])))},uMPU:{value:o.mpu},uTime:{value:0},uCreaturePos:{value:Array.from({length:MAXC},()=>new THREE.Vector3(1e9,1e9,1e9))},uCreatureCount:{value:0},uRadius:{value:CRYSTAL_RADIUS_M*o.mpu}};const aliveSets:any[]=[];const counts:Record<string,number>={};const meshes:any[]=[];
  const up=new THREE.Vector3(0,1,0),q=new THREE.Quaternion(),qy=new THREE.Quaternion(),m4=new THREE.Matrix4(),v=new THREE.Vector3(),sc=new THREE.Vector3(),col=new THREE.Color();
  const K=o.size??1;
  // ---- growth nodes (SEEDED placement, SIMULATED tick): per-instance attributes only on lists that touch a territory, so with no nodes nothing here runs
@@ -77,17 +78,17 @@ export function addCageSurface(THREE:T,parent:import('three').Object3D,o:Surface
  const mkRec=(key:string,list:any[],h:number)=>{const layer=(GROWTH_LAYER as any)[key];if(!GR||!layer||!list.length)return null;
   const nd=gNodes.map((n:any)=>({n,c:unitLL(n),cos:Math.cos(Math.min(Math.PI,n.spread*GROWTH.rim*GR.cellRad))}));const idx:number[]=[];
   list.forEach((it:any,i:number)=>{if(nd.some(q=>q.c[0]*it.dir[0]+q.c[1]*it.dir[1]+q.c[2]*it.dir[2]>=q.cos))idx.push(i);});
-  if(!idx.length)return null;const n=list.length,A=new Float32Array(n*4),C=new Float32Array(n*3),E=new Float32Array(n*3),L=new Float32Array(n);
-  for(let i=0;i<n;i++){A[i*4]=1;C[i*3]=C[i*3+1]=C[i*3+2]=1;}
-  for(const i of idx)A[i*4+3]=layer==='shrub'||layer==='canopy'?2:1;
+  if(!idx.length)return null;const n=list.length,A=new Float32Array(n*4),C=new Float32Array(n*4),L=new Float32Array(n);
+  for(let i=0;i<n;i++){A[i*4]=1;C[i*4]=C[i*4+1]=C[i*4+2]=1;}
+  for(const i of idx)A[i*4+3]=layer==='shrub'||layer==='canopy'?2:1;// +3*stage index added in apply()
   if(layer==='canopy'||layer==='shrub'){// canopy spill: at gold a crown reaches 1.06, so trunks in the territory move outward by 0.05 of the crown radius
    for(const i of idx){const it=list[i];let best:any=null,bd=-2;for(const q of nd){const d=q.c[0]*it.dir[0]+q.c[1]*it.dir[1]+q.c[2]*it.dir[2];if(d>bd){bd=d;best=q;}}
     if(!best)continue;const crownM=.4*h*it.scale*K;const sh=CANOPY_SPILL.trunk_offset_of_crown_radius*crownM/Rm0;const c=best.c;const dd=bd;
     const t=[it.dir[0]-c[0]*dd,it.dir[1]-c[1]*dd,it.dir[2]-c[2]*dd];const tl=Math.hypot(t[0],t[1],t[2]);if(tl<1e-6)continue;
     const v=[it.dir[0]+t[0]/tl*sh,it.dir[1]+t[1]/tl*sh,it.dir[2]+t[2]/tl*sh];const vl=Math.hypot(v[0],v[1],v[2]);list[i]={...it,dir:[v[0]/vl,v[1]/vl,v[2]/vl]};}}
-  const r:any={key,layer,list,idx,A,C,E,L,attrs:[] as any[],h,fruit:null};recs.push(r);return r;};
+  const r:any={key,layer,list,idx,A,C,L,flag:Uint8Array.from(A.filter((_:number,j:number)=>j%4===3)),attrs:[] as any[],h,fruit:null};recs.push(r);return r;};
  const growAttrs=(geo:any,r:any)=>{const mk=(arr:Float32Array,k:number,dyn=false)=>{const a=new THREE.InstancedBufferAttribute(arr,k);if(dyn)a.setUsage(THREE.DynamicDrawUsage);r.attrs.push(a);return a;};
-  geo.setAttribute('aGa',mk(r.A,4,true));geo.setAttribute('aGc',mk(r.C,3,true));geo.setAttribute('aGe',mk(r.E,3,true));geo.setAttribute('aGl',mk(r.L,1,true));};
+  geo.setAttribute('aGa',mk(r.A,4,true));geo.setAttribute('aGc',mk(r.C,4,true));};
  const build=(parts:any[],list:any[],cfg0:any,brighten=false,rec:any=null)=>{if(!list.length)return;const cfg=rec?{...cfg0,gl:true}:cfg0;for(const p of parts){const geo=p.geo.clone();if(rec)growAttrs(geo,rec);const hs=new Float32Array(list.length);list.forEach((it:any,i:number)=>hs[i]=it.h);geo.setAttribute('aHash',new THREE.InstancedBufferAttribute(hs,1));
    let mat=p.mat;if(brighten&&/leaf/i.test(mat.name||'')){mat=mat.clone();mat.emissive=mat.color.clone().multiplyScalar(.45);mat.emissiveIntensity=1;mat.color.multiplyScalar(1.25);}
    const im=new THREE.InstancedMesh(geo,patch(THREE,mat,cfg,shared),list.length);im.frustumCulled=false;im.castShadow=false;im.receiveShadow=false;
@@ -158,7 +159,8 @@ export function addCageSurface(THREE:T,parent:import('three').Object3D,o:Surface
      const cr=.4*ft.Hw*st.scale;p.set(off[base]*cr,off[base+1]*ft.Hw*st.scale,off[base+2]*cr).applyQuaternion(ft.q).add(ft.pos);sc.set(sz,sz,sz);m.compose(p,qq.identity(),sc);fruitMesh.setMatrixAt(ft.base+k,m);}}
    fruitMesh.count=fruitTrees.length*per;fruitMesh.instanceMatrix.needsUpdate=true;if(fruitMesh.instanceColor)fruitMesh.instanceColor.needsUpdate=true;};
   const apply=()=>{for(const r of recs){for(const i of r.idx){const it=r.list[i];const st=instanceGrowth(gNodes,gTick,it.dir,r.layer,it.biome,{cellRad:GR.cellRad});
-    r.A[i*4]=st.scale;r.A[i*4+1]=st.mix;r.A[i*4+2]=st.hit&&st.scarred?.15:0;r.C[i*3]=st.rgb[0];r.C[i*3+1]=st.rgb[1];r.C[i*3+2]=st.rgb[2];r.E[i*3]=st.emissive[0];r.E[i*3+1]=st.emissive[1];r.E[i*3+2]=st.emissive[2];}
+    const fl=r.flag[i],si=st.hit?Math.max(0,NODE_STAGES.indexOf(st.stage as any)):0,tt=emissiveTintLinear(st.stage as any),ch=tt[0]>=tt[1]&&tt[0]>=tt[2]?0:tt[1]>=tt[2]?1:2,ea=tt[ch]>0?Math.min(.15,st.emissive[ch]/tt[ch]):0,ei=Math.round(ea*1000);
+    r.A[i*4]=st.scale;r.A[i*4+1]=st.mix;r.A[i*4+2]=st.hit&&st.scarred?.15:0;r.A[i*4+3]=fl+3*si;r.C[i*4]=st.rgb[0];r.C[i*4+1]=st.rgb[1];r.C[i*4+2]=st.rgb[2];r.C[i*4+3]=ei+(r.L[i]||0)*.99;}
    for(const a of r.attrs)a.needsUpdate=true;}
    updFruit(0);};
   return {apply,updFruit,tapState,nodeById,get shed(){return shed;},set shed(v:any){shed=v;},get pulse(){return pulse;},set pulse(v:any){pulse=v;},get tLean(){return tLean;},set tLean(v:number){tLean=v;}};})();
@@ -170,8 +172,8 @@ export function addCageSurface(THREE:T,parent:import('three').Object3D,o:Surface
   const age=f.nowMs-G_API.tapState.t0;const tn=G_API.tapState.node;
   if(tn&&age<TAP_MS*1.5){const c=unitLL(tn);U.uGPulseC.value.set(c[0],c[1],c[2],Math.min(.9,tn.spread*GR!.cellRad*.8));U.uGPulseA.value=tapBounce(age,f.reduced);U.uGGlow.value=tapGlow(age)*.08;}else{U.uGPulseA.value=0;U.uGGlow.value=0;}
   if(f.beast){U.uGBeast.value.copy(f.beast);if(f.t-G_API.tLean>.25){G_API.tLean=f.t;const bd=f.beast.clone().normalize();
-   for(const r of recs){const L=r.L;for(const i of r.idx){const d=r.list[i].dir;const cs=Math.max(-1,Math.min(1,d[0]*bd.x+d[1]*bd.y+d[2]*bd.z));const distM=Math.acos(cs)*Rm0;L[i]=distM<6?leanAffinity(distM):0;}
-    for(const a of r.attrs)if(a.itemSize===1)a.needsUpdate=true;}}}
+   for(const r of recs){const L=r.L;for(const i of r.idx){const d=r.list[i].dir;const cs=Math.max(-1,Math.min(1,d[0]*bd.x+d[1]*bd.y+d[2]*bd.z));const distM=Math.acos(cs)*Rm0;const la=distM<6?leanAffinity(distM):0;L[i]=la;r.C[i*4+3]=Math.floor(r.C[i*4+3])+la*.99;}
+    for(const a of r.attrs)if(a.itemSize===4&&a.array===r.C)a.needsUpdate=true;}}}
   const sh:Record<string,number>={};for(const n of gNodes)sh[n.id]=n.shed||0;if(G_API.shed){G_API.shed.update(f.t,f.px,sh,!f.reduced);const bage=f.reduced?-1:age/1000;if(tn&&(tn.stage==='bloom'||tn.stage==='gold'))G_API.shed.burst(tn.id,bage>=0&&bage<=1.4?bage:-1);else for(const it of G_API.shed.items)it.BU.uAge.value=-1;}};
  /** Tap on the ground at world direction `dir` (unit, planet frame). Returns the Emeth notice key and node when it hit a node's territory; starts the bounce + burst (view state only). */
  const tapGrowth=(dir:number[],nowMs:number)=>{if(!G_API)return null;const hit=tapNode(gNodes,gTick,dir,{cellRad:GR!.cellRad});if(!hit)return null;G_API.tapState.t0=nowMs;G_API.tapState.node=hit.node;

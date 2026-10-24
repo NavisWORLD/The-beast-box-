@@ -389,6 +389,8 @@ uniform vec3 uPlay[8];
    const ro=new ResizeObserver(resize);ro.observe(host.current!);resize();cleanup.push(()=>ro.disconnect());
    // perf: measure fps for 3s windows and shrink the blade count if the phone can't hold ~50fps
    // test/debug hook: walk the traveler to the first seeded spot of a biome (used for screenshots)
+   // test/debug hook: stand the traveler beside growth node i (view-snapped), facing it
+   (window as any).__lwGrowthGo=(i=0,back=.07)=>{const n=growthNow()[i];if(!n)return false;const la=n.lat*Math.PI/180,lo=n.lon*Math.PI/180;const c=new THREE.Vector3(Math.cos(la)*Math.cos(lo),Math.sin(la),Math.cos(la)*Math.sin(lo));const t=new THREE.Vector3(0,1,0).cross(c);if(t.lengthSq()<1e-6)t.set(1,0,0);t.normalize();pN.copy(c).addScaledVector(t,-back).normalize();pF.copy(c).sub(pN).addScaledVector(pN,-pN.dot(c.clone().sub(pN))).normalize();return true;};
    (window as any).__lwGoZeref=()=>{const z=(gpts[1]||gpts[0]).clone().normalize();const t=new THREE.Vector3(0,1,0).cross(z).normalize();pN.copy(z).addScaledVector(t,-.06).normalize();pF.copy(z).sub(pN).addScaledVector(pN,-pN.dot(z.clone().sub(pN))).normalize();return true;};(window as any).__lwGoBiome=(b:string)=>{const r=lwS(u.seed+':goto');for(let i=0;i<4000;i++){const v=unitFrom(r) as number[];if(biomeOf(new THREE.Vector3(v[0],v[1],v[2]))===b){pN.set(v[0],v[1],v[2]);pF.set(1,0,0).addScaledVector(pN,-pN.x).normalize();return true;}}return false;};
    // physics + events state: gravity hop on the sphere, wind, storm puff, sunrise, meetings; greeting once per visit
    let exWalk=0,exBack=false,exRun=false;
