@@ -53,3 +53,12 @@ export function advanceTo(sys,state,t,maxSteps=240){
   let n=0;while(state.t+FIXED_DT<=t&&n<maxSteps){stepSystem(sys,FIXED_DT);state.t+=FIXED_DT;n++;}
   if(n===maxSteps)state.t=t;return n;
 }
+
+// ---- ENGINE-OWNED SUN (Oct 24 2026, "the engine carries the sky"). Additive: nothing above changes.
+// One day = DAY_LENGTH_TICKS engine ticks. world-field stepped at 4 Hz, so 960 ticks = the 240 s day the living-world view has always used.
+// sunDirAt(angle) is the SAME geometry the view has used (x=cos a, y=.35 sin(a/2+1), z=sin a, normalised) so the engine value can be proven equal
+// to the view's path by test before any view reads it. sunFromElevation is a verbatim port of Cory's pen "updateSunPosition" (three.js
+// setFromSphericalCoords(1, phi, theta); source: /workspace/specs/sky/pen_b.html sha256 54f58cbedb0d002c5cc62d908a810446ee0142c303a443a80e2aaab135ced694).
+export const DAY_LENGTH_TICKS=960;
+export function sunDirAt(angle){const x=Math.cos(angle),y=0.35*Math.sin(angle*0.5+1),z=Math.sin(angle);const l=Math.hypot(x,y,z)||1;return [x/l,y/l,z/l];}
+export function sunFromElevation(elevDeg,azimuthDeg=180){const phi=(90-elevDeg)*Math.PI/180,theta=azimuthDeg*Math.PI/180;const sp=Math.sin(phi);return [sp*Math.sin(theta),Math.cos(phi),sp*Math.cos(theta)];}

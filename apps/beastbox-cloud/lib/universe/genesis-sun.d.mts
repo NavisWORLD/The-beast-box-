@@ -12,3 +12,6 @@ export type System={M:number;planets:SysPlanet[]};
 export function initSystem(star:{mass_solar:number},planets:{id:string;orbit_au:number;phase:number;radius_earth:number}[]):System;
 export function stepSystem(sys:System,dt:number):void;
 export function advanceTo(sys:System,state:{t:number},t:number,maxSteps?:number):number;
+export const DAY_LENGTH_TICKS:number;
+export function sunDirAt(angle:number):[number,number,number];
+export function sunFromElevation(elevDeg:number,azimuthDeg?:number):[number,number,number];
