@@ -11,6 +11,8 @@
 import {lwStream} from './living-world.mjs';
 
 export const GROWTH_NODE_LABEL='SEEDED';
+/** UI label for the home-world exception: the planet the beast lives on gets nodes even below minHabitability. The exception is SEEDED; the recorded habitability is carried unchanged on the node. */
+export const HOME_WORLD_LABEL='Home world · growth SEEDED';
 export const NODE_KINDS=Object.freeze(['ring','patch','shrub','canopy']);// grass front / groundcover fill / berry shrub / tree
 export const NODE_STAGES=Object.freeze(['sprout','tuft','full','bloom','gold','shed']);// succession + senescence
 export const GROWTH=Object.freeze({
@@ -36,20 +38,22 @@ const KW={// [ring, patch, shrub, canopy] weights by home biome (view passes pla
 const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
 const f4=x=>+x.toFixed(4);
 
-/** Placement only, tick-independent. @param {{seed?:any,planets?:any[]}} u */
-export function seededGrowthNodes(u){
- const out=[];const seed=String(u?.seed??'tiny');
+/** The home world: the most habitable planet (habitability desc, then id) with habitability above 0. Tick-independent on purpose (the view's life-based hearth is the same planet whenever life exists, because life only starts on habitable worlds). */
+export function growthHomeWorld(u){const p=[...(u?.planets||[])].filter(x=>(+x.habitability||0)>0).sort((a,b)=>(+b.habitability||0)-(+a.habitability||0)||String(a.id).localeCompare(String(b.id)))[0];return p?p.id:null;}
+/** Placement only, tick-independent. The home world also gets nodes below minHabitability (a SEEDED exception; its recorded habitability is not raised). @param {{seed?:any,planets?:any[]}} u @param {{home?:string|null}} [o] */
+export function seededGrowthNodes(u,o={}){
+ const out=[];const seed=String(u?.seed??'tiny');const home=o.home===undefined?growthHomeWorld(u):o.home;
  for(const p of u?.planets||[]){
-  const hab=+p.habitability||0;if(hab<GROWTH.minHabitability)continue;
+  const hab=+p.habitability||0;const isHome=p.id===home&&hab>0;if(hab<GROWTH.minHabitability&&!isHome)continue;
   const r=lwStream(seed+':growth-nodes:'+p.id);
-  const n=1+(r()<0.3+hab*0.5?1:0);
+  const n=1+(r()<0.3+hab*0.5?1:0);// at hab<0.25 the exception keeps this same stream and formula, nothing is raised
   const w=KW[p.biome]||KW._;
   for(let i=0;i<n;i++){
    const d=[r(),r(),r(),r(),r(),r(),r(),r(),r(),r()];// fixed 10 draws: kind, lat, lon, phase, vigor, hue, spread, goldShift, lifespan, lean
    let acc=0,k=3;for(let j=0;j<4;j++){acc+=w[j];if(d[0]<acc){k=j;break;}}
    const kind=NODE_KINDS[k];const [s0,s1]=GROWTH.spreadCells,[l0,l1]=GROWTH.lifespan;
    out.push({id:'growth-node-'+p.id+'-'+i,type:'growth_node',planet:p.id,kind,lat:f4((d[1]*2-1)*65),lon:f4((d[2]*2-1)*180),born:0,label:GROWTH_NODE_LABEL,
-    phase:f4(d[3]),vigor:f4(d[4]),hue:f4(d[5]),spread:f4(s0+d[6]*(s1-s0)),goldShift:f4(d[7]),lifespan:Math.round((l0+d[8]*(l1-l0))*GROWTH.kinds[kind].life),lean:f4(d[9])});
+    phase:f4(d[3]),vigor:f4(d[4]),hue:f4(d[5]),spread:f4(s0+d[6]*(s1-s0)),goldShift:f4(d[7]),lifespan:Math.round((l0+d[8]*(l1-l0))*GROWTH.kinds[kind].life),lean:f4(d[9]),recorded_habitability:hab,...(isHome&&hab<GROWTH.minHabitability?{home_exception:true,home_label:HOME_WORLD_LABEL}:{})});
   }
  }
  return out;
@@ -104,7 +108,7 @@ export function growthNodeState(node,u,tick){
  return {stage,scale:f4(norm*kind.size),norm:f4(norm),tint:f4(tint),fruit,lean,shed,x:f4(x),generation,front:f4(age*rate),rate:f4(rate),drive:f4(drive),gold:f4(gold),scars,scarred:scars>0};
 }
 /** Placement + state for every node at a tick. */
-export function growthNodesAt(u,tick=u?.tick??0){return seededGrowthNodes(u).map(n=>({...n,tick,...growthNodeState(n,u,tick)}));}
+export function growthNodesAt(u,tick=u?.tick??0,o){return seededGrowthNodes(u,o).map(n=>({...n,tick,...growthNodeState(n,u,tick)}));}
 
 const unit=(lat,lon)=>{const a=lat*Math.PI/180,o=lon*Math.PI/180;return [Math.cos(a)*Math.cos(o),Math.sin(a),Math.cos(a)*Math.sin(o)];};
 /**

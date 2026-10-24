@@ -1,6 +1,6 @@
 import test from 'node:test';import assert from 'node:assert/strict';import {readFileSync} from 'node:fs';
 import {genesis,grow} from '../lib/universe/tiny-universe.mjs';
-import {seededGrowthNodes,growthNodesAt,growthNodeState,growthScaleAt,growthDrive,stageAt,stageScale,GROWTH,GROWTH_NODE_LABEL,NODE_KINDS,NODE_STAGES} from '../lib/universe/seeded-growth-nodes.mjs';
+import {growthHomeWorld,HOME_WORLD_LABEL,seededGrowthNodes,growthNodesAt,growthNodeState,growthScaleAt,growthDrive,stageAt,stageScale,GROWTH,GROWTH_NODE_LABEL,NODE_KINDS,NODE_STAGES} from '../lib/universe/seeded-growth-nodes.mjs';
 const shard=JSON.parse(readFileSync(new URL('../public/spark/ibm-marrakesh-reality-probe-20261009.json',import.meta.url),'utf8'));
 const real=genesis(shard);
 // The recorded genesis has one planet at habitability .17 (< minHabitability .25), so it plants no nodes. Tests use the same genesis with every planet set habitable.
@@ -27,7 +27,7 @@ test('isolation: stars, planets, storms, life, pairs are byte-identical with nod
  assert.equal(pick(copy),off);assert.equal(JSON.stringify(copy),JSON.stringify(u40));
  // and the nodes never shift the universe's own streams: growing after computing nodes matches growing without
  growthNodesAt(g,0);assert.equal(JSON.stringify(grow(g,25)),JSON.stringify(grow({...real,planets:real.planets.map(p=>({...p,habitability:0.9}))},25)));
- assert.deepEqual(seededGrowthNodes(real),[]);// honest: no node on worlds below minHabitability
+
 });
 test('fixed draws: removing the last planet leaves every earlier planet node list unchanged',()=>{
  const u=g;const all=seededGrowthNodes(u);
@@ -81,4 +81,20 @@ test('no Math.random or clock reads in the module, and no UI claims of live quan
  assert.ok(!/Math\.random|Date\.|performance\.now|new Date/.test(code));
  assert.ok(/SEEDED/.test(src)&&/SIMULATED/.test(src)&&/RECORDED/.test(src));
  assert.ok(!/live quantum|hardware-measured/i.test(code));
+});
+
+test('home-world exception: the home planet gets SEEDED nodes below 0.25, other low-habitability planets get nothing, recorded habitability is not raised',()=>{
+ const home=growthHomeWorld(real);const hp=real.planets.find(p=>p.id===home);assert.ok(hp);assert.ok(hp.habitability>0&&hp.habitability<GROWTH.minHabitability);
+ const nodes=seededGrowthNodes(real);assert.ok(nodes.length>=1);
+ for(const n of nodes){assert.equal(n.planet,home);assert.equal(n.label,'SEEDED');assert.equal(n.home_exception,true);assert.equal(n.home_label,HOME_WORLD_LABEL);assert.equal(n.recorded_habitability,hp.habitability);}
+ assert.equal(HOME_WORLD_LABEL,'Home world · growth SEEDED');
+ assert.ok(!real.planets.some(p=>p.id!==home&&(p.habitability||0)<GROWTH.minHabitability&&nodes.some(n=>n.planet===p.id)));
+ assert.equal(real.planets.find(p=>p.id===home).habitability,hp.habitability);// input untouched
+ // a dead home candidate (habitability 0 everywhere) plants nothing, and an explicit home override is honoured
+ assert.deepEqual(seededGrowthNodes({...real,planets:real.planets.map(p=>({...p,habitability:0}))}),[]);
+ const other=real.planets.find(p=>p.id!==home).id;assert.ok(seededGrowthNodes(real,{home:other}).every(n=>n.planet!==other));// hab 0 other world: still nothing
+ // the exception does not move any other planet's nodes (same stream, same draws) and the universe bodies stay byte-identical
+ const all=seededGrowthNodes({...real,planets:real.planets.map(p=>p.id===home?{...p,habitability:0.9}:p)});assert.ok(all.every(n=>n.planet===home));
+ const ugrown=grow(real,30);const pick=u=>JSON.stringify({stars:u.stars,planets:u.planets,storms:u.storms,life:u.life,pairs:u.pairs});const before=pick(ugrown);growthNodesAt(ugrown,30);assert.equal(pick(ugrown),before);
+ assert.equal(growthNodesAt(real,0)[0].home_label,HOME_WORLD_LABEL);
 });

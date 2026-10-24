@@ -1,5 +1,5 @@
 {
- "demo": "habitability set to 0.9 on every planet for this sample; the recorded genesis has no planet at or above 0.25, so it plants no growth nodes. Placement is SEEDED, the growth drive is SIMULATED, genesis is RECORDED.",
+ "note": "Placement is SEEDED (home world exception, recorded habitability unchanged), the growth drive is SIMULATED, genesis is RECORDED.",
  "universe": {
   "schema": "tiny-universe/v1",
   "seed": "a499467496db4a702494aae1faddf2c8322b59cab46555935728e867ab82ac0c",
@@ -10,7 +10,7 @@
    "counts_digest": "6b5438dc3ad1ab02cd6440822ea8fe89e1b66fa664174454c9471a65196d2910"
   },
   "entanglement_E": 0.97461,
-  "tick": 43,
+  "tick": 65,
   "growth_label": "SIMULATED (Rigetti Bell simulator, not hardware)",
   "stars": [
    {
@@ -18,11 +18,12 @@
     "type": "star",
     "mass_solar": 9.918,
     "temperature_k": 15831,
-    "luminosity": 3072.4467,
-    "age": 43,
+    "luminosity": 0,
+    "age": 65,
     "hue": 0.9197,
     "x": 0.7768,
-    "y": 0.8602
+    "y": 0.8602,
+    "remnant": "neutron_star"
    },
    {
     "id": "star-1",
@@ -30,7 +31,7 @@
     "mass_solar": 0.327,
     "temperature_k": 5513,
     "luminosity": 0.02,
-    "age": 43,
+    "age": 65,
     "hue": 0.1778,
     "x": 0.4641,
     "y": 0.5989
@@ -41,7 +42,7 @@
     "mass_solar": 2.752,
     "temperature_k": 13653,
     "luminosity": 34.5756,
-    "age": 43,
+    "age": 65,
     "hue": 0.2219,
     "x": 0.4937,
     "y": 0.1301
@@ -52,7 +53,7 @@
     "mass_solar": 6.898,
     "temperature_k": 20684,
     "luminosity": 862.0474,
-    "age": 43,
+    "age": 65,
     "hue": 0.4223,
     "x": 0.3231,
     "y": 0.8593
@@ -63,7 +64,7 @@
     "mass_solar": 5.271,
     "temperature_k": 18878,
     "luminosity": 336.2216,
-    "age": 43,
+    "age": 65,
     "hue": 0.8784,
     "x": 0.4552,
     "y": 0.3573
@@ -74,7 +75,7 @@
     "mass_solar": 0.709,
     "temperature_k": 7141,
     "luminosity": 0.3001,
-    "age": 43,
+    "age": 65,
     "hue": 0.138,
     "x": 0.2359,
     "y": 0.6665
@@ -92,7 +93,7 @@
     "flux": 76811.1675,
     "temperature_k": 4628,
     "phase": 0.8602,
-    "habitability": 0.9
+    "habitability": 0
    },
    {
     "id": "star-0-p1",
@@ -105,7 +106,7 @@
     "flux": 1834.9144,
     "temperature_k": 1819,
     "phase": 0.1279,
-    "habitability": 0.9
+    "habitability": 0
    },
    {
     "id": "star-0-p2",
@@ -118,7 +119,7 @@
     "flux": 504.831,
     "temperature_k": 1318,
     "phase": 0.2446,
-    "habitability": 0.9
+    "habitability": 0
    },
    {
     "id": "star-0-p3",
@@ -131,7 +132,7 @@
     "flux": 432.2789,
     "temperature_k": 1268,
     "phase": 0.8348,
-    "habitability": 0.9
+    "habitability": 0
    },
    {
     "id": "star-0-p4",
@@ -144,7 +145,7 @@
     "flux": 132.5782,
     "temperature_k": 943,
     "phase": 0.3067,
-    "habitability": 0.9
+    "habitability": 0
    },
    {
     "id": "star-1-p0",
@@ -157,7 +158,7 @@
     "flux": 0.5,
     "temperature_k": 234,
     "phase": 0.6455,
-    "habitability": 0.9
+    "habitability": 0.1749
    },
    {
     "id": "star-1-p1",
@@ -170,7 +171,7 @@
     "flux": 0.0219,
     "temperature_k": 107,
     "phase": 0.7745,
-    "habitability": 0.9
+    "habitability": 0
    },
    {
     "id": "star-1-p2",
@@ -183,7 +184,7 @@
     "flux": 0.0083,
     "temperature_k": 84,
     "phase": 0.6738,
-    "habitability": 0.9
+    "habitability": 0
    },
    {
     "id": "star-1-p3",
@@ -196,7 +197,7 @@
     "flux": 0.002,
     "temperature_k": 59,
     "phase": 0.2307,
-    "habitability": 0.9
+    "habitability": 0
    },
    {
     "id": "star-1-p4",
@@ -209,7 +210,7 @@
     "flux": 0.0009,
     "temperature_k": 48,
     "phase": 0.0019,
-    "habitability": 0.9
+    "habitability": 0
    },
    {
     "id": "star-2-p0",
@@ -222,7 +223,7 @@
     "flux": 864.39,
     "temperature_k": 1507,
     "phase": 0.5181,
-    "habitability": 0.9
+    "habitability": 0
    },
    {
     "id": "star-2-p1",
@@ -235,7 +236,7 @@
     "flux": 39.805,
     "temperature_k": 698,
     "phase": 0.5995,
-    "habitability": 0.9
+    "habitability": 0
    },
    {
     "id": "star-2-p2",
@@ -248,7 +249,7 @@
     "flux": 6.2715,
     "temperature_k": 440,
     "phase": 0.0955,
-    "habitability": 0.9
+    "habitability": 0
    },
    {
     "id": "star-3-p0",
@@ -261,7 +262,7 @@
     "flux": 21551.185,
     "temperature_k": 3368,
     "phase": 0.9691,
-    "habitability": 0.9
+    "habitability": 0
    },
    {
     "id": "star-3-p1",
@@ -274,7 +275,7 @@
     "flux": 617.0157,
     "temperature_k": 1386,
     "phase": 0.6011,
-    "habitability": 0.9
+    "habitability": 0
    },
    {
     "id": "star-4-p0",
@@ -287,7 +288,7 @@
     "flux": 8405.54,
     "temperature_k": 2662,
     "phase": 0.9418,
-    "habitability": 0.9
+    "habitability": 0
    },
    {
     "id": "star-4-p1",
@@ -300,289 +301,21 @@
     "flux": 219.3736,
     "temperature_k": 1070,
     "phase": 0.9588,
-    "habitability": 0.9
+    "habitability": 0
    }
   ],
-  "storms": [],
-  "life": [
+  "storms": [
    {
-    "id": "life-star-1-p4",
-    "type": "life",
-    "planet": "star-1-p4",
-    "complexity": 18.438,
-    "diversity": 10,
-    "born": 1,
-    "traits": {
-     "hue": 0.1742,
-     "motility": 0.9062,
-     "sociality": 0.6736
-    },
-    "complexity_norm": 0.9999,
-    "stage": "Dreamers",
-    "scars": 0,
-    "scarred": false
-   },
-   {
-    "id": "life-star-2-p0",
-    "type": "life",
+    "id": "storm-58",
+    "type": "storm",
     "planet": "star-2-p0",
-    "complexity": 16.3157,
-    "diversity": 10,
-    "born": 5,
-    "traits": {
-     "hue": 0.697,
-     "motility": 0.2419,
-     "sociality": 0.9509
-    },
-    "complexity_norm": 0.9997,
-    "stage": "Dreamers",
-    "scars": 13,
-    "scarred": true
-   },
-   {
-    "id": "life-star-0-p1",
-    "type": "life",
-    "planet": "star-0-p1",
-    "complexity": 15.3764,
-    "diversity": 14,
-    "born": 7,
-    "traits": {
-     "hue": 0.3152,
-     "motility": 0.1595,
-     "sociality": 0.2056
-    },
-    "complexity_norm": 0.9995,
-    "stage": "Dreamers",
-    "scars": 0,
-    "scarred": false
-   },
-   {
-    "id": "life-star-1-p2",
-    "type": "life",
-    "planet": "star-1-p2",
-    "complexity": 14.2835,
-    "diversity": 7,
-    "born": 7,
-    "traits": {
-     "hue": 0.1489,
-     "motility": 0.1783,
-     "sociality": 0.1012
-    },
-    "complexity_norm": 0.9992,
-    "stage": "Dreamers",
-    "scars": 0,
-    "scarred": false
-   },
-   {
-    "id": "life-star-2-p2",
-    "type": "life",
-    "planet": "star-2-p2",
-    "complexity": 15.0979,
-    "diversity": 9,
-    "born": 10,
-    "traits": {
-     "hue": 0.741,
-     "motility": 0.1354,
-     "sociality": 0.0895
-    },
-    "complexity_norm": 0.9995,
-    "stage": "Dreamers",
-    "scars": 0,
-    "scarred": false
-   },
-   {
-    "id": "life-star-1-p0",
-    "type": "life",
-    "planet": "star-1-p0",
-    "complexity": 14.7701,
-    "diversity": 10,
-    "born": 11,
-    "traits": {
-     "hue": 0.1484,
-     "motility": 0.2955,
-     "sociality": 0.2077
-    },
-    "complexity_norm": 0.9994,
-    "stage": "Dreamers",
-    "scars": 4,
-    "scarred": true
-   },
-   {
-    "id": "life-star-3-p0",
-    "type": "life",
-    "planet": "star-3-p0",
-    "complexity": 14.9108,
-    "diversity": 9,
-    "born": 11,
-    "traits": {
-     "hue": 0.2968,
-     "motility": 0.9284,
-     "sociality": 0.2223
-    },
-    "complexity_norm": 0.9994,
-    "stage": "Dreamers",
-    "scars": 2,
-    "scarred": true
-   },
-   {
-    "id": "life-star-0-p4",
-    "type": "life",
-    "planet": "star-0-p4",
-    "complexity": 13.1198,
-    "diversity": 6,
-    "born": 16,
-    "traits": {
-     "hue": 0.6883,
-     "motility": 0.8441,
-     "sociality": 0.9869
-    },
-    "complexity_norm": 0.9986,
-    "stage": "Dreamers",
-    "scars": 0,
-    "scarred": false
-   },
-   {
-    "id": "life-star-1-p1",
-    "type": "life",
-    "planet": "star-1-p1",
-    "complexity": 12.7213,
-    "diversity": 10,
-    "born": 16,
-    "traits": {
-     "hue": 0.5459,
-     "motility": 0.7817,
-     "sociality": 0.4391
-    },
-    "complexity_norm": 0.9983,
-    "stage": "Dreamers",
-    "scars": 0,
-    "scarred": false
-   },
-   {
-    "id": "life-star-0-p3",
-    "type": "life",
-    "planet": "star-0-p3",
-    "complexity": 10.4991,
-    "diversity": 8,
-    "born": 17,
-    "traits": {
-     "hue": 0.7055,
-     "motility": 0.3098,
-     "sociality": 0.011
-    },
-    "complexity_norm": 0.9948,
-    "stage": "Dreamers",
-    "scars": 0,
-    "scarred": false
-   },
-   {
-    "id": "life-star-0-p2",
-    "type": "life",
-    "planet": "star-0-p2",
-    "complexity": 12.3601,
-    "diversity": 4,
-    "born": 19,
-    "traits": {
-     "hue": 0.5823,
-     "motility": 0.695,
-     "sociality": 0.0636
-    },
-    "complexity_norm": 0.9979,
-    "stage": "Dreamers",
-    "scars": 0,
-    "scarred": false
-   },
-   {
-    "id": "life-star-4-p1",
-    "type": "life",
-    "planet": "star-4-p1",
-    "complexity": 9.1783,
-    "diversity": 4,
-    "born": 22,
-    "traits": {
-     "hue": 0.7592,
-     "motility": 0.485,
-     "sociality": 0.9552
-    },
-    "complexity_norm": 0.9898,
-    "stage": "Dreamers",
-    "scars": 0,
-    "scarred": false
-   },
-   {
-    "id": "life-star-3-p1",
-    "type": "life",
-    "planet": "star-3-p1",
-    "complexity": 8.1982,
-    "diversity": 6,
-    "born": 23,
-    "traits": {
-     "hue": 0.2579,
-     "motility": 0.1097,
-     "sociality": 0.8036
-    },
-    "complexity_norm": 0.9834,
-    "stage": "Dreamers",
-    "scars": 0,
-    "scarred": false
-   },
-   {
-    "id": "life-star-2-p1",
-    "type": "life",
-    "planet": "star-2-p1",
-    "complexity": 7.2276,
-    "diversity": 4,
-    "born": 26,
-    "traits": {
-     "hue": 0.5833,
-     "motility": 0.9337,
-     "sociality": 0.2891
-    },
-    "complexity_norm": 0.9731,
-    "stage": "Dreamers",
-    "scars": 0,
-    "scarred": false
-   },
-   {
-    "id": "life-star-0-p0",
-    "type": "life",
-    "planet": "star-0-p0",
-    "complexity": 8.4215,
-    "diversity": 6,
-    "born": 27,
-    "traits": {
-     "hue": 0.686,
-     "motility": 0.0971,
-     "sociality": 0.4476
-    },
-    "complexity_norm": 0.9852,
-    "stage": "Dreamers",
-    "scars": 0,
-    "scarred": false
+    "intensity": 0.3751,
+    "lifetime": 12,
+    "born": 58
    }
   ],
+  "life": [],
   "history": [
-   {
-    "tick": 1,
-    "source": "SIMULATED",
-    "sim_E": 0.98242,
-    "counts": {
-     "10": 4,
-     "11": 515,
-     "00": 500,
-     "01": 5
-    },
-    "events": [
-     {
-      "kind": "abiogenesis",
-      "planet": "star-1-p4"
-     },
-     {
-      "kind": "abiogenesis",
-      "planet": "star-4-p1"
-     }
-    ]
-   },
    {
     "tick": 2,
     "source": "SIMULATED",
@@ -605,12 +338,7 @@
      "00": 517,
      "01": 6
     },
-    "events": [
-     {
-      "kind": "abiogenesis",
-      "planet": "star-4-p0"
-     }
-    ]
+    "events": []
    },
    {
     "tick": 4,
@@ -634,12 +362,7 @@
      "00": 514,
      "01": 3
     },
-    "events": [
-     {
-      "kind": "abiogenesis",
-      "planet": "star-2-p0"
-     }
-    ]
+    "events": []
    },
    {
     "tick": 6,
@@ -663,20 +386,7 @@
      "00": 501,
      "01": 6
     },
-    "events": [
-     {
-      "kind": "abiogenesis",
-      "planet": "star-0-p1"
-     },
-     {
-      "kind": "abiogenesis",
-      "planet": "star-1-p2"
-     },
-     {
-      "kind": "abiogenesis",
-      "planet": "star-1-p3"
-     }
-    ]
+    "events": []
    },
    {
     "tick": 8,
@@ -712,12 +422,7 @@
      "00": 491,
      "01": 4
     },
-    "events": [
-     {
-      "kind": "abiogenesis",
-      "planet": "star-2-p2"
-     }
-    ]
+    "events": []
    },
    {
     "tick": 11,
@@ -729,20 +434,7 @@
      "00": 465,
      "01": 5
     },
-    "events": [
-     {
-      "kind": "abiogenesis",
-      "planet": "star-1-p0"
-     },
-     {
-      "kind": "abiogenesis",
-      "planet": "star-3-p0"
-     },
-     {
-      "kind": "abiogenesis",
-      "planet": "star-4-p0"
-     }
-    ]
+    "events": []
    },
    {
     "tick": 12,
@@ -802,16 +494,7 @@
      "00": 499,
      "01": 2
     },
-    "events": [
-     {
-      "kind": "abiogenesis",
-      "planet": "star-0-p4"
-     },
-     {
-      "kind": "abiogenesis",
-      "planet": "star-1-p1"
-     }
-    ]
+    "events": []
    },
    {
     "tick": 17,
@@ -823,12 +506,7 @@
      "00": 470,
      "01": 3
     },
-    "events": [
-     {
-      "kind": "abiogenesis",
-      "planet": "star-0-p3"
-     }
-    ]
+    "events": []
    },
    {
     "tick": 18,
@@ -852,12 +530,7 @@
      "00": 531,
      "01": 6
     },
-    "events": [
-     {
-      "kind": "abiogenesis",
-      "planet": "star-0-p2"
-     }
-    ]
+    "events": []
    },
    {
     "tick": 20,
@@ -893,12 +566,7 @@
      "00": 494,
      "01": 4
     },
-    "events": [
-     {
-      "kind": "abiogenesis",
-      "planet": "star-4-p1"
-     }
-    ]
+    "events": []
    },
    {
     "tick": 23,
@@ -910,12 +578,7 @@
      "00": 499,
      "01": 11
     },
-    "events": [
-     {
-      "kind": "abiogenesis",
-      "planet": "star-3-p1"
-     }
-    ]
+    "events": []
    },
    {
     "tick": 24,
@@ -951,12 +614,7 @@
      "00": 476,
      "01": 6
     },
-    "events": [
-     {
-      "kind": "abiogenesis",
-      "planet": "star-2-p1"
-     }
-    ]
+    "events": []
    },
    {
     "tick": 27,
@@ -968,12 +626,7 @@
      "00": 488,
      "01": 11
     },
-    "events": [
-     {
-      "kind": "abiogenesis",
-      "planet": "star-0-p0"
-     }
-    ]
+    "events": []
    },
    {
     "tick": 28,
@@ -1153,12 +806,7 @@
      "00": 507,
      "01": 7
     },
-    "events": [
-     {
-      "kind": "abiogenesis",
-      "planet": "star-4-p0"
-     }
-    ]
+    "events": []
    },
    {
     "tick": 43,
@@ -1171,6 +819,275 @@
      "01": 4
     },
     "events": []
+   },
+   {
+    "tick": 44,
+    "source": "SIMULATED",
+    "sim_E": 0.96484,
+    "counts": {
+     "10": 11,
+     "11": 516,
+     "00": 490,
+     "01": 7
+    },
+    "events": []
+   },
+   {
+    "tick": 45,
+    "source": "SIMULATED",
+    "sim_E": 0.98242,
+    "counts": {
+     "10": 6,
+     "11": 511,
+     "00": 504,
+     "01": 3
+    },
+    "events": []
+   },
+   {
+    "tick": 46,
+    "source": "SIMULATED",
+    "sim_E": 0.97656,
+    "counts": {
+     "10": 5,
+     "11": 503,
+     "00": 509,
+     "01": 7
+    },
+    "events": [
+     {
+      "kind": "supernova",
+      "star": "star-0"
+     }
+    ]
+   },
+   {
+    "tick": 47,
+    "source": "SIMULATED",
+    "sim_E": 0.99023,
+    "counts": {
+     "10": 1,
+     "11": 522,
+     "00": 497,
+     "01": 4
+    },
+    "events": []
+   },
+   {
+    "tick": 48,
+    "source": "SIMULATED",
+    "sim_E": 0.98242,
+    "counts": {
+     "10": 8,
+     "11": 504,
+     "00": 511,
+     "01": 1
+    },
+    "events": []
+   },
+   {
+    "tick": 49,
+    "source": "SIMULATED",
+    "sim_E": 0.97852,
+    "counts": {
+     "10": 5,
+     "11": 541,
+     "00": 472,
+     "01": 6
+    },
+    "events": []
+   },
+   {
+    "tick": 50,
+    "source": "SIMULATED",
+    "sim_E": 0.98633,
+    "counts": {
+     "10": 3,
+     "11": 542,
+     "00": 475,
+     "01": 4
+    },
+    "events": []
+   },
+   {
+    "tick": 51,
+    "source": "SIMULATED",
+    "sim_E": 0.98242,
+    "counts": {
+     "10": 2,
+     "11": 505,
+     "00": 510,
+     "01": 7
+    },
+    "events": []
+   },
+   {
+    "tick": 52,
+    "source": "SIMULATED",
+    "sim_E": 0.9668,
+    "counts": {
+     "10": 6,
+     "11": 511,
+     "00": 496,
+     "01": 11
+    },
+    "events": []
+   },
+   {
+    "tick": 53,
+    "source": "SIMULATED",
+    "sim_E": 0.96484,
+    "counts": {
+     "10": 7,
+     "11": 498,
+     "00": 508,
+     "01": 11
+    },
+    "events": []
+   },
+   {
+    "tick": 54,
+    "source": "SIMULATED",
+    "sim_E": 0.98633,
+    "counts": {
+     "10": 3,
+     "11": 521,
+     "00": 496,
+     "01": 4
+    },
+    "events": []
+   },
+   {
+    "tick": 55,
+    "source": "SIMULATED",
+    "sim_E": 0.97266,
+    "counts": {
+     "10": 4,
+     "11": 513,
+     "00": 497,
+     "01": 10
+    },
+    "events": []
+   },
+   {
+    "tick": 56,
+    "source": "SIMULATED",
+    "sim_E": 0.97852,
+    "counts": {
+     "10": 4,
+     "11": 507,
+     "00": 506,
+     "01": 7
+    },
+    "events": []
+   },
+   {
+    "tick": 57,
+    "source": "SIMULATED",
+    "sim_E": 0.98047,
+    "counts": {
+     "10": 4,
+     "11": 485,
+     "00": 529,
+     "01": 6
+    },
+    "events": []
+   },
+   {
+    "tick": 58,
+    "source": "SIMULATED",
+    "sim_E": 0.97266,
+    "counts": {
+     "10": 4,
+     "11": 515,
+     "00": 495,
+     "01": 10
+    },
+    "events": []
+   },
+   {
+    "tick": 59,
+    "source": "SIMULATED",
+    "sim_E": 0.97852,
+    "counts": {
+     "10": 7,
+     "11": 486,
+     "00": 527,
+     "01": 4
+    },
+    "events": []
+   },
+   {
+    "tick": 60,
+    "source": "SIMULATED",
+    "sim_E": 0.96875,
+    "counts": {
+     "10": 12,
+     "11": 510,
+     "00": 498,
+     "01": 4
+    },
+    "events": []
+   },
+   {
+    "tick": 61,
+    "source": "SIMULATED",
+    "sim_E": 0.96484,
+    "counts": {
+     "10": 8,
+     "11": 498,
+     "00": 508,
+     "01": 10
+    },
+    "events": []
+   },
+   {
+    "tick": 62,
+    "source": "SIMULATED",
+    "sim_E": 0.97266,
+    "counts": {
+     "10": 8,
+     "11": 526,
+     "00": 484,
+     "01": 6
+    },
+    "events": []
+   },
+   {
+    "tick": 63,
+    "source": "SIMULATED",
+    "sim_E": 0.98242,
+    "counts": {
+     "10": 5,
+     "11": 522,
+     "00": 493,
+     "01": 4
+    },
+    "events": []
+   },
+   {
+    "tick": 64,
+    "source": "SIMULATED",
+    "sim_E": 0.99414,
+    "counts": {
+     "10": 0,
+     "11": 505,
+     "00": 516,
+     "01": 3
+    },
+    "events": []
+   },
+   {
+    "tick": 65,
+    "source": "SIMULATED",
+    "sim_E": 0.96289,
+    "counts": {
+     "10": 7,
+     "11": 497,
+     "00": 508,
+     "01": 12
+    },
+    "events": []
    }
   ],
   "pairs": [
@@ -1181,34 +1098,34 @@
     "E_source": "RECORDED_IBM_HARDWARE",
     "sim_E": 0.99219,
     "sim_source": "SIMULATED",
-    "sim_tick": 43
+    "sim_tick": 65
    },
    {
     "a": "star-1-p2",
     "b": "star-0-p2",
     "E": 0.97461,
     "E_source": "RECORDED_IBM_HARDWARE",
-    "sim_E": 0.97656,
+    "sim_E": 0.98438,
     "sim_source": "SIMULATED",
-    "sim_tick": 43
+    "sim_tick": 65
    },
    {
     "a": "star-4-p1",
     "b": "star-3-p0",
     "E": 0.97461,
     "E_source": "RECORDED_IBM_HARDWARE",
-    "sim_E": 0.98438,
+    "sim_E": 0.99219,
     "sim_source": "SIMULATED",
-    "sim_tick": 43
+    "sim_tick": 65
    },
    {
     "a": "star-2-p0",
     "b": "star-0-p0",
     "E": 0.97461,
     "E_source": "RECORDED_IBM_HARDWARE",
-    "sim_E": 1,
+    "sim_E": 0.96875,
     "sim_source": "SIMULATED",
-    "sim_tick": 43
+    "sim_tick": 65
    },
    {
     "a": "star-3-p1",
@@ -1217,25 +1134,25 @@
     "E_source": "RECORDED_IBM_HARDWARE",
     "sim_E": 0.98438,
     "sim_source": "SIMULATED",
-    "sim_tick": 43
+    "sim_tick": 65
    },
    {
     "a": "star-4-p0",
     "b": "star-1-p1",
     "E": 0.97461,
     "E_source": "RECORDED_IBM_HARDWARE",
-    "sim_E": 0.98438,
+    "sim_E": 0.97656,
     "sim_source": "SIMULATED",
-    "sim_tick": 43
+    "sim_tick": 65
    },
    {
     "a": "star-1-p3",
     "b": "star-0-p4",
     "E": 0.97461,
     "E_source": "RECORDED_IBM_HARDWARE",
-    "sim_E": 0.98438,
+    "sim_E": 1,
     "sim_source": "SIMULATED",
-    "sim_tick": 43
+    "sim_tick": 65
    },
    {
     "a": "star-2-p1",
@@ -1244,331 +1161,11 @@
     "E_source": "RECORDED_IBM_HARDWARE",
     "sim_E": 0.96875,
     "sim_source": "SIMULATED",
-    "sim_tick": 43
+    "sim_tick": 65
    }
   ]
  },
  "growth_nodes": [
-  {
-   "id": "growth-node-star-0-p0-0",
-   "type": "growth_node",
-   "planet": "star-0-p0",
-   "kind": "canopy",
-   "lat": -38.064,
-   "lon": -119.1241,
-   "born": 0,
-   "label": "SEEDED",
-   "phase": 0.8704,
-   "vigor": 0.3029,
-   "hue": 0.9459,
-   "spread": 10.8029,
-   "goldShift": 0.6782,
-   "lifespan": 326,
-   "lean": -0.186,
-   "tick": 43,
-   "stage": "tuft",
-   "scale": 0.8698,
-   "norm": 0.3954,
-   "tint": 0,
-   "fruit": false,
-   "shed": 0,
-   "x": 0.1319,
-   "generation": 0,
-   "front": 25.5901,
-   "rate": 0.5951,
-   "drive": 1.4824,
-   "gold": 0.7907,
-   "scars": 0,
-   "scarred": false
-  },
-  {
-   "id": "growth-node-star-0-p0-1",
-   "type": "growth_node",
-   "planet": "star-0-p0",
-   "kind": "canopy",
-   "lat": -44.3466,
-   "lon": -115.8814,
-   "born": 0,
-   "label": "SEEDED",
-   "phase": 0.8754,
-   "vigor": 0.8786,
-   "hue": 0.6173,
-   "spread": 19.5369,
-   "goldShift": 0.9691,
-   "lifespan": 309,
-   "lean": 0.2383,
-   "tick": 43,
-   "stage": "tuft",
-   "scale": 0.9281,
-   "norm": 0.4218,
-   "tint": 0,
-   "fruit": false,
-   "shed": 0,
-   "x": 0.1392,
-   "generation": 0,
-   "front": 43.9388,
-   "rate": 1.0218,
-   "drive": 1.4824,
-   "gold": 0.8081,
-   "scars": 0,
-   "scarred": false
-  },
-  {
-   "id": "growth-node-star-0-p1-0",
-   "type": "growth_node",
-   "planet": "star-0-p1",
-   "kind": "patch",
-   "lat": -14.8965,
-   "lon": 128.9135,
-   "born": 0,
-   "label": "SEEDED",
-   "phase": 0.6107,
-   "vigor": 0.5931,
-   "hue": 0.5953,
-   "spread": 26.6598,
-   "goldShift": 0.592,
-   "lifespan": 73,
-   "lean": 0.8633,
-   "tick": 43,
-   "stage": "full",
-   "scale": 0.9974,
-   "norm": 0.9974,
-   "tint": 0,
-   "fruit": false,
-   "shed": 0,
-   "x": 0.589,
-   "generation": 0,
-   "front": 34.8393,
-   "rate": 0.8102,
-   "drive": 1.4824,
-   "gold": 0.7855,
-   "scars": 0,
-   "scarred": false
-  },
-  {
-   "id": "growth-node-star-0-p1-1",
-   "type": "growth_node",
-   "planet": "star-0-p1",
-   "kind": "ring",
-   "lat": -0.2395,
-   "lon": -146.5545,
-   "born": 0,
-   "label": "SEEDED",
-   "phase": 0.9595,
-   "vigor": 0.9269,
-   "hue": 0.3575,
-   "spread": 12.0028,
-   "goldShift": 0.3558,
-   "lifespan": 112,
-   "lean": 2.275,
-   "tick": 43,
-   "stage": "full",
-   "scale": 0.5083,
-   "norm": 0.8471,
-   "tint": 0,
-   "fruit": false,
-   "shed": 0,
-   "x": 0.3839,
-   "generation": 0,
-   "front": 45.4782,
-   "rate": 1.0576,
-   "drive": 1.4824,
-   "gold": 0.7713,
-   "scars": 0,
-   "scarred": false
-  },
-  {
-   "id": "growth-node-star-0-p2-0",
-   "type": "growth_node",
-   "planet": "star-0-p2",
-   "kind": "ring",
-   "lat": 43.9629,
-   "lon": -75.7191,
-   "born": 0,
-   "label": "SEEDED",
-   "phase": 0.2354,
-   "vigor": 0.0371,
-   "hue": 0.9835,
-   "spread": 21.4543,
-   "goldShift": 0.7908,
-   "lifespan": 131,
-   "lean": 0.1929,
-   "tick": 43,
-   "stage": "tuft",
-   "scale": 0.4776,
-   "norm": 0.796,
-   "tint": 0,
-   "fruit": false,
-   "shed": 0,
-   "x": 0.3282,
-   "generation": 0,
-   "front": 17.1185,
-   "rate": 0.3981,
-   "drive": 1.4824,
-   "gold": 0.7974,
-   "scars": 0,
-   "scarred": false
-  },
-  {
-   "id": "growth-node-star-0-p2-1",
-   "type": "growth_node",
-   "planet": "star-0-p2",
-   "kind": "patch",
-   "lat": -5.3103,
-   "lon": 30.9893,
-   "born": 0,
-   "label": "SEEDED",
-   "phase": 0.6739,
-   "vigor": 0.2573,
-   "hue": 0.8046,
-   "spread": 11.7493,
-   "goldShift": 0.7277,
-   "lifespan": 127,
-   "lean": -0.0665,
-   "tick": 43,
-   "stage": "tuft",
-   "scale": 0.7989,
-   "norm": 0.7989,
-   "tint": 0,
-   "fruit": false,
-   "shed": 0,
-   "x": 0.3386,
-   "generation": 0,
-   "front": 24.1367,
-   "rate": 0.5613,
-   "drive": 1.4824,
-   "gold": 0.7937,
-   "scars": 0,
-   "scarred": false
-  },
-  {
-   "id": "growth-node-star-0-p3-0",
-   "type": "growth_node",
-   "planet": "star-0-p3",
-   "kind": "canopy",
-   "lat": -48.9294,
-   "lon": 0.2492,
-   "born": 0,
-   "label": "SEEDED",
-   "phase": 0.0702,
-   "vigor": 0.4384,
-   "hue": 0.355,
-   "spread": 21.0318,
-   "goldShift": 0.0577,
-   "lifespan": 192,
-   "lean": 2.6467,
-   "tick": 43,
-   "stage": "tuft",
-   "scale": 1.4627,
-   "norm": 0.6649,
-   "tint": 0,
-   "fruit": false,
-   "shed": 0,
-   "x": 0.224,
-   "generation": 0,
-   "front": 29.9087,
-   "rate": 0.6956,
-   "drive": 1.4824,
-   "gold": 0.7535,
-   "scars": 0,
-   "scarred": false
-  },
-  {
-   "id": "growth-node-star-0-p3-1",
-   "type": "growth_node",
-   "planet": "star-0-p3",
-   "kind": "ring",
-   "lat": -36.6095,
-   "lon": 175.1771,
-   "born": 0,
-   "label": "SEEDED",
-   "phase": 0.6388,
-   "vigor": 0.0566,
-   "hue": 0.4381,
-   "spread": 27.0953,
-   "goldShift": 0.3643,
-   "lifespan": 101,
-   "lean": -0.3278,
-   "tick": 43,
-   "stage": "full",
-   "scale": 0.5379,
-   "norm": 0.8965,
-   "tint": 0,
-   "fruit": false,
-   "shed": 0,
-   "x": 0.4257,
-   "generation": 0,
-   "front": 17.74,
-   "rate": 0.4126,
-   "drive": 1.4824,
-   "gold": 0.7719,
-   "scars": 0,
-   "scarred": false
-  },
-  {
-   "id": "growth-node-star-0-p4-0",
-   "type": "growth_node",
-   "planet": "star-0-p4",
-   "kind": "canopy",
-   "lat": -55.3043,
-   "lon": 122.1824,
-   "born": 0,
-   "label": "SEEDED",
-   "phase": 0.211,
-   "vigor": 0.7733,
-   "hue": 0.1421,
-   "spread": 18.6413,
-   "goldShift": 0.1142,
-   "lifespan": 261,
-   "lean": 1.3917,
-   "tick": 43,
-   "stage": "tuft",
-   "scale": 1.1178,
-   "norm": 0.5081,
-   "tint": 0,
-   "fruit": false,
-   "shed": 0,
-   "x": 0.1648,
-   "generation": 0,
-   "front": 40.5827,
-   "rate": 0.9438,
-   "drive": 1.4824,
-   "gold": 0.7569,
-   "scars": 0,
-   "scarred": false
-  },
-  {
-   "id": "growth-node-star-0-p4-1",
-   "type": "growth_node",
-   "planet": "star-0-p4",
-   "kind": "ring",
-   "lat": 44.4357,
-   "lon": 52.5979,
-   "born": 0,
-   "label": "SEEDED",
-   "phase": 0.0644,
-   "vigor": 0.2059,
-   "hue": 0.3339,
-   "spread": 25.8716,
-   "goldShift": 0.0697,
-   "lifespan": 78,
-   "lean": 2.3492,
-   "tick": 43,
-   "stage": "full",
-   "scale": 0.5922,
-   "norm": 0.987,
-   "tint": 0,
-   "fruit": false,
-   "shed": 0,
-   "x": 0.5513,
-   "generation": 0,
-   "front": 22.4985,
-   "rate": 0.5232,
-   "drive": 1.4824,
-   "gold": 0.7542,
-   "scars": 0,
-   "scarred": false
-  },
   {
    "id": "growth-node-star-1-p0-0",
    "type": "growth_node",
@@ -1584,19 +1181,22 @@
    "spread": 18.4748,
    "goldShift": 0.4094,
    "lifespan": 104,
-   "lean": 0.9635,
-   "tick": 43,
-   "stage": "full",
-   "scale": 1.2362,
-   "norm": 0.883,
+   "lean": 1.0912,
+   "recorded_habitability": 0.1749,
+   "home_exception": true,
+   "home_label": "Home world · growth SEEDED",
+   "tick": 65,
+   "stage": "bloom",
+   "scale": 1.4,
+   "norm": 1,
    "tint": 0,
-   "fruit": false,
+   "fruit": true,
    "shed": 0,
-   "x": 0.4135,
+   "x": 0.625,
    "generation": 0,
-   "front": 29.0131,
-   "rate": 0.6747,
-   "drive": 1.4824,
+   "front": 43.2792,
+   "rate": 0.6658,
+   "drive": 1.4629,
    "gold": 0.7746,
    "scars": 0,
    "scarred": false
@@ -1616,628 +1216,23 @@
    "spread": 20.0324,
    "goldShift": 0.6193,
    "lifespan": 152,
-   "lean": -0.4747,
-   "tick": 43,
-   "stage": "tuft",
-   "scale": 0.7617,
-   "norm": 0.7617,
+   "lean": -0.5599,
+   "recorded_habitability": 0.1749,
+   "home_exception": true,
+   "home_label": "Home world · growth SEEDED",
+   "tick": 65,
+   "stage": "full",
+   "scale": 0.8985,
+   "norm": 0.8985,
    "tint": 0,
    "fruit": false,
    "shed": 0,
-   "x": 0.2829,
+   "x": 0.4276,
    "generation": 0,
-   "front": 25.316,
-   "rate": 0.5887,
-   "drive": 1.4824,
+   "front": 37.7641,
+   "rate": 0.581,
+   "drive": 1.4629,
    "gold": 0.7872,
-   "scars": 0,
-   "scarred": false
-  },
-  {
-   "id": "growth-node-star-1-p1-0",
-   "type": "growth_node",
-   "planet": "star-1-p1",
-   "kind": "shrub",
-   "lat": -11.9775,
-   "lon": 64.4161,
-   "born": 0,
-   "label": "SEEDED",
-   "phase": 0.2271,
-   "vigor": 0.1371,
-   "hue": 0.7211,
-   "spread": 18.3936,
-   "goldShift": 0.0785,
-   "lifespan": 165,
-   "lean": -2.021,
-   "tick": 43,
-   "stage": "tuft",
-   "scale": 1.0248,
-   "norm": 0.732,
-   "tint": 0,
-   "fruit": false,
-   "shed": 0,
-   "x": 0.2606,
-   "generation": 0,
-   "front": 20.3057,
-   "rate": 0.4722,
-   "drive": 1.4824,
-   "gold": 0.7547,
-   "scars": 0,
-   "scarred": false
-  },
-  {
-   "id": "growth-node-star-1-p1-1",
-   "type": "growth_node",
-   "planet": "star-1-p1",
-   "kind": "ring",
-   "lat": -43.6378,
-   "lon": 151.0067,
-   "born": 0,
-   "label": "SEEDED",
-   "phase": 0.8152,
-   "vigor": 0.5221,
-   "hue": 0.2998,
-   "spread": 21.1837,
-   "goldShift": 0.3709,
-   "lifespan": 74,
-   "lean": 2.9995,
-   "tick": 43,
-   "stage": "full",
-   "scale": 0.5975,
-   "norm": 0.9958,
-   "tint": 0,
-   "fruit": false,
-   "shed": 0,
-   "x": 0.5811,
-   "generation": 0,
-   "front": 32.5764,
-   "rate": 0.7576,
-   "drive": 1.4824,
-   "gold": 0.7723,
-   "scars": 0,
-   "scarred": false
-  },
-  {
-   "id": "growth-node-star-1-p2-0",
-   "type": "growth_node",
-   "planet": "star-1-p2",
-   "kind": "patch",
-   "lat": 6.2158,
-   "lon": -155.1422,
-   "born": 0,
-   "label": "SEEDED",
-   "phase": 0.0203,
-   "vigor": 0.0214,
-   "hue": 0.3637,
-   "spread": 11.5369,
-   "goldShift": 0.3354,
-   "lifespan": 167,
-   "lean": 0.733,
-   "tick": 43,
-   "stage": "tuft",
-   "scale": 0.7272,
-   "norm": 0.7272,
-   "tint": 0,
-   "fruit": false,
-   "shed": 0,
-   "x": 0.2575,
-   "generation": 0,
-   "front": 16.6181,
-   "rate": 0.3865,
-   "drive": 1.4824,
-   "gold": 0.7701,
-   "scars": 0,
-   "scarred": false
-  },
-  {
-   "id": "growth-node-star-1-p2-1",
-   "type": "growth_node",
-   "planet": "star-1-p2",
-   "kind": "canopy",
-   "lat": 27.6419,
-   "lon": 174.0123,
-   "born": 0,
-   "label": "SEEDED",
-   "phase": 0.4945,
-   "vigor": 0.3853,
-   "hue": 0.1622,
-   "spread": 20.0644,
-   "goldShift": 0.2513,
-   "lifespan": 164,
-   "lean": 1.5282,
-   "tick": 43,
-   "stage": "tuft",
-   "scale": 1.6157,
-   "norm": 0.7344,
-   "tint": 0,
-   "fruit": false,
-   "shed": 0,
-   "x": 0.2622,
-   "generation": 0,
-   "front": 28.2163,
-   "rate": 0.6562,
-   "drive": 1.4824,
-   "gold": 0.7651,
-   "scars": 0,
-   "scarred": false
-  },
-  {
-   "id": "growth-node-star-1-p3-0",
-   "type": "growth_node",
-   "planet": "star-1-p3",
-   "kind": "canopy",
-   "lat": -48.2805,
-   "lon": 166.1909,
-   "born": 0,
-   "label": "SEEDED",
-   "phase": 0.6026,
-   "vigor": 0.4601,
-   "hue": 0.2134,
-   "spread": 22.1554,
-   "goldShift": 0.9632,
-   "lifespan": 244,
-   "lean": 0.2677,
-   "tick": 43,
-   "stage": "tuft",
-   "scale": 1.1949,
-   "norm": 0.5431,
-   "tint": 0,
-   "fruit": false,
-   "shed": 0,
-   "x": 0.1762,
-   "generation": 0,
-   "front": 30.6003,
-   "rate": 0.7116,
-   "drive": 1.4824,
-   "gold": 0.8078,
-   "scars": 0,
-   "scarred": false
-  },
-  {
-   "id": "growth-node-star-1-p4-0",
-   "type": "growth_node",
-   "planet": "star-1-p4",
-   "kind": "patch",
-   "lat": -35.9541,
-   "lon": -120.1507,
-   "born": 0,
-   "label": "SEEDED",
-   "phase": 0.328,
-   "vigor": 0.9229,
-   "hue": 0.0205,
-   "spread": 10.9704,
-   "goldShift": 0.1974,
-   "lifespan": 168,
-   "lean": 2.6173,
-   "tick": 43,
-   "stage": "tuft",
-   "scale": 0.7248,
-   "norm": 0.7248,
-   "tint": 0,
-   "fruit": false,
-   "shed": 0,
-   "x": 0.256,
-   "generation": 0,
-   "front": 45.3507,
-   "rate": 1.0547,
-   "drive": 1.4824,
-   "gold": 0.7618,
-   "scars": 0,
-   "scarred": false
-  },
-  {
-   "id": "growth-node-star-2-p0-0",
-   "type": "growth_node",
-   "planet": "star-2-p0",
-   "kind": "ring",
-   "lat": 32.5285,
-   "lon": -153.1751,
-   "born": 0,
-   "label": "SEEDED",
-   "phase": 0.0712,
-   "vigor": 0.4885,
-   "hue": 0.0379,
-   "spread": 16.7616,
-   "goldShift": 0.7258,
-   "lifespan": 99,
-   "lean": 1.4132,
-   "tick": 43,
-   "stage": "full",
-   "scale": 0.5433,
-   "norm": 0.9054,
-   "tint": 0,
-   "fruit": false,
-   "shed": 0,
-   "x": 0.4343,
-   "generation": 0,
-   "front": 31.5055,
-   "rate": 0.7327,
-   "drive": 1.4824,
-   "gold": 0.7935,
-   "scars": 0,
-   "scarred": false
-  },
-  {
-   "id": "growth-node-star-2-p1-0",
-   "type": "growth_node",
-   "planet": "star-2-p1",
-   "kind": "patch",
-   "lat": -43.4586,
-   "lon": -78.8884,
-   "born": 0,
-   "label": "SEEDED",
-   "phase": 0.5683,
-   "vigor": 0.6961,
-   "hue": 0.2147,
-   "spread": 16.722,
-   "goldShift": 0.0677,
-   "lifespan": 92,
-   "lean": 0.8552,
-   "tick": 43,
-   "stage": "full",
-   "scale": 0.9361,
-   "norm": 0.9361,
-   "tint": 0,
-   "fruit": false,
-   "shed": 0,
-   "x": 0.4674,
-   "generation": 0,
-   "front": 38.1221,
-   "rate": 0.8866,
-   "drive": 1.4824,
-   "gold": 0.7541,
-   "scars": 0,
-   "scarred": false
-  },
-  {
-   "id": "growth-node-star-2-p1-1",
-   "type": "growth_node",
-   "planet": "star-2-p1",
-   "kind": "shrub",
-   "lat": 22.7279,
-   "lon": -39.143,
-   "born": 0,
-   "label": "SEEDED",
-   "phase": 0.3978,
-   "vigor": 0.6409,
-   "hue": 0.5632,
-   "spread": 27.4905,
-   "goldShift": 0.9655,
-   "lifespan": 117,
-   "lean": 0.8865,
-   "tick": 43,
-   "stage": "full",
-   "scale": 1.1552,
-   "norm": 0.8251,
-   "tint": 0,
-   "fruit": false,
-   "shed": 0,
-   "x": 0.3675,
-   "generation": 0,
-   "front": 36.3628,
-   "rate": 0.8456,
-   "drive": 1.4824,
-   "gold": 0.8079,
-   "scars": 0,
-   "scarred": false
-  },
-  {
-   "id": "growth-node-star-2-p2-0",
-   "type": "growth_node",
-   "planet": "star-2-p2",
-   "kind": "shrub",
-   "lat": -16.9806,
-   "lon": 32.8591,
-   "born": 0,
-   "label": "SEEDED",
-   "phase": 0.1819,
-   "vigor": 0.9785,
-   "hue": 0.345,
-   "spread": 25.21,
-   "goldShift": 0.267,
-   "lifespan": 155,
-   "lean": 0.1347,
-   "tick": 43,
-   "stage": "tuft",
-   "scale": 1.0573,
-   "norm": 0.7552,
-   "tint": 0,
-   "fruit": false,
-   "shed": 0,
-   "x": 0.2774,
-   "generation": 0,
-   "front": 47.1228,
-   "rate": 1.0959,
-   "drive": 1.4824,
-   "gold": 0.766,
-   "scars": 0,
-   "scarred": false
-  },
-  {
-   "id": "growth-node-star-2-p2-1",
-   "type": "growth_node",
-   "planet": "star-2-p2",
-   "kind": "shrub",
-   "lat": 36.8578,
-   "lon": -82.5892,
-   "born": 0,
-   "label": "SEEDED",
-   "phase": 0.7196,
-   "vigor": 0.9242,
-   "hue": 0.7929,
-   "spread": 13.5742,
-   "goldShift": 0.5114,
-   "lifespan": 106,
-   "lean": 1.7738,
-   "tick": 43,
-   "stage": "full",
-   "scale": 1.2235,
-   "norm": 0.874,
-   "tint": 0,
-   "fruit": false,
-   "shed": 0,
-   "x": 0.4057,
-   "generation": 0,
-   "front": 45.3921,
-   "rate": 1.0556,
-   "drive": 1.4824,
-   "gold": 0.7807,
-   "scars": 0,
-   "scarred": false
-  },
-  {
-   "id": "growth-node-star-3-p0-0",
-   "type": "growth_node",
-   "planet": "star-3-p0",
-   "kind": "shrub",
-   "lat": -7.2146,
-   "lon": 79.9871,
-   "born": 0,
-   "label": "SEEDED",
-   "phase": 0.8506,
-   "vigor": 0.2596,
-   "hue": 0.9031,
-   "spread": 17.434,
-   "goldShift": 0.9206,
-   "lifespan": 152,
-   "lean": 0.8452,
-   "tick": 43,
-   "stage": "tuft",
-   "scale": 1.0664,
-   "norm": 0.7617,
-   "tint": 0,
-   "fruit": false,
-   "shed": 0,
-   "x": 0.2829,
-   "generation": 0,
-   "front": 24.21,
-   "rate": 0.563,
-   "drive": 1.4824,
-   "gold": 0.8052,
-   "scars": 0,
-   "scarred": false
-  },
-  {
-   "id": "growth-node-star-3-p0-1",
-   "type": "growth_node",
-   "planet": "star-3-p0",
-   "kind": "ring",
-   "lat": -21.575,
-   "lon": -27.821,
-   "born": 0,
-   "label": "SEEDED",
-   "phase": 0.6053,
-   "vigor": 0.1345,
-   "hue": 0.8967,
-   "spread": 12.7599,
-   "goldShift": 0.6162,
-   "lifespan": 124,
-   "lean": 1.1448,
-   "tick": 43,
-   "stage": "tuft",
-   "scale": 0.4799,
-   "norm": 0.7999,
-   "tint": 0,
-   "fruit": false,
-   "shed": 0,
-   "x": 0.3468,
-   "generation": 0,
-   "front": 20.2228,
-   "rate": 0.4703,
-   "drive": 1.4824,
-   "gold": 0.787,
-   "scars": 0,
-   "scarred": false
-  },
-  {
-   "id": "growth-node-star-3-p1-0",
-   "type": "growth_node",
-   "planet": "star-3-p1",
-   "kind": "patch",
-   "lat": -38.1486,
-   "lon": -14.8512,
-   "born": 0,
-   "label": "SEEDED",
-   "phase": 0.6353,
-   "vigor": 0.8254,
-   "hue": 0.6804,
-   "spread": 17.2273,
-   "goldShift": 0.7604,
-   "lifespan": 137,
-   "lean": 1.7596,
-   "tick": 43,
-   "stage": "tuft",
-   "scale": 0.7889,
-   "norm": 0.7889,
-   "tint": 0,
-   "fruit": false,
-   "shed": 0,
-   "x": 0.3139,
-   "generation": 0,
-   "front": 42.2432,
-   "rate": 0.9824,
-   "drive": 1.4824,
-   "gold": 0.7956,
-   "scars": 0,
-   "scarred": false
-  },
-  {
-   "id": "growth-node-star-3-p1-1",
-   "type": "growth_node",
-   "planet": "star-3-p1",
-   "kind": "patch",
-   "lat": 37.9768,
-   "lon": -160.4442,
-   "born": 0,
-   "label": "SEEDED",
-   "phase": 0.8878,
-   "vigor": 0.3336,
-   "hue": 0.9815,
-   "spread": 13.465,
-   "goldShift": 0.6283,
-   "lifespan": 104,
-   "lean": -0.2621,
-   "tick": 43,
-   "stage": "full",
-   "scale": 0.883,
-   "norm": 0.883,
-   "tint": 0,
-   "fruit": false,
-   "shed": 0,
-   "x": 0.4135,
-   "generation": 0,
-   "front": 26.5685,
-   "rate": 0.6179,
-   "drive": 1.4824,
-   "gold": 0.7877,
-   "scars": 0,
-   "scarred": false
-  },
-  {
-   "id": "growth-node-star-4-p0-0",
-   "type": "growth_node",
-   "planet": "star-4-p0",
-   "kind": "patch",
-   "lat": -42.4653,
-   "lon": -2.1952,
-   "born": 0,
-   "label": "SEEDED",
-   "phase": 0.0464,
-   "vigor": 0.8055,
-   "hue": 0.8448,
-   "spread": 10.4384,
-   "goldShift": 0.0621,
-   "lifespan": 117,
-   "lean": 0.9228,
-   "tick": 43,
-   "stage": "full",
-   "scale": 0.8251,
-   "norm": 0.8251,
-   "tint": 0,
-   "fruit": false,
-   "shed": 0,
-   "x": 0.3675,
-   "generation": 0,
-   "front": 41.6089,
-   "rate": 0.9676,
-   "drive": 1.4824,
-   "gold": 0.7537,
-   "scars": 0,
-   "scarred": false
-  },
-  {
-   "id": "growth-node-star-4-p0-1",
-   "type": "growth_node",
-   "planet": "star-4-p0",
-   "kind": "ring",
-   "lat": -30.3116,
-   "lon": -11.7177,
-   "born": 0,
-   "label": "SEEDED",
-   "phase": 0.6748,
-   "vigor": 0.247,
-   "hue": 0.3071,
-   "spread": 20.1505,
-   "goldShift": 0.4033,
-   "lifespan": 68,
-   "lean": 2.82,
-   "tick": 43,
-   "stage": "bloom",
-   "scale": 0.6,
-   "norm": 1,
-   "tint": 0,
-   "fruit": false,
-   "shed": 0,
-   "x": 0.6324,
-   "generation": 0,
-   "front": 23.8084,
-   "rate": 0.5537,
-   "drive": 1.4824,
-   "gold": 0.7742,
-   "scars": 0,
-   "scarred": false
-  },
-  {
-   "id": "growth-node-star-4-p1-0",
-   "type": "growth_node",
-   "planet": "star-4-p1",
-   "kind": "ring",
-   "lat": 37.5323,
-   "lon": 82.9297,
-   "born": 0,
-   "label": "SEEDED",
-   "phase": 0.9813,
-   "vigor": 0.5339,
-   "hue": 0.693,
-   "spread": 20.5738,
-   "goldShift": 0.4135,
-   "lifespan": 82,
-   "lean": 2.9552,
-   "tick": 43,
-   "stage": "full",
-   "scale": 0.585,
-   "norm": 0.9749,
-   "tint": 0,
-   "fruit": false,
-   "shed": 0,
-   "x": 0.5244,
-   "generation": 0,
-   "front": 32.9525,
-   "rate": 0.7663,
-   "drive": 1.4824,
-   "gold": 0.7748,
-   "scars": 0,
-   "scarred": false
-  },
-  {
-   "id": "growth-node-star-4-p1-1",
-   "type": "growth_node",
-   "planet": "star-4-p1",
-   "kind": "ring",
-   "lat": 1.0468,
-   "lon": -152.634,
-   "born": 0,
-   "label": "SEEDED",
-   "phase": 0.9699,
-   "vigor": 0.2562,
-   "hue": 0.5606,
-   "spread": 11.702,
-   "goldShift": 0.7352,
-   "lifespan": 82,
-   "lean": -0.6887,
-   "tick": 43,
-   "stage": "full",
-   "scale": 0.585,
-   "norm": 0.9749,
-   "tint": 0,
-   "fruit": false,
-   "shed": 0,
-   "x": 0.5244,
-   "generation": 0,
-   "front": 24.1016,
-   "rate": 0.5605,
-   "drive": 1.4824,
-   "gold": 0.7941,
    "scars": 0,
    "scarred": false
   }
