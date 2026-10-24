@@ -127,3 +127,15 @@ export function landscapeZoom(ls,mode,{beast,planet,seed='tiny'}={}){
  const line=mode==='shelter'?ls.name+' is sheltering from the storm.':landscapeNotice(ls,mode,{beast,planet,seed});
  return {title,line,mode};
 }
+
+// ---- LIFE LAYER (landscapes 3/3). View-model only; none of this is written into the engine JSON.
+/** Which landscape is this life entry's home? A seeded pick from the entry's OWN key: lwStream(seed+':home:'+key) (never the growth or landscape streams). null when the list is empty. */
+export function homeLandscapeId(seed,key,landscapes){const L=(landscapes||[]);if(!L.length)return null;return L[Math.floor(lwStream(String(seed)+':home:'+key)()*L.length)%L.length].id;}
+/** The view model of the planet's life: a COPY of u.life where each entry gains `home_landscape` (u itself is never touched). Entries on a planet with no landscape get null. */
+export function withHomeLandscapes(u,landscapes){return (u?.life||[]).map(l=>{const here=(landscapes||[]).filter(x=>x.planet===l.planet);return {...l,home_landscape:homeLandscapeId(u.seed,l.id,here)};});}
+/** Roam targets for a mode, in the roam-brain SPOTS pattern: gather = play ring + seats; shelter/sleep = the shelter anchor; empty = none. */
+export function landscapeTargets(ls,mode){const a=landscapeAnchors(ls);if(mode==='gather')return [a.play,...landscapeSlots(ls).seats];if(mode==='shelter'||mode==='sleep')return [a.shelter];return [];}
+/** One resident's goal: {target (unit vector), arrive (radians)} or null (empty mode). Stable per (seed, key, mode); the huddle sits within the pack's 0.55 m cluster radius of the shelter. */
+export function landscapeGoal(ls,mode,key,seed='tiny'){const T=landscapeTargets(ls,mode);if(!T.length)return null;const r=lwStream(String(seed)+':slot:'+ls.id+':'+key+':'+mode);const R=ls.radiusM/LANDSCAPE.worldRadiusM;
+ if(mode==='gather'){const t=T[Math.floor(r()*T.length)%T.length];return {target:t,arrive:0.16*R};}
+ const huddle=0.55/LANDSCAPE.worldRadiusM;return {target:pointAt(T[0],r()*TAU,Math.sqrt(r())*huddle),arrive:0.2*huddle+0.05*R};}

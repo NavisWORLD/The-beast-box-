@@ -23,3 +23,7 @@ export function lampLevel(o?:{nightFactor?:number;storm_t?:number;lifeVolume?:nu
 export function landscapeNotice(ls:Landscape,mode:LandscapeMode,o?:{beast?:string;planet?:string;seed?:any;n?:number}):string|null;
 export function landscapeTapLine(ls:Landscape,o?:{beast?:string;planet?:string;seed?:any;n?:number}):string|null;
 export function landscapeZoom(ls:Landscape,mode:LandscapeMode,o?:{beast?:string;planet?:string;seed?:any}):{title:string;line:string|null;mode:LandscapeMode};
+export function homeLandscapeId(seed:any,key:string,landscapes:Landscape[]):string|null;
+export function withHomeLandscapes(u:{seed?:any;life?:any[]},landscapes:Landscape[]):any[];
+export function landscapeTargets(ls:Landscape,mode:LandscapeMode):number[][];
+export function landscapeGoal(ls:Landscape,mode:LandscapeMode,key:string,seed?:any):{target:number[];arrive:number}|null;
