@@ -5,6 +5,8 @@ import {grow} from '@/lib/universe/tiny-universe.mjs';
 import {biomeOf,BIOMES,starClass,lifeStage,entangledPairs,homeOf,hearthOf,zerefStar,planetFrame,starFrame,lifeFrame,stormFrame,threadFrame,hearthFrame,GENESIS_LABEL,GROWTH_LABEL,ZEREF_LINES} from '@/lib/universe/tiny-universe-view.mjs';
 import s from './tiny-universe-view.module.css';
 import Universe3D from './universe-3d';
+import dynamic from 'next/dynamic';
+const DoorWorld=dynamic(()=>import('./living-world'),{ssr:false});
 import {MOONS_LABEL} from '@/lib/universe/moons.mjs';
 import {createAliveGate} from '@/lib/universe/alive-props.mjs';
 import {isSoftwareGL} from '@/lib/three/soft-gl';
@@ -22,6 +24,9 @@ export default function TinyUniverseView(){
  const cv=useRef<HTMLCanvasElement>(null);const uRef=useRef<U>(null);const g0=useRef<U>(null);const pos=useRef<Map<string,{x:number,y:number,r:number}>>(new Map());
  const [u,setU]=useState<U>(null);const [run,setRun]=useState(true);const [sel,setSel]=useState<string|null>(null);const [line,setLine]=useState('');const aliveGate=useRef(createAliveGate());const [err,setErr]=useState('');
  const [three,setThree]=useState(false);useEffect(()=>{setThree(!isSoftwareGL());},[]);
+ // the door into the pocket world: a cross-dissolve of the universe canvas and the pocket-world canvas (two renderers, matched framing). Off on CPU rasterisers (the pocket world starves them) unless ?door=1
+ const [doorV,setDoorV]=useState(0);const [doorMount,setDoorMount]=useState(false);const [doorOk,setDoorOk]=useState(false);useEffect(()=>{const q=new URLSearchParams(location.search).get('door');setDoorOk(q==='1'||(q!=='0'&&!isSoftwareGL()));},[]);
+ const leaveDoor=useCallback(()=>{window.dispatchEvent(new Event('u3d-door-leave'));},[]);
  useEffect(()=>{fetch('/universe/atlas.json').then(r=>r.json()).then((a:Atlas)=>{SPR.atlas=a;for(const[k,v]of Object.entries(a.sheets)){const im=new Image();im.decoding='async';if(v.fallback){const fb=v.fallback;im.onerror=()=>{im.onerror=null;im.src=fb;};}im.src=v.image;SPR.img[k]=im;}}).catch(()=>{});},[]);
  useEffect(()=>{fetch('/universe/tiny-universe-genesis.json').then(r=>r.json()).then(j=>{g0.current=j;uRef.current=j;setU(j);}).catch(e=>setErr(String(e)));},[]);
  useEffect(()=>{if(!run||!u)return;const id=setInterval(()=>{const cur=uRef.current;if(!cur||cur.tick>=2000)return;const n=grow(cur,1);const ev=n.history[n.history.length-1]?.events||[];
@@ -64,7 +69,8 @@ export default function TinyUniverseView(){
  const last=u?.history?.[u.history.length-1];
  return <main className={s.wrap} data-tiny-universe>
   <canvas ref={cv} className={s.canvas} onPointerDown={tap} aria-label="Tiny Universe map" style={three?{visibility:'hidden'}:undefined}/>
-  {three&&u?<Universe3D u={u} onSelect={setSel} onAlive={k=>{const f=aliveGate.current.fire(k,String(u.seed||'tiny'),performance.now()/1000);if(f)setLine(f.line);}}/>:null}
+  {three&&u?<Universe3D u={u} doorOn={doorOk} onDoor={(v,pre)=>{setDoorV(v);setDoorMount(pre);}} onSelect={setSel} onAlive={k=>{const f=aliveGate.current.fire(k,String(u.seed||'tiny'),performance.now()/1000);if(f)setLine(f.line);}}/>:null}
+  {three&&u&&doorOk&&doorMount?<div data-door data-door-v={doorV.toFixed(2)} style={{position:'absolute',inset:0,zIndex:1,opacity:doorV,visibility:doorV>0.001?'visible':'hidden',pointerEvents:doorV>0.5?'auto':'none'}}><DoorWorld door onOrbitOut={leaveDoor} onClose={leaveDoor}/></div>:null}
   <div className={s.hud}><div className={s.title}>✦ TINY UNIVERSE{three?<span className={`${s.tag} ${s.sim}`} data-moons-label title={MOONS_LABEL} style={{marginLeft:8,fontSize:10,verticalAlign:'middle'}}>Moons: SEEDED</span>:null}</div><span className={s.tag} data-genesis-label>{GENESIS_LABEL}</span><span className={`${s.tag} ${s.sim}`} data-growth-label>{GROWTH_LABEL}</span></div>
   <div className={s.bottom}>
    {info?<div className={s.card}>{info}</div>:null}
