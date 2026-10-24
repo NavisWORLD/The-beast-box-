@@ -1,0 +1,8 @@
+export const SKY_VIEW:Readonly<Record<string,number>>;
+export function skyConfigFor(planet:any,star:any):{type:string;atmosphere:number;skyColor:number[]|null;twilightColor:number[]|null;starTempK:number};
+export function sunSource(a:{field:any;override:boolean}):{source:'override'|'engine'|'clock';dir:number[]|null};
+export function boomBearing(seed:string,starId:string):number[];
+export function skyBooms(u:any,homePlanet:any,homeStar:any,tick:number):{star:any;eventTick:number;distance:number;dir:number[]}[];
+export function skyMoons(seed:string,planet:any,up:number[],t:number):any[];
+export function boomSpriteScale(radiusDeg:number,dist?:number):number;
+export function engineChannels(F:any):{chaos:number;coherence:number;tick:number};

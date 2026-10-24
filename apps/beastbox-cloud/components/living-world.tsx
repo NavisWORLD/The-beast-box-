@@ -50,6 +50,8 @@ import {createAliveGate} from '@/lib/universe/alive-props.mjs';
 import {zoomBlend,zoomDistance,stepZoom,clampAboveGround,isMeadow} from '@/lib/universe/groundcover.mjs';
 import {addHeaven} from '@/lib/worlds/heaven';
 import {buildPlush,type PlushGenome} from './creature-plush-3d';
+import {skyAt} from '@/lib/universe/sky-state.mjs';
+import {skyConfigFor,sunSource,skyBooms,skyMoons,boomSpriteScale,boomBearing,SKY_VIEW,engineChannels} from '@/lib/universe/sky-view.mjs';
 const ART='/universe/livingworld/';
 // All event lines are Cosmic Emeth's (lib/universe/data/living_world_lines.json + biome_lore.json via living-alive.mjs).
 const CX=ART+'coexist/'; // Cosmo's coexist art: models/{cairn,flower_ring,burrow}_stage{1,2,3}.glb, sprites/, moods.json
@@ -99,6 +101,8 @@ export default function LivingWorld({genome,beastKey,beastName,onClose,embedded=
    const blackBodyToRGB=(temp:number)=>{temp/=100;let r:number,g:number,b:number;if(temp<=66){r=255;g=99.47*Math.log(temp)-161.12;b=temp<=19?0:138.52*Math.log(temp-10)-305.04;}else{r=329.7*Math.pow(temp-60,-.133);g=288.12*Math.pow(temp-60,-.0755);b=255;}const c=(x:number)=>Math.max(0,Math.min(255,x))/255;return new THREE.Color(c(r),c(g),c(b));};
    const homePl=VISIT?visitPl:[...(u.planets||[])].sort((a:any,b:any)=>(b.habitability||0)-(a.habitability||0))[0];const homeStar=(u.stars||[]).find((x:any)=>x.id===homePl?.star)||u.stars?.[0];
    const starCol=blackBodyToRGB(homeStar?.temperature_k||5800);sun.color.copy(starCol);(window as any).__lwStar={id:homeStar?.id,temperature_k:homeStar?.temperature_k,planet:homePl?.id};
+   /* the engine's sky (PR 5): config from the same shading data the orbit globe uses; booms replayed from engine history */
+   const skyCfg=skyConfigFor(homePl,homeStar);const skyBoomList=skyBooms(u,homePl,homeStar,(u as any).tick||0);const hemiBase=new THREE.Color(0xb9a8ff);
    renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.15;
    // the Cage's sun glow + light shaft + bloom halo (lib/worlds/heaven, shared with the home Cage), standing over whoever you're close to
    const heaven=addHeaven(THREE,scene,{low:phone,rand:lwStream(u.seed+':heaven')});heaven.root.scale.setScalar(.4);
@@ -109,6 +113,9 @@ export default function LivingWorld({genome,beastKey,beastName,onClose,embedded=
    const cosmoSky=softGL?{update:(..._a:any[])=>{}}:addCosmoSky(THREE,scene,{radius:230,phone});const nova=lfSheet(THREE,LANDF+'vfx/supernova_4x4_256.png',{fps:10,loop:false});nova.sp.scale.setScalar(30);scene.add(nova.sp);(window as any).__lwNova=()=>{nova.sp.position.copy(sunDir).multiplyScalar(-150);nova.play();};const sunDisc=new THREE.Sprite(new THREE.SpriteMaterial({map:L.load(LANDF+'sky/sun_corona_512.png'),color:0xfff0c0,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,fog:false}));sunDisc.scale.setScalar(40);sunDisc.material.color.copy(starCol);scene.add(sunDisc);
    const starMesh=new THREE.Mesh(new THREE.SphereGeometry(6,32,20),new THREE.MeshBasicMaterial({color:starCol,toneMapped:false}));scene.add(starMesh);
    const moon=new THREE.Mesh(new THREE.SphereGeometry(2.2,24,16),new THREE.MeshStandardMaterial({color:0xd8dcef,emissive:0x40445a,roughness:1}));scene.add(moon);
+   const boomTex=(()=>{const c=document.createElement('canvas');c.width=c.height=128;const g=c.getContext('2d')!;const im=g.createImageData(128,128);for(let y=0;y<128;y++)for(let x=0;x<128;x++){const r=Math.hypot(x-63.5,y-63.5)/64,R=1/3;const a=Math.exp(-Math.pow(r/R,1.4))+0.18*Math.exp(-(r/(3*R)))*(r<1?1:0);const k=Math.max(0,Math.min(1,a*(r<1?1-r*r*r:0)))*255;const i=(y*128+x)*4;im.data[i]=im.data[i+1]=im.data[i+2]=255;im.data[i+3]=k;}g.putImageData(im,0,0);const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return t;})();
+   const boomGlow=new THREE.Sprite(new THREE.SpriteMaterial({map:boomTex,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,fog:false}));boomGlow.visible=false;scene.add(boomGlow);
+   const skyMoonMeshes:any[]=[moon];
    let starMat:any=null;
    // ---- stars + 12D lattice in the sky (when the viewer pulls back past the orbit, this shell follows the camera and grows with its distance, so it never shows as a ball)
    let lwStars:any=null;
@@ -519,16 +526,28 @@ uniform vec3 uPlay[8];
       (window as any).__lwAlive={builds:builds.map(b=>({kind:b.kind,stage:b.stage,progress:b.progress,model:!!b.model,window:!!b.win,emissive:b.win?.material?.emissiveIntensity??null})),moods:(residents as any[]).map(r=>({name:r.name,mood:r.mood,nap:r.nap>0})),rings:rings.length,zerefRecords:zLog.length,window:{...win}};
      }};
    })();
-   let fpsT=0,fpsN=0,fps=0,last=performance.now(),t=0,hudT=0;const camTarget=new THREE.Vector3(),camPos=new THREE.Vector3(0,6,22);const cW=new THREE.Vector3(),cT=new THREE.Vector3(),cN=new THREE.Vector3(0,1,0),camLook=new THREE.Vector3();
+   let fpsT=0,fpsN=0,fps=0,last=performance.now(),t=0,hudT=0;let skyStarA=-1;const camTarget=new THREE.Vector3(),camPos=new THREE.Vector3(0,6,22);const cW=new THREE.Vector3(),cT=new THREE.Vector3(),cN=new THREE.Vector3(0,1,0),camLook=new THREE.Vector3();
    const frame=()=>{raf=requestAnimationFrame(frame);const now=performance.now();const dt=Math.min(.05,(now-last)/1000);last=now;t+=dt;UG.uT.value=t;
     fpsT+=dt;fpsN++;if(fpsT>=3){fps=fpsN/fpsT;fpsT=0;fpsN=0;if(fps<48&&bladeCap>2000){bladeCap=Math.floor(bladeCap*.75);bladeGeo.instanceCount=bladeCap;}(window as any).__lwPerf={fps:+fps.toFixed(1),blades:bladeCap};}
     tickAcc+=dt;if(tickAcc>=TICK_S){tickAcc=0;applyTick();}
-    {let a=(((Date.now()/1000+((window as any).__lwDayOffset||0))%DAY_S+DAY_S)%DAY_S)/DAY_S*Math.PI*2;if(HOLD){if(hz.a===null)hz.a=a;a=hz.a;}sunDir.set(Math.cos(a),.35*Math.sin(a*.5+1),Math.sin(a)).normalize();UG.uSun.value.copy(sunDir);
+    {let a=(((Date.now()/1000+((window as any).__lwDayOffset||0))%DAY_S+DAY_S)%DAY_S)/DAY_S*Math.PI*2;if(HOLD){if(hz.a===null)hz.a=a;a=hz.a;}sunDir.set(Math.cos(a),.35*Math.sin(a*.5+1),Math.sin(a)).normalize();UG.uSun.value.copy(sunDir);{const sSrc=sunSource({field,override:HOLD||(window as any).__lwDayOffset!==undefined});if(sSrc.dir)sunDir.set(sSrc.dir[0],sSrc.dir[1],sSrc.dir[2]).normalize();(window as any).__lwSunSource=sSrc.source;UG.uSun.value.copy(sunDir);}
      const bcOn=beachCamRef.current&&!spawnRef.current&&!!beach;const fN=bcOn?beach.center().clone().normalize():spawnRef.current?pN:bN;if(beachCamRef.current&&!spawnRef.current&&beach&&(window as any).__lwNoon!=='night'){const bn=beach.center().clone().normalize(),bl=beach.landward().clone().normalize();const bt=bl.sub(bn.clone().multiplyScalar(bl.dot(bn)));if(bt.lengthSq()<1e-8)bt.set(1,0,0);bt.normalize();sunDir.copy(bn).addScaledVector(bt,-.55).normalize();} /* noon-ish sun standing seaward of the beach, behind the camera, so the sand, surf and dunes are front-lit */ /* beach view = daytime: the sun stands high over the shore */ else if((window as any).__lwNoon)sunDir.copy(fN).multiplyScalar((window as any).__lwNoon==='night'?-1:1).add(new THREE.Vector3(.5,.6,.2)).normalize();UG.uSun.value.copy(sunDir);const h=fN.dot(sunDir);const focus=fN.clone().multiplyScalar(PR);sun.position.copy(focus).addScaledVector(sunDir,25);sun.target.position.copy(focus);
      const dayL=Math.max(.1,h*.8+.2);sun.intensity=2.2*dayL;sun.color.copy(starCol).lerp(SKY_DUSK,Math.max(0,1-Math.abs(h)/.2)*.35);hemi.intensity=1.4*Math.max(.12,h*.3+.25);
      sunDisc.position.copy(sunDir).multiplyScalar(160);starMesh.position.copy(sunDisc.position);moon.position.copy(sunDir).multiplyScalar(-70).add(new THREE.Vector3(0,12,0));
      const ground3=zC<.6;const day=ground3?THREE.MathUtils.smoothstep(h,-.12,.35):0;const dusk=ground3?Math.max(0,1-Math.abs(h)/.18)*.7:0;
-     (scene.background as any).copy(SKY_NIGHT).lerp(SKY_DAY,day).lerp(SKY_DUSK,dusk*(1-day*.5));cosmoSky.update(t,1-day*.97,camera.position);nova.update(dt);if(nova.playing)nova.sp.scale.setScalar(30+40*Math.min(1,nova.sp.material.map!.offset.x+1-nova.sp.material.map!.offset.y));island?.update(dt,camera.position);beach?.update(dt);if(starMat)starMat.opacity=1-day*.95;
+     let skyNf=1-day*.97;
+     if(ground3){const bf=(window as any).__lwBoomForce;const bTick=bf?bf.tick:((u as any).tick||0);const bList=bf?[{star:bf.star||homeStar,eventTick:bf.eventTick||0,distance:Math.max(SKY_VIEW.homeBoomMinAu,homePl?.orbit_au||1),dir:boomBearing(String(u.seed||'tiny'),(bf.star||homeStar)?.id||'s')}]:skyBoomList;
+      const upA=[fN.x,fN.y,fN.z],sm=skyMoons(u.seed,homePl,upA,t);
+      const sk=skyAt({sunDir:[sunDir.x,sunDir.y,sunDir.z],sunElev:h,up:upA,atmosphere:skyCfg.atmosphere,starTempK:skyCfg.starTempK,skyColor:skyCfg.skyColor||undefined,twilightColor:skyCfg.twilightColor||undefined,star:homeStar,channels:engineChannels(field||{}),tick:bTick,booms:bList,bodies:sm});
+      const kz=SKY_VIEW.flatBackgroundMix;(scene.background as any).setRGB(sk.zenith[0]*(1-kz)+sk.horizon[0]*kz,sk.zenith[1]*(1-kz)+sk.horizon[1]*kz,sk.zenith[2]*(1-kz)+sk.horizon[2]*kz);
+      skyNf=Math.max(.03,sk.nightFactor);hemi.color.copy(hemiBase).lerp(new THREE.Color().setRGB(sk.zenith[0],sk.zenith[1],sk.zenith[2]),.35);hemi.intensity+=(sk.rig.ambient-.125)*3;
+      sk.bodies.forEach((b:any,i:number)=>{let m=skyMoonMeshes[i];if(!m){m=moon.clone();m.material=(moon.material as any).clone();scene.add(m);skyMoonMeshes[i]=m;}const rr=Math.min(6,SKY_VIEW.moonDist*b.radius/b.distance);m.scale.setScalar(rr/2.2);m.position.set(fN.x*PR+b.dir[0]*SKY_VIEW.moonDist,fN.y*PR+b.dir[1]*SKY_VIEW.moonDist,fN.z*PR+b.dir[2]*SKY_VIEW.moonDist);m.visible=b.aboveHorizon;});
+      if(sk.bodies.length)moon.userData.engineMoon=true;
+      const bg=sk.booms[0];if(bg&&bg.dir&&bg.dir[0]*fN.x+bg.dir[1]*fN.y+bg.dir[2]*fN.z>-.05){boomGlow.visible=true;boomGlow.position.set(fN.x*PR+bg.dir[0]*SKY_VIEW.skyDist,fN.y*PR+bg.dir[1]*SKY_VIEW.skyDist,fN.z*PR+bg.dir[2]*SKY_VIEW.skyDist);boomGlow.material.color.setRGB(bg.color[0],bg.color[1],bg.color[2]);boomGlow.material.opacity=Math.min(1,bg.strength);boomGlow.scale.setScalar(boomSpriteScale(bg.radiusDeg));}else boomGlow.visible=false;
+      (window as any).__lwSky={sun:(window as any).__lwSunSource,nf:+sk.nightFactor.toFixed(3),zenith:sk.zenith.map((v:number)=>+v.toFixed(3)),horizon:sk.horizon.map((v:number)=>+v.toFixed(3)),starAlpha:+sk.starAlpha(.6).toFixed(3),booms:sk.booms.map((b:any)=>({phase:b.phase,strength:+b.strength.toFixed(3),label:b.label})),moons:sk.bodies.map((b:any)=>({id:b.id,lit:+b.phase.litFraction.toFixed(3),up:b.aboveHorizon})),atmo:skyCfg.atmosphere,type:skyCfg.type};
+      skyStarA=sk.starAlpha(.6);
+     }else{(scene.background as any).copy(SKY_NIGHT).lerp(SKY_DAY,day).lerp(SKY_DUSK,dusk*(1-day*.5));boomGlow.visible=false;skyStarA=-1;}
+     cosmoSky.update(t,skyNf,camera.position);nova.update(dt);if(nova.playing)nova.sp.scale.setScalar(30+40*Math.min(1,nova.sp.material.map!.offset.x+1-nova.sp.material.map!.offset.y));island?.update(dt,camera.position);beach?.update(dt);if(starMat)starMat.opacity=skyStarA>=0?skyStarA:1-day*.95;
      // wind: heated by the sun, gusts with storms; drives grass sway and fur
      windS=.25+.35*Math.max(0,h)+storming*.6;windV.applyAxisAngle(fN,dt*.03);try{zDrv?.update(dt);}catch{}zHold.rotateY(dt*.05);fieldStep(dt,sunDir,Math.min(1,joy.current.active?1:0)+(spawnRef.current?.3:0));if(field?.mp){windV.x+=(field.mp.wind.x-windV.x)*dt*.2;windV.z+=(field.mp.wind.z-windV.z)*dt*.2;}storming=Math.max(0,storming-dt*.15);bladeMat.uniforms.uGust.value=W.gust_amp*(.6+windS*1.4);
      // sunrise at the beast: wonder
