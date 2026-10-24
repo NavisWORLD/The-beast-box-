@@ -13,6 +13,8 @@ import {starTexture,glowTexture,coronaMesh,atmosphereMesh,nightGlowOnly} from '@
 import {createPlanetKit} from '@/lib/universe/planet-body-three';
 import {pickType,variantFor,sunExposure,glowSet} from '@/lib/universe/planet-types.mjs';
 import PLANET_VARIANTS from '@/lib/universe/planet-variants.json';
+import {seedMoons,moonOffset,pickOccluder} from '@/lib/universe/moons.mjs';
+import {SPRITE_TINT} from '@/lib/universe/planet-types.mjs';
 import {threadFade,threadBrightness,creatureHome,threadBend} from '@/lib/universe/alive-props.mjs';
 // One Mind, Refracted (Cosmo's concept 09): faint threads from one origin to every creature (brightness = how recently its
 // own loop really ticked, /api/cosmos/activity) and dimmer ones to stars, planets and storms. Only at full zoom-out; hideable.
@@ -88,6 +90,7 @@ vec3 c=texture2D(tScene,bhScreen+s).rgb;float ring=exp(-pow((r-1.5*rs)/(0.08*rs+
    for(const [id,sp] of stormObj)add('w:'+id,sp.position,1,true);
    tGeo.setDrawRange(0,k*SEG*2);tGeo.attributes.position.needsUpdate=true;tGeo.attributes.color.needsUpdate=true;tMat.opacity=.55*fade;origin.material.opacity=.5*fade;return k;}
   const legacyPlanets=typeof location!=='undefined'&&/[?&]planets=biome/.test(location.search);const planetKit=createPlanetKit();
+  const moonsOf=new Map<string,{m:any;mesh:any;body:any}[]>();let moonsBuilt=false;const mv=new THREE.Vector3(),mc=new THREE.Vector3();
   const planetMesh=new Map<string,THREE.Mesh>();const starObj=new Map<string,THREE.Object3D>();const stormObj=new Map<string,THREE.Sprite>();
   const sphere=new THREE.SphereGeometry(1,32,20);
   const diskTex=tex('accretion_disk_1024.png'),ringTex=tex('photon_ring_512.png'),stormTex=[tex('storm_cloud_violet_1024.png'),tex('storm_cloud_teal_1024.png')];
@@ -132,6 +135,8 @@ vec3 c=texture2D(tScene,bhScreen+s).rgb;float ring=exp(-pow((r-1.5*rs)/(0.08*rs+
      const body=planetKit.create(type,vr);const m=body.mesh as any;m.scale.setScalar(0.35+0.18*Math.sqrt(pl.radius_earth));m.userData.id=pl.id;m.userData.body=body;m.userData.ptype=type;world.add(m);planetMesh.set(pl.id,m);continue;}
     const bk=biomeOf(pl),bm=BIOME_MAP[bk];const mat=new THREE.MeshStandardMaterial({color:bm?0xffffff:(BIOME_HEX[bk]||0x9988ff),roughness:.85,metalness:0,emissive:bm?0xffffff:0x110822,emissiveIntensity:bm?.35:1});if(bm){mat.map=biomeTex(bm,'color');mat.emissiveMap=biomeTex(bm,'glow');}const sunV=nightGlowOnly(mat);const m=new THREE.Mesh(sphere,mat);
     m.scale.setScalar(0.35+0.18*Math.sqrt(pl.radius_earth));m.userData.id=pl.id;m.userData.sunV=sunV;if((pl.atmosphere||0)>0.08){const at=atmosphereMesh(Math.min(1,0.35+pl.atmosphere));m.add(at);m.userData.atm=at;}world.add(m);planetMesh.set(pl.id,m);}
+   if(!legacyPlanets&&!moonsBuilt&&planetMesh.size>=U.planets.length){moonsBuilt=true; // SEEDED moons (the recorded genesis has none): labeled in the HUD, derived only from the universe seed
+    for(const mo of seedMoons(String(U.seed||'tiny'),U.planets)){const body=planetKit.create('moon',{lonDeg:mo.lonDeg,tiltDeg:0,spinDegPerS:0,cloudLonDeg:0});const mesh=body.mesh as any;mesh.userData.moonId=mo.id;mesh.userData.seeded=true;world.add(mesh);const L=moonsOf.get(mo.planet)||[];L.push({m:mo,mesh,body});moonsOf.set(mo.planet,L);}}
   }
   const orbitR=(pl:any)=>gOrbitR(pl.orbit_au);
   // Cory's N-body (Definitive Core updateInterSystemPhysics): each star holds its planets under G*m/r^2, fixed dt, seeded phase start
@@ -143,7 +148,13 @@ vec3 c=texture2D(tScene,bhScreen+s).rgb;float ring=exp(-pow((r-1.5*rs)/(0.08*rs+
     for(const sp of S.sys.planets){const m=planetMesh.get(sp.id);if(!m)continue;m.position.set(g.position.x+sp.p[0],g.position.y+sp.p[1],g.position.z+sp.p[2]);
      // the star is the light: direction from this world to its star (view space) drives day/night, phases and the scatter shell
      sv.copy(g.position).sub(m.position).normalize();
-     if(m.userData.body){const dd=g.position.distanceTo(m.position);m.userData.body.update({t,cam,sunPos:g.position,sunColor:g.userData.sunColor,exposure:sunExposure(sunIntensity(g.userData.star.luminosity),dd),viewH:(el as HTMLElement).clientHeight,glow:glowSet(g.userData.star.temperature_k)});}
+     if(m.userData.body){const dd=g.position.distanceTo(m.position),ex=sunExposure(sunIntensity(g.userData.star.luminosity),dd),R=m.scale.x,vh=(el as HTMLElement).clientHeight,col=g.userData.sunColor,glow=glowSet(g.userData.star.temperature_k);
+      const ml=moonsOf.get(sp.id)||[],cands:any[]=[];
+      for(const q of ml){const o=moonOffset(q.m,t);q.mesh.position.set(m.position.x+o.x*R,m.position.y+o.y*R,m.position.z+o.z*R);q.mesh.scale.setScalar(R*q.m.radiusFrac);q.mesh.userData.th=o.theta;cands.push({x:q.mesh.position.x,y:q.mesh.position.y,z:q.mesh.position.z,r:q.mesh.scale.x,q});}
+      const occ=cands.length?pickOccluder(m.position,sv,cands):null;
+      m.userData.body.update({t,cam,sunPos:g.position,sunColor:col,exposure:ex,viewH:vh,glow,occ:occ?{c:mv.set(occ.x,occ.y,occ.z).clone(),r:occ.r}:null});
+      const near=cam.position.distanceTo(m.position)<45,tint=SPRITE_TINT[m.userData.ptype]||[0.5,0.6,1];
+      for(const q of ml){q.mesh.visible=near;if(near)q.body.update({t,cam,sunPos:g.position,sunColor:col,exposure:ex,viewH:vh,glow,spinRad:q.mesh.userData.th,occ:{c:m.position,r:R},parent:{c:m.position,tint}});}}
      if(m.userData.sunV)m.userData.sunV.value.copy(sv).transformDirection(cam.matrixWorldInverse);
      const at=m.userData.atm;if(at){const u=at.material.uniforms;u.cameraPos.value.copy(cam.position);u.lightDir.value.copy(sv);u.time.value=t;const c=g.userData.sunColor as THREE.Color;const hsl=c.getHSL({h:0,s:0,l:0});u.intensityBoost.value=0.8+Math.min(1.5,hsl.s*1.2+hsl.l);}}
     const cor=g.children.find((c:any)=>c.userData.isStarCorona) as any;if(cor)cor.material.uniforms.time.value=t;}

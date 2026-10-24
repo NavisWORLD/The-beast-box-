@@ -6,7 +6,7 @@ P=sys.argv[1];G=P+'/glsl/';here=os.path.dirname(os.path.abspath(__file__))+'/../
 r=lambda n:open(G+n).read()
 common=r('common.glsl');term=r('terminator.glsl');ocean=r('ocean.glsl');cs=r('cloud_shadow.glsl');moon=r('phase_moon.glsl')
 frag=r('planet_surface.frag').replace('precision highp float;\n','')
-frag=frag.replace('uniform vec3  uParentDir;','uniform float uAlpha; // ADDED: LOD cross-fade\nuniform vec3  uParentDir;')
+frag=frag.replace('uniform vec3  uParentDir;','uniform float uAlpha; // ADDED: LOD cross-fade\nuniform vec3 uOccC; uniform float uOccR; // ADDED: one analytic eclipse occluder (moon on planet, planet on moon); uOccR=0 is off\nuniform vec3  uParentDir;')
 frag=frag.replace("  // night lights / lava / crystals","""  // ADDED: shore foam (the globe's foam rule): a lacy white band where the depth channel is ~0 (shore), lit by the sun
   if (ocean > 0.01) {
     float shore = 1.0 - smoothstep(0.0, 0.08, om.g);
@@ -14,6 +14,7 @@ frag=frag.replace("  // night lights / lava / crystals","""  // ADDED: shore foa
     col += uSunColor * shore * ocean * lace * 0.32 * tw;
   }
   // night lights / lava / crystals""")
+frag=frag.replace("  vec3 col = alb * uSunColor * diff * shadow;","  if (uOccR > 0.0) shadow *= sphereShadow(vWorldPos, L, uOccC, uOccR, 0.012); // ADDED: eclipse\n  vec3 col = alb * uSunColor * diff * shadow;")
 frag=frag.replace("gl_FragColor = vec4(linearToSrgb(col), 1.0);","gl_FragColor = vec4(linearToSrgb(col), uAlpha);")
 assert 'uAlpha);' in frag and 'shore foam' in frag
 FRAG='precision highp float;\n'+'\n'.join([common,term,ocean,cs,moon,frag])
