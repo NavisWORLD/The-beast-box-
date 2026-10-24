@@ -1,0 +1,14 @@
+type V3=[number,number,number];
+export const NIGHT_OPS_SHA256:string;
+export const SKY:Readonly<Record<string,any>>;
+export function byAtmo(atmo:number,thin:number,mid:number,thick:number):number;
+export function terminatorWidth(atmo:number):number;
+export function terminatorWeight(elev:number,width:number):number;
+export function skyNightFactor(elev:number,width:number):number;
+export function twilightBandAt(elev:number,width:number,color:number[],strength:number):number[];
+export function twilightWeight(elev:number,width:number):number;
+export function moonPhaseDiffuse(N:number[],L:number[],V:number[]):number;
+export function moonPhase(sunDir:number[],toMoon:number[]):{litFraction:number;phaseAngle:number;brightness:number};
+export function starAlpha(nf:number,brightness01:number,atmo:number):number;
+export function weberVisible(starPeak:number,skyLum:number):boolean;
+export function skyAt(inp:any):any;
