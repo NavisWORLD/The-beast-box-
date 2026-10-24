@@ -149,6 +149,11 @@ vec3 biomeDetail(vec2 uv, vec3 baseAlbedo){
   return mix(baseAlbedo, baseAlbedo * mix(vec3(1.0), detail, 0.85), uDetailFade);
 }
 
+// ADDED: terrain texture layers (atlas tiles: id 8 = rock, id 9 = snow). uSnow 0..1 from the planet's recorded temperature.
+uniform float uSnow;
+vec3 atlasTile(vec2 cell, vec2 tuv){ tuv = tuv * (254.0 / 256.0) + 1.0 / 256.0; return texture2D(uTileAtlas, (cell + tuv) * vec2(0.2, 0.25)).rgb; }
+float atlasLum(vec2 cell, vec2 tuv){ return dot(atlasTile(cell, tuv), vec3(0.3, 0.59, 0.11)); }
+
 // WEBGL1: yes (texture2D only, no loops/derivatives). Needs, in order: common.glsl, terminator.glsl, ocean.glsl, cloud_shadow.glsl, phase_moon.glsl
 // (optionally biome_detail.glsl). One shader for all 5 biome types; per-type values come from models.json "shading".
 varying vec2 vUv; varying vec3 vWorldN; varying vec3 vWorldPos; varying vec3 vObjDir;
@@ -177,6 +182,28 @@ void main(){
   vec4 om = texture2D(uOceanMask, vUv);
   float ocean = om.r;
   if (uDetailFade > 0.001) alb = mix(biomeDetail(vUv, alb), alb, ocean); // ADDED: close-range biome tiles on land (ground hand-off, biome_detail.glsl)
+  if (uDetailFade > 0.001 && ocean < 0.95) {   // ADDED: terrain texture (rock on slopes, snow caps, micro relief)
+    float land = 1.0 - ocean;
+    float slope = clamp((1.0 - nm.z) * 4.0, 0.0, 1.0);
+    float hgt = texture2D(uHeight, vUv).r;
+    float lat = abs(vObjDir.y);
+    vec2 tuv2 = fract(vUv * vec2(uTilesPerRadius * 2.3, uTilesPerRadius * 1.15));
+    vec3 rockC = atlasTile(vec2(3.0, 1.0), tuv2);
+    vec3 snowC = atlasTile(vec2(4.0, 1.0), tuv2);
+    float rockAmt = smoothstep(0.22, 0.6, slope) * land * uDetailFade;
+    alb = mix(alb, rockC * 0.85, rockAmt * 0.7);
+    float line = 1.0 - 0.55 * uSnow;
+    float cap = smoothstep(line - 0.1, line + 0.05, hgt + lat * 0.5 * uSnow - slope * 0.2) * smoothstep(0.02, 0.1, uSnow) * land * uDetailFade;
+    alb = mix(alb, snowC * 1.05, cap);
+    float id = floor(texture2D(uBiomeIdx, vUv).r * 255.0 + 0.5);
+    vec2 cell = vec2(mod(id, 5.0), floor(id / 5.0));
+    vec2 tuvb = fract(vUv * vec2(uTilesPerRadius * 4.0, uTilesPerRadius * 2.0));
+    float e = 1.0 / 128.0;
+    float l0 = atlasLum(cell, tuvb);
+    vec2 gr = vec2(atlasLum(cell, fract(tuvb + vec2(e, 0.0))) - l0, atlasLum(cell, fract(tuvb + vec2(0.0, e))) - l0);
+    N = normalize(N - (T * gr.x + B * gr.y) * 5.0 * uDetailFade * land * (1.0 - cap * 0.6));
+    rough = mix(rough, 0.95, rockAmt);
+  }
   float nv = max(dot(Ng, V), 0.0);
   float width = mix(0.015, 0.12, uAtmo);
   float tw = terminatorWeight(Ng, L, width);
