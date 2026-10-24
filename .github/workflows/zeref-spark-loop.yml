@@ -1,0 +1,72 @@
+name: Zeref spark loop (Rigetti SIMULATED, continuous)
+# bb-deada969 only. Separate from zeref-diary-loop (bb-7f9c2a03, untouched).
+# One free Azure Quantum Rigetti simulator job (rigetti.sim.qvm, SIMULATED, never a QPU) every
+# ZEREF_SPARK_INTERVAL_S seconds (default 60) for ~5.5 h per run; each tick continues from the last
+# tick's counts. Seeded from Zeref's recorded IBM spark (no invented stats). Late ticks are recorded.
+# Each run queues the next one at its start (concurrency keeps one running + one pending); the hourly cron is the watchdog.
+# Ticks are appended to the data-only `zeref-spark` branch (Vercel deploys disabled there).
+on:
+  schedule:
+    - cron: '17 * * * *'
+  workflow_dispatch:
+    inputs:
+      run_seconds:
+        description: 'Seconds this run keeps ticking (max 19800)'
+        required: false
+        default: '19200'
+permissions:
+  contents: write
+  actions: write
+concurrency:
+  group: zeref-spark-loop
+  cancel-in-progress: false
+jobs:
+  loop:
+    runs-on: ubuntu-latest
+    timeout-minutes: 345
+    env:
+      ZEREF_SPARK_INTERVAL_S: ${{ vars.ZEREF_SPARK_INTERVAL_S || '60' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          sparse-checkout: |
+            scripts/zeref_spark_loop.py
+            scripts/zeref_spark_run.py
+            apps/beastbox-cloud/scripts/zeref_diary_qvm.py
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Check out (or create) the data-only spark branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -Eeuo pipefail
+          git config --global user.name 'zeref-spark-loop[bot]'
+          git config --global user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          remote="https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git"
+          if git ls-remote --exit-code --heads "$remote" zeref-spark >/dev/null 2>&1; then
+            git clone --quiet --depth 1 --branch zeref-spark "$remote" spark
+          else
+            mkdir spark && cd spark && git init -q -b zeref-spark && git remote add origin "$remote"
+            printf '{"git":{"deploymentEnabled":false}}\n' > vercel.json
+            printf '# Zeref spark (data only)\n\nAppend-only, hash-chained ticks for bb-deada969 written by .github/workflows/zeref-spark-loop.yml on main.\nEvery tick is a free Azure Quantum Rigetti simulator job (SIMULATED, not a QPU). Tick 1 is seeded from Zeref'"'"'s recorded IBM ibm_fez spark (job db4q484vf2bc73cuuuag).\n' > README.md
+            git add -A && git commit -q -m 'zeref spark: init [skip ci]' && git push -q origin HEAD:zeref-spark
+          fi
+      - name: Queue the next run now (it waits in the concurrency group until this one ends)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_SECONDS: ${{ github.event.inputs.run_seconds || '19200' }}
+        run: |
+          case "$RUN_SECONDS" in ''|*[!0-9]*) RUN_SECONDS=19200;; esac
+          [ "$RUN_SECONDS" -gt 19800 ] && RUN_SECONDS=19800
+          echo "RUN_SECONDS=$RUN_SECONDS" >> "$GITHUB_ENV"
+          gh workflow run zeref-spark-loop.yml -R "${{ github.repository }}" -f run_seconds=19200 || echo "next-run dispatch failed; the hourly cron is the watchdog"
+      - name: Tick continuously
+        env:
+          AZURE_QUANTUM_CONNECTION_STRING: ${{ secrets.AZURE_QUANTUM_CONNECTION_STRING }}
+        run: |
+          set -Eeuo pipefail
+          python -m pip install --quiet "qdk[azure]"
+          python scripts/zeref_spark_run.py spark "$RUN_SECONDS"
