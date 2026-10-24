@@ -12,6 +12,7 @@
  * Tension is not a module: it is the loop's chaos/instability channels. Pure: no DOM or clock.
  */
 import {createCSTState,stepCSTState,motionParams,createCSTClock,clamp} from '../physics/cst-integrator.mjs';
+import {DAY_LENGTH_TICKS,sunDirAt} from './genesis-sun.mjs';
 import {gaussianAffinity} from '../companion/spark/engine.mjs';
 import {makeRecord} from '../zeref/experience-record.mjs';
 import {lwStream} from './living-world.mjs';
@@ -28,7 +29,10 @@ const SEA=0.0,PEAK=.62;
 export function createWorldField({seed,W=64,H=32,counts=null,initial}){
  const N=W*H,F={seed:String(seed),W,H,N,temp:new Float32Array(N),moist:new Float32Array(N),grow:new Float32Array(N),height:new Float32Array(N),
   idx:new Uint8Array(N),t0:new Float32Array(N),m0:new Float32Array(N),g0:new Float32Array(N),idx0:new Uint8Array(N),hold:new Float32Array(N),S:createCSTState('world:'+seed,{counts}),
-  clock:createCSTClock({seed:'world:'+seed,hz:4,maxSubsteps:4,maxFrame:1}),tick:0,changed:0,storm:0};
+  clock:createCSTClock({seed:'world:'+seed,hz:4,maxSubsteps:4,maxFrame:1}),tick:0,changed:0,storm:0,
+  // engine-owned sun: advances one step per engine tick inside the stepped clock; the phase is seeded from the recorded counts (own stream, never the field's)
+  dayLength:DAY_LENGTH_TICKS,sunAngle:lwStream(seed+':sunphase')()*Math.PI*2,sunDir:null};
+ F.sunDir=sunDirAt(F.sunAngle);
  const r=lwStream(seed+':field');
  for(let j=0;j<H;j++)for(let i=0;i<W;i++){const k=j*W+i,n=cellN(F,i,j);const init=initial(n)||{};const id=init.id&&LEGEND.includes(init.id)?init.id:'grassland';
   const p=PROTO[id]||HIGH[id]||WATER[id];F.idx[k]=F.idx0[k]=LEGEND.indexOf(id);
@@ -44,9 +48,10 @@ function classify(t,m,g,h){const set=h<SEA?WATER:h>PEAK?HIGH:PROTO;let best=null
  * Advance the field by frameDt seconds of wall time. sun: unit vector to the star; starHeat: 0..1 from the
  * star temperature. Returns the list of cells whose biome changed this call.
  */
-export function stepWorldField(F,frameDt,{sun=[1,0,0],starHeat=.5,mood=null,activity=0}={}){
+export function stepWorldField(F,frameDt,{sun=null,starHeat=.5,mood=null,activity=0}={}){
  const changed=[];
  F.clock.tick(frameDt,h=>{
+  F.sunAngle=(F.sunAngle+Math.PI*2/F.dayLength)%(Math.PI*2);F.sunDir=sunDirAt(F.sunAngle);const sun_=sun||F.sunDir; // an explicit `sun` stays an OVERRIDE (tests, special views); otherwise the engine's own sun
   // one world tick of Cory's loop: arousal follows the field's own storms, valence its mean growth
   let gSum=0;for(let k=0;k<F.N;k+=17)gSum+=F.grow[k];const meanG=gSum/Math.ceil(F.N/17);
   for(let q=0;q<10;q++)stepCSTState(F.S,h/10,{valence:meanG,arousal:clamp(.45+.2*(activity??0)+.5*F.storm),curiosity:mood?.curiosity??.5,fear:F.storm*.5});
@@ -55,7 +60,7 @@ export function stepWorldField(F,frameDt,{sun=[1,0,0],starHeat=.5,mood=null,acti
   const lorenzHeat=clamp((F.S.L.z-25)/25,-1,1)*.06,wx=mp.wind.x,wz=mp.wind.z;
   const {W,H,temp,moist,grow,height,idx,hold}=F,nt=new Float32Array(temp),nm=new Float32Array(moist);
   for(let j=0;j<H;j++)for(let i=0;i<W;i++){const k=j*W+i,n=cellN(F,i,j);
-   const lat=Math.abs(n[1]),ins=Math.max(0,n[0]*sun[0]+n[1]*sun[1]+n[2]*sun[2]);
+   const lat=Math.abs(n[1]),ins=Math.max(0,n[0]*sun_[0]+n[1]*sun_[1]+n[2]*sun_[2]);
    const kL=j*W+(i+W-1)%W,kR=j*W+(i+1)%W,kU=Math.min(H-1,j+1)*W+i,kD=Math.max(0,j-1)*W+i;
    const lap=(a)=>(a[kL]+a[kR]+a[kU]+a[kD])*.25-a[k];
    const up=wx>=0?kL:kR,adv=Math.abs(wx)+Math.abs(wz)*.5; // moisture rides the Lorenz wind from upwind

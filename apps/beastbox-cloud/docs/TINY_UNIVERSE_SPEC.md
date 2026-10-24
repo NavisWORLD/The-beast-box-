@@ -45,6 +45,12 @@ None of these draw from the growth stream, so stars/planets/storms are byte-iden
 - **Home-world exception (SEEDED):** the recorded genesis has one planet above habitability 0, at 0.17, below 0.25. The home world (`growthHomeWorld`: the most habitable planet, habitability above 0, tie by id; the same planet as the view's hearth whenever life exists) therefore gets nodes anyway. The exception is SEEDED and labelled "Home world · growth SEEDED"; the node carries `recorded_habitability` unchanged (0.1749) and `home_exception:true`, so nothing implies the recorded value is higher. It reuses the planet's own stream and formula; other planets below 0.25 still get nothing. `minHabitability` stays 0.25.
 - `tiny-universe-growth-sample.json` is the first tick where any node reaches bloom on the recorded genesis.
 
+## The engine carries the sky (Oct 24, 2026)
+The sun is engine state, not a view clock. `createWorldField` now carries `sunAngle`, `sunDir` and `dayLength` (960 engine ticks = the 240 s day at the 4 Hz stepped clock). They advance one step per tick inside `stepWorldField`'s stepped clock. The start phase comes from `lwStream(seed+':sunphase')`, which is keyed by the recorded IBM counts. No wall clock, no `Math.random`. Same seed and same tick count give the same sun, twice.
+- An explicit `sun` passed to `stepWorldField` is still an OVERRIDE (tests, special views). With none given the field uses its own `sunDir`.
+- `sunDirAt(angle)` in `genesis-sun.mjs` is the same geometry the view has used, so a test proves engine = view at the same angle before the view reads it. `sunFromElevation` ports Cory's pen `updateSunPosition` (pen_b sha256 `54f58cbe...`).
+- Engine JSON (tiny-universe) is byte-identical; nothing here is written into it. Honesty: SEEDED, derived visuals only.
+
 ## Landscapes (SEEDED, Oct 24 2026)
 `lib/universe/seeded-landscapes.mjs`. Composed little places set on the land: a pad, a play ring, a shelter, lamps, seats and rim trees, with the planet's existing life gathering, sheltering or sleeping there. A placement and life layer only: no new engine, physics or creatures.
 - **Label:** placement is **SEEDED** (`label:'SEEDED'`; the recording holds no landscape data and no copy may imply it does). The signals that animate a place keep their own labels: world-field insolation and storm tension, genesis-sun `nightFactor`, alive-props life volume. Genesis stays RECORDED, growth stays SIMULATED.
