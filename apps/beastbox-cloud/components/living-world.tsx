@@ -549,7 +549,7 @@ uniform vec3 uPlay[8];
      if(mo==='o'&&beachCamRef.current&&beach){ // dedicated beach angle: camera out on the water side, low, looking up the shore at the sand, dunes and surf, in daylight
       if(!touring){touring=true;tourN.copy(cN);}tourI=0;tourN.lerp(beach.center().clone().normalize(),Math.min(1,dt*.8)).normalize();cN.copy(tourN);
       const lw=beach.landward().clone().normalize();const tl=lw.clone().sub(tourN.clone().multiplyScalar(lw.dot(tourN)));if(tl.lengthSq()<1e-8)tl.set(1,0,0);tl.normalize();const sd=new THREE.Vector3().crossVectors(tourN,tl).normalize();const sw=Math.sin(t*.12);
-      cT.copy(tourN).multiplyScalar(PR+.18).addScaledVector(tl,.9);cW.copy(tourN).multiplyScalar(PR+1.05).addScaledVector(tl,-4.4+sw*.6).addScaledVector(sd,1.6*sw);zT=.1;
+      /* the beach strip is ~3 world units long (140 glb units x k=0.0206), so the camera sits ~1.7 u out on the water side, a little above the sand */ cT.copy(tourN).multiplyScalar(PR+.12).addScaledVector(tl,.7);cW.copy(tourN).multiplyScalar(PR+.5).addScaledVector(tl,-1.7+sw*.25).addScaledVector(sd,.8*sw);zT=.1;
       (window as any).__lwTour={i:0,place:'beach',beachCam:true};}
      else if(mo==='o'&&idle&&beach){if(!touring){touring=true;tourN.copy(cN);tourT=0;}tourT-=dt;
       if(tourT<=0){tourT=11+tourR()*5;tourI=(tourI+1)%3;zT=.16+tourR()*.05;}
