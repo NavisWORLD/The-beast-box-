@@ -1,0 +1,2 @@
+// GENERATED from lib/universe/data/growth_labels.json (Emeth's site_labels.json growth_nodes entry, verbatim). Do not edit by hand.
+export const GROWTH_LABELS=Object.freeze({"label": "Growth nodes · SEEDED", "explainer": "Planted by the seeded pack from the recorded IBM genesis seed. Growth speed rides the simulated tick signal (Rigetti Bell simulator, not hardware). Same seed, same tick, same forest.", "_note": "EMETH: stage words for UI: Sprout, Tuft, Full, Bloom, Gold, Shed. Never say recorded growth or live quantum."});
