@@ -48,15 +48,17 @@ const CX=ART+'coexist/'; // Cosmo's coexist art: models/{cairn,flower_ring,burro
 const PR=8;           // planet radius (world units)
 const TRAV_H=.5;      // traveler height
 type Traits={curiosity:number;sociality:number;calm:number;joy:number;experiences:number};
-export default function LivingWorld({genome,beastKey,beastName,onClose,embedded=false,onExpand}:{genome?:PlushGenome|null;beastKey?:string|null;beastName?:string|null;onClose?:()=>void;embedded?:boolean;onExpand?:()=>void}){
+export default function LivingWorld({genome,beastKey,beastName,onClose,embedded=false,onExpand,door=false,onOrbitOut}:{genome?:PlushGenome|null;beastKey?:string|null;beastName?:string|null;onClose?:()=>void;embedded?:boolean;onExpand?:()=>void;door?:boolean;onOrbitOut?:()=>void}){
+ // door: mounted inside /universe as the pocket world's end of the one continuous zoom (orbit view, no storage, no full-screen takeover)
+ const orbitOutRef=useRef(onOrbitOut);orbitOutRef.current=onOrbitOut;const [beachCam,setBeachCam]=useState(false);const beachCamRef=useRef(false);beachCamRef.current=beachCam;
  const host=useRef<HTMLDivElement>(null);const hudBiome=useRef<HTMLSpanElement>(null);const canvasRef=useRef<HTMLCanvasElement>(null);
- const [spawned,setSpawned]=useState(()=>{if(embedded)return false;try{return sessionStorage.getItem('lw:spawned')==='1';}catch{return false;}});const [watch,setWatch]=useState(embedded);const watchRef=useRef(false);watchRef.current=watch;const spawnRef=useRef(false);
+ const [spawned,setSpawned]=useState(()=>{if(embedded||door)return false;try{return sessionStorage.getItem('lw:spawned')==='1';}catch{return false;}});const [watch,setWatch]=useState(embedded);const watchRef=useRef(false);watchRef.current=watch;const spawnRef=useRef(false);
  const [hud,setHud]=useState<{tick:number;simE:number|null;life:number;storms:number;cover:number;traits:Traits|null;blades:number;fps:number;learned?:Record<string,number>;awake?:number}>({tick:0,simE:null,life:0,storms:0,cover:0,traits:null,blades:0,fps:0});
  const [err,setErr]=useState<string|null>(null);const [line,setLine]=useState<string|null>(null);const lineRef=useRef(setLine);lineRef.current=setLine;
  useEffect(()=>{if(!line)return;const id=setTimeout(()=>setLine(null),4200);return()=>clearTimeout(id);},[line]);
  const [ascii,setAscii]=useState(false);const asciiRef=useRef(false);asciiRef.current=ascii;const [flying,setFlying]=useState(false);const flyRef=useRef(false);flyRef.current=flying;const joy=useRef({x:0,y:0,active:false,id:-1,cx:0,cy:0});const keys=useRef(new Set<string>());
  const [stick,setStick]=useState<{x:number;y:number}|null>(null);
- useEffect(()=>{if(embedded)return;try{sessionStorage.setItem('lw:spawned',spawned?'1':'0');}catch{}},[spawned,embedded]);
+ useEffect(()=>{if(embedded||door)return;try{sessionStorage.setItem('lw:spawned',spawned?'1':'0');}catch{}},[spawned,embedded]);
  useEffect(()=>{spawnRef.current=spawned;(window as any).__lwSpawned=spawned;},[spawned]);
  // rebuild only when the beast itself changes, not on every session poll (that rebuild was the ~10s 'respawn')
  const gKey=genome?JSON.stringify(genome):'';
@@ -346,7 +348,7 @@ uniform vec3 uPlay[8];
    // zoom: wheel on desktop, two-finger pinch on iPhone (pointer events; the canvas is touch-action:none)
    let zT=1,zC=1,zMode='';const ptrs=new Map<number,{x:number;y:number}>();let pinch0=0;
    const pinchD=()=>{const a=[...ptrs.values()];return a.length<2?0:Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y);};
-   const wheel=(e:WheelEvent)=>{e.preventDefault();poke();zT=stepZoom(zT,{wheel:e.deltaY*(e.deltaMode===1?16:1)});};canvas.addEventListener('wheel',wheel,{passive:false});cleanup.push(()=>canvas.removeEventListener('wheel',wheel));
+   const wheel=(e:WheelEvent)=>{e.preventDefault();poke();const dy=e.deltaY*(e.deltaMode===1?16:1);if(zT>=.999&&dy>0&&orbitOutRef.current&&!spawnRef.current){orbitOutRef.current();return;}zT=stepZoom(zT,{wheel:dy});};canvas.addEventListener('wheel',wheel,{passive:false});cleanup.push(()=>canvas.removeEventListener('wheel',wheel));
    const pdz=(e:PointerEvent)=>{poke();ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});if(ptrs.size===2){pinch0=pinchD();drag=null;}},pmz=(e:PointerEvent)=>{if(!ptrs.has(e.pointerId))return;ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});if(ptrs.size===2&&pinch0>0){const d=pinchD();zT=stepZoom(zT,{pinch:d/pinch0});pinch0=d;}},puz=(e:PointerEvent)=>{ptrs.delete(e.pointerId);if(ptrs.size<2)pinch0=0;};
    canvas.addEventListener('pointerdown',pdz);addEventListener('pointermove',pmz);addEventListener('pointerup',puz);addEventListener('pointercancel',puz);cleanup.push(()=>{canvas.removeEventListener('pointerdown',pdz);removeEventListener('pointermove',pmz);removeEventListener('pointerup',puz);removeEventListener('pointercancel',puz);});
    (window as any).__lwSetZoom=(z:number)=>{zT=Math.max(0,Math.min(1,z));};
@@ -463,7 +465,7 @@ uniform vec3 uPlay[8];
     fpsT+=dt;fpsN++;if(fpsT>=3){fps=fpsN/fpsT;fpsT=0;fpsN=0;if(fps<48&&bladeCap>2000){bladeCap=Math.floor(bladeCap*.75);bladeGeo.instanceCount=bladeCap;}(window as any).__lwPerf={fps:+fps.toFixed(1),blades:bladeCap};}
     tickAcc+=dt;if(tickAcc>=TICK_S){tickAcc=0;applyTick();}
     {const a=(((Date.now()/1000+((window as any).__lwDayOffset||0))%DAY_S+DAY_S)%DAY_S)/DAY_S*Math.PI*2;sunDir.set(Math.cos(a),.35*Math.sin(a*.5+1),Math.sin(a)).normalize();UG.uSun.value.copy(sunDir);
-     const fN=spawnRef.current?pN:bN;if((window as any).__lwNoon)sunDir.copy(fN).multiplyScalar((window as any).__lwNoon==='night'?-1:1).add(new THREE.Vector3(.5,.6,.2)).normalize();UG.uSun.value.copy(sunDir);const h=fN.dot(sunDir);const focus=fN.clone().multiplyScalar(PR);sun.position.copy(focus).addScaledVector(sunDir,25);sun.target.position.copy(focus);
+     const fN=spawnRef.current?pN:bN;if(beachCamRef.current&&!spawnRef.current&&beach&&(window as any).__lwNoon!=='night')sunDir.copy(beach.center()).normalize().multiplyScalar(1).add(new THREE.Vector3(.55,.7,.25)).normalize(); /* beach view = daytime: the sun stands high over the shore */ else if((window as any).__lwNoon)sunDir.copy(fN).multiplyScalar((window as any).__lwNoon==='night'?-1:1).add(new THREE.Vector3(.5,.6,.2)).normalize();UG.uSun.value.copy(sunDir);const h=fN.dot(sunDir);const focus=fN.clone().multiplyScalar(PR);sun.position.copy(focus).addScaledVector(sunDir,25);sun.target.position.copy(focus);
      const dayL=Math.max(.1,h*.8+.2);sun.intensity=2.2*dayL;sun.color.copy(starCol).lerp(SKY_DUSK,Math.max(0,1-Math.abs(h)/.2)*.35);hemi.intensity=1.4*Math.max(.12,h*.3+.25);
      sunDisc.position.copy(sunDir).multiplyScalar(160);starMesh.position.copy(sunDisc.position);moon.position.copy(sunDir).multiplyScalar(-70).add(new THREE.Vector3(0,12,0));
      const ground3=zC<.6;const day=ground3?THREE.MathUtils.smoothstep(h,-.12,.35):0;const dusk=ground3?Math.max(0,1-Math.abs(h)/.18)*.7:0;
@@ -544,7 +546,12 @@ uniform vec3 uPlay[8];
     // ---- one continuous zoom: close over-the-shoulder (z=0) to full planet orbit (z=1); pinch / wheel / buttons all move zT
     // gentle seeded fly-over: in the planet view, after 6 s without input, the camera drifts between the beach, the volcano and the sea, then hands back on touch
     {const mo=sp?'s':watchRef.current?'w':'o';const idle=performance.now()-userAt>6000;
-     if(mo==='o'&&idle&&beach){if(!touring){touring=true;tourN.copy(cN);tourT=0;}tourT-=dt;
+     if(mo==='o'&&beachCamRef.current&&beach){ // dedicated beach angle: camera out on the water side, low, looking up the shore at the sand, dunes and surf, in daylight
+      if(!touring){touring=true;tourN.copy(cN);}tourI=0;tourN.lerp(beach.center().clone().normalize(),Math.min(1,dt*.8)).normalize();cN.copy(tourN);
+      const lw=beach.landward().clone().normalize();const tl=lw.clone().sub(tourN.clone().multiplyScalar(lw.dot(tourN)));if(tl.lengthSq()<1e-8)tl.set(1,0,0);tl.normalize();const sd=new THREE.Vector3().crossVectors(tourN,tl).normalize();const sw=Math.sin(t*.12);
+      cT.copy(tourN).multiplyScalar(PR+.18).addScaledVector(tl,.9);cW.copy(tourN).multiplyScalar(PR+1.05).addScaledVector(tl,-4.4+sw*.6).addScaledVector(sd,1.6*sw);zT=.1;
+      (window as any).__lwTour={i:0,place:'beach',beachCam:true};}
+     else if(mo==='o'&&idle&&beach){if(!touring){touring=true;tourN.copy(cN);tourT=0;}tourT-=dt;
       if(tourT<=0){tourT=11+tourR()*5;tourI=(tourI+1)%3;zT=.16+tourR()*.05;}
       const tgt=[beach.center(),island?.anchor('crater_center')||beach.center(),(window as any).__lwSeaN||gpts[0]][tourI].clone().normalize();tourN.lerp(tgt,Math.min(1,dt*.35)).normalize();cN.copy(tourN);{const tg=new THREE.Vector3().crossVectors(tourN,new THREE.Vector3(0,1,0));if(tg.lengthSq()<1e-6)tg.set(1,0,0);tg.normalize();cT.copy(tourN).multiplyScalar(PR+.2);cW.copy(tourN).multiplyScalar(PR+2.2).addScaledVector(tg,-3.2);}
       (window as any).__lwTour={i:tourI,place:['beach','volcano','ocean'][tourI]};}
@@ -589,7 +596,7 @@ uniform vec3 uPlay[8];
  const jm=(e:React.PointerEvent)=>{const j=joy.current;if(!j.active||e.pointerId!==j.id)return;const dx=(e.clientX-j.cx)/50,dy=(e.clientY-j.cy)/50;const m=Math.max(1,Math.hypot(dx,dy));j.x=dx/m;j.y=dy/m;setStick({x:j.x,y:j.y});};
  const ju=()=>{joy.current={...joy.current,x:0,y:0,active:false};setStick(null);};
  const T=hud.traits;
- return <div ref={host} className="lw-root" data-living-world={spawned?'spawned':'orbit'} data-lw-embedded={embedded?'':undefined} style={{pointerEvents:'auto',position:embedded?'absolute':'fixed',inset:0,zIndex:embedded?1:2147483000,borderRadius:embedded?18:0,overflow:'hidden',background:'#05030f',touchAction:embedded&&!spawned?'pan-y':'none',fontSize:embedded?11:13,color:'#efeaff',font:'13px/1.35 system-ui,sans-serif'}}>
+ return <div ref={host} className="lw-root" data-living-world={spawned?'spawned':'orbit'} data-lw-embedded={embedded?'':undefined} style={{pointerEvents:'auto',position:embedded||door?'absolute':'fixed',inset:0,zIndex:embedded||door?1:2147483000,borderRadius:embedded?18:0,overflow:'hidden',background:'#05030f',touchAction:embedded&&!spawned?'pan-y':'none',fontSize:embedded?11:13,color:'#efeaff',font:'13px/1.35 system-ui,sans-serif'}}>
   <canvas ref={canvasRef} style={{position:'absolute',inset:0,width:'100%',height:'100%',display:'block',touchAction:'none'}}/>
   <div data-lw-chips style={{position:'absolute',top:'calc(env(safe-area-inset-top) + 10px)',left:10,right:10,display:'flex',flexWrap:'wrap',gap:6,pointerEvents:'none'}}>
    <span style={pill('#2b6cb0')} data-lw-spark>{LW_LABELS.spark}</span><span style={pill('#9b2c2c')} data-lw-growth>{LW_LABELS.growth}</span><span style={pill('#553c9a')} data-lw-model>{LW_LABELS.model}</span><span style={pill('#276749')} data-lw-biome ref={hudBiome}>Biome</span>
@@ -605,7 +612,7 @@ uniform vec3 uPlay[8];
     {err?<div style={{color:'#ffb4b4'}}>Couldn’t load the world: {err}</div>:null}
    </div>
    <div style={{display:'flex',flexDirection:'column',gap:6,pointerEvents:'auto'}}>
-    {!spawned?<><button type="button" data-lw-spawn onClick={()=>setSpawned(true)} style={btn('#6b46c1')}>✦ Spawn in</button><button type="button" data-lw-watch onClick={()=>setWatch(w=>!w)} style={btn('#2c5282')}>{watch?'🌍 Orbit view':'👁 Watch your beast'}</button></>:<><button type="button" data-lw-fly onClick={()=>setFlying(v=>!v)} style={btn(flying?'#2b6cb0':'#333')}>{flying?'🪽 Flying':'🪽 Fly'}</button><button type="button" data-lw-exit onClick={()=>setSpawned(false)} style={btn('#444')}>Exit to orbit</button></>}{!embedded||spawned?<button type="button" data-lw-ascii onClick={()=>setAscii(v=>!v)} style={btn(ascii?'#2f855a':'#333')}>{ascii?'▦ ASCII on':'▦ ASCII'}</button>:null}
+    {!spawned?<><button type="button" data-lw-beachcam aria-pressed={beachCam} onClick={()=>setBeachCam(v=>!v)} style={btn(beachCam?'#b7791f':'#333')}>{beachCam?'🏖 Beach view: on':'🏖 Beach view'}</button><button type="button" data-lw-spawn onClick={()=>setSpawned(true)} style={btn('#6b46c1')}>✦ Spawn in</button><button type="button" data-lw-watch onClick={()=>setWatch(w=>!w)} style={btn('#2c5282')}>{watch?'🌍 Orbit view':'👁 Watch your beast'}</button></>:<><button type="button" data-lw-fly onClick={()=>setFlying(v=>!v)} style={btn(flying?'#2b6cb0':'#333')}>{flying?'🪽 Flying':'🪽 Fly'}</button><button type="button" data-lw-exit onClick={()=>setSpawned(false)} style={btn('#444')}>Exit to orbit</button></>}{!embedded||spawned?<button type="button" data-lw-ascii onClick={()=>setAscii(v=>!v)} style={btn(ascii?'#2f855a':'#333')}>{ascii?'▦ ASCII on':'▦ ASCII'}</button>:null}
     {embedded&&onExpand?<button type="button" data-lw-expand onClick={onExpand} style={btn('#553c9a')}>⤢ Full screen</button>:null}
     {onClose?<button type="button" data-lw-close onClick={onClose} style={btn('#222')}>Close world</button>:null}
    </div>
