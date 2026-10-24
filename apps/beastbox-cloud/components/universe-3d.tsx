@@ -8,6 +8,7 @@ import {useEffect,useRef,useState} from 'react';
 import * as THREE from 'three';
 import {isSoftwareGL} from '@/lib/three/soft-gl';
 import {homeOf,biomeOf} from '@/lib/universe/tiny-universe-view.mjs';
+import {doorProgress,doorPreload,doorZoomStep,DOOR_NEAR} from '@/lib/universe/door.mjs';
 import {blackBodyToRGB,sunIntensity,initSystem,advanceTo,orbitR as gOrbitR} from '@/lib/universe/genesis-sun.mjs';
 import {starTexture,glowTexture,coronaMesh,atmosphereMesh,nightGlowOnly} from '@/lib/universe/genesis-sun-three';
 import {createPlanetKit} from '@/lib/universe/planet-body-three';
@@ -28,7 +29,8 @@ export const ZOOM_MIN=1.2,ZOOM_MAX=1400;
 export function zoomStage(d:number){return d<6?'Surface':d<40?'Planet':d<260?'Neighbours':'Universe';}
 const SPAN=420;
 export function starPos(st:any){const r=rand(st.id);return new THREE.Vector3((st.x-0.5)*SPAN,(r()-0.5)*SPAN*0.18,(st.y-0.5)*SPAN);}
-export default function Universe3D({u,onSelect,onAlive}:{u:any;onSelect?:(id:string|null)=>void;onAlive?:(kind:'zoom_planet'|'zoom_star'|'threads_visible')=>void}){
+export default function Universe3D({u,onSelect,onAlive,doorOn=false,onDoor}:{u:any;onSelect?:(id:string|null)=>void;onAlive?:(kind:'zoom_planet'|'zoom_star'|'threads_visible')=>void;doorOn?:boolean;onDoor?:(v:number,preload:boolean)=>void}){
+ const doorOnRef=useRef(doorOn);doorOnRef.current=doorOn;const onDoorRef=useRef(onDoor);onDoorRef.current=onDoor;
  const aliveRef=useRef(onAlive);aliveRef.current=onAlive;
  const [threadsOn,setThreadsOn]=useState(true);const threadsRef=useRef(true);threadsRef.current=threadsOn;const [threadsShown,setThreadsShown]=useState(false);const [activityNote,setActivityNote]=useState('');
  useEffect(()=>{try{if(localStorage.getItem(THREADS_KEY)==='0')setThreadsOn(false);}catch{}},[]);
@@ -165,10 +167,14 @@ vec3 c=texture2D(tScene,bhScreen+s).rgb;float ring=exp(-pow((r-1.5*rs)/(0.08*rs+
    for(const g of starObj.values()){const d=g.getObjectByName('disk');if(d)d.rotation.z=t*0.05;}
    addDeco();lightning(t);}
   // camera rig: spherical around a target, log distance
-  let yaw=0.6,pitch=0.5,logD=Math.log(30),targetId:string|null=homeOf(uRef.current||{planets:[],life:[]});const tgt=new THREE.Vector3(),want=new THREE.Vector3();
-  const minLogD=()=>{const m:any=targetId?planetMesh.get(targetId):null;return Math.log(m?Math.max(0.02,m.scale.x*1.1):ZOOM_MIN);}; // planets can be approached to ~10% of their radius above the surface (the maps are ~2048 px around, so closer needs the flat-ground layer, not built yet)
-  const setZoom=(f:number)=>{logD=Math.min(Math.log(ZOOM_MAX),Math.max(minLogD(),logD+f));};
-  api.current={zoom:setZoom,home:()=>{targetId=homeOf(uRef.current);logD=Math.log(10);}};
+  let yaw=0.6,pitch=0.5,logD=Math.log(30),goal=Math.log(30),doorV=0,doorPre=false,lastMs=0,targetId:string|null=homeOf(uRef.current||{planets:[],life:[]});const tgt=new THREE.Vector3(),want=new THREE.Vector3();
+  const doorLive=()=>doorOnRef.current&&!!targetId&&targetId===homeOf(uRef.current)&&!!planetMesh.get(targetId);
+  const minLogD=()=>{const m:any=targetId?planetMesh.get(targetId):null;if(m&&doorLive())return Math.log(m.scale.x*(DOOR_NEAR-0.02));return Math.log(m?Math.max(0.02,m.scale.x*1.1):ZOOM_MIN);}; /* with the door on, the universe camera stops at the pocket orbit framing and the pocket world takes over */ // planets can be approached to ~10% of their radius above the surface (the maps are ~2048 px around, so closer needs the flat-ground layer, not built yet)
+  const setZoom=(f:number)=>{ // door open: zoom input drives the pocket world, and leaves it from full orbit
+   if(doorV>=0.999){const w:any=window;const z=w.__lwZoom?.target??1;const r=doorZoomStep(z,Math.sign(f));if(r.leave){const m:any=planetMesh.get(targetId||'');goal=Math.log((m?m.scale.x:1)*5.6);}else w.__lwSetZoom?.(r.z);return;}
+   goal=Math.min(Math.log(ZOOM_MAX),Math.max(minLogD(),goal+f));};
+  const leave=()=>{if(doorV>0){const m:any=planetMesh.get(targetId||'');goal=Math.log((m?m.scale.x:1)*5.6);}};window.addEventListener('u3d-door-leave',leave);
+  api.current={zoom:setZoom,home:()=>{targetId=homeOf(uRef.current);goal=Math.log(10);}};
   const ptrs=new Map<number,{x:number,y:number}>();let pinch=0,moved=0;
   const cv=renderer.domElement;
   const down=(e:PointerEvent)=>{cv.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});moved=0;if(ptrs.size===2){const [a,b]=[...ptrs.values()];pinch=Math.hypot(a.x-b.x,a.y-b.y);}cv.style.cursor='grabbing';};
@@ -179,12 +185,13 @@ vec3 c=texture2D(tScene,bhScreen+s).rgb;float ring=exp(-pow((r-1.5*rs)/(0.08*rs+
   const wheel=(e:WheelEvent)=>{e.preventDefault();setZoom(e.deltaY*0.0015);};
   const ray=new THREE.Raycaster();
   function tap(e:PointerEvent){const b=cv.getBoundingClientRect();ray.setFromCamera(new THREE.Vector2((e.clientX-b.left)/b.width*2-1,-(e.clientY-b.top)/b.height*2+1),cam);
-   const hit=ray.intersectObjects([...planetMesh.values()],false)[0];if(hit){targetId=hit.object.userData.id;logD=Math.log(6);sel.current?.(targetId);return;}
-   const sh=ray.intersectObjects([...starObj.values()],true)[0];if(sh){let o:any=sh.object;while(o&&!o.userData?.id)o=o.parent;if(o){targetId=o.userData.id;logD=Math.log(14);sel.current?.(targetId);return;}}sel.current?.(null);}
+   const hit=ray.intersectObjects([...planetMesh.values()],false)[0];if(hit){targetId=hit.object.userData.id;goal=Math.log(6);sel.current?.(targetId);return;}
+   const sh=ray.intersectObjects([...starObj.values()],true)[0];if(sh){let o:any=sh.object;while(o&&!o.userData?.id)o=o.parent;if(o){targetId=o.userData.id;goal=Math.log(14);sel.current?.(targetId);return;}}sel.current?.(null);}
   cv.addEventListener('pointerdown',down);cv.addEventListener('pointermove',move);cv.addEventListener('pointerup',up);cv.addEventListener('pointercancel',up);cv.addEventListener('wheel',wheel,{passive:false});
   const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;let raf=0,last='';const t0=performance.now();
   const frame=(ms:number)=>{const W=el.clientWidth,H=el.clientHeight;if(cv.width!==Math.floor(W*renderer.getPixelRatio())){renderer.setSize(W,H,false);cam.aspect=W/Math.max(1,H);cam.updateProjectionMatrix();}
-   const t=reduce?0:(ms-t0)/1000;place(t);const d=Math.exp(logD);
+   const t=reduce?0:(ms-t0)/1000;place(t);{const dts=lastMs?Math.min(.1,(ms-lastMs)/1000):.016;lastMs=ms;goal=Math.max(goal,minLogD());logD=reduce?goal:logD+(goal-logD)*Math.min(1,dts*7);} /* eased so a zoom click or tap glides instead of jumping */ const d=Math.exp(logD);
+   {let v=0,pre=false;if(doorLive()){const rr=d/(planetMesh.get(targetId!) as any).scale.x;v=doorProgress(rr);pre=doorPreload(rr);}if(Math.abs(v-doorV)>0.002||pre!==doorPre||(v===0&&doorV!==0)||(v===1&&doorV!==1)){doorV=v;doorPre=pre;onDoorRef.current?.(v,pre);}}
    // past the neighbourhood the camera eases its focus from the chosen world back to the universe centre
    const m:any=targetId?(planetMesh.get(targetId)||starObj.get(targetId)):null;const k=Math.min(1,Math.max(0,(d-260)/700));want.set(0,0,0);if(m)want.copy(m.position).multiplyScalar(1-k);tgt.lerp(want,0.12);
    cam.position.set(tgt.x+d*Math.cos(pitch)*Math.sin(yaw),tgt.y+d*Math.sin(pitch),tgt.z+d*Math.cos(pitch)*Math.cos(yaw));cam.near=Math.max(0.02,d*0.01);cam.updateProjectionMatrix();cam.lookAt(tgt);
@@ -195,7 +202,7 @@ vec3 c=texture2D(tScene,bhScreen+s).rgb;float ring=exp(-pow((r-1.5*rs)/(0.08*rs+
     if(on!==wasShown){wasShown=on;setThreadsShown(on);el.dataset.threads=on?'shown':'hidden';if(on&&f>0)aliveRef.current?.('threads_visible');}}
    renderLensed();raf=requestAnimationFrame(frame);};
   raf=requestAnimationFrame(frame);
-  return()=>{cancelAnimationFrame(raf);cv.removeEventListener('wheel',wheel);rt.dispose();lensMat.dispose();renderer.dispose();el.removeChild(cv);};
+  return()=>{cancelAnimationFrame(raf);cv.removeEventListener('wheel',wheel);window.removeEventListener('u3d-door-leave',leave);rt.dispose();lensMat.dispose();renderer.dispose();el.removeChild(cv);};
  },[]);
  return <div ref={host} data-universe-3d style={{position:'absolute',inset:0}}>
   <div data-u3d-zoom style={{position:'absolute',right:56,top:'calc(50% - 200px)',display:'flex',flexDirection:'column',gap:6,zIndex:2}}>
