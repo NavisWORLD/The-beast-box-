@@ -2,6 +2,7 @@
 // surfaces, jellyfish swim when airborne, feeding on drifting universe motes (river sparks, glyphs,
 // creation remnants) with a glow pulse that grows them and shares energy with their creature.
 import {COMPANION_LIMITS,companionTheme,kneeIK,legStep,feed,nearestMote,loadGrowth,saveGrowth} from './companion-math.mjs';
+import {seededStream} from '../seeded-stream.mjs';const __rs=seededStream('lib/companions/companions.ts');
 /** World-unit size of a companion (Zeref is ~0.8 tall): small but readable, same scale everywhere. */
 export const COMPANION_SIZE=2.6;
 type T=typeof import('three');type V3={x:number;y:number;z:number};
@@ -11,12 +12,12 @@ export function createCompanions(THREE:T,scene:import('three').Scene,{low}:{low:
   const growth:Record<string,number>=typeof window!=='undefined'?loadGrowth(window.localStorage):{};
   const lineMat=(c:number,o=.9)=>new THREE.LineBasicMaterial({color:c,transparent:true,opacity:o,blending:THREE.AdditiveBlending,depthWrite:false,fog:false});
   // ---- food motes
-  const NM=low?COMPANION_LIMITS.motesLow:COMPANION_LIMITS.motesHigh;const motes=[...Array(NM)].map(()=>({x:0,y:-999,z:0,alive:false,e:Math.random(),src:'river'}));
+  const NM=low?COMPANION_LIMITS.motesLow:COMPANION_LIMITS.motesHigh;const motes=[...Array(NM)].map(()=>({x:0,y:-999,z:0,alive:false,e:__rs(),src:'river'}));
   const mg=new THREE.BufferGeometry();const mp=new Float32Array(NM*3);mg.setAttribute('position',new THREE.BufferAttribute(mp,3));
   const moteMat=new THREE.PointsMaterial({color:0xbff7ff,size:.07,transparent:true,opacity:.85,blending:THREE.AdditiveBlending,depthWrite:false});
   const motePts=new THREE.Points(mg,moteMat);motePts.frustumCulled=false;root.add(motePts);
   let spawnAcc=0;const remnants:V3[]=[];
-  const spawn=(near:V3,src='river')=>{const m=motes.find(q=>!q.alive);if(!m)return;const a=Math.random()*6.283,r=.6+Math.random()*1.8;m.x=near.x+Math.cos(a)*r;m.z=near.z+Math.sin(a)*r;m.y=(near.y||0)+.15+Math.random()*.5;m.alive=true;m.e=Math.random();m.src=src;};
+  const spawn=(near:V3,src='river')=>{const m=motes.find(q=>!q.alive);if(!m)return;const a=__rs()*6.283,r=.6+__rs()*1.8;m.x=near.x+Math.cos(a)*r;m.z=near.z+Math.sin(a)*r;m.y=(near.y||0)+.15+__rs()*.5;m.alive=true;m.e=__rs();m.src=src;};
   // ---- critters
   type C={id:string;th:any;g:import('three').Group;body:import('three').LineSegments;legsL?:import('three').LineSegments;legs:any[];wings:import('three').Line[];tents:{ln:import('three').Line;pts:import('three').Vector3[];k:number;init?:boolean}[];
     x:number;y:number;z:number;vx:number;vz:number;grow:number;pulse:number;fed:number;head:number;air:number;wander:V3};
@@ -43,13 +44,13 @@ export function createCompanions(THREE:T,scene:import('three').Scene,{low}:{low:
     for(const [id,c] of list)if(!ids.has(id)){root.remove(c.g);if(c.legsL)root.remove(c.legsL);c.tents.forEach(t=>root.remove(t.ln));list.delete(id);}
     for(const o of owners.slice(0,COMPANION_LIMITS.maxCompanions))if(!list.has(o.id)){const c=build(o.id);c.x=o.x+.5;c.z=o.z+.3;c.y=o.y;c.wander={x:o.x+.5,y:o.y,z:o.z+.3};list.set(o.id,c);}},
    step(dt:number,t:number,owners:Owner[],ground:(p:V3)=>{y:number}){if(!(dt>0))return;
-    spawnAcc+=dt;if(spawnAcc>(low?1.2:.7)&&owners.length){spawnAcc=0;spawn(owners[Math.floor(Math.random()*owners.length)]);}
+    spawnAcc+=dt;if(spawnAcc>(low?1.2:.7)&&owners.length){spawnAcc=0;spawn(owners[Math.floor(__rs()*owners.length)]);}
     for(let i=0;i<NM;i++){const m=motes[i];if(m.alive){m.x+=Math.sin(t*.7+i)*.12*dt+.08*dt;m.z+=Math.cos(t*.5+i*1.3)*.12*dt;m.y+=Math.sin(t*1.3+i)*.05*dt;}mp[i*3]=m.x;mp[i*3+1]=m.alive?m.y:-999;mp[i*3+2]=m.z;}
     (mg.attributes.position as any).needsUpdate=true;
     const seen=new Set<string>();for(const o of owners){if(seen.has(o.id))continue;seen.add(o.id);const c=list.get(o.id);if(!c)continue;const air=(o.air||0);c.air+=(air-c.air)*Math.min(1,dt*3);
      let tx:number,tz:number,ty:number;
      if(c.air>.4){const a=t*.9;tx=o.x+Math.cos(a)*.55;tz=o.z+Math.sin(a)*.55;ty=o.y+.55+Math.sin(t*1.7)*.08;}
-     else{const m=nearestMote(c,motes);if(m){tx=m.x;tz=m.z;}else{if(Math.hypot(c.wander.x-c.x,c.wander.z-c.z)<.1||Math.hypot(c.wander.x-o.x,c.wander.z-o.z)>1.3){const a=Math.random()*6.283;c.wander={x:o.x+Math.cos(a)*(.5+Math.random()*.7),y:0,z:o.z+Math.sin(a)*(.5+Math.random()*.7)};}tx=c.wander.x;tz=c.wander.z;}
+     else{const m=nearestMote(c,motes);if(m){tx=m.x;tz=m.z;}else{if(Math.hypot(c.wander.x-c.x,c.wander.z-c.z)<.1||Math.hypot(c.wander.x-o.x,c.wander.z-o.z)>1.3){const a=__rs()*6.283;c.wander={x:o.x+Math.cos(a)*(.5+__rs()*.7),y:0,z:o.z+Math.sin(a)*(.5+__rs()*.7)};}tx=c.wander.x;tz=c.wander.z;}
       ty=ground({x:c.x,y:o.y+.5,z:c.z}).y+.06*COMPANION_SIZE*c.grow;}
      const dx=tx-c.x,dz=tz-c.z,d=Math.hypot(dx,dz)||1,sp=c.air>.4?3.5:.65;const k=Math.min(1,dt*sp/d);c.vx=dx*k/dt;c.vz=dz*k/dt;c.x+=dx*k;c.z+=dz*k;c.y+=(ty-c.y)*Math.min(1,dt*(c.air>.4?3:10));
      if(d>.02)c.head+=((Math.atan2(dx,dz)-c.head+Math.PI*3)%(Math.PI*2)-Math.PI)*Math.min(1,dt*6);

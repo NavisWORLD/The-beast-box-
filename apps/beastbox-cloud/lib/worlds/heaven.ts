@@ -1,9 +1,10 @@
+import {seededStream} from '../seeded-stream.mjs';
 // "The user's heaven": warm divine light inside the cage pocket, endless depth, serene flow (Cory, Oct 18).
 // Additive only: the cage geometry, palette and fog stay; this layers warmth and depth on top.
 type T=typeof import('three');
 export const HEAVEN=Object.freeze({flow:.62,orbit:.6,exposure:1.4,sun:0xffe0b0,halo:0xffd7a0});
 export function addHeaven(THREE:T,scene:import('three').Object3D,{low,rand,far}:{low:boolean;rand?:()=>number;far?:{dir:[number,number,number];dist:number}}){
-  const R=rand||Math.random;// the living world passes its seeded stream; the Cage passes its key's seeded stream too
+  const R=rand||seededStream('lib/worlds/heaven.ts');// the living world passes its seeded stream; the Cage passes its key's seeded stream too
   const root=new THREE.Group();root.name='heaven';scene.add(root);
   // 1) warm divine light from above (gold-white key + soft warm fill)
   const sun=new THREE.DirectionalLight(HEAVEN.sun,1.7);sun.position.set(1.5,12,2);root.add(sun);root.add(sun.target);

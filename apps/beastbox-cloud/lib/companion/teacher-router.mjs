@@ -1,3 +1,4 @@
+import {seededStream} from '../seeded-stream.mjs';
 /** Picks which Ollama teacher answers a message (Cory, 2026-10-16). Pure + testable. */
 export function messageKind(text){
  const t=String(text||"");
@@ -8,7 +9,7 @@ export function messageKind(text){
 }
 const PREFS={code:[/coder|code/i,/qwen/i,/gpt-oss/i],reasoning:[/gpt-oss:120b|deepseek|kimi|qwen3/i,/gpt-oss/i],long:[/gpt-oss:120b|kimi|deepseek|glm/i,/gpt-oss/i],chat:[/gpt-oss:20b|gemma|llama|mini|small/i,/gpt-oss/i]};
 /** Returns {kind, order, explored}: best match first, ~15% exploration, then fallbacks. */
-export function pickTeachers(text,available,{preferred="",fallback="gpt-oss:20b",random=Math.random}={}){
+export function pickTeachers(text,available,{preferred="",fallback="gpt-oss:20b",random=seededStream("lib/companion/teacher-router.mjs")}={}){
  const kind=messageKind(text);
  const pref=String(preferred).split(/[\s,]+/).filter(Boolean);
  let pool=[...new Set((available||[]).filter(Boolean))];

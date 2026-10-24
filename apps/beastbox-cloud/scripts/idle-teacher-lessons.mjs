@@ -7,6 +7,7 @@ import {storageConfig,putBlob} from '../lib/cosmos/azure-blob.mjs';
 import {storeLesson} from '../lib/cosmos/zeref-cloud.mjs';
 import {screenText,clean,MAX_PROMPT,MAX_REPLY} from '../lib/companion/teacher-distill.mjs';
 import {pickTeachers} from '../lib/companion/teacher-router.mjs';
+import {seededStream} from '../lib/seeded-stream.mjs';const __rs=seededStream('scripts/idle-teacher-lessons.mjs');
 const key=process.env.ZEREFS_TEACHERS;
 if(!key){console.log('ZEREFS_TEACHERS not set; skipping.');process.exit(0);}
 const cfg=storageConfig();
@@ -23,7 +24,7 @@ const GRID=[];for(const t of TOPICS)for(const f of FORMS)GRID.push(f.replace('{t
 {let h=2166136261;for(let k=GRID.length-1;k>0;k--){h=Math.imul(h^k,16777619)>>>0;const j=h%(k+1);[GRID[k],GRID[j]]=[GRID[j],GRID[k]];}}
 const slot=Math.floor(Date.now()/(30*60e3));
 const SYSTEM="You are a kind, patient TEACHER helping a young cosmic creature named Zeref learn. You are not Zeref. Answer in 1-3 short, factual, friendly sentences.";
-const pick=a=>a[Math.floor(Math.random()*a.length)];
+const pick=a=>a[Math.floor(__rs()*a.length)];
 let names=[];
 try{const r=await fetch('https://ollama.com/api/tags',{headers:{Authorization:'Bearer '+key},signal:AbortSignal.timeout(10000)});const j=await r.json();names=(j?.models||[]).map(m=>clean(m?.name||m?.model,80)).filter(Boolean);}catch{}
 console.log('teacher models available:',names.length||'(fallback only)');

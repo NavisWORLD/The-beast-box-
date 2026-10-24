@@ -9,6 +9,7 @@
  * The creature lives on its own: life-brain modes + CST state (lib/physics/cst-integrator) + grounded hops (ground-hop).
  */
 import type {PlushGenome} from './creature-plush-3d';
+import {seededStream} from '../lib/seeded-stream.mjs';const __rs=seededStream('components/ar-creature-stage.ts');
 type Three=typeof import('three');
 export type ArMode='xr'|'anchored'|'preview';
 export const EYE_HEIGHT=1.35; // assumed phone height above the floor in anchored mode (metres)
@@ -117,7 +118,7 @@ export async function createArStage(host:HTMLElement,gen:PlushGenome,opts:{onMod
    const others=pets.filter(o=>o!==P).map(o=>({x:o.life.x,z:o.life.z,id:o.name}));
    stepLife(life,d,{mood:mp.mood,cam:{x:lp.x/k,z:lp.z/k},rain:0,treats:props,residents:others,onEat:(id:string)=>{
     if(id==='treat'){treat=null;treatM.visible=false;P.happy=2;opts.onEvent?.(`${P.name} munches the treat!`);}
-    else if(id==='toy'&&ball.on){P.happy=1.5;ball.kicks++;if(ball.kicks>3){ball.on=false;ballM.visible=false;opts.onEvent?.(`${P.name} caught the toy and drops it at your feet.`);}else{const a=life.heading+(Math.random()-.5)*1.4;ball.vx=Math.cos(a)*1.4;ball.vz=Math.sin(a)*1.4;ball.vy=1.6;ball.y=.1;opts.onEvent?.(`${P.name} bats the toy!`);}}}});
+    else if(id==='toy'&&ball.on){P.happy=1.5;ball.kicks++;if(ball.kicks>3){ball.on=false;ballM.visible=false;opts.onEvent?.(`${P.name} caught the toy and drops it at your feet.`);}else{const a=life.heading+(__rs()-.5)*1.4;ball.vx=Math.cos(a)*1.4;ball.vz=Math.sin(a)*1.4;ball.vy=1.6;ball.y=.1;opts.onEvent?.(`${P.name} bats the toy!`);}}}});
    P.happy=Math.max(0,P.happy-d);
    const hp=stepHop(hop,d,{mode:life.mode,speed:life.speed,startle:Math.max(life.startle||0,P.happy>0?.6:0),mp,g:9.8,scale:HEIGHT,groundY:0});
    P.body.position.set(life.x*k,hp.y,life.z*k);P.body.rotation.y=Math.PI/2-life.heading;const sq=hp.squash;P.body.scale.set(1-sq*.5,1+sq,1-sq*.5);

@@ -8,6 +8,7 @@ import {SPOTS,constructPoints,addCreation,loadCreations,saveCreations,reactToWor
 import {buildSynapseNet,channelValues,fireStep,EMO_VIBE} from './synapse-net.mjs';
 import {createCSTState,stepCSTState} from '../physics/cst-integrator.mjs';
 import {getBeastAudio} from '../companion/beast-audio-engine.mjs';
+import {seededStream} from '../seeded-stream.mjs';const __rs=seededStream('lib/living-core/roam-extras.ts');
 type T=typeof import('three');
 // Cage palette only (crystal violet, flora cyan, bounds lavender).
 const PAL=[0xc6a2ff,0x6fe7ff,0x8f7ad8,0xba82f4,0xa8eaff];
@@ -19,7 +20,7 @@ export function synapseClick(ch:number,strength=.5){
  try{const a:any=getBeastAudio();const s=a.getSnapshot?.();if(!s||s.sparkMuted||!s.unlocked||s.hidden)return false;
   const now=performance.now();if(now-lastClick<110)return false;lastClick=now;
   const o=a.output?.();if(!o)return false;const {ctx,dest}=o;const t=ctx.currentTime+.005;
-  const len=Math.floor(ctx.sampleRate*.018),buf=ctx.createBuffer(1,len,ctx.sampleRate),d=buf.getChannelData(0);for(let i=0;i<len;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/len,6);
+  const len=Math.floor(ctx.sampleRate*.018),buf=ctx.createBuffer(1,len,ctx.sampleRate),d=buf.getChannelData(0);for(let i=0;i<len;i++)d[i]=(__rs()*2-1)*Math.pow(1-i/len,6);
   const src=ctx.createBufferSource();src.buffer=buf;const bp=ctx.createBiquadFilter();bp.type='bandpass';bp.frequency.value=1800+ch*260+(ch%3===2?-900:0);bp.Q.value=ch%3===2?3:9;
   const g=ctx.createGain();g.gain.setValueAtTime(.012+.02*Math.min(1,strength),t);g.gain.exponentialRampToValueAtTime(.0001,t+.05);
   src.connect(bp);bp.connect(g);g.connect(dest);src.start(t);src.stop(t+.06);return true;}catch{return false;}
@@ -77,15 +78,15 @@ export function addRoamExtras(THREE:T,scene:import('three').Scene,{beastId,low,s
   let tome:any=null;if(s.kind==='library'){const ped=new THREE.Mesh(new THREE.CylinderGeometry(.06,.085,.2,8),new THREE.MeshStandardMaterial({color:0x1c1530,emissive:col,emissiveIntensity:.35,roughness:.6}));ped.position.y=.1;g.add(ped);
    tome=new THREE.Mesh(new THREE.BoxGeometry(.12,.025,.09),new THREE.MeshStandardMaterial({color:col,emissive:col,emissiveIntensity:.9}));tome.position.y=.3;g.add(tome);}
   return {s:{...s,x:s.x*scale,z:s.z*scale},g,ring,tome};});
- const NF=low?40:90,ffG=new THREE.BufferGeometry(),ffA=new Float32Array(NF*3);for(let i=0;i<NF;i++){const a=Math.random()*6.28,r=.5+Math.random()*3.6;ffA[i*3]=Math.cos(a)*r;ffA[i*3+1]=.15+Math.random()*1.6;ffA[i*3+2]=Math.sin(a)*r;}
+ const NF=low?40:90,ffG=new THREE.BufferGeometry(),ffA=new Float32Array(NF*3);for(let i=0;i<NF;i++){const a=__rs()*6.28,r=.5+__rs()*3.6;ffA[i*3]=Math.cos(a)*r;ffA[i*3+1]=.15+__rs()*1.6;ffA[i*3+2]=Math.sin(a)*r;}
  ffG.setAttribute('position',new THREE.BufferAttribute(ffA,3));const ffBase=ffA.slice();const ff=new THREE.Points(ffG,new THREE.PointsMaterial({size:.035,color:0xa8eaff,transparent:true,opacity:.7,blending:THREE.AdditiveBlending,depthWrite:false}));root.add(ff);
  const wisps=Array.from({length:low?4:7},(_,i)=>{const m=new THREE.Mesh(new THREE.SphereGeometry(.035,8,6),new THREE.MeshBasicMaterial({color:PAL[i%PAL.length],transparent:true,opacity:.8,blending:THREE.AdditiveBlending}));root.add(m);return {m,a:i*1.3,r:1+(i%4)*.6,h:.35+(i%3)*.35,s:(.12+(i%5)*.04)*(i%2?1:-1)};});
  const store=typeof window!=='undefined'?window.localStorage:null as any;let creations=store?loadCreations(store,beastId):[];const cg=new THREE.Group();root.add(cg);
  const draw=(c:any,born=false)=>{const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(constructPoints(c.shape,c.seed,low?80:140),3));const p=new THREE.Points(g,new THREE.PointsMaterial({size:.03,color:PAL[c.seed%PAL.length],transparent:true,opacity:born?0:.85,blending:THREE.AdditiveBlending,depthWrite:false}));p.position.set(c.x,floorY,c.z);p.scale.setScalar(.45);p.userData={born:born?0:1,tgt:born?(g.attributes.position.array as Float32Array).slice():null};cg.add(p);while(cg.children.length>12){const o:any=cg.children[0];o.geometry.dispose();cg.remove(o);}};
  creations.forEach((c:any)=>draw(c));
  const NB=low?60:120,bG=new THREE.BufferGeometry(),bA=new Float32Array(NB*3).fill(-50),bv=new Float32Array(NB*3);bG.setAttribute('position',new THREE.BufferAttribute(bA,3));const burst=new THREE.Points(bG,new THREE.PointsMaterial({size:.03,color:0xc6a2ff,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false}));root.add(burst);let bLife=0;
- const doBurst=(x:number,y:number,z:number)=>{for(let i=0;i<NB;i++){bA[i*3]=x;bA[i*3+1]=y;bA[i*3+2]=z;const u=Math.random()*6.28,v=Math.random()*2-1,s=Math.sqrt(1-v*v);bv[i*3]=Math.cos(u)*s*.7;bv[i*3+1]=Math.abs(v)*.9+.2;bv[i*3+2]=Math.sin(u)*s*.7;}bLife=1.2;};
- const create=(shape:string,x:number,z:number,from:string)=>{const c={shape,x,z,seed:(Math.random()*2**31)>>>0,from};creations=addCreation(creations,c);if(store)saveCreations(store,beastId,creations);draw(creations[creations.length-1],true);doBurst(x,.3,z);onDoing('made a '+shape+' ✦');};
+ const doBurst=(x:number,y:number,z:number)=>{for(let i=0;i<NB;i++){bA[i*3]=x;bA[i*3+1]=y;bA[i*3+2]=z;const u=__rs()*6.28,v=__rs()*2-1,s=Math.sqrt(1-v*v);bv[i*3]=Math.cos(u)*s*.7;bv[i*3+1]=Math.abs(v)*.9+.2;bv[i*3+2]=Math.sin(u)*s*.7;}bLife=1.2;};
+ const create=(shape:string,x:number,z:number,from:string)=>{const c={shape,x,z,seed:(__rs()*2**31)>>>0,from};creations=addCreation(creations,c);if(store)saveCreations(store,beastId,creations);draw(creations[creations.length-1],true);doBurst(x,.3,z);onDoing('made a '+shape+' ✦');};
  const river=addRiverFlow(THREE,root,{low,seed:beastId,floorY});
  let t=0;
  return {river,spots:spots.map(s=>s.s),create,burst:doBurst,count:()=>creations.length,

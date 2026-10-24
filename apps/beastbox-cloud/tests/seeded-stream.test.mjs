@@ -1,0 +1,4 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {readFileSync,readdirSync,statSync} from 'node:fs';import {join} from 'node:path';
+import {seededStream} from '../lib/seeded-stream.mjs';
+test('seeded stream is deterministic per label and in [0,1)',()=>{const a=seededStream('x'),b=seededStream('x'),c=seededStream('y');const va=[a(),a(),a()];assert.deepEqual(va,[b(),b(),b()]);assert.notEqual(va[0],c());for(const v of va)assert.ok(v>=0&&v<1);});
+test('no Math.random() calls remain in app code',()=>{const bad=[];const walk=d=>{for(const n of readdirSync(d)){if(n==='node_modules'||n.startsWith('.')||n==='tests')continue;const p=join(d,n);if(statSync(p).isDirectory())walk(p);else if(/\.(m?js|tsx?)$/.test(n)&&/Math\.random\(/.test(readFileSync(p,'utf8')))bad.push(p);}};for(const d of ['lib','components','app','scripts'])walk(new URL('../'+d,import.meta.url).pathname);assert.deepEqual(bad,[]);});

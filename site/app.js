@@ -299,8 +299,11 @@ function sky() {
   if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
   const canvas = $("sky");
   const ctx = canvas.getContext("2d");
+  // Seeded stream (mulberry32 from the recorded IBM shard digest label); no Math.random.
+  let seed = 0xb6a607ea;
+  const rs = () => { seed = (seed + 0x6D2B79F5) | 0; let t = seed; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
   const stars = Array.from({ length: 140 }, () => ({
-    x: Math.random(), y: Math.random(), r: Math.random() * 1.3 + 0.2, p: Math.random() * 6.28, s: Math.random() * 0.02 + 0.004,
+    x: rs(), y: rs(), r: rs() * 1.3 + 0.2, p: rs() * 6.28, s: rs() * 0.02 + 0.004,
   }));
   let sized = "";
   function frame() {
