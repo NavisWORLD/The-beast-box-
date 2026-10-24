@@ -103,6 +103,20 @@ class GuestQuota:
             pass
 
 
+_ROUTER = {}
+
+
+def _guest_router(root: Path):
+    """Public router (spark only: guests are stateless and have no private signals). None when routing is off."""
+    if os.environ.get("BEASTBOX_LIVE_ROUTING", "off") != "on":
+        return None
+    if "r" not in _ROUTER:
+        from .live_routing import LiveRouter
+        _ROUTER["r"] = LiveRouter(Path(root) / "routing-receipts-guest.jsonl", scope="public")
+        _ROUTER["n"] = 0
+    return _ROUTER["r"]
+
+
 def guest_local_infer(root: Path, payload: dict, *, owner_jobs_busy: bool = False) -> tuple[int, dict]:
     """Exactly one stateless native inference. No owner-provider selection or fallback."""
     if os.environ.get("BEASTBOX_GUEST_LOCAL_ENABLED", "no") != "yes":
@@ -128,8 +142,19 @@ def guest_local_infer(root: Path, payload: dict, *, owner_jobs_busy: bool = Fals
         api_key = os.environ.get("RAWRPHOS_API_KEY", "")
         if len(api_key) < 32 or any(c in api_key for c in "\r\n"):
             return 503, {"error": "Local model key unavailable"}
-        body = json.dumps({"model": MODEL, "messages": [{"role": "user", "content": payload["text"].strip()}],
-                           "max_tokens": MAX_OUTPUT_TOKENS, "temperature": 0.3, "stream": False}).encode()
+        routing = None
+        try:
+            router = _guest_router(root)
+            if router is not None:
+                _ROUTER["n"] += 1
+                routing = router.route_turn(f"guest-{_ROUTER['n']}")  # counter, never the guest identity
+        except Exception:  # routing never blocks a reply; the response then simply carries no routing summary
+            routing = None
+        request_body = {"model": MODEL, "messages": [{"role": "user", "content": payload["text"].strip()}],
+                        "max_tokens": MAX_OUTPUT_TOKENS, "temperature": 0.3, "stream": False}
+        if routing is not None and ready.get("cond54") is True:  # only a model that declares cond54 is conditioned
+            request_body["condition54"] = routing["condition54"]
+        body = json.dumps(request_body).encode()
         req = urllib.request.Request("http://127.0.0.1:8767/v1/chat/completions", data=body,
             method="POST", headers={"Authorization": "Bearer " + api_key, "Content-Type": "application/json"})
         with _local_opener().open(req, timeout=45) as response:
@@ -146,8 +171,14 @@ def guest_local_infer(root: Path, payload: dict, *, owner_jobs_busy: bool = Fals
         text = result["choices"][0]["message"]["content"]
         if not isinstance(text, str) or not text.strip() or len(text) > 6000:
             return 502, {"error": "Native response was empty or invalid"}
+        used = result.get("condition54_used") is True
+        public_routing = None if routing is None else {
+            "receipt_sha256": routing["summary"]["receipt_sha256"], "tally": routing["summary"]["tally"],
+            "spark": {k: routing["summary"]["spark"].get(k) for k in ("state", "tick", "late")},
+            "condition54_used": used, "label": routing["summary"]["label"], "private_signals": False}
         return 200, {"schema": SCHEMA, "model": MODEL, "step": STEP,
                      "checkpoint_sha256": SHA, "reply": text, "memory_used": False,
+                     **({"routing": public_routing} if public_routing else {}),
                      # In-context fast weights only; reset per request, never persisted.
                      "hebbian": result.get("hebbian") is True,
                      "state_mode": result.get("state_mode") if result.get("state_mode") in ("dyn12", "tri") else None,

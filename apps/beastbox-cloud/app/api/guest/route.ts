@@ -80,7 +80,8 @@ export async function POST(request:Request){
    return safeJson(200,{provider:'rawrphos-local',model:'rawrphos-native',
     step:PIN_STEP,checkpoint_sha256:PIN_SHA,reply:result.reply,
     hebbian:result.hebbian===true,state_mode:result.state_mode==='tri'||result.state_mode==='dyn12'?result.state_mode:null,
-    guest_stateless:true});
+    guest_stateless:true,
+    ...(result.routing&&typeof result.routing==='object'&&!Array.isArray(result.routing)?{routing:result.routing}:{})});
   }catch{return safeJson(502,{error:'Local guest inference unavailable or timed out'});}
  }
  if(Object.keys(item).sort().join(',')!=='hf_key,model,provider,spend_confirmed,text'||
