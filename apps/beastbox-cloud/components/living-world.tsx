@@ -39,6 +39,7 @@ import {addMechanics,createAsciiPass,underwaterColor} from '@/lib/universe/mecha
 import {weatherFrom,createMover,stepMover,createWater,stepWater,waterTotal} from '@/lib/universe/world-mechanics.mjs';
 import {LW_LABELS,gatheringPoints,spreadAngle,initialTraits,driftTraits,lattice12D,lwStream,unitFrom} from '@/lib/universe/living-world.mjs';
 import {ARTIST_RESIDENTS} from '@/lib/companion/artist-residents.mjs';
+import {RESIDENT_LIFE_KEY,lifeTransform,hopSeconds} from '@/lib/universe/sprite-life.mjs';
 import {cosmicEvents,cosmicLine,createWindow,stepWindow,windowLine,seededMood,spreadMood,napGroup,buildKind,advanceBuild,coexistLine,worldLine,placeLine,learnBiome,worldRecord,toJsonl,windowEmissive,traitIcon,MOOD_ICON,ZEREF_ID} from '@/lib/universe/living-alive.mjs';
 import {addCageSurface} from '@/lib/universe/surface-three';
 import {ROADSTER_LABEL,bodyVariantIndex,wheelOmega,steerAngle,driveState,bodyBob,headlamp,underglow} from '@/lib/universe/roadster-view.mjs';
@@ -291,7 +292,7 @@ uniform vec3 uPlay[8];
    const rr=lwStream(u.seed+':residents');
    const residents=(ARTIST_RESIDENTS as any[]).map((r:any)=>{const node=new THREE.Group();const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:L.load(r.views.front),transparent:true,depthWrite:false}));
     (sp.material.map as any).colorSpace=THREE.SRGBColorSpace;const h=.75*r.scale;sp.scale.set(h,h,1);sp.center.set(.5,.05);node.add(sp);node.add(mkShadow(h*.9));scene.add(node);
-    const n=new THREE.Vector3(...(unitFrom(rr) as [number,number,number]));const f=new THREE.Vector3(...(unitFrom(rr) as [number,number,number]));f.addScaledVector(n,-f.dot(n)).normalize();return {node,n,f,spd:.25+rr()*.35,wob:rr()*10,name:r.name};});
+    const n=new THREE.Vector3(...(unitFrom(rr) as [number,number,number]));const f=new THREE.Vector3(...(unitFrom(rr) as [number,number,number]));f.addScaledVector(n,-f.dot(n)).normalize();return {node,n,f,sp,h,spd:.25+rr()*.35,wob:rr()*10,name:r.name};});
    residents.slice(0,7).forEach((r,i)=>gpts[i+1].copy(r.n));// grass starts under the beasts' feet
    // ---- things to explore: seeded flowers, crystals, cairns, ponds, burrows, trees; they wake as the grass reaches them
    const COL:Record<string,number>={flower:0xff7ad9,crystal:0x7fe8ff,cairn:0xb9b0c8,pond:0x3a7bd5,burrow:0x2a1c14,tree:0x2f8f5b};
@@ -545,13 +546,16 @@ uniform vec3 uPlay[8];
     for(const th of things){if(!th.awake){const c=gpts.some(g=>ang(th.n,g)/PR<UG.uSpread.value-.2);if(c){th.awake=true;th.grow=1;}}
      th.cool=Math.max(0,th.cool-dt);th.pulse=Math.max(0,th.pulse-dt*.8);const s0=th.node.scale.x,tg=th.awake?th.size*th.grow*(1+th.pulse*.25):0.001;th.node.scale.setScalar(s0+(tg-s0)*Math.min(1,dt*2));}
     // residents explore things and each other; everything can touch everything
-    socialCool=Math.max(0,socialCool-dt);
+    socialCool=Math.max(0,socialCool-dt);const slReduced=reducedNow(); // sprite life (Cosmo's spritelife numbers): idle breathe, walk bob, hop, sleep curl; transforms only, art untouched
     for(const r of residents as any[]){r.pause=Math.max(0,(r.pause||0)-dt);
-     const nt=nearestThing(r.n);if(nt&&nt.d<.35&&r.pause<=0){if(touch(nt.t,r.name)){r.pause=1.5;alive.build(r);}}
+     const nt=nearestThing(r.n);if(nt&&nt.d<.35&&r.pause<=0){if(touch(nt.t,r.name)){r.pause=1.5;r.hopT=0;alive.build(r);}}
      else if(nt&&nt.d<4&&Math.sin(t*.2+r.wob)>0)steerTo(r.n,r.f,nt.t.n,dt*1.5);else turn(r.n,r.f,Math.sin(t*.4+r.wob)*dt*.8);
      for(const o of residents as any[])if(o!==r&&ang(r.n,o.n)<.5){steerTo(r.n,r.f,r.n.clone().multiplyScalar(2).sub(o.n),dt*2);if(socialCool<=0&&!spawnRef.current){socialCool=25;lineRef.current(r.name+' and '+o.name+' bumped noses.');}alive.meet(r,o,t);}
-     if(ang(r.n,bN)<.6){steerTo(r.n,r.f,r.n.clone().multiplyScalar(2).sub(bN),dt*2);if(!(metCool[r.name]>t)){metCool[r.name]=t+40;say(beastNm+' met '+r.name+' and sniffed hello.',5);hop(1.2);traits=driftTraits(traits,u,bKey,'greet');}}
-     if(r.pause<=0){const rb=biomeOf(r.n);walkOn(r.n,r.f,r.spd*dt*((BIOME_FEEL as any)[rb]?.speed??1));if(rb==='ocean')steerTo(r.n,r.f,gpts[0],dt*2);}place(r.node,r.n,r.f);}
+     if(ang(r.n,bN)<.6){steerTo(r.n,r.f,r.n.clone().multiplyScalar(2).sub(bN),dt*2);if(!(metCool[r.name]>t)){metCool[r.name]=t+40;r.hopT=0;say(beastNm+' met '+r.name+' and sniffed hello.',5);hop(1.2);traits=driftTraits(traits,u,bKey,'greet');}}
+     if(r.pause<=0){const rb=biomeOf(r.n);walkOn(r.n,r.f,r.spd*dt*((BIOME_FEEL as any)[rb]?.speed??1));if(rb==='ocean')steerTo(r.n,r.f,gpts[0],dt*2);}place(r.node,r.n,r.f);
+     {const lk=(RESIDENT_LIFE_KEY as any)[r.name];if(lk&&r.sp){const sl=r.nap>0?1:0;r.sk=(r.sk||0)+(sl-(r.sk||0))*Math.min(1,dt*2.1);r.wk=(r.wk||0)+(((r.pause<=0&&!sl)?1:0)-(r.wk||0))*Math.min(1,dt*4);
+      let hu:number|null=null;if(typeof r.hopT==='number'){r.hopT+=dt;if(r.hopT>=hopSeconds(lk))r.hopT=null;else hu=r.hopT/hopSeconds(lk);}
+      const tf=lifeTransform(lk,{t,walk:r.wk,sleep:r.sk,hopU:hu,reduced:slReduced});r.sp.scale.set(r.h*tf.sx,r.h*tf.sy,1);r.sp.position.set(tf.dx*r.h,-tf.dy*r.h,0);r.sp.material.rotation=tf.rot;}}}
     alive.frame(dt,t);
     // beast: wander by traits; when you're spawned in, run to greet (timing from JSON)
     const sp=spawnRef.current;let restored=false;if(sp&&!wasSpawned){try{const st=JSON.parse(localStorage.getItem(TKEY)||'null');if(st&&st.n&&st.f){pN.fromArray(st.n).normalize();pF.fromArray(st.f);pF.addScaledVector(pN,-pF.dot(pN)).normalize();restored=pF.lengthSq()>.5;}}catch{}}
