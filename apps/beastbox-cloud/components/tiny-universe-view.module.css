@@ -15,3 +15,6 @@
 /* Readable over 3D planets (Cosmo): the bottom HUD sits on a soft dark plate and clears the zoom stack on phones. */
 .bottom{background:rgba(8,5,24,.78);border-radius:14px;padding:8px 10px;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
 @media (max-width:899px){.bottom{left:8px;right:8px}}
+
+/* iPhone pass 1: the bottom plate never grows past the screen (scrolls inside), and its four buttons fit one row. */
+@media (max-width:599px){.bottom{max-height:42dvh;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}.btn{font-size:12px;padding:7px 9px}.row{gap:5px}}

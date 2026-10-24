@@ -844,3 +844,30 @@ body:has([data-go-screen]) .site-dock{display:none}
 
 /* 404: no quick dock / Talk launcher on a page that does not exist */
 body:has([data-not-found]) :is(.site-dock,[data-beast-chat-launcher],[data-zeref-voice-dock],aside[data-sound-room],[data-companion-overlay],aside[data-dock-pill],[class*=beast-chat-overlay][class*=launcher],.companion-dock){display:none!important}
+
+/* iPhone pass 1 (Cory's real iPhone 16 Safari shots, Oct 24 2026): layout only, nothing removed.
+   Control rows wrap or scroll with a visible edge fade, Safari's bottom bar gets room, the dock steps aside when idle. */
+@media (max-width:700px){
+ .cosmos-world-nav,.public-journey-links,.cage-topbar nav{padding-inline:14px;-webkit-mask-image:linear-gradient(90deg,transparent 0,#000 14px,#000 calc(100% - 22px),transparent 100%);mask-image:linear-gradient(90deg,transparent 0,#000 14px,#000 calc(100% - 22px),transparent 100%)}
+}
+@media (max-width:560px){
+ /* Home pocket: the pocket is a rounded shape, so its button row sits inset, centred and wrapped (never cut at the right edge). */
+ [data-lw-embedded] [data-lw-actions]{margin:0 auto 7%!important;justify-content:center!important;max-width:88%!important}
+ [data-lw-embedded] [data-lw-actions] button{padding:6px 8px!important;font-size:12px!important}
+ /* The pocket's own caption sits under the shape on phones instead of over its buttons. */
+ .beast-landing-art:has(.is-roamer){margin-bottom:34px}
+ .beast-landing-art:has(.is-roamer) .beast-landing-caption{bottom:-30px!important;left:4%!important;right:4%!important}
+ /* Full-screen world: the buttons form a compact wrapped row instead of a tall stack over the globe. */
+ [data-living-world]:not([data-lw-embedded]) [data-lw-actions]{flex-direction:row!important;flex-wrap:wrap!important;justify-content:flex-end;gap:5px!important;max-width:min(72%,260px)}
+ [data-living-world]:not([data-lw-embedded]) [data-lw-actions] button{padding:8px 10px!important;font-size:12px!important;min-height:36px}
+ /* /universe 3D: Storms and the black-hole note share one stack; phones put it under the zoom row at the left edge. */
+ [data-u3d-stack]{left:12px!important;top:210px!important;max-width:calc(100% - 24px)!important}
+ [data-u3d-stack] [data-bh-label]{font-size:10px!important}
+ [data-u3d-stack] [data-storm-list]{font-size:11px!important}
+ /* Safari's bottom bar: pages keep extra room beneath their last row. */
+ body{padding-bottom:calc(112px + env(safe-area-inset-bottom,0px))}
+ /* The dock shrinks to a small round handle after a few idle seconds so it never sits over content; any tap brings it back. */
+ .site-dock[data-compact]{padding:2px;gap:0;opacity:.78}
+ .site-dock[data-compact]>*:not(:last-child){display:none}
+ .site-dock[data-compact]>*:last-child{min-height:34px;min-width:34px;padding:0}
+}

@@ -19,8 +19,12 @@ export default function SiteDock(){
  useEffect(()=>{if(auto)return;document.body.dataset.oneDock='1';return()=>{delete document.body.dataset.oneDock;};},[auto]);
  // On phones the dock tucks away while the page is scrolling (so it never sits over the buttons you are trying to read or tap) and slides back when scrolling stops.
  useEffect(()=>{if(auto)return;let last=window.scrollY,tm:any=0;const nav=()=>document.querySelector<HTMLElement>('[data-site-dock]');const on=()=>{const y=window.scrollY,d=y-last;last=y;const el=nav();if(!el||window.innerWidth>560)return;if(d>4&&y>160)el.dataset.away='1';clearTimeout(tm);tm=setTimeout(()=>{const e=nav();if(e)delete e.dataset.away;},650);};window.addEventListener('scroll',on,{passive:true});return()=>{window.removeEventListener('scroll',on);clearTimeout(tm);};},[auto]);
+ // Phones: after ~3 s without a touch or scroll the dock shrinks to a small round handle (it never sits over content); the first tap on it only expands it.
+ const [compact,setCompact]=useState(false);
+ useEffect(()=>{if(auto)return;let tm:any=0;const arm=()=>{setCompact(false);clearTimeout(tm);tm=setTimeout(()=>{if(window.innerWidth<=560)setCompact(true);},3200);};arm();const evs=['touchstart','scroll','keydown'];evs.forEach(e=>window.addEventListener(e,arm,{passive:true}));return()=>{evs.forEach(e=>window.removeEventListener(e,arm));clearTimeout(tm);};},[auto,open]);
+ const expandFirst=(e:React.MouseEvent)=>{if(compact){e.preventDefault();e.stopPropagation();setCompact(false);}};
  if(auto)return null;
- return <nav className="site-dock" aria-label="Quick dock" data-site-dock={open?'open':'closed'}>
+ return <nav className="site-dock" aria-label="Quick dock" data-site-dock={open?'open':'closed'} data-compact={compact?'':undefined} onClickCapture={expandFirst}>
   <button type="button" onClick={e=>window.dispatchEvent(new CustomEvent('beastbox:open-chat',{detail:{opener:e.currentTarget}}))} aria-label={`Talk to ${name||'your beast'}`}>💬<span>{name&&name!=='your beast'?`Talk to ${name}`:'Talk'}</span></button>
   <button type="button" data-dock-menu aria-controls="site-nav-sheet" onClick={()=>window.dispatchEvent(new Event('beastbox:open-site-nav'))} aria-label="Open site menu">☰<span>Menu</span></button>
   <Link prefetch={false} href="/sol-game" aria-label="Lost COSMOS game">🎮<span>Lost COSMOS</span></Link>
