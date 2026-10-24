@@ -10,6 +10,9 @@ import {isSoftwareGL} from '@/lib/three/soft-gl';
 import {homeOf,biomeOf} from '@/lib/universe/tiny-universe-view.mjs';
 import {blackBodyToRGB,sunIntensity,initSystem,advanceTo,orbitR as gOrbitR} from '@/lib/universe/genesis-sun.mjs';
 import {starTexture,glowTexture,coronaMesh,atmosphereMesh,nightGlowOnly} from '@/lib/universe/genesis-sun-three';
+import {createPlanetKit} from '@/lib/universe/planet-body-three';
+import {pickType,variantFor,sunExposure,glowSet} from '@/lib/universe/planet-types.mjs';
+import PLANET_VARIANTS from '@/lib/universe/planet-variants.json';
 import {threadFade,threadBrightness,creatureHome,threadBend} from '@/lib/universe/alive-props.mjs';
 // One Mind, Refracted (Cosmo's concept 09): faint threads from one origin to every creature (brightness = how recently its
 // own loop really ticked, /api/cosmos/activity) and dimmer ones to stars, planets and storms. Only at full zoom-out; hideable.
@@ -84,6 +87,7 @@ vec3 c=texture2D(tScene,bhScreen+s).rgb;float ring=exp(-pow((r-1.5*rs)/(0.08*rs+
    for(const [id,m] of planetMesh)add('p:'+id,m.position,1,true);
    for(const [id,sp] of stormObj)add('w:'+id,sp.position,1,true);
    tGeo.setDrawRange(0,k*SEG*2);tGeo.attributes.position.needsUpdate=true;tGeo.attributes.color.needsUpdate=true;tMat.opacity=.55*fade;origin.material.opacity=.5*fade;return k;}
+  const legacyPlanets=typeof location!=='undefined'&&/[?&]planets=biome/.test(location.search);const planetKit=createPlanetKit();
   const planetMesh=new Map<string,THREE.Mesh>();const starObj=new Map<string,THREE.Object3D>();const stormObj=new Map<string,THREE.Sprite>();
   const sphere=new THREE.SphereGeometry(1,32,20);
   const diskTex=tex('accretion_disk_1024.png'),ringTex=tex('photon_ring_512.png'),stormTex=[tex('storm_cloud_violet_1024.png'),tex('storm_cloud_teal_1024.png')];
@@ -122,7 +126,11 @@ vec3 c=texture2D(tScene,bhScreen+s).rgb;float ring=exp(-pow((r-1.5*rs)/(0.08*rs+
      const glow=new THREE.Sprite(new THREE.SpriteMaterial({map:ringTex,color:sc,blending:THREE.AdditiveBlending,depthWrite:false,transparent:true,opacity:.35}));glow.scale.setScalar(rr*7);g.add(glow);
      const L=new THREE.PointLight(sc,sunIntensity(st.luminosity),0,2);g.add(L);}/* inverse-square, like the pens' PointLight(color,2,20000,2) */
     g.userData.id=st.id;world.add(g);starObj.set(st.id,g);}
-   for(const pl of U.planets){if(planetMesh.has(pl.id))continue;const bk=biomeOf(pl),bm=BIOME_MAP[bk];const mat=new THREE.MeshStandardMaterial({color:bm?0xffffff:(BIOME_HEX[bk]||0x9988ff),roughness:.85,metalness:0,emissive:bm?0xffffff:0x110822,emissiveIntensity:bm?.35:1});if(bm){mat.map=biomeTex(bm,'color');mat.emissiveMap=biomeTex(bm,'glow');}const sunV=nightGlowOnly(mat);const m=new THREE.Mesh(sphere,mat);
+   for(const pl of U.planets){if(planetMesh.has(pl.id))continue;
+    if(!legacyPlanets){ // the pocket globe's material on every planet (Cosmo's pack): displaced terrain, ocean depth/foam, clouds, atmosphere
+     const type=pickType(pl),pv:any=(PLANET_VARIANTS as any)[pl.id],vr=pv?{lonDeg:pv[0],tiltDeg:pv[1],spinDegPerS:pv[2],cloudLonDeg:pv[3]}:variantFor(pl.id,rand);
+     const body=planetKit.create(type,vr);const m=body.mesh as any;m.scale.setScalar(0.35+0.18*Math.sqrt(pl.radius_earth));m.userData.id=pl.id;m.userData.body=body;m.userData.ptype=type;world.add(m);planetMesh.set(pl.id,m);continue;}
+    const bk=biomeOf(pl),bm=BIOME_MAP[bk];const mat=new THREE.MeshStandardMaterial({color:bm?0xffffff:(BIOME_HEX[bk]||0x9988ff),roughness:.85,metalness:0,emissive:bm?0xffffff:0x110822,emissiveIntensity:bm?.35:1});if(bm){mat.map=biomeTex(bm,'color');mat.emissiveMap=biomeTex(bm,'glow');}const sunV=nightGlowOnly(mat);const m=new THREE.Mesh(sphere,mat);
     m.scale.setScalar(0.35+0.18*Math.sqrt(pl.radius_earth));m.userData.id=pl.id;m.userData.sunV=sunV;if((pl.atmosphere||0)>0.08){const at=atmosphereMesh(Math.min(1,0.35+pl.atmosphere));m.add(at);m.userData.atm=at;}world.add(m);planetMesh.set(pl.id,m);}
   }
   const orbitR=(pl:any)=>gOrbitR(pl.orbit_au);
@@ -134,7 +142,9 @@ vec3 c=texture2D(tScene,bhScreen+s).rgb;float ring=exp(-pow((r-1.5*rs)/(0.08*rs+
     advanceTo(S.sys,S.state,t);
     for(const sp of S.sys.planets){const m=planetMesh.get(sp.id);if(!m)continue;m.position.set(g.position.x+sp.p[0],g.position.y+sp.p[1],g.position.z+sp.p[2]);
      // the star is the light: direction from this world to its star (view space) drives day/night, phases and the scatter shell
-     sv.copy(g.position).sub(m.position).normalize();if(m.userData.sunV)m.userData.sunV.value.copy(sv).transformDirection(cam.matrixWorldInverse);
+     sv.copy(g.position).sub(m.position).normalize();
+     if(m.userData.body){const dd=g.position.distanceTo(m.position);m.userData.body.update({t,cam,sunPos:g.position,sunColor:g.userData.sunColor,exposure:sunExposure(sunIntensity(g.userData.star.luminosity),dd),viewH:(el as HTMLElement).clientHeight,glow:glowSet(g.userData.star.temperature_k)});}
+     if(m.userData.sunV)m.userData.sunV.value.copy(sv).transformDirection(cam.matrixWorldInverse);
      const at=m.userData.atm;if(at){const u=at.material.uniforms;u.cameraPos.value.copy(cam.position);u.lightDir.value.copy(sv);u.time.value=t;const c=g.userData.sunColor as THREE.Color;const hsl=c.getHSL({h:0,s:0,l:0});u.intensityBoost.value=0.8+Math.min(1.5,hsl.s*1.2+hsl.l);}}
     const cor=g.children.find((c:any)=>c.userData.isStarCorona) as any;if(cor)cor.material.uniforms.time.value=t;}
    const live=new Set<string>();for(const sm of U.storms||[]){const p=planetMesh.get(sm.planet);if(!p)continue;live.add(sm.planet);let sp=stormObj.get(sm.planet);
