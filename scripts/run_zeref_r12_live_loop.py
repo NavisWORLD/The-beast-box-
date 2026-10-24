@@ -136,6 +136,8 @@ def build_live_epoch(
     if not math.isfinite(rho) or not 0.0 <= rho <= 1.0:
         raise RuntimeError("R12 reality_coupling left [0,1]")
     return {
+        # CONTROL, not a measurement: the 54 drive values are sha256-derived from the snapshot.
+        "drive_class": "control-hash-sha256",
         "schema": "zeref-r12-live-epoch-v1",
         "epoch": epoch,
         "epoch_id": f"E{epoch}",
