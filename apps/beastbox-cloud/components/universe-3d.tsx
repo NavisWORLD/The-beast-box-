@@ -166,7 +166,7 @@ vec3 c=texture2D(tScene,bhScreen+s).rgb;float ring=exp(-pow((r-1.5*rs)/(0.08*rs+
    addDeco();lightning(t);}
   // camera rig: spherical around a target, log distance
   let yaw=0.6,pitch=0.5,logD=Math.log(30),targetId:string|null=homeOf(uRef.current||{planets:[],life:[]});const tgt=new THREE.Vector3(),want=new THREE.Vector3();
-  const minLogD=()=>{const m:any=targetId?planetMesh.get(targetId):null;return Math.log(m?Math.max(0.02,m.scale.x*1.03):ZOOM_MIN);}; // planets can be approached to ~3% of their radius above the surface
+  const minLogD=()=>{const m:any=targetId?planetMesh.get(targetId):null;return Math.log(m?Math.max(0.02,m.scale.x*1.1):ZOOM_MIN);}; // planets can be approached to ~10% of their radius above the surface (the maps are ~2048 px around, so closer needs the flat-ground layer, not built yet)
   const setZoom=(f:number)=>{logD=Math.min(Math.log(ZOOM_MAX),Math.max(minLogD(),logD+f));};
   api.current={zoom:setZoom,home:()=>{targetId=homeOf(uRef.current);logD=Math.log(10);}};
   const ptrs=new Map<number,{x:number,y:number}>();let pinch=0,moved=0;

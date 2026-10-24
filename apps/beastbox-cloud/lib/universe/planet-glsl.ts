@@ -206,7 +206,7 @@ void main(){
   // ADDED: shore foam (the globe's foam rule): a lacy white band where the depth channel is ~0 (shore), lit by the sun
   if (ocean > 0.01) {
     float shore = 1.0 - smoothstep(0.0, 0.08, om.g);
-    float lace = 0.62 + 0.38 * sin(uTime * 1.3 + vUv.x * 1800.0 + vUv.y * 900.0);
+    float lace = 0.6 + 0.4 * sin(uTime * 1.3 + vUv.x * 420.0 + vUv.y * 260.0) * sin(vUv.x * 310.0 - vUv.y * 470.0 - uTime * 0.9); // crossed low-frequency waves: lacy cells, no stripe moire when magnified
     col += uSunColor * shore * ocean * lace * 0.32 * tw;
   }
   // night lights / lava / crystals
