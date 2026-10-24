@@ -106,13 +106,13 @@ export default function LivingWorld({genome,beastKey,beastName,onClose,embedded=
    // ---- planet ground: grass/soil tiles blended by a coverage field that spreads from gathering points
    const gpts=gatheringPoints(u,bKey).map(v=>new THREE.Vector3(...v));
    const UG:any={uRamp:{value:(()=>{const t=L.load('/universe/livingworld/landforms/ocean/water_depth_ramp_256x16.png');t.colorSpace=THREE.SRGBColorSpace;return t;})()},uFoam:{value:(()=>{const t=L.load('/universe/livingworld/landforms/ocean/foam_512.png');t.wrapS=t.wrapT=THREE.RepeatWrapping;return t;})()},uMap:{value:null},uUseMap:{value:0},uHeight:{value:null},uDisp:{value:0},uGlow:{value:null},uIdx:{value:null},uField:{value:0},uTiles:{value:null},uUseTiles:{value:0},uLeg:{value:Array.from({length:20},()=>new THREE.Vector3(9,9,9))},uMN:{value:(()=>{const t=L.load('/universe/livingworld/groundcover/textures/meadow_near_albedo_1024.png');t.colorSpace=THREE.SRGBColorSpace;t.wrapS=t.wrapT=THREE.RepeatWrapping;return t;})()},uMF:{value:(()=>{const t=L.load('/universe/livingworld/groundcover/textures/meadow_far_albedo_1024.png');t.colorSpace=THREE.SRGBColorSpace;t.wrapS=t.wrapT=THREE.RepeatWrapping;return t;})()},uGrass:{value:tex('ground_grass_tile_256.jpg',true)},uSoil:{value:tex('ground_soil_tile_256.jpg',true)},uMask:{value:tex('grass_edge_edge_mask.png',true)},
-    uPts:{value:gpts},uPlay:{value:Array.from({length:8},()=>new THREE.Vector3())},uSpread:{value:spreadAngle(u)},uT:{value:0},uSun:{value:sun.position.clone().normalize()}};
+    uPts:{value:gpts},uLift:{value:0},uPlay:{value:Array.from({length:8},()=>new THREE.Vector3())},uSpread:{value:spreadAngle(u)},uT:{value:0},uSun:{value:sun.position.clone().normalize()}};
    const COVER=`uniform sampler2D uHeight;uniform float uDisp;vec2 eqUV(vec3 n){return vec2(atan(n.z,n.x)/6.2832+.5,asin(clamp(n.y,-1.0,1.0))/3.1416+.5);}float disp(vec3 n){return uDisp>0.0?max(0.0,texture2D(uHeight,eqUV(n)).r-0.42)*uDisp:0.0;}uniform vec3 uPts[8];uniform float uSpread;float cover(vec3 n){float c=0.0;for(int i=0;i<8;i++){float a=acos(clamp(dot(n,uPts[i]),-1.0,1.0));c=max(c,smoothstep(uSpread,uSpread-0.35,a));}return c;}`;
    // beasts gather first on living land (plains/forest; tundra or pine near the poles), so pick the first seeded layout variant that puts the gathering point there
    const BP=(()=>{const g0=gpts[0];for(let i=0;i<64;i++){const bp=biomeParams(i?u.seed+':v'+i:u.seed);if(['plains','heartwood','pine','tundra'].includes(biomeAt(bp,[g0.x,g0.y,g0.z]) as string))return bp;}return biomeParams(u.seed);})();const BGL=biomeGLSL(BP);let biomeOf=(n:import('three').Vector3)=>biomeAt(BP,[n.x,n.y,n.z]) as string;
    const ground=new THREE.Mesh(new THREE.SphereGeometry(PR,phone?96:160,phone?64:110),new THREE.ShaderMaterial({uniforms:UG,
     vertexShader:`varying vec3 vN;varying vec2 vUv;varying vec3 vWp;${COVER}void main(){vN=normalize(position);vUv=uv*vec2(48.0,24.0);vec3 p=position+vN*disp(vN);vWp=p;gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.0);}`,
-    fragmentShader:`uniform sampler2D uGrass,uSoil,uMask,uMap,uGlow,uIdx,uTiles,uMN,uMF,uRamp,uFoam;uniform float uT;uniform float uUseMap,uUseTiles,uField;uniform vec3 uSun,uLeg[20];varying vec3 vN;varying vec2 vUv;varying vec3 vWp;${COVER}${BGL}
+    fragmentShader:`uniform sampler2D uGrass,uSoil,uMask,uMap,uGlow,uIdx,uTiles,uMN,uMF,uRamp,uFoam;uniform float uT;uniform float uUseMap,uUseTiles,uField;uniform vec3 uSun,uLeg[20];uniform float uLift;varying vec3 vN;varying vec2 vUv;varying vec3 vWp;${COVER}${BGL}
      int legIdx(vec3 c){int bi=0;float bd=9.0;for(int i=0;i<20;i++){vec3 d=c-uLeg[i];float dd=dot(d,d);if(dd<bd){bd=dd;bi=i;}}return bi;}
      vec3 tri(sampler2D t,vec3 n){vec3 w=pow(abs(n),vec3(4.0));w/=w.x+w.y+w.z;vec3 p=n*${(PR/2).toFixed(1)};return texture2D(t,p.yz).rgb*w.x+texture2D(t,p.xz).rgb*w.y+texture2D(t,p.xy).rgb*w.z;}
      void main(){vec3 n=normalize(vN);int b=biome(n);float c=cover(n);float m=.5+.35*(tri(uMask,n*1.7).r-.5)+.25*(fract(sin(dot(floor(n*40.0),vec3(12.9,78.2,37.7)))*43758.5)-.5);float g=smoothstep(m-.2,m+.2,c*1.1);
@@ -132,7 +132,7 @@ export default function LivingWorld({genome,beastKey,beastName,onClose,embedded=
       // Cosmo's ocean: depth from the height map (sea level .42) -> depth ramp (shore turquoise -> abyss indigo), shoreline foam
       if(uUseMap>.5){float hh=texture2D(uHeight,eqUV(n)).r;if(hh<.42){float dm=(.42-hh)*160.0;float tw=1.0-exp(-dm/12.0);vec3 wc=texture2D(uRamp,vec2(tw,.5)).rgb;
        float fo=texture2D(uFoam,eqUV(n)*vec2(60.0,30.0)+uT*.02).r*smoothstep(1.5,0.0,dm);col=mix(col,wc,mix(.55,.95,tw))+fo*.7;}}
-      vec3 v=normalize(cameraPosition-n*${PR.toFixed(1)});float dif=max(0.0,dot(n,uSun));float l=.36+1.15*dif;col*=l;
+      vec3 v=normalize(cameraPosition-n*${PR.toFixed(1)});float dif=max(0.0,dot(n,uSun));float l=.46+1.15*dif+uLift*.55*(1.0-dif);col*=l;
       if(b==7)col+=vec3(.6,.2,.05)*pow(.5+.5*sin(bH(n)*50.0),8.0);if(b==10)col+=vec3(.2,.25,.4)*(1.0-dif);
       if(b==0)col+=vec3(.9,.95,1.0)*pow(max(0.0,dot(reflect(-uSun,n),v)),40.0)*.6;
       if(uUseMap>.5)col+=texture2D(uGlow,eqUV(n)).rgb*(1.0-smoothstep(-.1,.25,dot(n,uSun)))*1.1;
@@ -237,16 +237,16 @@ export default function LivingWorld({genome,beastKey,beastName,onClose,embedded=
    const bladeGeo=new THREE.InstancedBufferGeometry();bladeGeo.index=cross.index;bladeGeo.attributes.position=cross.attributes.position;bladeGeo.attributes.uv=cross.attributes.uv;
    const MAXB=14000;const iN=new Float32Array(MAXB*3),iR=new Float32Array(MAXB*2);{const r=lwStream(u.seed+':blades');for(let i=0;i<MAXB;i++){let v=unitFrom(r) as number[];for(let k=0;k<6&&['ocean','glacier','peaks'].includes(biomeAt(BP,v) as string);k++)v=unitFrom(r) as number[];iN.set(v,i*3);iR[i*2]=r();iR[i*2+1]=Math.floor(r()*8);}}
    bladeGeo.setAttribute('aN',new THREE.InstancedBufferAttribute(iN,3));bladeGeo.setAttribute('aR',new THREE.InstancedBufferAttribute(iR,2));bladeGeo.instanceCount=bladeCap;
-   const bladeMat=new THREE.ShaderMaterial({uniforms:{...UG,uAtlas:{value:tex('grass_blade_atlas.png')},uAmp:{value:W.sway_amp_rad},uFreq:{value:W.freq_hz},uWave:{value:W.wave_len_world},uGust:{value:W.gust_amp},uGustF:{value:W.gust_freq_hz},uR:{value:PR}},
+   const bladeMat=new THREE.ShaderMaterial({uniforms:{...UG,uAtlas:{value:tex('grass_blade_atlas.png')},uAmp:{value:W.sway_amp_rad},uBladeK:{value:1},uFreq:{value:W.freq_hz},uWave:{value:W.wave_len_world},uGust:{value:W.gust_amp},uGustF:{value:W.gust_freq_hz},uR:{value:PR}},
     side:THREE.DoubleSide,alphaTest:.5,
-    vertexShader:`attribute vec3 aN;attribute vec2 aR;uniform vec3 uSun;uniform float uT,uAmp,uFreq,uWave,uGust,uGustF,uR;varying vec2 vUv;varying float vL;${COVER}
+    vertexShader:`attribute vec3 aN;attribute vec2 aR;uniform vec3 uSun;uniform float uLift;uniform float uBladeK;uniform float uT,uAmp,uFreq,uWave,uGust,uGustF,uR;varying vec2 vUv;varying float vL;${COVER}
 uniform vec3 uPlay[8];
      void main(){vec3 n=normalize(aN);float c=cover(n);float near=0.0;for(int i=0;i<8;i++)near=max(near,smoothstep(.22,.0,acos(clamp(dot(n,uPlay[i]),-1.0,1.0))));c*=1.0+near*.8;vec3 t=normalize(cross(abs(n.y)<.99?vec3(0,1,0):vec3(1,0,0),n));vec3 b=cross(n,t);
       float ca=cos(aR.x*6.283),sa=sin(aR.x*6.283);vec3 tx=t*ca+b*sa,tz=-t*sa+b*ca;
-      vec3 p=position*(0.55+0.6*fract(aR.x*7.3))*c;float w=pow(uv.y,1.6);vec3 wp=n*(uR+disp(n));
+      vec3 p=position*(0.55+0.6*fract(aR.x*7.3))*c*uBladeK;float w=pow(uv.y,1.6);vec3 wp=n*(uR+disp(n));
       float ang=uAmp*w*sin(uT*6.2831*uFreq+dot(wp,normalize(vec3(1,.2,.4)))/uWave)+uGust*w*sin(uT*6.2831*uGustF+wp.x*.2);
       p.x+=sin(ang)*p.y;p.y*=cos(ang);
-      vec3 world=wp+tx*p.x+n*p.y+tz*p.z;vUv=vec2((aR.y+uv.x)/8.0,uv.y);vL=.3+1.0*max(0.0,dot(n,uSun));
+      vec3 world=wp+tx*p.x+n*p.y+tz*p.z;vUv=vec2((aR.y+uv.x)/8.0,uv.y);vL=.3+1.0*max(0.0,dot(n,uSun))+uLift*.5*(1.0-max(0.0,dot(n,uSun)));
       gl_Position=projectionMatrix*viewMatrix*vec4(world,1.0);if(c<.02)gl_Position=vec4(2.0,2.0,2.0,1.0);}`,
     fragmentShader:`uniform sampler2D uAtlas;varying vec2 vUv;varying float vL;void main(){vec4 c=texture2D(uAtlas,vUv);if(c.a<.5)discard;gl_FragColor=vec4(c.rgb*vL,1.0);}`});
    const blades=new THREE.Mesh(bladeGeo,bladeMat);blades.frustumCulled=false;scene.add(blades);
@@ -549,7 +549,9 @@ uniform vec3 uPlay[8];
      if(mo==='o'&&beachCamRef.current&&beach){ // dedicated beach angle: camera out on the water side, low, looking up the shore at the sand, dunes and surf, in daylight
       if(!touring){touring=true;tourN.copy(cN);}tourI=0;{const bn=performance.now();const rd=Math.min(1.5,((beach as any).__bcT?bn-(beach as any).__bcT:16)/1000);(beach as any).__bcT=bn;tourN.lerp(beach.center().clone().normalize(),Math.min(1,rd*1.4)).normalize();} /* wall-clock eased, so a slow frame rate still arrives */cN.copy(tourN);
       const lw=beach.landward().clone().normalize();const tl=lw.clone().sub(tourN.clone().multiplyScalar(lw.dot(tourN)));if(tl.lengthSq()<1e-8)tl.set(1,0,0);tl.normalize();const sd=new THREE.Vector3().crossVectors(tourN,tl).normalize();const sw=Math.sin(t*.12);
-      /* the beach strip is ~3 world units long (140 glb units x k=0.0206), so the camera sits ~1.7 u out on the water side, a little above the sand */ cT.copy(tourN).multiplyScalar(PR+.12).addScaledVector(tl,.7);cW.copy(tourN).multiplyScalar(PR+.5).addScaledVector(tl,-1.7+sw*.25).addScaledVector(sd,.8*sw);zT=.1;
+      /* framed on Cosmo's own anchors: the camera stands out on the water side of the tide_line, above the lifted terrain, looking up the sand to the palms and place slots (not at ground level inside the grass) */
+      const tideA=beach.anchor('tide_line'),spawnA=beach.anchor('shore_spawn');const base=PR+Math.max(0,beach.group.position.length());const tn=(tideA||spawnA||beach.center()).clone().normalize();
+      cT.copy(tn).multiplyScalar(base+.28).addScaledVector(tl,.9);cW.copy(tn).multiplyScalar(base+.85).addScaledVector(tl,-1.9+sw*.25).addScaledVector(sd,.8*sw);zT=.1;(window as any).__lwBeachFrame={tide:!!tideA,spawn:!!spawnA,base:+base.toFixed(3)};
       (window as any).__lwTour={i:0,place:'beach',beachCam:true,cw:cW.toArray().map((v:number)=>+v.toFixed(2)),ct:cT.toArray().map((v:number)=>+v.toFixed(2)),sun:sunDir.toArray().map((v:number)=>+v.toFixed(2)),beach:beach.center().toArray().map((v:number)=>+v.toFixed(2))};}
      else if(mo==='o'&&idle&&beach){(beach as any).__bcT=0;if(!touring){touring=true;tourN.copy(cN);tourT=0;}tourT-=dt;
       if(tourT<=0){tourT=11+tourR()*5;tourI=(tourI+1)%3;zT=.16+tourR()*.05;}
@@ -557,7 +559,7 @@ uniform vec3 uPlay[8];
       (window as any).__lwTour={i:tourI,place:['beach','volcano','ocean'][tourI]};}
      else if(touring){touring=false;if(mo==='o')zT=1;(window as any).__lwTour=null;}}
     const mode=sp?'s':watchRef.current?'w':'o';if(mode!==zMode){zMode=mode;zT=mode==='s'?0:mode==='w'?.12:1;}
-    zC+=(zT-zC)*Math.min(1,dt*5);const zb=zoomBlend(zC);(window as any).__lwZoom={z:+zC.toFixed(3),target:zT,orbit:+zb.orbit.toFixed(3)};
+    zC+=(zT-zC)*Math.min(1,dt*5);const zb=zoomBlend(zC);UG.uLift.value=zb.orbit;{const bk=bladeMat.uniforms.uBladeK;const goal=beachCamRef.current&&!spawnRef.current&&beach?0.28:1;bk.value+=(goal-bk.value)*Math.min(1,dt*3);}(window as any).__lwZoom={z:+zC.toFixed(3),target:zT,orbit:+zb.orbit.toFixed(3)};
     {const oW=cN.clone().multiplyScalar(1.2).add(new THREE.Vector3(Math.cos(oy)*Math.sin(ox),Math.sin(oy),Math.cos(oy)*Math.cos(ox))).normalize().multiplyScalar(PR*4.3);
      const dir=cW.clone().normalize().lerp(oW.clone().normalize(),zb.orbit).normalize();const ground0=PR+DISP+TRAV_H*.45;
      const len=clampAboveGround(zoomDistance(zC,cW.length(),oW.length()),0,0);const want=dir.multiplyScalar(Math.max(len,ground0));

@@ -23,7 +23,7 @@ function rand(seed:string){let h=0;for(const c of seed)h=(h*31+c.charCodeAt(0))>
 export default function TinyUniverseView(){
  const cv=useRef<HTMLCanvasElement>(null);const uRef=useRef<U>(null);const g0=useRef<U>(null);const pos=useRef<Map<string,{x:number,y:number,r:number}>>(new Map());
  const [u,setU]=useState<U>(null);const [run,setRun]=useState(true);const [sel,setSel]=useState<string|null>(null);const [line,setLine]=useState('');const aliveGate=useRef(createAliveGate());const [err,setErr]=useState('');
- const [three,setThree]=useState(false);useEffect(()=>{setThree(!isSoftwareGL());},[]);
+ const [three,setThree]=useState(false);useEffect(()=>{let pick:string|null=null;try{pick=localStorage.getItem('u:3d');}catch{}setThree(pick==='1'?true:pick==='0'?false:!isSoftwareGL());},[]);
  // the door into the pocket world: a cross-dissolve of the universe canvas and the pocket-world canvas (two renderers, matched framing). Off on CPU rasterisers (the pocket world starves them) unless ?door=1
  const [doorV,setDoorV]=useState(0);const [doorMount,setDoorMount]=useState(false);const [doorOk,setDoorOk]=useState(false);useEffect(()=>{const q=new URLSearchParams(location.search).get('door');setDoorOk(q==='1'||(q!=='0'&&!isSoftwareGL()));},[]);
  const leaveDoor=useCallback(()=>{window.dispatchEvent(new Event('u3d-door-leave'));},[]);
@@ -77,7 +77,7 @@ export default function TinyUniverseView(){
    <div className={s.zeref} aria-live="polite">{line}</div>
 {err||!u?<span className={s.stat}>{err?`Couldn’t load genesis: ${err}`:'loading…'}</span>:<details className={s.stat} data-universe-details><summary>Details</summary>{u?`tick ${u.tick} · ${u.stars.length} stars · ${u.planets.length} planets · ${u.storms.length} storms · ${u.life.length} life worlds${last?` · sim E ${last.sim_E}`:` · IBM E ${u.entanglement_E}`}`:null}</details>}
    <span className={s.stat} data-credit-line>Threads SIMULATED · Hearth</span>
-   <div className={s.row}><a className={s.btn} href="/beast-cage/world" data-spawn-in>✦ Spawn in</a><button className={s.btn} onClick={()=>setThree(v=>!v)} data-universe-mode>{three?'2D map':'3D'}</button><button className={s.btn} onClick={()=>setRun(v=>!v)}>{run?'⏸ Pause':'▶ Grow'}</button><button className={s.btn} onClick={()=>{if(g0.current){uRef.current=g0.current;setU(g0.current);setLine('');}}}>↺ Genesis</button>
+   <div className={s.row}><a className={s.btn} href="/beast-cage/world" data-spawn-in>✦ Spawn in</a><button className={s.btn} onClick={()=>setThree(v=>{try{localStorage.setItem('u:3d',v?'0':'1');}catch{}return !v;})} data-universe-mode>{three?'2D map':'3D'}</button><button className={s.btn} onClick={()=>setRun(v=>!v)}>{run?'⏸ Pause':'▶ Grow'}</button><button className={s.btn} onClick={()=>{if(g0.current){uRef.current=g0.current;setU(g0.current);setLine('');}}}>↺ Genesis</button>
 </div>
   </div>
  </main>;

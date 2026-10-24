@@ -120,7 +120,7 @@ vec3 c=texture2D(tScene,bhScreen+s).rgb;float ring=exp(-pow((r-1.5*rs)/(0.08*rs+
     b.visible=fire&&f<8;if(b.visible){const m=b.material.map!;m.offset.set((f%4)/4,1-(Math.floor(f/4)+1)/2);b.position.copy(sp.position).add(new THREE.Vector3((rr()-0.5)*sp.scale.x*.6,(rr()-0.3)*sp.scale.x*.4,(rr()-0.5)*sp.scale.x*.6));b.scale.setScalar(sp.scale.x*.7);}}
    for(const[k,b]of bolts)if(!live.has(k)){world.remove(b);bolts.delete(k);}
    const dt=Math.max(0,Math.min(.1,t-lastT));lastT=t;mixer?.update(dt);for(const g of belt)g.rotation.y=t*g.userData.spin;}
-  const bioCache=new Map<string,THREE.Texture>();const bioLoader=new THREE.TextureLoader();
+  const bioCache=new Map<string,THREE.Texture>();const bioLoader=new THREE.TextureLoader();let coronaT:THREE.Texture|null=null;const coronaTex=()=>{if(!coronaT){coronaT=bioLoader.load('/universe/livingworld/landforms/sky/sun_corona_512.png');coronaT.colorSpace=THREE.SRGBColorSpace;}return coronaT;};
   const biomeTex=(k:string,kind:'color'|'glow')=>{const key=k+'_'+kind;let t=bioCache.get(key);if(!t){t=bioLoader.load('/universe/livingworld/biomes/'+key+'.webp');if(kind==='color')t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=4;bioCache.set(key,t);}return t;};
   function build(){const U=uRef.current;if(!U)return;
    for(const st of U.stars){if(starObj.has(st.id))continue;const g=new THREE.Group();g.position.copy(starPos(st));
@@ -129,6 +129,7 @@ vec3 c=texture2D(tScene,bhScreen+s).rgb;float ring=exp(-pow((r-1.5*rs)/(0.08*rs+
      const ring=new THREE.Sprite(new THREE.SpriteMaterial({map:ringTex,blending:THREE.AdditiveBlending,depthWrite:false,transparent:true}));ring.scale.setScalar(7.2);g.add(ring);}
     else{const rr=1.2+0.9*Math.log10(1+st.mass_solar*3);const sc=new THREE.Color(...blackBodyToRGB(st.temperature_k));g.userData.sunColor=sc;g.userData.star=st;const m=new THREE.Mesh(sphere,new THREE.MeshBasicMaterial({color:sc,map:starTexture()}));m.scale.setScalar(rr);g.add(m);g.add(coronaMesh(sc,st.temperature_k,rr));
      const glow=new THREE.Sprite(new THREE.SpriteMaterial({map:ringTex,color:sc,blending:THREE.AdditiveBlending,depthWrite:false,transparent:true,opacity:.35}));glow.scale.setScalar(rr*7);g.add(glow);
+     {const cs=new THREE.Sprite(new THREE.SpriteMaterial({map:coronaTex(),color:sc,blending:THREE.AdditiveBlending,depthWrite:false,transparent:true,opacity:.85}));cs.scale.setScalar(rr*6.5);cs.name='sun-corona-sprite';g.add(cs);} // Cosmo's sun_corona_512 (livingworld/landforms/sky): a soft billboard glow around the disc
      const L=new THREE.PointLight(sc,sunIntensity(st.luminosity),0,2);g.add(L);}/* inverse-square, like the pens' PointLight(color,2,20000,2) */
     g.userData.id=st.id;world.add(g);starObj.set(st.id,g);}
    for(const pl of U.planets){if(planetMesh.has(pl.id))continue;
@@ -171,7 +172,7 @@ vec3 c=texture2D(tScene,bhScreen+s).rgb;float ring=exp(-pow((r-1.5*rs)/(0.08*rs+
   const doorLive=()=>doorOnRef.current&&!!targetId&&targetId===homeOf(uRef.current)&&!!planetMesh.get(targetId);
   const minLogD=()=>{const m:any=targetId?planetMesh.get(targetId):null;if(m&&doorLive())return Math.log(m.scale.x*(DOOR_NEAR-0.02));return Math.log(m?Math.max(0.02,m.scale.x*1.1):ZOOM_MIN);}; /* with the door on, the universe camera stops at the pocket orbit framing and the pocket world takes over */ // planets can be approached to ~10% of their radius above the surface (the maps are ~2048 px around, so closer needs the flat-ground layer, not built yet)
   const setZoom=(f:number)=>{ // door open: zoom input drives the pocket world, and leaves it from full orbit
-   if(doorV>=0.999){const w:any=window;const z=w.__lwZoom?.target??1;const r=doorZoomStep(z,Math.sign(f));if(r.leave){const m:any=planetMesh.get(targetId||'');goal=Math.log((m?m.scale.x:1)*5.6);}else w.__lwSetZoom?.(r.z);return;}
+   if(doorV>=0.999){const w:any=window;const z=w.__lwZoom?.target??1;const r=doorZoomStep(z,Math.sign(f),Math.max(.01,Math.min(.2,Math.abs(f)*1.2)));if(r.leave){const m:any=planetMesh.get(targetId||'');goal=Math.log((m?m.scale.x:1)*5.6);}else w.__lwSetZoom?.(r.z);return;}
    goal=Math.min(Math.log(ZOOM_MAX),Math.max(minLogD(),goal+f));};
   const leave=()=>{if(doorV>0){const m:any=planetMesh.get(targetId||'');goal=Math.log((m?m.scale.x:1)*5.6);}};window.addEventListener('u3d-door-leave',leave);
   api.current={zoom:setZoom,home:()=>{targetId=homeOf(uRef.current);goal=Math.log(10);}};
@@ -182,7 +183,7 @@ vec3 c=texture2D(tScene,bhScreen+s).rgb;float ring=exp(-pow((r-1.5*rs)/(0.08*rs+
    if(ptrs.size===2){const [a,b]=[...ptrs.values()];const d=Math.hypot(a.x-b.x,a.y-b.y);if(pinch)setZoom(-Math.log(d/pinch));pinch=d;return;}
    yaw-=dx*0.006;pitch=Math.max(-1.45,Math.min(1.45,pitch+dy*0.006));};
   const up=(e:PointerEvent)=>{ptrs.delete(e.pointerId);pinch=0;cv.style.cursor='grab';if(moved<6&&ptrs.size===0)tap(e);};
-  const wheel=(e:WheelEvent)=>{e.preventDefault();setZoom(e.deltaY*0.0015);};
+  const wheel=(e:WheelEvent)=>{e.preventDefault();setZoom(e.deltaY*0.0028);};
   const ray=new THREE.Raycaster();
   function tap(e:PointerEvent){const b=cv.getBoundingClientRect();ray.setFromCamera(new THREE.Vector2((e.clientX-b.left)/b.width*2-1,-(e.clientY-b.top)/b.height*2+1),cam);
    const hit=ray.intersectObjects([...planetMesh.values()],false)[0];if(hit){targetId=hit.object.userData.id;goal=Math.log(6);sel.current?.(targetId);return;}
