@@ -628,6 +628,7 @@ uniform vec3 uPlay[8];
     tick {hud.tick} · sim E {hud.simE??'—'} · life {hud.life} · storms {hud.storms} · grass {Math.round(hud.cover*100)}%<br/>
     {hud.learned?<>things awake {hud.awake??0} · learned {Object.entries(hud.learned).map(([k,v])=>k+' '+v).join(' · ')||'—'}<br/></>:null}
     {T?<>curious {T.curiosity.toFixed(2)} · social {T.sociality.toFixed(2)} · calm {T.calm.toFixed(2)} · joy {T.joy.toFixed(2)} · {T.experiences} experiences</>:null}
+    <div><button type="button" data-lw-details-close aria-label="Close details" onClick={e=>{const d=e.currentTarget.closest('details');if(d)(d as HTMLDetailsElement).open=false;}} style={{marginTop:4,padding:'3px 10px',borderRadius:8,border:'1px solid rgba(190,170,255,.5)',background:'rgba(10,6,30,.6)',color:'#efeaff',font:'600 12px system-ui',cursor:'pointer'}}>Close details</button></div>
     </details>
     {err?<div style={{color:'#ffb4b4'}}>Couldn’t load the world: {err}</div>:null}
    </div>
