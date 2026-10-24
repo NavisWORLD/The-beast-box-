@@ -33,6 +33,9 @@ class RawrphosConfig:
     # 2026-10-22 additive: original-kit state ladder rung (phera-ra/QC67_cosmo@b414724,
     # architecture/cosmos_state_ladder.py Trinity). 'dyn12' = exact old model.
     state_mode: str = 'dyn12'
+    # 2026-10-23 additive: optional routed 54D conditioning (12D + 42D slots) with a learnable
+    # per-slot gain that starts at ZERO (identical logits at upgrade). Off = exact old model.
+    cond54: bool = False
 
     def __post_init__(self):
         if type(self.hebbian) is not bool or type(self.hebbian_dim) is not int or self.hebbian_dim<1:
@@ -45,6 +48,7 @@ class RawrphosConfig:
         if self.d_model % self.n_heads or (self.d_model//self.n_heads)%2:
             raise ValueError('heads must divide width and have an even rotary dimension')
         if self.state_mode not in {'dyn12','tri'}: raise ValueError('state_mode must be dyn12 or tri')
+        if type(self.cond54) is not bool or (self.cond54 and self.state_mode!='tri'): raise ValueError('cond54 needs state_mode tri')
         if self.state_dim != 12: raise ValueError('this architecture implements dyn12 only')
         if self.attention_mode not in {'dyn12','standard','zero_gate','frozen_state','shuffled_state'}:
             raise ValueError('unsupported attention mode')
@@ -58,6 +62,7 @@ class RawrphosConfig:
         if not self.hebbian:  # keep config.json byte-identical for non-Hebbian checkpoints
             for k in ('hebbian','hebbian_dim','hebbian_decay','hebbian_rate'): d.pop(k)
         if self.state_mode=='dyn12': d.pop('state_mode')
+        if not self.cond54: d.pop('cond54')  # byte-identical config.json for non-conditioned checkpoints
         return d
     @classmethod
     def from_dict(cls, value): return cls(**value)
@@ -221,6 +226,8 @@ class RawrphosLM(nn.Module):
             self.hebbian=HebbianFastWeights(config); self.hebbian.reset_out()
         if config.state_mode=='tri':
             self.state_init42=nn.Linear(config.d_model,42)
+        if config.cond54:
+            self.cond_gain=nn.Parameter(torch.zeros(54))  # registered last: older optimizer indices unchanged
     @staticmethod
     def _init(m):
         if isinstance(m,(nn.Linear,nn.Embedding)):
@@ -234,13 +241,14 @@ class RawrphosLM(nn.Module):
         if self.config.state_mode=='tri':  # new Trinity params only; k/g12 continue Dyn12's k/gamma
             out+=list(self.state_init42.parameters())+[p for b in self.blocks if isinstance(b.transition,Trinity)
                 for n,p in b.transition.named_parameters() if n not in ('k','g12')]
+        if self.config.cond54: out+=[self.cond_gain]
         return out
     def base_parameters(self):
         ids={id(p) for p in self.hebbian_parameters()}
         return [p for p in self.parameters() if id(p) not in ids]
 
     def forward(self,input_ids,targets=None,attention_mask=None,past_key_values=None,use_cache=False,
-                control_vector=None,return_attention=False):
+                control_vector=None,return_attention=False,condition54=None):
         c=self.config
         if input_ids.ndim!=2 or input_ids.dtype!=torch.long or input_ids.shape[1]<1:
             raise ValueError('input_ids must be a nonempty rank-2 int64 tensor')
@@ -271,6 +279,13 @@ class RawrphosLM(nn.Module):
             # tri: the 12 control scalars drive x12 only; x42 gets zero external input.
             if c.state_mode=='tri': control_vector=torch.cat([control_vector,control_vector.new_zeros(b,42)],-1)
             state=torch.tanh(state_logits+control_vector.to(state)[:,None,:])
+        if condition54 is not None:
+            if not c.cond54: raise ValueError('this model does not declare cond54')
+            if condition54.shape!=(b,54) or not bool(torch.isfinite(condition54).all()) or bool((condition54.abs()>1).any()):
+                raise ValueError('condition54 must be finite [batch,54] in [-1,1]')
+            # routed slots (masked slots are exactly 0.0 upstream) scaled by the learned per-slot gain
+            ext=control_vector.to(state)[:,None,:] if control_vector is not None else 0.
+            state=torch.tanh(state_logits+ext+(self.cond_gain.to(state)*condition54.to(state))[:,None,:])
         if c.attention_mode=='frozen_state': state=state.detach()
         caches=[]; telemetry=[]
         for i,block in enumerate(self.blocks):
@@ -318,6 +333,17 @@ def upgrade_to_trinity(model):
     for k in tgt:
         if k.startswith('state_init42.') or '.transition.drive.' in k: tgt[k]=torch.zeros_like(tgt[k])
     new.load_state_dict(tgt); return new
+
+
+def upgrade_to_cond54(model):
+    """Return a cond54 copy of a tri model with IDENTICAL outputs at upgrade: only cond_gain is new
+    and it starts at zero, so routed conditioning has no effect until training moves it."""
+    if model.config.cond54: return model
+    if model.config.state_mode!='tri': raise ValueError('cond54 upgrade needs a tri model')
+    new=RawrphosLM(RawrphosConfig.from_dict(dict(asdict(model.config),cond54=True)))
+    missing,unexpected=new.load_state_dict(model.state_dict(),strict=False)
+    if unexpected or missing!=['cond_gain']: raise ValueError('cond54 upgrade may only add cond_gain')
+    return new
 
 
 def grow_depth(model,add=2):
