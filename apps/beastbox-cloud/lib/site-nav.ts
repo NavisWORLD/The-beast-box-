@@ -2,12 +2,12 @@
 export type NavItem={label:string;href:string;icon:string;note?:string;beast?:'meet'|'look'|'talk'};
 export type NavGroup={key:string;label:string;items:NavItem[]};
 // Oct 22 2026 (Emeth's structure): the Cage and home are one living universe. The Cage is your beast's home and tiny world
-// (things you do inside it), The Universe is the zoom out to the other worlds (Beach Two is a beach on one of them).
+// (things you do inside it), The Universe is the zoom out to the other worlds.
 // Labels follow Emeth's site_labels.json (menu label = page title). 'Meet your beast' and 'Look closer' are relabelled with the active beast's real name by <SiteNav/> (beast: true).
 export const SITE_NAV:readonly NavGroup[]=[
  {key:'home',label:'Home',items:[{label:'Home',href:'/',icon:'🏠'},{label:'Meet your beast',href:'/spark/index.html',icon:'🐣',beast:'meet'}]},
  {key:'cage',label:'The Cage',items:[{label:'Pocket cage',href:'/beast-cage',icon:'🏰'},{label:'Look Closer at your beast',href:'/beast-cage/look',icon:'🔍',beast:'look'},{label:'Adventure walk',href:'/beast-cage/play',icon:'🕹️'},{label:'Field game',href:'/beast-cage/go',icon:'🧭'},{label:'Lost Cosmos Field',href:'/beast-cage/field',icon:'📷'},{label:'Catch a Star',href:'/beast-cage/guest',icon:'🐾'}]},
- {key:'universe',label:'The Universe',items:[{label:'Tiny Universe',href:'/universe',icon:'🌌'},{label:'Beach Two (planet beach)',href:'/beach-two',icon:'🏖️'}]},
+ {key:'universe',label:'The Universe',items:[{label:'Tiny Universe',href:'/universe',icon:'🌌'}]},
  {key:'zeref',label:'Zeref',items:[{label:'Talk to your beast',href:'/beast-cage/talk?with=beast',icon:'💬',beast:'talk'},{label:'Talk to Zeref',href:'/beast-cage/talk?with=zeref',icon:'🌙'},{label:'Zeref’s diary',href:'/beast-cage#zeref-diary',icon:'📔'}]},
  {key:'game',label:'Lost COSMOS',items:[{label:'Lost COSMOS game',href:'/sol-game',icon:'🎮'}]},
  {key:'spark',label:'Spark Lab',items:[{label:'Spark Beasts',href:'/spark/index.html',icon:'🧪'},{label:'Try it',href:'/try',icon:'✨'}]},
