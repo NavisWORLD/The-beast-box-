@@ -128,4 +128,5 @@ export function worldRecord(ev,{qbeast_id=ZEREF_ID,step,world_tick,biome=null,mo
   memory:null,labels:[{kind:'observed_outcome',value:type,by:'living-world'}],source:{ref:'living-world/v1'},prev});}
 /** Records as JSON Lines (what scripts/zeref_experience_bridge.py reads). */
 export const toJsonl=recs=>recs.map(r=>JSON.stringify(r)).join('\n')+(recs.length?'\n':'');
+export function placeLine(kind,seed,n){return kind?pickLine(LW_LINES.landscape_places?.[kind],seed,'place:'+kind+':'+n):null;}
 export function worldLine(kind,seed,n){return kind?pickLine(LW_LINES.world?.[kind],seed,'world:'+kind+':'+n):null;}
