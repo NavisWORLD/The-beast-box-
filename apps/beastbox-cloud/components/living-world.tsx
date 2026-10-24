@@ -145,7 +145,7 @@ export default function LivingWorld({genome,beastKey,beastName,onClose,embedded=
       if(uUseMap>.5)col+=texture2D(uGlow,eqUV(n)).rgb*(1.0-smoothstep(-.1,.25,dot(n,uSun)))*1.1;
       float rim=pow(1.0-max(0.0,dot(n,v)),3.0);/* until Cosmo's maps (or the decision to use the seeded fallback) arrive, show a plain unlit planet: the procedural biome bands, ember stripes and white caps were flashing for several seconds on slow loads and read as stripes/seams */vec3 rimC=vec3(.35,.55,1.0)*rim*.45;gl_FragColor=vec4(mix(vec3(.05,.08,.15)*(.5+.9*dif)+rimC,col+rimC,uShow),1.0);}`}));
    scene.add(ground);
-   {const sc=new THREE.Mesh(new THREE.SphereGeometry(PR+.012,phone?64:120,phone?40:80),new THREE.ShadowMaterial({opacity:.32}));sc.receiveShadow=true;scene.add(sc);}
+   {const sc=new THREE.Mesh(new THREE.SphereGeometry(PR+.012,phone?64:120,phone?40:80),new THREE.ShadowMaterial({opacity:.32,depthWrite:false}));sc.receiveShadow=true;sc.renderOrder=1; /* depthWrite off: this catcher sits at PR+.012, above the fish/birds/turtles (PR+.002..+.005), so with depth writes it hid them */scene.add(sc);}
    // Cosmo's painted maps swap in when present (2:1 equirect colour map); otherwise the procedural-from-seed biomes stay.
    // (the old maps/<name>_color.png slot is retired: Cosmo's biomes/*.webp maps + the seeded procedural biomes are the only source, so no 404s)
    // Cosmo v2 biome maps: colour + height (displaces the sphere) + glow + biome index; tiles up close; props scattered by biome from the seed
@@ -557,11 +557,11 @@ uniform vec3 uPlay[8];
     // ---- one continuous zoom: close over-the-shoulder (z=0) to full planet orbit (z=1); pinch / wheel / buttons all move zT
     // gentle seeded fly-over: in the planet view, after 6 s without input, the camera drifts between the beach, the volcano and the sea, then hands back on touch
     {const mo=sp?'s':watchRef.current?'w':'o';const idle=performance.now()-userAt>6000;
-     if(seaQ&&ocean&&(window as any).__lw?.toOcean(0,seaQ))seaQ=0; /* the ocean loads after boot, so a ?sea=X request waits for it */
+     if(seaQ&&ocean&&(window as any).__lw?.toOcean(0,seaQ)){seaQ=0;if(seaF)seaF.snap=3;} /* the ocean loads after boot, so a ?sea=X request waits for it */
      if(seaF&&(userAt>seaF.at||beachCamRef.current||mo!=='o'||!ocean)){seaF=null;seaHud(false);}
      if(seaF&&ocean&&mo==='o'){ /* ?sea=X / Sea life button: a camera that stays with the school (seeded positions, species-sized stand-off) until the viewer touches the world */
-      const v=ocean.view(seaF.sc,t);const sn=new THREE.Vector3(v.n[0],v.n[1],v.n[2]).normalize();const sh=new THREE.Vector3(v.h[0],v.h[1],v.h[2]);const stand=Math.max(.5,Math.min(8,v.sizeU*2.4+v.radiusU*.4));const ht=Math.max(.3,stand*(v.sizeU<.5?.9:.55));
-      if(!touring){touring=true;tourN.copy(cN);}{const bn=performance.now();const rd=Math.min(1.5,(seaF.bt?bn-seaF.bt:16)/1000);seaF.bt=bn;tourN.lerp(sn,Math.min(1,rd*2.2)).normalize();}cN.copy(tourN);
+      const v=ocean.view(seaF.sc,t);const sn=new THREE.Vector3(v.n[0],v.n[1],v.n[2]).normalize();const sh=new THREE.Vector3(v.h[0],v.h[1],v.h[2]);const stand=Math.max(.5,Math.min(6,v.sizeU*(v.kind==='whale'?.7:2.4)+(v.kind==='whale'?0:v.radiusU*.4)));const ht=Math.max(.3,stand*(v.sizeU<.5?.9:.55));
+      if(!touring){touring=true;tourN.copy(cN);}{const bn=performance.now();const rd=Math.min(1.5,(seaF.bt?bn-seaF.bt:16)/1000);seaF.bt=bn;if(seaF.snap>0)tourN.copy(sn);else tourN.lerp(sn,Math.min(1,rd*2.2)).normalize();}cN.copy(tourN);
       const stl=sh.clone().sub(tourN.clone().multiplyScalar(sh.dot(tourN)));if(stl.lengthSq()<1e-8)stl.set(1,0,0);stl.normalize();
       cT.copy(tourN).multiplyScalar(PR+.03).addScaledVector(stl,v.sizeU*.4);cW.copy(tourN).multiplyScalar(PR+ht).addScaledVector(stl,-stand);zT=0;
       (window as any).__lwSeaFocus={kind:seaF.sc.kind,species:v.species,standoff:+stand.toFixed(2)};}
@@ -584,11 +584,11 @@ uniform vec3 uPlay[8];
      const len=clampAboveGround(zoomDistance(zC,cW.length(),oW.length()),0,0);const want=dir.multiplyScalar(Math.max(len,ground0));
      // keep the close view's offset from the focus at low zoom (log-scaled pull-back), so close-up stays over the shoulder
      if(zb.orbit<.5){const off=cW.clone().sub(cN.clone().multiplyScalar(PR));const k=(len-cW.length())/Math.max(.001,oW.length()-cW.length());want.lerp(cN.clone().multiplyScalar(PR).add(off.multiplyScalar(1+k*6)),1-zb.orbit*2);}
-     camPos.lerp(want,Math.min(1,dt*(sp?4:2.5)));camPos.setLength(clampAboveGround(camPos.length(),ground0,0));
-     const tgt=cT.clone().lerp(cN.clone().multiplyScalar(PR*.15),zb.orbit);camLook.lerp(tgt,Math.min(1,dt*4));
+     if(seaF&&seaF.snap>0){camPos.copy(want);}else camPos.lerp(want,Math.min(1,dt*(sp?4:2.5)));camPos.setLength(clampAboveGround(camPos.length(),ground0,0));
+     const tgt=cT.clone().lerp(cN.clone().multiplyScalar(PR*.15),zb.orbit);if(seaF&&seaF.snap>0){camLook.copy(tgt);seaF.snap--;}else camLook.lerp(tgt,Math.min(1,dt*4));
      camera.position.copy(camPos);camera.up.copy(cN).lerp(new THREE.Vector3(0,1,0),zb.orbit).normalize();camera.lookAt(camLook);}
     // Alive props: real events only (a breath peak in view, a creature entering a crystal's 3 m, flowers visibly turning) -> one of Emeth's lines, picked by seed.
-    {const evs=surface?.update(t,{sunDir,creatures:[bN,...residents.map((r:any)=>r.n)],cam:camera.position})||[];for(const k of evs){const f=aliveGate.fire(k,String(u.seed),t);if(f){lineRef.current(f.line);break;}}}heaven.update(t);heaven.root.visible=zC<.55&&cN.dot(sunDir)>-.08;heaven.root.position.copy(cN).multiplyScalar(PR+hAt(cN));heaven.root.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),cN);
+    {const evs=surface?.update(t,{sunDir,creatures:[bN,...residents.map((r:any)=>r.n)],cam:camera.position})||[];for(const k of evs){const f=aliveGate.fire(k,String(u.seed),t);if(f){lineRef.current(f.line);break;}}}heaven.update(t);{const wid=field?legendAt(field,[cN.x,cN.y,cN.z]):(cosmoBiome(cN.clone())||'');heaven.root.visible=zC<.55&&cN.dot(sunDir)>-.08&&!WATER_IDS.has(wid);} /* the heaven shaft is a land feature: over open water it read as a pale triangular wedge */heaven.root.position.copy(cN).multiplyScalar(PR+hAt(cN));heaven.root.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),cN);
     beastLamp.position.copy(beastNode.position).addScaledVector(bN,TRAV_H*1.4);beastLamp.intensity=(1-zb.orbit)*7;
     {const night=1-THREE.MathUtils.smoothstep(cN.dot(sunDir),-.12,.35);const dusk=Math.max(0,1-Math.abs(cN.dot(sunDir))/.18)*.7;
      if(ocean){ocean.update(t,{night,camPos:camera.position});if(((t*2)|0)%4===0)(window as any).__lwOcean=ocean.state();}
