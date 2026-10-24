@@ -9,7 +9,7 @@ import {SPRITE_TINT,planetLod,glowSet} from './planet-types.mjs';
 
 const BASE='/universe/planets/';
 type TexSet={albedo:THREE.Texture;normal:THREE.Texture;rough:THREE.Texture;height:THREE.Texture;ocean:THREE.Texture;emissive:THREE.Texture;clouds:THREE.Texture;ready:boolean};
-export type PlanetCtx={t:number;cam:THREE.PerspectiveCamera;sunPos:THREE.Vector3;sunColor:THREE.Color;exposure:number;viewH:number;glow:string};
+export type PlanetCtx={t:number;cam:THREE.PerspectiveCamera;sunPos:THREE.Vector3;sunColor:THREE.Color;exposure:number;viewH:number;glow:string;spinRad?:number;occ?:{c:THREE.Vector3;r:number}|null;parent?:{c:THREE.Vector3;tint:number[]}|null};
 export function createPlanetKit(){
   const tl=new THREE.TextureLoader();const sets=new Map<string,TexSet>();
   const blank=new THREE.DataTexture(new Uint8Array([0,0,0,255]),1,1);blank.needsUpdate=true;
@@ -36,7 +36,7 @@ export function createPlanetKit(){
       uAtmo:{value:sh.atmo_amount},uSkyColor:{value:v3(sh.sky_color)},uTwilightColor:{value:v3(sh.twilight_color)},uShallow:{value:v3(sh.shallow_color)},uDeep:{value:v3(sh.deep_color)},
       uCloudAlt:{value:S.clouds?.altitude_frac??0},uCloudShadow:{value:near&&S.clouds?S.clouds.shadow_strength:0},uCloudOn:{value:!near&&S.clouds?1:0},
       uNightLights:{value:sh.night_lights},uEmissiveDayKeep:{value:sh.emissive_day_keep},uGlintRough:{value:sh.glint_roughness},uWaveStrength:{value:sh.wave_strength},uTime:{value:0},uIsMoon:{value:moon?1:0},
-      uParentDir:{value:new THREE.Vector3(0,1,0)},uParentTint:{value:new THREE.Vector3(0.6,0.7,1)},uEarthshine:{value:sh.earthshine},uAlpha:{value:1}};}
+      uParentDir:{value:new THREE.Vector3(0,1,0)},uParentTint:{value:new THREE.Vector3(0.6,0.7,1)},uEarthshine:{value:sh.earthshine},uAlpha:{value:1},uOccC:{value:new THREE.Vector3()},uOccR:{value:0}};}
   function create(type:string,variant:{lonDeg:number;tiltDeg:number;spinDegPerS:number;cloudLonDeg:number}){
     const S=PLANET_SHADING[type];const far=getSet(type,'512x256');let near:TexSet|null=null;
     const farMat=new THREE.ShaderMaterial({uniforms:uniformsFor(type,far,false),vertexShader:PLANET_VERT,fragmentShader:PLANET_FRAG,transparent:true,depthWrite:true});
@@ -59,10 +59,13 @@ export function createPlanetKit(){
     const tint=SPRITE_TINT[type];const sprite=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex('white'),color:new THREE.Color(tint[0],tint[1],tint[2]),blending:THREE.AdditiveBlending,depthWrite:false,transparent:true,sizeAttenuation:false}));mesh.add(sprite);
     const v=new THREE.Vector3(),inv=new THREE.Matrix4(),sd=new THREE.Vector3(),cen=new THREE.Vector3();
     function setSun(u:any,mesh_:THREE.Object3D,ctx:PlanetCtx,dirW:THREE.Vector3,col:THREE.Vector3){u.uSunDir.value.copy(dirW);u.uSunColor.value.copy(col);u.uPlanetCenter.value.copy(cen);
+      if(ctx.occ){u.uOccC.value.copy(ctx.occ.c);u.uOccR.value=ctx.occ.r;}else u.uOccR.value=0;
+      if(ctx.parent){u.uParentDir.value.copy(ctx.parent.c).sub(cen).normalize();u.uParentTint.value.set(ctx.parent.tint[0],ctx.parent.tint[1],ctx.parent.tint[2]);}
       inv.copy(mesh_.matrixWorld).invert();u.uSunDirObj.value.copy(dirW).transformDirection(inv);}
     function update(ctx:PlanetCtx){
       const R=mesh.scale.x;mesh.getWorldPosition(cen);const d=ctx.cam.position.distanceTo(cen);const lod=planetLod(d,R,ctx.cam.fov);
-      mesh.rotation.set(0,(variant.lonDeg+variant.spinDegPerS*ctx.t)*Math.PI/180,variant.tiltDeg*Math.PI/180);mesh.updateMatrixWorld(true);
+      if(ctx.spinRad!==undefined)mesh.rotation.set(0,ctx.spinRad+variant.lonDeg*Math.PI/180,0); // tidally locked (moons): spin = orbital angle
+      else mesh.rotation.set(0,(variant.lonDeg+variant.spinDegPerS*ctx.t)*Math.PI/180,variant.tiltDeg*Math.PI/180);mesh.updateMatrixWorld(true);
       sd.copy(ctx.sunPos).sub(cen).normalize();
       // the star is the only light: Cory's blackbody colour, 35% toward white for the light (sun_light_recipe), x1.25, x inverse-square exposure
       const c=ctx.sunColor,k=1.25*ctx.exposure;const col=v.set(c.r+(1-c.r)*0.35,c.g+(1-c.g)*0.35,c.b+(1-c.b)*0.35).multiplyScalar(k).clone();

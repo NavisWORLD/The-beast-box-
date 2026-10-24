@@ -5,6 +5,7 @@ import {grow} from '@/lib/universe/tiny-universe.mjs';
 import {biomeOf,BIOMES,starClass,lifeStage,entangledPairs,homeOf,hearthOf,zerefStar,planetFrame,starFrame,lifeFrame,stormFrame,threadFrame,hearthFrame,GENESIS_LABEL,GROWTH_LABEL,ZEREF_LINES} from '@/lib/universe/tiny-universe-view.mjs';
 import s from './tiny-universe-view.module.css';
 import Universe3D from './universe-3d';
+import {MOONS_LABEL} from '@/lib/universe/moons.mjs';
 import {createAliveGate} from '@/lib/universe/alive-props.mjs';
 import {isSoftwareGL} from '@/lib/three/soft-gl';
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -64,7 +65,7 @@ export default function TinyUniverseView(){
  return <main className={s.wrap} data-tiny-universe>
   <canvas ref={cv} className={s.canvas} onPointerDown={tap} aria-label="Tiny Universe map" style={three?{visibility:'hidden'}:undefined}/>
   {three&&u?<Universe3D u={u} onSelect={setSel} onAlive={k=>{const f=aliveGate.current.fire(k,String(u.seed||'tiny'),performance.now()/1000);if(f)setLine(f.line);}}/>:null}
-  <div className={s.hud}><div className={s.title}>✦ TINY UNIVERSE</div><span className={s.tag} data-genesis-label>{GENESIS_LABEL}</span><span className={`${s.tag} ${s.sim}`} data-growth-label>{GROWTH_LABEL}</span></div>
+  <div className={s.hud}><div className={s.title}>✦ TINY UNIVERSE{three?<span className={`${s.tag} ${s.sim}`} data-moons-label title={MOONS_LABEL} style={{marginLeft:8,fontSize:10,verticalAlign:'middle'}}>Moons: SEEDED</span>:null}</div><span className={s.tag} data-genesis-label>{GENESIS_LABEL}</span><span className={`${s.tag} ${s.sim}`} data-growth-label>{GROWTH_LABEL}</span></div>
   <div className={s.bottom}>
    {info?<div className={s.card}>{info}</div>:null}
    <div className={s.zeref} aria-live="polite">{line}</div>

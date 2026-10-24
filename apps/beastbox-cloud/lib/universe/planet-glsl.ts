@@ -145,6 +145,7 @@ uniform float uCloudAlt, uCloudShadow, uCloudOn;   // cloudOn = 1 on the FAR mes
 uniform float uNightLights, uEmissiveDayKeep;
 uniform float uGlintRough, uWaveStrength, uTime, uIsMoon;
 uniform float uAlpha; // ADDED: LOD cross-fade
+uniform vec3 uOccC; uniform float uOccR; // ADDED: one analytic eclipse occluder (moon on planet, planet on moon); uOccR=0 is off
 uniform vec3  uParentDir; uniform vec3 uParentTint; uniform float uEarthshine;   // moons only
 void main(){
   vec3 Ng = normalize(vWorldN);
@@ -170,6 +171,7 @@ void main(){
   float diff = (uIsMoon > 0.5) ? moonPhaseDiffuse(N, L, V) * smoothstep(0.0, 0.03, ndlG) : terminatorDiffuse(Ng, N, L, width);
   float shadow = 1.0;
   if (uCloudShadow > 0.0) shadow = cloudShadow(uClouds, normalize(vObjDir), normalize(uSunDirObj), uCloudAlt, uCloudShadow);
+  if (uOccR > 0.0) shadow *= sphereShadow(vWorldPos, L, uOccC, uOccR, 0.012); // ADDED: eclipse
   vec3 col = alb * uSunColor * diff * shadow;
   // skylight + faint night ambient (planet never pure black: cute-creepy readable night)
   col += alb * uSkyColor * (0.012 + 0.07 * uAtmo * tw);
