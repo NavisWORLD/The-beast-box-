@@ -366,7 +366,7 @@ export default function BeastGo() {
       </> : null}
       {sheet === 'map' ? <>
         <h2>Map</h2>
-        <p>Lost Cosmos on this cartridge is the world. These field notes share the care trail with Adventure. You are near {place.name}.</p>
+        <p>Lost COSMOS on this cartridge is the world. These field notes share the care trail with Adventure. You are near {place.name}.</p>
         <div className={css.list}>
           {PLACES.map((spot) => <button key={spot.id} type="button" aria-pressed={trail.place === spot.id} onClick={() => { sfx('blip'); setTrail(goTo(trail, spot.id)); }}>{spot.name}</button>)}
         </div>
