@@ -67,7 +67,10 @@ class CNS:
         # adapters. Prefer it verbatim over the historical spark+audio
         # concatenation so incompatible channel units are not silently mixed.
         drive = conditioning if conditioning is not None else spark + audio
+        drive_class = "conditioning" if conditioning is not None else "packet-features"
         if not drive:
+            # CONTROL, not a measurement: deterministic Lorenz attractor fallback.
+            drive_class = "control-lorenz"
             drive = [self.dark_matter["x"] / 30.0, self.dark_matter["y"] / 30.0, self.dark_matter["z"] / 30.0]
         mission_state.dyn12 = update_dyn12(mission_state.dyn12, drive, step=self.step)
 
@@ -106,4 +109,5 @@ class CNS:
             "surgeon": self.surgeon,
             "dyn12": list(mission_state.dyn12),
             "phos": mission_state.phos,
+            "drive_class": drive_class,
         }
