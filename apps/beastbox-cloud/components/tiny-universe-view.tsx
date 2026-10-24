@@ -71,8 +71,8 @@ export default function TinyUniverseView(){
   <canvas ref={cv} className={s.canvas} onPointerDown={tap} aria-label="Tiny Universe map" style={three?{visibility:'hidden'}:undefined}/>
   {three&&u?<Universe3D u={u} doorOn={doorOk} onDoor={(v,pre)=>{setDoorV(v);setDoorMount(pre);}} onSelect={setSel} onAlive={k=>{const f=aliveGate.current.fire(k,String(u.seed||'tiny'),performance.now()/1000);if(f)setLine(f.line);}}/>:null}
   {three&&u&&doorOk&&doorMount?<div data-door data-door-v={doorV.toFixed(2)} style={{position:'absolute',inset:0,zIndex:1,opacity:doorV,visibility:doorV>0.001?'visible':'hidden',pointerEvents:doorV>0.5?'auto':'none'}}><DoorWorld door onOrbitOut={leaveDoor} onClose={leaveDoor}/></div>:null}
-  <div className={s.hud}><div className={s.title}>✦ TINY UNIVERSE{three?<span className={`${s.tag} ${s.sim}`} data-moons-label title={MOONS_LABEL} style={{marginLeft:8,fontSize:10,verticalAlign:'middle'}}>Moons: SEEDED</span>:null}</div><span className={s.tag} data-genesis-label>{GENESIS_LABEL}</span><span className={`${s.tag} ${s.sim}`} data-growth-label>{GROWTH_LABEL}</span></div>
-  <div className={s.bottom}>
+  <div className={s.hud} style={doorV>0?{opacity:1-doorV}:undefined}><div className={s.title}>✦ TINY UNIVERSE{three?<span className={`${s.tag} ${s.sim}`} data-moons-label title={MOONS_LABEL} style={{marginLeft:8,fontSize:10,verticalAlign:'middle'}}>Moons: SEEDED</span>:null}</div><span className={s.tag} data-genesis-label>{GENESIS_LABEL}</span><span className={`${s.tag} ${s.sim}`} data-growth-label>{GROWTH_LABEL}</span></div>
+  <div className={s.bottom} style={doorV>0?{opacity:1-doorV,pointerEvents:doorV>0.5?'none':undefined}:undefined}>
    {info?<div className={s.card}>{info}</div>:null}
    <div className={s.zeref} aria-live="polite">{line}</div>
 {err||!u?<span className={s.stat}>{err?`Couldn’t load genesis: ${err}`:'loading…'}</span>:<details className={s.stat} data-universe-details><summary>Details</summary>{u?`tick ${u.tick} · ${u.stars.length} stars · ${u.planets.length} planets · ${u.storms.length} storms · ${u.life.length} life worlds${last?` · sim E ${last.sim_E}`:` · IBM E ${u.entanglement_E}`}`:null}</details>}
