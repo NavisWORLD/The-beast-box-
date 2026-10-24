@@ -21,7 +21,10 @@ export function zerefStar(u){const home=u.planets.find(p=>p.id===homeOf(u));cons
  const alive=u.stars.filter(x=>!x.remnant).sort((a,b)=>b.luminosity-a.luminosity);return (alive[0]||u.stars[0])?.id??null;}
 export const GENESIS_LABEL='Seeded from recorded IBM hardware (ibm_marrakesh)';
 export const GROWTH_LABEL='Growth: SIMULATED (Rigetti Bell simulator)';
-export const ZEREF_LINES={abiogenesis:'New life. Zeref\u2019s tail curls happy.',storm:'A storm. Zeref puffs up, then waits.',supernova:'A star let go. Zeref goes very still.'};
+/** Emeth's reaction lines; {beast} is the ACTIVE beast's name (Zeref when Zeref is active, so those lines read exactly as before). */
+export const ZEREF_LINES={abiogenesis:'New life. {beast}\u2019s tail curls happy.',storm:'A storm. {beast} puffs up, then waits.',supernova:'A star let go. {beast} goes very still.'};
+/** Fill {beast} with the active beast's name; falls back to Zeref (the unchanged default) when no name is known. */
+export function beastLine(tpl,name){return String(tpl).replace(/\{beast\}/g,(name&&String(name).trim())||'Zeref');}
 export const ATLAS_BIOME={ember:'ember_world',paper:'paper_sea',jelly:'jelly_geyser',sunflower:'sunflower_ring',moss:'crystal_moss',glacier:'glacier'};
 export function planetFrame(u,p){const v=parseInt(sha256Hex(u.seed+p.id).slice(0,8),16)%4;const h=p.habitability;const st=h<0.0001?'barren':h<0.3?'waking':'living';return ATLAS_BIOME[biomeOf(p)]+'.v'+v+'.'+st;}
 export function starFrame(s,tick){if(s.remnant)return (s.remnant==='black_hole'?'quiet_door':'clenched_heart')+'.f'+(tick%4);const c=s.mass_solar<1?'ember_star':s.mass_solar<=8?'lantern_star':'storm_crowned';const L=Math.log10(Math.max(1e-9,s.luminosity));return c+'.lum'+(L<0?0:L<=2?1:2);}
