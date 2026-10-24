@@ -64,7 +64,7 @@ export default function ZerefDiaryPanel({journalId,beastName,cosmosProfile=null,
     <h3>Growth</h3>
     <p className={styles.stage}><strong>Stage {stage} · {diary?.stage_name||'Moonling'}</strong></p>
     <meter min={0} max={100} value={pct} aria-label={`Growth toward ${diary?.next_stage?.name||'max stage'}`}/>
-    <p className={styles.small}>{xp} XP{diary?.next_stage?` · ${diary.next_stage.xp-xp} to ${diary.next_stage.name}`:' · fully grown'} · {diary?.tick||0} growth steps · {diary?.combos_total||0} combos discovered</p>
+    <p className={styles.small}>{xp} XP{diary?.next_stage?` · ${diary.next_stage.xp-xp} XP to reach ${diary.next_stage.name}`:' · fully grown'} · {diary?.tick||0} growth steps · {diary?.combos_total||0} combos discovered</p>
     {diary?.signals?<p className={styles.signals}>{Object.entries(diary.signals).map(([k,v])=><span key={k}>{k} <b>{v}</b></span>)}</p>:null}
     <p className={styles.small}>Size and aura in the habitat grow with the stage.</p>
    </div>

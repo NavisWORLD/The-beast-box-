@@ -843,4 +843,4 @@ body:has([data-go-screen]) .site-dock{display:none}
 }
 
 /* 404: no quick dock / Talk launcher on a page that does not exist */
-body:has([data-not-found]) .site-dock{display:none!important}
+body:has([data-not-found]) :is(.site-dock,[data-beast-chat-launcher],[data-zeref-voice-dock],aside[data-sound-room],[data-companion-overlay],aside[data-dock-pill],[class*=beast-chat-overlay][class*=launcher],.companion-dock){display:none!important}
