@@ -26,6 +26,9 @@ export function createPlanetKit(){
     // ready once the albedo (the last thing the eye needs) is in; the rest stream in within the same frame budget
     const img:any=set.albedo;const poll=()=>{if(set.albedo.image&&(set.albedo.image as any).width){set.ready=true;}else setTimeout(poll,100);};poll();
     sets.set(key,set);return s=set;}
+  let atlas:THREE.Texture|null=null;const idxTex=new Map<string,THREE.Texture>();
+  const getAtlas=()=>atlas||(atlas=(()=>{const t=tl.load(BASE+'biome_tile_atlas_1280x1024.png');t.flipY=false;t.colorSpace=THREE.SRGBColorSpace;t.generateMipmaps=false;t.minFilter=THREE.LinearFilter;t.magFilter=THREE.LinearFilter;return t;})());
+  const getIdx=(type:string)=>{let t=idxTex.get(type);if(!t){t=tl.load(BASE+`${type}_biome_index_1024x512.png`);t.flipY=false;t.wrapS=THREE.RepeatWrapping;t.generateMipmaps=false;t.minFilter=THREE.NearestFilter;t.magFilter=THREE.NearestFilter;idxTex.set(type,t);}return t;}; // index map: NEAREST, no mips (pack note)
   const flipV=(g:THREE.SphereGeometry)=>{const uv=g.attributes.uv;for(let i=0;i<uv.count;i++)uv.setY(i,1-uv.getY(i));return g;}; // v=0 at the north pole, as the pack's shaders expect
   const geoFar=flipV(new THREE.SphereGeometry(1,64,32)),geoNear=flipV(new THREE.SphereGeometry(1,160,80)),geoShell=new THREE.SphereGeometry(1,48,32);
   function uniformsFor(type:string,set:TexSet,near:boolean){const S=PLANET_SHADING[type],sh=S.shading,moon=!!sh.is_moon;
@@ -36,7 +39,7 @@ export function createPlanetKit(){
       uAtmo:{value:sh.atmo_amount},uSkyColor:{value:v3(sh.sky_color)},uTwilightColor:{value:v3(sh.twilight_color)},uShallow:{value:v3(sh.shallow_color)},uDeep:{value:v3(sh.deep_color)},
       uCloudAlt:{value:S.clouds?.altitude_frac??0},uCloudShadow:{value:near&&S.clouds?S.clouds.shadow_strength:0},uCloudOn:{value:!near&&S.clouds?1:0},
       uNightLights:{value:sh.night_lights},uEmissiveDayKeep:{value:sh.emissive_day_keep},uGlintRough:{value:sh.glint_roughness},uWaveStrength:{value:sh.wave_strength},uTime:{value:0},uIsMoon:{value:moon?1:0},
-      uParentDir:{value:new THREE.Vector3(0,1,0)},uParentTint:{value:new THREE.Vector3(0.6,0.7,1)},uEarthshine:{value:sh.earthshine},uAlpha:{value:1},uOccC:{value:new THREE.Vector3()},uOccR:{value:0}};}
+      uParentDir:{value:new THREE.Vector3(0,1,0)},uParentTint:{value:new THREE.Vector3(0.6,0.7,1)},uEarthshine:{value:sh.earthshine},uAlpha:{value:1},uOccC:{value:new THREE.Vector3()},uOccR:{value:0},uBiomeIdx:{value:blank},uTileAtlas:{value:blank},uDetailFade:{value:0},uTilesPerRadius:{value:3141}};}
   function create(type:string,variant:{lonDeg:number;tiltDeg:number;spinDegPerS:number;cloudLonDeg:number}){
     const S=PLANET_SHADING[type];const far=getSet(type,'512x256');let near:TexSet|null=null;
     const farMat=new THREE.ShaderMaterial({uniforms:uniformsFor(type,far,false),vertexShader:PLANET_VERT,fragmentShader:PLANET_FRAG,transparent:true,depthWrite:true});
@@ -44,7 +47,7 @@ export function createPlanetKit(){
     let nearMesh:THREE.Mesh|null=null,cloudMesh:THREE.Mesh|null=null;
     const makeNear=()=>{near=getSet(type,'2048x1024');
       const m=new THREE.ShaderMaterial({uniforms:uniformsFor(type,near,true),vertexShader:PLANET_VERT,fragmentShader:PLANET_FRAG,transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2});
-      nearMesh=new THREE.Mesh(geoNear,m);nearMesh.renderOrder=1;nearMesh.visible=false;mesh.add(nearMesh);
+      m.uniforms.uBiomeIdx.value=getIdx(type);m.uniforms.uTileAtlas.value=getAtlas();nearMesh=new THREE.Mesh(geoNear,m);nearMesh.renderOrder=1;nearMesh.visible=false;mesh.add(nearMesh);
       if(S.clouds){const cm=new THREE.ShaderMaterial({uniforms:{uClouds:{value:near.clouds},uSunDir:m.uniforms.uSunDir,uSunColor:m.uniforms.uSunColor,uSkyColor:m.uniforms.uSkyColor,uTwilightColor:m.uniforms.uTwilightColor,uAtmo:m.uniforms.uAtmo,uAlpha:{value:1}},
         vertexShader:'varying vec2 vUv; varying vec3 vWorldN; varying vec3 vWorldPos; void main(){ vUv=uv; vWorldN=normalize(mat3(modelMatrix)*normal); vec4 w=modelMatrix*vec4(position,1.0); vWorldPos=w.xyz; gl_Position=projectionMatrix*viewMatrix*w; }',
         fragmentShader:CLOUD_FRAG,transparent:true,depthWrite:false});
@@ -73,7 +76,7 @@ export function createPlanetKit(){
       const u=farMat.uniforms;setSun(u,mesh,ctx,sd,col);u.uTime.value=ctx.t;
       const farReady=far.ready;u.uAlpha.value=farReady?lod.farAlpha:0;farMat.depthWrite=lod.farAlpha>0.5;farMat.transparent=lod.farAlpha<0.999;
       const nearOn=!!nearMesh&&near!.ready&&lod.nearAlpha>0.002;
-      if(nearMesh){nearMesh.visible=nearOn;if(nearOn){const nu=(nearMesh.material as THREE.ShaderMaterial).uniforms;setSun(nu,nearMesh,ctx,sd,col);nu.uTime.value=ctx.t;nu.uAlpha.value=lod.nearAlpha;(nearMesh.material as THREE.ShaderMaterial).depthWrite=lod.nearAlpha>0.99;}}
+      if(nearMesh){nearMesh.visible=nearOn;if(nearOn){const nu=(nearMesh.material as THREE.ShaderMaterial).uniforms;setSun(nu,nearMesh,ctx,sd,col);nu.uTime.value=ctx.t;nu.uAlpha.value=lod.nearAlpha;nu.uDetailFade.value=lod.detail;(nearMesh.material as THREE.ShaderMaterial).depthWrite=lod.nearAlpha>0.99;}}
       if(cloudMesh){cloudMesh.visible=nearOn;if(nearOn){cloudMesh.rotation.y=(variant.cloudLonDeg-variant.lonDeg+(S.clouds.rotation_deg_per_min/60)*ctx.t)*Math.PI/180;cloudMesh.updateMatrixWorld(true);
         const cu=(cloudMesh.material as THREE.ShaderMaterial).uniforms;cu.uSunDir.value.copy(sd);cu.uSunColor.value.copy(col);cu.uAlpha.value=lod.nearAlpha;}}
       if(atmo){const au=(atmo.material as THREE.ShaderMaterial).uniforms;const on=lod.atmo>0.002;atmo.visible=on;if(on){au.uPlanetCenter.value.copy(cen);au.uPlanetR.value=R;au.uShellR.value=R*(S.shell||1.045);au.uSunDir.value.copy(sd);au.uSunColor.value.copy(col);au.uOpacity.value=lod.atmo;

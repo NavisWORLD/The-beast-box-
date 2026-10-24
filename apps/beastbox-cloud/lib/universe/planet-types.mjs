@@ -19,7 +19,7 @@ const ss=(a,b,x)=>{const t=Math.min(Math.max((x-a)/(b-a),0),1);return t*t*(3-2*t
 export function planetLod(d,R,fovDeg){
   const x=Math.min(R/Math.max(d,1e-9),0.999999),s=(x/Math.sqrt(1-x*x))/Math.tan(fovDeg*Math.PI/360);
   const a=ss(0.004,0.012,s),b=ss(0.30,0.55,s);
-  return{s,sprite:1-a,far:a*(1-b),farAlpha:a,nearAlpha:b,atmo:ss(0.01,0.03,s)};
+  return{s,sprite:1-a,far:a*(1-b),farAlpha:a,nearAlpha:b,atmo:ss(0.01,0.03,s),detail:ss(0.45,0.9,s)};
 }
 // Cory's inverse-square star light (genesis-sun.mjs sunIntensity), exposure-compressed the way Cosmo's sun_light_recipe does it
 // (sqrt, clamp .35..1.6): irradiance at distance R relative to a planet at 1 AU (R=9).
