@@ -131,6 +131,24 @@ float sphereShadow(vec3 p, vec3 L, vec3 c, float r, float sunAngRad){
 }
 // JS helper (not GLSL): illuminated fraction = 0.5 * (1 + cos(alpha)); alpha = acos(dot(L, V)).
 
+// WEBGL1: yes (but see mip note). Close-range ground detail on the NEAR planet mesh so the handoff to flat terrain has no visible jump.
+// Inputs: biome index map (<type>_biome_index_1024x512.png, R = biome id 0..19, NEAREST filter, no mips) and
+//         ../detail/biome_tile_atlas_1280x1024.png (5 cols x 4 rows of 256px tiles, tile id = row*5+col = biome id).
+// Atlas samples need manual margin: set atlas minFilter = LinearFilter (no mips) to avoid cell bleeding, tile with fract().
+uniform sampler2D uBiomeIdx; uniform sampler2D uTileAtlas;
+uniform float uDetailFade;      // 0..1 from zoom guide (s 0.45 -> 0.9)
+uniform float uTilesPerRadius;  // ~ 2*pi*R / tileMeters ; e.g. R=20000 m, 40 m tiles -> 3141
+vec3 biomeDetail(vec2 uv, vec3 baseAlbedo){
+  float id = floor(texture2D(uBiomeIdx, uv).r * 255.0 + 0.5);
+  vec2 cell = vec2(mod(id, 5.0), floor(id / 5.0));
+  vec2 tuv = fract(uv * vec2(uTilesPerRadius, uTilesPerRadius * 0.5));
+  tuv = tuv * (254.0 / 256.0) + 1.0 / 256.0;
+  vec3 tile = texture2D(uTileAtlas, (cell + tuv) * vec2(0.2, 0.25)).rgb;
+  // tile is already the biome's mean colour +- detail; keep the planet colour's low frequency, take the tile's high frequency
+  vec3 detail = tile / max(tile.r*0.3+tile.g*0.59+tile.b*0.11, 1e-3);
+  return mix(baseAlbedo, baseAlbedo * mix(vec3(1.0), detail, 0.85), uDetailFade);
+}
+
 // WEBGL1: yes (texture2D only, no loops/derivatives). Needs, in order: common.glsl, terminator.glsl, ocean.glsl, cloud_shadow.glsl, phase_moon.glsl
 // (optionally biome_detail.glsl). One shader for all 5 biome types; per-type values come from models.json "shading".
 varying vec2 vUv; varying vec3 vWorldN; varying vec3 vWorldPos; varying vec3 vObjDir;
@@ -158,6 +176,7 @@ void main(){
   float rough = texture2D(uRough, vUv).g;
   vec4 om = texture2D(uOceanMask, vUv);
   float ocean = om.r;
+  if (uDetailFade > 0.001) alb = mix(biomeDetail(vUv, alb), alb, ocean); // ADDED: close-range biome tiles on land (ground hand-off, biome_detail.glsl)
   float nv = max(dot(Ng, V), 0.0);
   float width = mix(0.015, 0.12, uAtmo);
   float tw = terminatorWeight(Ng, L, width);
@@ -187,7 +206,7 @@ void main(){
   // ADDED: shore foam (the globe's foam rule): a lacy white band where the depth channel is ~0 (shore), lit by the sun
   if (ocean > 0.01) {
     float shore = 1.0 - smoothstep(0.0, 0.08, om.g);
-    float lace = 0.62 + 0.38 * sin(uTime * 1.3 + vUv.x * 1800.0 + vUv.y * 900.0);
+    float lace = 0.6 + 0.4 * sin(uTime * 1.3 + vUv.x * 420.0 + vUv.y * 260.0) * sin(vUv.x * 310.0 - vUv.y * 470.0 - uTime * 0.9); // crossed low-frequency waves: lacy cells, no stripe moire when magnified
     col += uSunColor * shore * ocean * lace * 0.32 * tw;
   }
   // night lights / lava / crystals

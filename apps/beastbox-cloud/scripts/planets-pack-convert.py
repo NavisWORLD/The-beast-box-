@@ -19,6 +19,8 @@ for t in ['temperate','desert','ice','volcanic','moon']:
       if k=='normal':kw=dict(quality=90)
       if k=='roughness':kw=dict(quality=92)
       im.save(o,'WEBP',**kw)
+for t in ['temperate','desert','ice','volcanic','moon']:shutil.copy(f'{src}/textures/{t}_biome_index_1024x512.png',f'{out}/{t}_biome_index_1024x512.png')
+shutil.copy(f'{src}/detail/biome_tile_atlas_1280x1024.png',f'{out}/biome_tile_atlas_1280x1024.png')
 shutil.copy(f'{src}/models.json',f'{out}/models.json');shutil.copy(f'{src}/planet_assignments.json',f'{out}/planet_assignments.json')
 for n in ['star_glow_white_256.png','star_glow_yellow_256.png','star_glow_orange_256.png','star_glow_blue_white_256.png']:shutil.copy(f'{src}/sun/{n}',f'{out}/{n}')
 shutil.copy('/workspace/cosmo-study/livingworld/landforms/ocean/water_normal_1024.png',f'{out}/water_normal_1024.png')

@@ -4,20 +4,22 @@ The GLSL is Cosmo's verbatim; ADDED lines are marked '// ADDED'. Usage: python3 
 import sys,os,json
 P=sys.argv[1];G=P+'/glsl/';here=os.path.dirname(os.path.abspath(__file__))+'/../lib/universe/'
 r=lambda n:open(G+n).read()
-common=r('common.glsl');term=r('terminator.glsl');ocean=r('ocean.glsl');cs=r('cloud_shadow.glsl');moon=r('phase_moon.glsl')
+bd=r('biome_detail.glsl');common=r('common.glsl');term=r('terminator.glsl');ocean=r('ocean.glsl');cs=r('cloud_shadow.glsl');moon=r('phase_moon.glsl')
 frag=r('planet_surface.frag').replace('precision highp float;\n','')
 frag=frag.replace('uniform vec3  uParentDir;','uniform float uAlpha; // ADDED: LOD cross-fade\nuniform vec3 uOccC; uniform float uOccR; // ADDED: one analytic eclipse occluder (moon on planet, planet on moon); uOccR=0 is off\nuniform vec3  uParentDir;')
 frag=frag.replace("  // night lights / lava / crystals","""  // ADDED: shore foam (the globe's foam rule): a lacy white band where the depth channel is ~0 (shore), lit by the sun
   if (ocean > 0.01) {
     float shore = 1.0 - smoothstep(0.0, 0.08, om.g);
-    float lace = 0.62 + 0.38 * sin(uTime * 1.3 + vUv.x * 1800.0 + vUv.y * 900.0);
+    float lace = 0.6 + 0.4 * sin(uTime * 1.3 + vUv.x * 420.0 + vUv.y * 260.0) * sin(vUv.x * 310.0 - vUv.y * 470.0 - uTime * 0.9); // crossed low-frequency waves: lacy cells, no stripe moire when magnified
     col += uSunColor * shore * ocean * lace * 0.32 * tw;
   }
   // night lights / lava / crystals""")
 frag=frag.replace("  vec3 col = alb * uSunColor * diff * shadow;","  if (uOccR > 0.0) shadow *= sphereShadow(vWorldPos, L, uOccC, uOccR, 0.012); // ADDED: eclipse\n  vec3 col = alb * uSunColor * diff * shadow;")
 frag=frag.replace("gl_FragColor = vec4(linearToSrgb(col), 1.0);","gl_FragColor = vec4(linearToSrgb(col), uAlpha);")
 assert 'uAlpha);' in frag and 'shore foam' in frag
-FRAG='precision highp float;\n'+'\n'.join([common,term,ocean,cs,moon,frag])
+frag=frag.replace('  float ocean = om.r;','  float ocean = om.r;\n  if (uDetailFade > 0.001) alb = mix(biomeDetail(vUv, alb), alb, ocean); // ADDED: close-range biome tiles on land (ground hand-off, biome_detail.glsl)')
+assert 'biomeDetail(vUv' in frag
+FRAG='precision highp float;\n'+'\n'.join([common,term,ocean,cs,moon,bd,frag])
 vert=r('planet_surface.vert')
 vert=vert.replace("varying vec2 vUv;","uniform sampler2D uHeight; uniform float uDisp; uniform float uHasHeight; uniform float uSea; // ADDED: near-mesh displacement (h-0.25)*0.02, sea flat\nvarying vec2 vUv;",1)
 vert=vert.replace("  vObjDir = normalize(position);","  float hh = uHasHeight > 0.5 ? texture2D(uHeight, uv).r : uSea;\n  float dh = hh - uSea; if (uSea < 0.3) dh = max(dh, 0.0); // ADDED: sea flat on water worlds, signed relief on the moon (centred 0.5)\n  vec3 pos = position * (1.0 + uDisp * dh * 0.02);\n  vObjDir = normalize(position);")
