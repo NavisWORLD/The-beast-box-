@@ -10,30 +10,30 @@
   "source_path": "/spark/ibm-moonwraith-cassette-kit-20261010.json",
   "source_class": "RECORDED_IBM_HARDWARE"
  },
- "tick": 117,
- "xp": 2423,
+ "tick": 118,
+ "xp": 2437,
  "stage": 3,
  "stage_name": "Eclipse Prowler",
  "signals": {
-  "energy": 79,
+  "energy": 73,
   "signal": 50,
   "memory": 100,
   "resonance": 87
  },
- "bond": 29.25,
+ "bond": 29.5,
  "care_total": 0,
  "places": {
-  "Rift Gate": 106,
+  "Rift Gate": 107,
   "Lattice Arch": 23,
-  "Echo Prism": 164,
+  "Echo Prism": 165,
   "Tidewell": 44,
-  "Quartz Choir": 31,
-  "Violet Shard": 100,
+  "Quartz Choir": 33,
+  "Violet Shard": 102,
   "Selene Pool": 24
  },
- "last_tick_at": "2026-10-24T17:34:39.407Z",
- "last_entry_hash": "f61440ca44a9788a22e7427ae8d9ff9a4cd82f9b453520105b1fb15dea00a934",
- "universe_growth": 17,
+ "last_tick_at": "2026-10-24T19:47:40.100Z",
+ "last_entry_hash": "5bf2324bae3198365e37c906b27fcd51fcfff71fab7c7d947e27d4c613e4c2b6",
+ "universe_growth": 18,
  "combos_total": 304,
  "next_stage": {
   "stage": 4,
@@ -44,25 +44,25 @@
   "cells_visited": 37,
   "cells_total": 40,
   "known_rifts": 3,
-  "moves_succeeded": 1770,
-  "moves_blocked": 77,
+  "moves_succeeded": 1781,
+  "moves_blocked": 79,
   "blocked_rate": 0.042,
   "favorite_spot": "Echo Prism",
-  "favorite_value": 0.674,
+  "favorite_value": 0.688,
   "prefs": {
    "explore": 0.05,
-   "visit": 1,
+   "visit": 0.937,
    "rest": 0.05,
    "play": 1
   },
-  "decisions": 1062,
+  "decisions": 1073,
   "label": "learned behaviour from its own experience, not consciousness"
  },
  "labels": {
   "seed": "Seeded from recorded IBM ibm_marrakesh counts (job db4te7slf4us73c3888g). Not a live quantum link.",
   "mind": "Zeref is a game companion with a deterministic mind. Diary lines are generated, not a conscious mind.",
-  "loop": "Written by the scheduled Zeref diary loop (GitHub Actions), one hash-chained entry per tick.",
-  "growth": "Growth ticks run a small circuit on the free Azure Quantum Rigetti QVM simulator (simulated, not hardware). If it fails, the deterministic step runs and the real error is logged."
+  "loop": "Written by the scheduled Zeref diary loop (GitHub Actions), one hash-chained entry per growth step.",
+  "growth": "Each growth step runs a small circuit on the free Azure Quantum Rigetti QVM simulator (simulated, not hardware). If it fails, the deterministic step runs and the real error is logged."
  },
  "birth_spark": {
   "provider": "IBM Quantum",
@@ -71,6 +71,97 @@
   "source": "recorded hardware counts (birth seed, never re-run)"
  },
  "recent": [
+  {
+   "schema": "zeref-diary/v1",
+   "beast_id": "bb-7f9c2a03",
+   "tick": 118,
+   "at": "2026-10-24T19:47:40.100Z",
+   "hour_local": 14,
+   "timezone": "America/Chicago",
+   "signals": {
+    "energy": 73,
+    "signal": 50,
+    "memory": 100,
+    "resonance": 87
+   },
+   "bond": 29.5,
+   "mood": "content",
+   "place": "Quartz Choir",
+   "places_visited": [
+    "Echo Prism",
+    "Quartz Choir",
+    "Rift Gate",
+    "Violet Shard"
+   ],
+   "discovered_combos": [],
+   "new_combo_count": 0,
+   "combos_total": 304,
+   "xp_gain": 14,
+   "xp": 2437,
+   "stage": 3,
+   "stage_name": "Eclipse Prowler",
+   "grew": false,
+   "care": 0,
+   "birth_spark": {
+    "provider": "IBM Quantum",
+    "backend": "ibm_marrakesh",
+    "job_id": "db4te7slf4us73c3888g",
+    "source": "recorded hardware counts (birth seed, never re-run)"
+   },
+   "growth_source": {
+    "kind": "rigetti-qvm-simulated",
+    "simulated": true,
+    "provider": "azure-quantum/rigetti",
+    "target": "rigetti.sim.qvm",
+    "job_id": "b64d4abc-cfe3-11f1-a9dd-000d3af45e36",
+    "job_name": "zeref-diary-tick-118-bb-7f9c2a03",
+    "shots": 256,
+    "counts": {
+     "100": 4,
+     "101": 115,
+     "110": 101,
+     "111": 6,
+     "000": 2,
+     "001": 10,
+     "010": 18
+    },
+    "counts_sha256": "c5fc743011a0aa474db9d5e0728a4b22df29aa32acc4f86db31c26577f6c1b4a",
+    "circuit_params": {
+     "energy": 2.481858,
+     "signal": 1.570796,
+     "resonance": 2.733186
+    },
+    "quil_sha256": "bb92cba14f077c6f112dcd56e1397edc9ab1dac7b6bda47f8b2d11f85d0868c2"
+   },
+   "learning": {
+    "new_cells": 0,
+    "moves_succeeded": 11,
+    "moves_blocked": 2,
+    "goals": {
+     "play": 3,
+     "visit": 8
+    },
+    "cells_visited": 37,
+    "cells_total": 40,
+    "known_rifts": 3,
+    "blocked_rate": 0.042,
+    "favorite_spot": "Echo Prism",
+    "prefs": {
+     "explore": 0.05,
+     "visit": 0.937,
+     "rest": 0.05,
+     "play": 1
+    },
+    "label": "learned behaviour from its own experience, not consciousness"
+   },
+   "universe_growth": 18,
+   "thought": {
+    "text": "I'm not sure, I'll be happy.",
+    "by": "rawrphos-native:step-31984 (raw model output, unedited)"
+   },
+   "prev_hash": "f61440ca44a9788a22e7427ae8d9ff9a4cd82f9b453520105b1fb15dea00a934",
+   "hash": "5bf2324bae3198365e37c906b27fcd51fcfff71fab7c7d947e27d4c613e4c2b6"
+  },
   {
    "schema": "zeref-diary/v1",
    "beast_id": "bb-7f9c2a03",
@@ -1096,106 +1187,8 @@
    },
    "prev_hash": "2fa18e99a781502235f245572cfc71c81e670636161e24bf0e6d2999a289fd34",
    "hash": "6f35fcfb162e2029c88f5a159124791ae4aa709ecb5c28aa9f817bb1782bee56"
-  },
-  {
-   "schema": "zeref-diary/v1",
-   "beast_id": "bb-7f9c2a03",
-   "tick": 106,
-   "at": "2026-10-23T19:09:13.044Z",
-   "hour_local": 14,
-   "timezone": "America/Chicago",
-   "signals": {
-    "energy": 79,
-    "signal": 49,
-    "memory": 100,
-    "resonance": 95
-   },
-   "bond": 26.5,
-   "mood": "content",
-   "place": "Echo Prism",
-   "places_visited": [
-    "Echo Prism",
-    "Quartz Choir",
-    "Rift Gate"
-   ],
-   "discovered_combos": [
-    {
-     "key": "hover|still|open-pocket|folded|sway|open|grin",
-     "name": "hover · folded wings · sway tail · open eyes · grin mouth in the open pocket"
-    },
-    {
-     "key": "hover|still|open-pocket|full-spread|sway|open|grin",
-     "name": "hover · full-spread wings · sway tail · open eyes · grin mouth in the open pocket"
-    }
-   ],
-   "new_combo_count": 2,
-   "combos_total": 294,
-   "xp_gain": 19,
-   "xp": 2248,
-   "stage": 3,
-   "stage_name": "Eclipse Prowler",
-   "grew": false,
-   "care": 0,
-   "birth_spark": {
-    "provider": "IBM Quantum",
-    "backend": "ibm_marrakesh",
-    "job_id": "db4te7slf4us73c3888g",
-    "source": "recorded hardware counts (birth seed, never re-run)"
-   },
-   "growth_source": {
-    "kind": "rigetti-qvm-simulated",
-    "simulated": true,
-    "provider": "azure-quantum/rigetti",
-    "target": "rigetti.sim.qvm",
-    "job_id": "297be91e-cf15-11f1-a9dd-000d3a3bcf41",
-    "job_name": "zeref-diary-tick-106-bb-7f9c2a03",
-    "shots": 256,
-    "counts": {
-     "100": 1,
-     "101": 110,
-     "110": 129,
-     "111": 1,
-     "001": 7,
-     "010": 8
-    },
-    "counts_sha256": "fc76e9c794c57e15a5373568e81b1e54a053ec1a24b9a1d9d3056003a2f1caf0",
-    "circuit_params": {
-     "energy": 2.670354,
-     "signal": 1.53938,
-     "resonance": 3.015929
-    },
-    "quil_sha256": "42f40ac5f2ba408e0b351b8837b433722a0e2a0dd2212dcdbc73022bab9f607d"
-   },
-   "learning": {
-    "new_cells": 0,
-    "moves_succeeded": 19,
-    "moves_blocked": 0,
-    "goals": {
-     "play": 3,
-     "visit": 4
-    },
-    "cells_visited": 37,
-    "cells_total": 40,
-    "known_rifts": 3,
-    "blocked_rate": 0.04,
-    "favorite_spot": "Echo Prism",
-    "prefs": {
-     "explore": 0.05,
-     "visit": 1,
-     "rest": 0.05,
-     "play": 1
-    },
-    "label": "learned behaviour from its own experience, not consciousness"
-   },
-   "universe_growth": 6,
-   "thought": {
-    "text": "I love you, Mozil, and I love it.",
-    "by": "rawrphos-native:step-31344 (raw model output, unedited)"
-   },
-   "prev_hash": "4320bab89c4c06b9e97e817bdb671bdef88b88af0f81ffdab5282b79a05a9b2a",
-   "hash": "2fa18e99a781502235f245572cfc71c81e670636161e24bf0e6d2999a289fd34"
   }
  ],
- "generated_at": "2026-10-24T17:34:39.407Z",
+ "generated_at": "2026-10-24T19:47:40.100Z",
  "thought_source_note": "rawrphos-ok"
 }
