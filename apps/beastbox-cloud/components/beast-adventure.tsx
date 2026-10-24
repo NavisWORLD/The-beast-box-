@@ -11,6 +11,7 @@ import { MuseLink, mockTraits } from '../lib/companion/spark/muse.mjs';
 import BeastCareDeck from './beast-care-deck';
 import { useBeastSession } from './beast-session';
 import { useCompanion } from './companion-provider';
+import { useActiveBeastName } from './use-active-beast-name';
 import PixelBeast from './pixel-beast';
 import css from './beast-adventure.module.css';
 
@@ -42,7 +43,9 @@ export default function BeastAdventure() {
   const [label, setLabel] = useState('No message yet.');
   // Sensor problems (e.g. no Web Bluetooth on iPhone Safari) get their own line and never replace the chat.
   const [sensorNote, setSensorNote] = useState('');
-  const { profile: companion } = useCompanion();
+  const { profile: companionRaw } = useCompanion();
+  const activeName = useActiveBeastName();
+  const companion = companionRaw && activeName ? { ...companionRaw, name: activeName } : companionRaw; // the active beast's name, not the seeded starter's
   const [bluetooth, setBluetooth] = useState<boolean | null>(null);
   useEffect(() => { setBluetooth(typeof navigator !== 'undefined' && 'bluetooth' in navigator); }, []);
   const [reduced, setReduced] = useState(false);

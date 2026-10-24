@@ -174,6 +174,54 @@ float sphereShadow(vec3 p, vec3 L, vec3 c, float r, float sunAngRad){
 }
 // JS helper (not GLSL): illuminated fraction = 0.5 * (1 + cos(alpha)); alpha = acos(dot(L, V)).
 
+// WEBGL1: yes (GLSL ES 1.00). Globe -> ground colour hand-off ON THE NEAR PLANET MESH. Replaces biome_detail.glsl (see HANDOFF_NOTES.md for why).
+// Needs: common.glsl (PI) only.  No fract() on texture coordinates, no derivatives, no texture LOD extension.
+// Textures (three.js):
+//   uGroundAlbedo : ../ground/<type>_ground_albedo_1024.png  colorSpace = SRGB, wrapS = wrapT = RepeatWrapping, generateMipmaps = true,
+//                   minFilter = LinearMipmapLinearFilter, magFilter = Linear, anisotropy = min(8, renderer.capabilities.getMaxAnisotropy())
+//   uGlobeNoMip   : the SAME albedo image as the near mesh uses, as a SECOND THREE.Texture with minFilter = LinearFilter, generateMipmaps = false
+//                   wrapS = RepeatWrapping, wrapT = ClampToEdgeWrapping (bicubic taps cross the u seam).  Used ONLY by texBicubic().
+// Uniforms: uTileMean = handoff.json types.<type>.mean_linear ; uTileCount = (round(2*PI*R/tileM), round(2*PI*R/tileM/2)) INTEGERS (tileM = types.<type>.tile_m * 3.3, e.g. 40 m)
+//           uHandoff = mask row 1 at s (0 until s 0.45, 1 at s 0.90)
+uniform sampler2D uGroundAlbedo;
+uniform sampler2D uGlobeNoMip;
+uniform vec3  uTileMean;
+uniform vec2  uTileCount;
+uniform float uHandoff;
+uniform vec2  uGlobeTexSize;     // e.g. vec2(2048.0, 1024.0)
+vec4 bsplineW(float t){
+  float t2 = t * t, t3 = t2 * t;
+  return vec4((1.0 - 3.0 * t + 3.0 * t2 - t3) / 6.0, (4.0 - 6.0 * t2 + 3.0 * t3) / 6.0, (1.0 + 3.0 * t + 3.0 * t2 - 3.0 * t3) / 6.0, t3 / 6.0);
+}
+// cubic B-spline in 4 bilinear taps: removes the diamond/block look of bilinear magnification of a 2048x1024 globe map.
+// The floor() below makes the tap uvs discontinuous, so the sampled texture MUST have no mipmaps (see uGlobeNoMip).
+vec3 texBicubic(sampler2D s, vec2 uv, vec2 size){
+  vec2 p = uv * size - 0.5;
+  vec2 ip = floor(p);
+  vec2 t = p - ip;
+  vec4 wx = bsplineW(t.x);
+  vec4 wy = bsplineW(t.y);
+  vec2 g0 = vec2(wx.x + wx.y, wy.x + wy.y);
+  vec2 g1 = vec2(wx.z + wx.w, wy.z + wy.w);
+  vec2 h0 = (ip - 1.0 + vec2(wx.y / g0.x, wy.y / g0.y) + 0.5) / size;
+  vec2 h1 = (ip + 1.0 + vec2(wx.w / g1.x, wy.w / g1.y) + 0.5) / size;
+  return g0.y * (g0.x * texture2D(s, vec2(h0.x, h0.y)).rgb + g1.x * texture2D(s, vec2(h1.x, h0.y)).rgb)
+       + g1.y * (g0.x * texture2D(s, vec2(h0.x, h1.y)).rgb + g1.x * texture2D(s, vec2(h1.x, h1.y)).rgb);
+}
+// base colour of the globe at this uv (smooth, bicubic). Use this instead of texture2D(uAlbedo, vUv) on the NEAR mesh when s > 0.30.
+vec3 globeAlbedo(vec2 uv){ return texBicubic(uGlobeNoMip, uv, uGlobeTexSize); }
+// colour = globe colour x (ground tile / its own linear mean). Mean of the ratio is 1 per channel, so mip-averaged distance colour == globe colour.
+// uv = mesh uv (vUv, NOT fract'ed, NOT from dirToUv), Ng = geometric normal (pole fade), ocean = ocean mask r (no grass on water).
+vec3 handoffAlbedo(vec2 uv, vec3 baseAlb, vec3 Ng, float ocean){
+  vec3 inv = vec3(1.0) / max(uTileMean, vec3(1e-3));
+  vec3 rA = texture2D(uGroundAlbedo, uv * uTileCount).rgb * inv;                          // integer tile count + RepeatWrapping = seamless, mips ok
+  vec3 rB = texture2D(uGroundAlbedo, uv * (uTileCount * 8.0) + vec2(0.37, 0.11)).rgb * inv; // 1/8 scale, still integer count
+  float pole = smoothstep(0.02, 0.18, sqrt(max(1.0 - Ng.y * Ng.y, 0.0)));                 // u-lines converge at the poles
+  vec3 r = clamp(rA * mix(vec3(1.0), rB, 0.55), vec3(0.25), vec3(2.5));
+  r = mix(vec3(1.0), r, uHandoff * pole * (1.0 - ocean));
+  return baseAlb * r;
+}
+
 // WEBGL1: yes (but see mip note). Close-range ground detail on the NEAR planet mesh so the handoff to flat terrain has no visible jump.
 // Inputs: biome index map (<type>_biome_index_1024x512.png, R = biome id 0..19, NEAREST filter, no mips) and
 //         ../detail/biome_tile_atlas_1280x1024.png (5 cols x 4 rows of 256px tiles, tile id = row*5+col = biome id).
@@ -221,13 +269,13 @@ void main(){
   vec3 V = normalize(cameraPosition - vWorldPos);
   vec3 L = normalize(uSunDir);
   vec3 T, B; sphereFrame(Ng, T, B);
-  vec3 alb = texture2D(uAlbedo, vUv).rgb;                       // sRGB-decoded by three when colorSpace = SRGB
+  vec3 alb = (uHandoff > 0.001) ? globeAlbedo(vUv) : texture2D(uAlbedo, vUv).rgb; // ADDED: bicubic globe on a no-mip copy near the ground (no diamond blocks)                       // sRGB-decoded by three when colorSpace = SRGB
   vec3 nm = texture2D(uNormal, vUv).xyz * 2.0 - 1.0;
   vec3 N = normalize(T * nm.x + B * nm.y + Ng * nm.z);
   float rough = texture2D(uRough, vUv).g;
   vec4 om = texture2D(uOceanMask, vUv);
   float ocean = om.r;
-  if (uDetailFade > 0.001) alb = mix(biomeDetail(vUv, alb), alb, ocean); // ADDED: close-range biome tiles on land (ground hand-off, biome_detail.glsl)
+  if (uHandoff > 0.001) alb = handoffAlbedo(vUv, alb, Ng, ocean); // ADDED: Cosmo handoff pack: per-type ground tiles (integer counts, RepeatWrapping, mips) x globe colour, replaces the fract() biome atlas
   if (uDetailFade > 0.001 && ocean < 0.95) {   // ADDED: terrain texture (rock on slopes, snow caps, micro relief)
     float land = 1.0 - ocean;
     float slope = clamp((1.0 - nm.z) * 4.0, 0.0, 1.0);
