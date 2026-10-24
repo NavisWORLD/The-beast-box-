@@ -167,7 +167,7 @@ vec3 c=texture2D(tScene,bhScreen+s).rgb;float ring=exp(-pow((r-1.5*rs)/(0.08*rs+
    for(const g of starObj.values()){const d=g.getObjectByName('disk');if(d)d.rotation.z=t*0.05;}
    addDeco();lightning(t);}
   // camera rig: spherical around a target, log distance
-  let yaw=0.6,pitch=0.5,logD=Math.log(30),goal=Math.log(30),doorV=0,doorPre=false,lastMs=0,targetId:string|null=homeOf(uRef.current||{planets:[],life:[]});const tgt=new THREE.Vector3(),want=new THREE.Vector3();
+  let yaw=0.6,pitch=0.5,logD=Math.log(30),goal=Math.log(30),doorV=0,doorPre=false,lastMs=0,lastDt=0,targetId:string|null=homeOf(uRef.current||{planets:[],life:[]});const tgt=new THREE.Vector3(),want=new THREE.Vector3();
   const doorLive=()=>doorOnRef.current&&!!targetId&&targetId===homeOf(uRef.current)&&!!planetMesh.get(targetId);
   const minLogD=()=>{const m:any=targetId?planetMesh.get(targetId):null;if(m&&doorLive())return Math.log(m.scale.x*(DOOR_NEAR-0.02));return Math.log(m?Math.max(0.02,m.scale.x*1.1):ZOOM_MIN);}; /* with the door on, the universe camera stops at the pocket orbit framing and the pocket world takes over */ // planets can be approached to ~10% of their radius above the surface (the maps are ~2048 px around, so closer needs the flat-ground layer, not built yet)
   const setZoom=(f:number)=>{ // door open: zoom input drives the pocket world, and leaves it from full orbit
@@ -190,10 +190,10 @@ vec3 c=texture2D(tScene,bhScreen+s).rgb;float ring=exp(-pow((r-1.5*rs)/(0.08*rs+
   cv.addEventListener('pointerdown',down);cv.addEventListener('pointermove',move);cv.addEventListener('pointerup',up);cv.addEventListener('pointercancel',up);cv.addEventListener('wheel',wheel,{passive:false});
   const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;let raf=0,last='';const t0=performance.now();
   const frame=(ms:number)=>{const W=el.clientWidth,H=el.clientHeight;if(cv.width!==Math.floor(W*renderer.getPixelRatio())){renderer.setSize(W,H,false);cam.aspect=W/Math.max(1,H);cam.updateProjectionMatrix();}
-   const t=reduce?0:(ms-t0)/1000;place(t);{const dts=lastMs?Math.min(.1,(ms-lastMs)/1000):.016;lastMs=ms;goal=Math.max(goal,minLogD());logD=reduce?goal:logD+(goal-logD)*Math.min(1,dts*7);} /* eased so a zoom click or tap glides instead of jumping */ const d=Math.exp(logD);
+   const t=reduce?0:(ms-t0)/1000;place(t);{const dts=lastMs?Math.min(.1,(ms-lastMs)/1000):.016;lastMs=ms;lastDt=dts;goal=Math.max(goal,minLogD());logD=reduce?goal:logD+(goal-logD)*Math.min(1,dts*7);} /* eased so a zoom click or tap glides instead of jumping */ const d=Math.exp(logD);
    {let v=0,pre=false;if(doorLive()){const rr=d/(planetMesh.get(targetId!) as any).scale.x;v=doorProgress(rr);pre=doorPreload(rr);}if(Math.abs(v-doorV)>0.002||pre!==doorPre||(v===0&&doorV!==0)||(v===1&&doorV!==1)){doorV=v;doorPre=pre;onDoorRef.current?.(v,pre);}}
    // past the neighbourhood the camera eases its focus from the chosen world back to the universe centre
-   const m:any=targetId?(planetMesh.get(targetId)||starObj.get(targetId)):null;const k=Math.min(1,Math.max(0,(d-260)/700));want.set(0,0,0);if(m)want.copy(m.position).multiplyScalar(1-k);tgt.lerp(want,0.12);
+   const m:any=targetId?(planetMesh.get(targetId)||starObj.get(targetId)):null;const k=Math.min(1,Math.max(0,(d-260)/700));want.set(0,0,0);if(m)want.copy(m.position).multiplyScalar(1-k);tgt.lerp(want,1-Math.exp(-(lastDt||.016)*7.5)); /* frame-rate independent (0.125 at 60 fps): on a slow renderer the focus still keeps up with an orbiting planet */
    cam.position.set(tgt.x+d*Math.cos(pitch)*Math.sin(yaw),tgt.y+d*Math.sin(pitch),tgt.z+d*Math.cos(pitch)*Math.cos(yaw));cam.near=Math.max(0.02,d*0.01);cam.updateProjectionMatrix();cam.lookAt(tgt);
    const s=zoomStage(d);if(s!==last){const wider=last==='Neighbours'||last==='Universe';last=s;setStage(s);el.dataset.zoomStage=s;
     // a real zoom-in reached a world: Emeth's line for a planet or a star
