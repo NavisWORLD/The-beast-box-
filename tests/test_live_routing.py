@@ -1,5 +1,6 @@
 """Live per-turn routing: hashes-only receipts, honest late/missing, guest stays public-only, runtime opt-in."""
 import json
+import re
 import time
 from contextlib import contextmanager
 
@@ -41,7 +42,9 @@ def test_owner_router_injects_private_features_and_receipts_hold_hashes_only(tmp
     assert set(line["inputs"]["heart"]) == {"feature_sha256", "kind", "age_seconds"}
     for v in out["routed"]["d12"] + out["routed"]["d42"]:
         if v:
-            assert repr(v) not in raw  # no feature value is ever written to the receipt log
+            # no feature value is ever written to the receipt log. Match the value as a whole JSON number token: a bare substring check
+            # flaked whenever the digits '0.4' happened to sit inside the receipt's own timestamp (e.g. 1792874870.492).
+            assert not re.search(r"(?<![\w.])" + re.escape(repr(v)) + r"(?![\w.])", raw)
     assert "rr_ms" not in raw
 
 
