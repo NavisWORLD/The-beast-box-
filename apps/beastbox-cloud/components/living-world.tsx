@@ -168,7 +168,7 @@ export default function LivingWorld({genome,beastKey,beastName,onClose,embedded=
      for(const w of want){for(let i=0;i<160&&!pick;i++){const d=unitFrom(r) as number[];const v=new THREE.Vector3(d[0],d[1],d[2]);if(v.dot(gpts[0])>.82)continue;const id=field?legendAt(field,d):cosmoBiome(v);if(id===w)pick=v;}if(pick)break;}
      if(!pick)pick=new THREE.Vector3(...(unitFrom(r) as number[]));
      island=softGL?null:addVolcanoIsland(THREE,scene,{seed:u.seed,R:PR,mpu:TRAV_H/1.7,scale:.07,n:pick,phone});
-     island.ready.then(()=>{(window as any).__lwIsland={n:pick.toArray().map((x:number)=>+x.toFixed(3)),biome:field?legendAt(field,pick.toArray()):cosmoBiome(pick),...island.state()};}).catch((e:any)=>{(window as any).__lwIslandErr=String(e);});}
+     island?.ready.then(()=>{(window as any).__lwIsland={n:pick.toArray().map((x:number)=>+x.toFixed(3)),biome:field?legendAt(field,pick.toArray()):cosmoBiome(pick),...island.state()};}).catch((e:any)=>{(window as any).__lwIslandErr=String(e);});}
     // Pocket beach (Cosmo's beach v1): its own south shore per Studio's pocket-world map (Cage centre, beach south), on a seeded
     // 'beach' cell of the world field (else shallow sea) in the southern band, free-standing so its skirt blends into the ocean; terrain, not a tab
     {const r=lwStream(u.seed+':beach');let pick:any=null;for(const w of ['beach','shallow_ocean']){for(let i=0;i<400&&!pick;i++){const d=unitFrom(r) as number[];const v=new THREE.Vector3(d[0],d[1],d[2]);if(v.y>-.25||v.y<-.8)continue;if(island&&v.dot(island.anchor('crater_center').clone().normalize())>.995)continue;const id=field?legendAt(field,d):cosmoBiome(v);if(id===w)pick=v;}if(pick)break;}
