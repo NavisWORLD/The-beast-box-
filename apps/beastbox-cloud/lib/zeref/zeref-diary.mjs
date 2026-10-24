@@ -39,8 +39,8 @@ export const XP_PER_TICK=10,XP_PER_COMBO=3,XP_PER_CARE=5,CARE_CAP_PER_TICK=20;
 export const DIARY_LABELS=Object.freeze({
  seed:'Seeded from recorded IBM ibm_marrakesh counts (job db4te7slf4us73c3888g). Not a live quantum link.',
  mind:'Zeref is a game companion with a deterministic mind. Diary lines are generated, not a conscious mind.',
- loop:'Written by the scheduled Zeref diary loop (GitHub Actions), one hash-chained entry per tick.',
- growth:'Growth ticks run a small circuit on the free Azure Quantum Rigetti QVM simulator (simulated, not hardware). If it fails, the deterministic step runs and the real error is logged.'
+ loop:'Written by the scheduled Zeref diary loop (GitHub Actions), one hash-chained entry per growth step.',
+ growth:'Each growth step runs a small circuit on the free Azure Quantum Rigetti QVM simulator (simulated, not hardware). If it fails, the deterministic step runs and the real error is logged.'
 });
 
 export const BIRTH_SPARK=Object.freeze({provider:'IBM Quantum',backend:'ibm_marrakesh',job_id:'db4te7slf4us73c3888g',source:'recorded hardware counts (birth seed, never re-run)'});
