@@ -3,6 +3,7 @@ import {useEffect,useState} from 'react';
 import styles from './zeref-diary-panel.module.css';
 import ZerefResearchCard from './zeref-research-card';
 import Details from './details-toggle';
+import {useActiveBeastName} from './use-active-beast-name';
 
 type Loop={cells_visited:number;cells_total:number;known_rifts?:number;moves_blocked:number;moves_succeeded:number;blocked_rate?:number;favorite_spot:string|null;prefs?:Record<string,number>}|null;
 type Arm={cells_visited:number;blocked:number;legal?:number};
@@ -20,11 +21,11 @@ const mean=(a?:Arm[])=>a&&a.length?(a.reduce((s,x)=>s+x.cells_visited,0)/a.lengt
  * learned in the latest controlled experiment. Two separate systems, two ids.
  */
 export default function ZerefKnowledgeDiagnostics({loop,beastId}:{loop:Loop;beastId:string}){
- const [st,setSt]=useState<Status|null>(null),[err,setErr]=useState(false);
+ const [st,setSt]=useState<Status|null>(null),[err,setErr]=useState(false);const beastName=useActiveBeastName()||'Zeref'; // label only: the active beast's name (Zeref when Zeref is active)
  useEffect(()=>{let alive=true;fetch('/spark/zeref-learning/status.json',{cache:'no-store'}).then(r=>r.ok?r.json():null).then(j=>{if(alive){if(j)setSt(j);else setErr(true);}}).catch(()=>alive&&setErr(true));return()=>{alive=false;};},[]);
  const e=st?.eval;
  return <div className={styles.card} data-zeref-knowledge data-neural-status={st?.status||'unknown'}>
-  <h3>What Zeref knows · diagnostics</h3>
+  <h3>What {beastName} knows · diagnostics</h3>
   <p className={styles.small}>A deterministic pocket learner (live) and a separate neural experiment (historical). IBM seed recorded · growth SIMULATED.</p>
   <Details>
   <p className={styles.small}><b>Pocket learner</b> ({beastId}, deterministic rules, live): {loop?<>{loop.cells_visited}/{loop.cells_total} patches explored · {loop.known_rifts??'?'} rifts learned by bumping · {loop.moves_succeeded} moves ok / {loop.moves_blocked} blocked{loop.favorite_spot?<> · favourite: {loop.favorite_spot}</>:null}</>:'no loop data yet'}. Simple running averages over its own outcomes; this is what moves him in the habitat.</p>
