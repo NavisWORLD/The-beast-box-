@@ -22,7 +22,7 @@ assert 'biomeDetail(vUv' in frag
 # ADDED (terrain texture): slope rock, snow caps and a tile-derived bump on the near mesh. Pure texture lookups, no randomness.
 TERRAIN='''
 // ADDED: terrain texture layers (atlas tiles: id 8 = rock, id 9 = snow). uSnow 0..1 from the planet's recorded temperature.
-uniform float uSnow;
+uniform float uSnow; uniform sampler2D uHeight;
 vec3 atlasTile(vec2 cell, vec2 tuv){ tuv = tuv * (254.0 / 256.0) + 1.0 / 256.0; return texture2D(uTileAtlas, (cell + tuv) * vec2(0.2, 0.25)).rgb; }
 float atlasLum(vec2 cell, vec2 tuv){ return dot(atlasTile(cell, tuv), vec3(0.3, 0.59, 0.11)); }
 '''
@@ -42,10 +42,10 @@ frag=frag.replace('  float nv = max(dot(Ng, V), 0.0);','''  if (uDetailFade > 0.
     float id = floor(texture2D(uBiomeIdx, vUv).r * 255.0 + 0.5);
     vec2 cell = vec2(mod(id, 5.0), floor(id / 5.0));
     vec2 tuvb = fract(vUv * vec2(uTilesPerRadius * 4.0, uTilesPerRadius * 2.0));
-    float e = 1.0 / 128.0;
+    float e = 1.0 / 40.0;
     float l0 = atlasLum(cell, tuvb);
     vec2 gr = vec2(atlasLum(cell, fract(tuvb + vec2(e, 0.0))) - l0, atlasLum(cell, fract(tuvb + vec2(0.0, e))) - l0);
-    N = normalize(N - (T * gr.x + B * gr.y) * 5.0 * uDetailFade * land * (1.0 - cap * 0.6));
+    N = normalize(N - (T * gr.x + B * gr.y) * 1.2 * uDetailFade * land * (1.0 - cap * 0.6));
     rough = mix(rough, 0.95, rockAmt);
   }
   float nv = max(dot(Ng, V), 0.0);''')
