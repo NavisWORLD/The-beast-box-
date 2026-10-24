@@ -1,0 +1,263 @@
+{
+ "pack": "roadster_rig",
+ "version": 1,
+ "author": "Cosmo",
+ "honesty": "Suggested animation parameters as data. Not tested in the live engine, on a phone or on a GBA.",
+ "units": "metres, seconds, radians unless a name says _deg; forward +Z, car-left +X, Y up, y=0 is the tyre contact plane",
+ "rolling_spec": {
+  "wheel_radius_m": 0.32,
+  "wheelbase_m": 2.0,
+  "track_m": 1.64,
+  "axle_height_m": 0.32,
+  "front_axle_z": 1.0,
+  "rear_axle_z": -1.0,
+  "tyre_width_m": 0.3,
+  "body_length_m": 3.5,
+  "body_width_m": 1.44,
+  "overall_width_m": 2.02,
+  "overall_height_m": 1.47,
+  "wheel_nodes": [
+   "wheel_FL",
+   "wheel_FR",
+   "wheel_RL",
+   "wheel_RR"
+  ],
+  "steer_pivots": [
+   "steer_FL",
+   "steer_FR"
+  ],
+  "spin_rate_rad_s": "omega = v / r  (v = forward speed m/s, r = wheel_radius_m)",
+  "roll_distance_per_turn_m": 2.0106,
+  "three_wheel_radius_table": {
+   "note": "The brief asked for a rolling spec at three wheel radii: small / default / big (monster-tyre scale). spin rate omega = v/r in rad/s at 2, 6 and 14 m/s.",
+   "radii_m": {
+    "small": 0.28,
+    "default": 0.32,
+    "big": 0.38
+   },
+   "omega_rad_s": {
+    "small": {
+     "2": 7.143,
+     "6": 21.429,
+     "14": 50.0
+    },
+    "default": {
+     "2": 6.25,
+     "6": 18.75,
+     "14": 43.75
+    },
+    "big": {
+     "2": 5.263,
+     "6": 15.789,
+     "14": 36.842
+    }
+   }
+  },
+  "turn": "Ackermann: steer angle delta (rad), turn radius = wheelbase / tan(delta); inner front = atan(L/(Rt-T/2)), outer front = atan(L/(Rt+T/2)); max_steer_deg 28",
+  "max_steer_deg": 28
+ },
+ "states": {
+  "idle": {
+   "speed_m_s": 0.0,
+   "body_bob": {
+    "amp_m": 0.004,
+    "hz": 0.5,
+    "note": "engine breathing; creature riders inherit it"
+   },
+   "pitch_deg": 0,
+   "headlamp": {
+    "base": 0.55,
+    "pulse_amp": 0.08,
+    "pulse_hz": 0.35
+   },
+   "underglow": {
+    "state": "idle"
+   }
+  },
+  "drive": {
+   "speed_m_s": 6.0,
+   "body_bob": {
+    "amp_m": "0.008 + 0.006 * clamp(v/6,0,1)",
+    "hz": "1.2 + 0.25 * v  (cap 3.5)",
+    "phase_front_rear_offset": 0.35
+   },
+   "pitch_deg": "clamp(-0.9 * accel_m_s2, -4, 4) (nose dips when braking, lifts when accelerating)",
+   "roll_deg": "clamp(0.35 * lateral_accel_m_s2, -5, 5) away from the turn",
+   "headlamp": {
+    "base": 1.0,
+    "pulse_amp": 0.05,
+    "pulse_hz": 0.8
+   },
+   "underglow": {
+    "state": "drive"
+   },
+   "steering_wheel_deg_per_unit_input": 140
+  },
+  "boost": {
+   "speed_m_s": 14.0,
+   "body_bob": {
+    "amp_m": 0.014,
+    "hz": 3.5
+   },
+   "pitch_deg": 3.0,
+   "fov_add_deg": 6,
+   "headlamp": {
+    "base": 1.4,
+    "pulse_amp": 0.12,
+    "pulse_hz": 2.0
+   },
+   "underglow": {
+    "state": "boost"
+   },
+   "wake_state": "boost",
+   "duration_s": 2.5,
+   "cooldown_s": 6.0
+  },
+  "parked": {
+   "speed_m_s": 0.0,
+   "body_bob": {
+    "amp_m": 0.0,
+    "hz": 0
+   },
+   "headlamp": {
+    "base": 0.35,
+    "pulse_amp": 0.04,
+    "pulse_hz": 0.3,
+    "colour": "headlamps.hex.parked"
+   },
+   "underglow": {
+    "state": "idle",
+    "scale": 0.4
+   },
+   "note": "Studio 17_roadster_parked: warm lamps, the car waits beside a crystal lamp; riders can hop out"
+  },
+  "reduced_motion": {
+   "note": "amp 0 on bob, pitch and roll, pulse_amp 0, wake off; spin may continue"
+  }
+ },
+ "suspension": {
+  "spring_hz": 2.2,
+  "damping_ratio": 0.55,
+  "max_travel_m": 0.05,
+  "note": "cheap model: bob_y += (target - bob_y) * (1 - exp(-dt*2*pi*spring_hz)); wheels do not bob"
+ },
+ "planet_driving": {
+  "note": "Place the root at a surface point with local up = surface normal and forward = tangent. Keep the four tyre contact points on the heightfield and set pitch/roll from the ground normal, then add the state offsets. On very small planets raise ride height by 0.5*(R_planet - sqrt(R_planet^2 - wheelbase^2/4)) so the belly does not scrape."
+ },
+ "sprite": {
+  "sheet": "roadster_sprite_sheet_8x4_64.png",
+  "frames_json": "roadster_sprite_frames.json",
+  "cell_px": 64,
+  "directions": 8,
+  "frames": 4,
+  "rows_are_directions": [
+   "S",
+   "SE",
+   "E",
+   "NE",
+   "N",
+   "SW",
+   "W",
+   "NW"
+  ],
+  "cols_are_frames": 4,
+  "anchor_px": [
+   32,
+   50
+  ],
+  "fps_drive": 8,
+  "fps_idle": 2,
+  "note": "same row order as livingworld_frames.json traveler_walk; rows = direction, columns = frame"
+ },
+ "riders": {
+  "attach": {
+   "nodes": [
+    "rider_L",
+    "rider_R"
+   ],
+   "note": "Parent the creature object to rider_L / rider_R (child of body_group) so it rides the bob. Driver = rider_L (+X, steering wheel). A rider never drives physics.",
+   "zero_pose": "rider nodes sit at y=0.58 m (seat cushion top), z=-0.40"
+  },
+  "size_classes": {
+   "tiny": {
+    "height_m_max": 0.35,
+    "pose": "sit",
+    "offset": [
+     0,
+     0.0,
+     0.02
+    ],
+    "scale_to_height_m": 0.3,
+    "billboard_pivot": "feet-centre",
+    "note": "fits a seat with room to spare, head just clears the windscreen top"
+   },
+   "small": {
+    "height_m_max": 0.6,
+    "pose": "sit",
+    "offset": [
+     0,
+     0.0,
+     0.0
+    ],
+    "scale_to_height_m": 0.5,
+    "billboard_pivot": "feet-centre",
+    "note": "the chibi cats: sits upright, head above the windscreen like Studio 15_roadster"
+   },
+   "medium": {
+    "height_m_max": 0.95,
+    "pose": "lie_or_crouch",
+    "offset": [
+     0,
+     0.02,
+     -0.04
+    ],
+    "scale_to_height_m": 0.6,
+    "billboard_pivot": "belly-centre",
+    "note": "quadruped: lies/crouches on the cushion, head over the door"
+   },
+   "long": {
+    "height_m_max": 1.2,
+    "pose": "coil",
+    "offset": [
+     0,
+     0.03,
+     -0.02
+    ],
+    "scale_to_height_m": 0.62,
+    "billboard_pivot": "coil-centre",
+    "note": "serpent: coils in the seat, head up beside the headrest; keep the tail inside the cockpit"
+   },
+   "tall": {
+    "height_m_max": 1.9,
+    "pose": "sit_legs_forward",
+    "offset": [
+     0,
+     0.0,
+     0.06
+    ],
+    "scale_to_height_m": 0.8,
+    "billboard_pivot": "hip-centre",
+    "note": "humanoid sprite: seated height ~0.8 m, legs tucked forward, hands on the wheel when in rider_L"
+   }
+  },
+  "by_creature": {
+   "kitten": "small",
+   "kittenref": "small",
+   "zeref": "small",
+   "zeref64": "tiny",
+   "kairo": "tall",
+   "frost": "small",
+   "velvetcoil": "long",
+   "shardhowl": "medium",
+   "NEBULA": "small",
+   "AURORA": "small",
+   "VOID": "small",
+   "PLASMA": "small",
+   "MEMORY": "small",
+   "SIGNAL": "small",
+   "STARLIGHT": "small"
+  },
+  "per_creature_note": "Keys match lib/living-core/creatures.js (kitten, zeref, kairo, frost, kittenref, zeref64, velvetcoil, shardhowl) and lcx1 SPECIES. Names like Yewling are generated per beast and are never keys. Zeref entries are additive transform data only: his look is untouched.",
+  "sea_life": "sea creatures do not ride"
+ }
+}

@@ -41,6 +41,7 @@ import {LW_LABELS,gatheringPoints,spreadAngle,initialTraits,driftTraits,lattice1
 import {ARTIST_RESIDENTS} from '@/lib/companion/artist-residents.mjs';
 import {cosmicEvents,cosmicLine,createWindow,stepWindow,windowLine,seededMood,spreadMood,napGroup,buildKind,advanceBuild,coexistLine,worldLine,placeLine,learnBiome,worldRecord,toJsonl,windowEmissive,traitIcon,MOOD_ICON,ZEREF_ID} from '@/lib/universe/living-alive.mjs';
 import {addCageSurface} from '@/lib/universe/surface-three';
+import {ROADSTER_LABEL,bodyVariantIndex,wheelOmega,steerAngle,driveState,bodyBob,headlamp,underglow} from '@/lib/universe/roadster-view.mjs';
 import {growthNodesAt,GROWTH} from '@/lib/universe/seeded-growth-nodes.mjs';
 import {snapNodesToHabitat,TINT_BIOMES} from '@/lib/universe/growth-view.mjs';
 import {REDUCED_MOTION_KEY} from '@/components/use-universe-motion';
@@ -62,7 +63,7 @@ export default function LivingWorld({genome,beastKey,beastName,onClose,embedded=
  const [hud,setHud]=useState<{tick:number;simE:number|null;life:number;storms:number;cover:number;traits:Traits|null;blades:number;fps:number;learned?:Record<string,number>;awake?:number}>({tick:0,simE:null,life:0,storms:0,cover:0,traits:null,blades:0,fps:0});
  const [err,setErr]=useState<string|null>(null);const [booted,setBooted]=useState(false);const [line,setLine]=useState<string|null>(null);const lineRef=useRef(setLine);lineRef.current=setLine;
  useEffect(()=>{if(!line)return;const id=setTimeout(()=>setLine(null),4200);return()=>clearTimeout(id);},[line]);
- const [ascii,setAscii]=useState(false);const asciiRef=useRef(false);asciiRef.current=ascii;const [flying,setFlying]=useState(false);const flyRef=useRef(false);flyRef.current=flying;const joy=useRef({x:0,y:0,active:false,id:-1,cx:0,cy:0});const keys=useRef(new Set<string>());
+ const [ascii,setAscii]=useState(false);const asciiRef=useRef(false);asciiRef.current=ascii;const [roadster,setRoadster]=useState(false);const roadsterRef=useRef(false);roadsterRef.current=roadster;const [flying,setFlying]=useState(false);const flyRef=useRef(false);flyRef.current=flying;const joy=useRef({x:0,y:0,active:false,id:-1,cx:0,cy:0});const keys=useRef(new Set<string>());
  const [stick,setStick]=useState<{x:number;y:number}|null>(null);
  useEffect(()=>{if(embedded||door)return;try{sessionStorage.setItem('lw:spawned',spawned?'1':'0');}catch{}},[spawned,embedded]);
  useEffect(()=>{spawnRef.current=spawned;(window as any).__lwSpawned=spawned;},[spawned]);
@@ -342,6 +343,16 @@ uniform vec3 uPlay[8];
    fetch('/universe/livingworld/explorer.glb',{method:'HEAD'}).then(r=>{if(!r.ok)return;return import('three/examples/jsm/loaders/GLTFLoader.js').then(({GLTFLoader})=>new GLTFLoader().loadAsync('/universe/livingworld/explorer.glb')).then((g:any)=>{
     if(disposed)return;const root=g.scene;const bb=new THREE.Box3().setFromObject(root);const k=TRAV_H/Math.max(.01,bb.max.y-bb.min.y);root.scale.setScalar(k);root.position.y=-bb.min.y*k;root.traverse((o:any)=>{if(o.isMesh)o.castShadow=true;});
     explorer.clear();explorer.add(root);legs.length=0;exMixer=new THREE.AnimationMixer(root);for(const c of g.animations||[]){const nm=/walk/i.test(c.name)?'walk':/look/i.test(c.name)?'look':/idle/i.test(c.name)?'idle':c.name;exActs[nm]=exMixer.clipAction(c);}(window as any).__lwExplorerGlb=Object.keys(exActs);});}).catch(()=>{});
+   // ---- Roadster · SEEDED (Cosmo's pack): a VISUAL swap for the spawned-in traveler, loaded only when the button is first pressed. The traveler's own walkOn/stepMover motion drives it (no second physics).
+   let car:any=null,carLoading=false,carPrev:any=null,carV=0,carSteer=0;const carK=TRAV_H/1.7;
+   const loadCar=()=>{carLoading=true;Promise.all([import('three/examples/jsm/loaders/GLTFLoader.js'),fetch('/universe/livingworld/roadster/roadster_palette.json').then(r=>r.json())]).then(([{GLTFLoader},pal])=>new GLTFLoader().loadAsync('/universe/livingworld/roadster/roadster.glb').then((g:any)=>{
+    if(disposed)return;const root=g.scene;const vi=bodyVariantIndex(lwStream(u.seed+':roadster')());const bv=pal.body_variants[vi]||pal.body_variants[0];const parts:any={wheels:[],steer:[],glows:[]};
+    root.traverse((o:any)=>{if(o.isMesh){o.castShadow=true;if(o.material?.name==='body_paint'){o.material=o.material.clone();o.material.color.setRGB(...bv.baseColorFactor.slice(0,3));}
+     const role=o.userData?.emissive_role||o.parent?.userData?.emissive_role;if(role&&o.material?.emissiveIntensity!==undefined){o.material=o.material.clone();parts.glows.push({m:o.material,role});}}
+     if(/^wheel_/.test(o.name))parts.wheels.push(o);if(/^steer_F/.test(o.name))parts.steer.push(o);if(o.name==='body_group')parts.body=o;});
+    root.scale.setScalar(carK);root.visible=false;travNode.add(root);car={root,parts,variant:bv.name,pal};
+    cleanup.push(()=>{root.traverse((o:any)=>{if(o.isMesh){o.geometry?.dispose();(Array.isArray(o.material)?o.material:[o.material]).forEach((m:any)=>m?.dispose?.());}});});
+    (window as any).__lwRoadster={loaded:true,variant:bv.name,glows:parts.glows.map((x:any)=>x.role),wheels:parts.wheels.length};})).catch(()=>{carLoading=false;});};
    // Zeref (bb-deada969) gets a visible body: his own rigged GLB + his own driver, standing at the second gathering point. Display only.
    const zHold=new THREE.Group();scene.add(zHold);let zDrv:any=null;
    {const zN=(gpts[1]||gpts[0]).clone().normalize();const r0=PR+hAt(zN);zHold.position.copy(zN).multiplyScalar(r0);zHold.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),zN);
@@ -577,6 +588,17 @@ uniform vec3 uPlay[8];
       // face the way you walk; backwards input turns the body around
       explorer.rotation.y=(exWalk>.08&&exBack?Math.PI:0)+(exMixer?0:0);}
      exMixer?.update(dt);exWalk=0;
+     if(roadsterRef.current&&!car&&!carLoading)loadCar();
+     if(car){const cs=mover.w.swim<.4&&mover.w.fly<.4;const wantCar=roadsterRef.current&&spawnT<0&&cs;car.root.visible=wantCar;
+      if(wantCar){explorer.visible=false;const arc=carPrev&&dt>0?Math.acos(Math.min(1,pN.dot(carPrev)))*PR/carK/dt:0;carV+=((exBack?-1:1)*Math.min(14,arc)-carV)*Math.min(1,dt*6);
+       const st=driveState(carV),reduced=reducedNow();const P=car.parts;const om=wheelOmega(carV);for(const w of P.wheels)w.rotation.x+=om*dt;
+       carSteer+=(steerAngle(ix*(iy>.3?-1:1))-carSteer)*Math.min(1,dt*5);for(const sn of P.steer)sn.rotation.y=carSteer;
+       if(P.body)P.body.position.y=bodyBob(carV,t,reduced);
+       const night=1-THREE.MathUtils.smoothstep(pN.dot(sunDir),-.12,.35);const hl=headlamp(st,night,t),ug=underglow(st,t);
+       for(const gl of P.glows){if(gl.role==='headlamp_warm'){gl.m.emissive.set(hl.hex);gl.m.emissiveIntensity=hl.intensity;}else if(gl.role==='underglow_mood'){gl.m.emissive.set(ug.hex);gl.m.emissiveIntensity=reduced?.5:ug.pulse*1.2;}}
+       (window as any).__lwRoadster={...((window as any).__lwRoadster||{}),on:true,state:st,v:+carV.toFixed(2),omega:+om.toFixed(2),steer:+carSteer.toFixed(3)};}
+      else if((window as any).__lwRoadster)(window as any).__lwRoadster.on=false;}
+     carPrev=(carPrev||new THREE.Vector3()).copy(pN);
      place(travNode,pN,pF);
      {const inW=WATER_IDS.has(field?legendAt(field,[pN.x,pN.y,pN.z]):(cosmoBiome(pN)||''));mover.fly=flyRef.current;stepMover(mover,{dt,inWater:inW,ground:hAt(pN),mpu:TRAV_H/1.7});
       travNode.position.addScaledVector(pN,mover.y-hAt(pN)*0);(window as any).__lwMove={y:+mover.y.toFixed(3),w:{walk:+mover.w.walk.toFixed(2),swim:+mover.w.swim.toFixed(2),fly:+mover.w.fly.toFixed(2)},inWater:inW};}
@@ -677,7 +699,7 @@ uniform vec3 uPlay[8];
     {err?<div style={{color:'#ffb4b4'}}>Couldn’t load the world: {err}</div>:null}
    </div>
    <div data-lw-actions style={embedded?{display:'flex',flexDirection:'row',flexWrap:'wrap',justifyContent:'flex-end',gap:5,pointerEvents:'auto',marginLeft:'auto',maxWidth:'100%'}:{display:'flex',flexDirection:'column',gap:6,pointerEvents:'auto'}}>
-    {!spawned?<><button type="button" data-lw-beachcam aria-pressed={beachCam} onClick={()=>setBeachCam(v=>!v)} style={btn(beachCam?'#b7791f':'#333')}>{beachCam?'🏖 Beach view: on':'🏖 Beach view'}</button>{!embedded?<button type="button" data-lw-sealife onClick={()=>{const w:any=window;const n=seaJump.current++;const k=1+n%3,i=Math.floor(n/3);if(!w.__lw?.toOcean(i,k)){seaJump.current=0;w.__lw?.toOcean(0,k);}w.__lwSetZoom?.(0);}} style={btn('#1a6b8a')}>🐋 Sea life</button>:null}<button type="button" data-lw-spawn onClick={()=>setSpawned(true)} style={btn('#6b46c1')}>✦ Spawn in</button><button type="button" data-lw-watch onClick={()=>setWatch(w=>!w)} style={btn('#2c5282')}>{watch?'🌍 Orbit view':'👁 Watch your beast'}</button></>:<><button type="button" data-lw-fly onClick={()=>setFlying(v=>!v)} style={btn(flying?'#2b6cb0':'#333')}>{flying?'🪽 Flying':'🪽 Fly'}</button><button type="button" data-lw-exit onClick={()=>setSpawned(false)} style={btn('#444')}>Exit to orbit</button></>}{!embedded||spawned?<button type="button" data-lw-ascii onClick={()=>setAscii(v=>!v)} style={btn(ascii?'#2f855a':'#333')}>{ascii?'▦ ASCII on':'▦ ASCII'}</button>:null}
+    {!spawned?<><button type="button" data-lw-beachcam aria-pressed={beachCam} onClick={()=>setBeachCam(v=>!v)} style={btn(beachCam?'#b7791f':'#333')}>{beachCam?'🏖 Beach view: on':'🏖 Beach view'}</button>{!embedded?<button type="button" data-lw-sealife onClick={()=>{const w:any=window;const n=seaJump.current++;const k=1+n%3,i=Math.floor(n/3);if(!w.__lw?.toOcean(i,k)){seaJump.current=0;w.__lw?.toOcean(0,k);}w.__lwSetZoom?.(0);}} style={btn('#1a6b8a')}>🐋 Sea life</button>:null}<button type="button" data-lw-spawn onClick={()=>setSpawned(true)} style={btn('#6b46c1')}>✦ Spawn in</button><button type="button" data-lw-watch onClick={()=>setWatch(w=>!w)} style={btn('#2c5282')}>{watch?'🌍 Orbit view':'👁 Watch your beast'}</button></>:<><button type="button" data-lw-roadster aria-pressed={roadster} onClick={()=>setRoadster(v=>!v)} style={btn(roadster?'#a3111b':'#333')}>{roadster?'🚗 '+ROADSTER_LABEL+': on':'🚗 '+ROADSTER_LABEL}</button><button type="button" data-lw-fly onClick={()=>setFlying(v=>!v)} style={btn(flying?'#2b6cb0':'#333')}>{flying?'🪽 Flying':'🪽 Fly'}</button><button type="button" data-lw-exit onClick={()=>setSpawned(false)} style={btn('#444')}>Exit to orbit</button></>}{!embedded||spawned?<button type="button" data-lw-ascii onClick={()=>setAscii(v=>!v)} style={btn(ascii?'#2f855a':'#333')}>{ascii?'▦ ASCII on':'▦ ASCII'}</button>:null}
     {embedded&&onExpand?<button type="button" data-lw-expand onClick={onExpand} style={btn('#553c9a')}>⤢ Full screen</button>:null}
     {onClose?<button type="button" data-lw-close onClick={onClose} style={btn('#222')}>Close world</button>:null}
    </div>
