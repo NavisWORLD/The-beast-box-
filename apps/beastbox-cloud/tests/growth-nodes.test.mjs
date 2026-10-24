@@ -68,13 +68,14 @@ test('full cycle by stepping ticks: sprout, bloom with fruit, gold, shed, renewa
 });
 test('growthScaleAt: identity where no node reaches, front timing inside, unborn before the front, rim overflow, byte-neutral',()=>{
  const nodes=growthNodesAt(g,0).map(n=>({...n}));const n=nodes[0];const a=n.lat*Math.PI/180,o=n.lon*Math.PI/180;const c=[Math.cos(a)*Math.cos(o),Math.sin(a),Math.cos(a)*Math.sin(o)];
- const far=c.map(v=>-v);assert.equal(growthScaleAt(nodes,0,far),1);assert.equal(growthScaleAt([],0,c),1);
- const t=Math.round(n.lifespan*0.3);const late=growthNodesAt(g,t);const m=late[0];
+ const far=c.map(v=>-v);const one=nodes.filter(x=>x.planet===n.planet);assert.ok(one.length>=1);assert.equal(growthScaleAt(one,0,far,{planet:n.planet}),1);// the test genesis has many planets sharing one sphere, so filter to this planet
+ assert.equal(growthScaleAt([],0,c),1);
+ const t=Math.round(n.lifespan*0.3);const P=n.planet,late=growthNodesAt(g,t).filter(x=>x.planet===P);const m=late[0];
  const here=growthScaleAt(late,t,c);assert.ok(here>0&&here<=1.07);
  // a direction at the rim of the territory is younger than the centre
  const e1=[-c[2],0,c[0]];const l=Math.hypot(...e1);const ang=GROWTH.cellRad*m.spread*0.95;
  const rim=c.map((v,i)=>v*Math.cos(ang)+e1[i]/l*Math.sin(ang));assert.ok(growthScaleAt(late,t,rim)<=here);
- const early=growthNodesAt(g,1);assert.equal(growthScaleAt(early,1,rim),GROWTH.unborn);// the front has not reached the rim yet
+ const early=growthNodesAt(g,1).filter(x=>x.planet===P).slice(0,1);assert.equal(early[0].id,m.id);assert.equal(growthScaleAt(early,1,rim),GROWTH.unborn);// the front has not reached the rim yet
 });
 test('no Math.random or clock reads in the module, and no UI claims of live quantum or recorded growth',()=>{
  const src=readFileSync(new URL('../lib/universe/seeded-growth-nodes.mjs',import.meta.url),'utf8');const code=src.replace(/\/\/.*$/gm,'');

@@ -40,6 +40,9 @@ import {LW_LABELS,gatheringPoints,spreadAngle,initialTraits,driftTraits,lattice1
 import {ARTIST_RESIDENTS} from '@/lib/companion/artist-residents.mjs';
 import {cosmicEvents,cosmicLine,createWindow,stepWindow,windowLine,seededMood,spreadMood,napGroup,buildKind,advanceBuild,coexistLine,worldLine,placeLine,learnBiome,worldRecord,toJsonl,windowEmissive,traitIcon,MOOD_ICON,ZEREF_ID} from '@/lib/universe/living-alive.mjs';
 import {addCageSurface} from '@/lib/universe/surface-three';
+import {growthNodesAt,GROWTH} from '@/lib/universe/seeded-growth-nodes.mjs';
+import {snapNodesToHabitat,TINT_BIOMES} from '@/lib/universe/growth-view.mjs';
+import {REDUCED_MOTION_KEY} from '@/components/use-universe-motion';
 import {createAliveGate} from '@/lib/universe/alive-props.mjs';
 import {zoomBlend,zoomDistance,stepZoom,clampAboveGround,isMeadow} from '@/lib/universe/groundcover.mjs';
 import {addHeaven} from '@/lib/worlds/heaven';
@@ -165,9 +168,15 @@ export default function LivingWorld({genome,beastKey,beastName,onClose,embedded=
     (window as any).__lwField=()=>({tick:field.tick,changed:field.changed,tension:+field.storm.toFixed(3),lorenz:{...field.S.L},records:expLog.length,beast:beastLoop.S.ch,zeref:zerefLoop.S.ch});};
    // ---- the Cage surface everywhere: Cosmo's ground cover + trees, instanced, planted from the seed per biome (one renderer: lib/universe/surface-three)
    let ocean:any=null;let surface:any=null;let island:any=null;let beach:any=null;let lwArea:string|null=null;let placeN=0;let roamGoal:any=null;let beachLift=0;let roamT=20;const roamR=lwStream(u.seed+':roam');const tourR=lwStream(u.seed+':flyover');let tourI=-1,tourT=0;const tourN=new THREE.Vector3();let touring=false;let mech:any=null;let water:any=null;let weather:any={cloud:.3,rain:0,wind:[0,0]};const mover=createMover();const ascii=createAsciiPass(THREE,renderer,{phone});cleanup.push(()=>ascii.dispose());
+   let gSnap:any[]=[];const growthNow=()=>{const sn=new Map(gSnap.map((n:any)=>[n.id,n]));return growthNodesAt(u,u.tick).filter((n:any)=>sn.has(n.id)).map((n:any)=>({...n,lat:sn.get(n.id).lat,lon:sn.get(n.id).lon,view_snapped:sn.get(n.id).view_snapped}));};
    const buildSurface=()=>{if(surface||disposed)return;const tintOf:Record<string,[number,number,number]>={};for(const L of (legend?.biomes||[])){const c=parseInt(L.rgb.slice(1),16);tintOf[L.id]=[(c>>16)/255,((c>>8)&255)/255,(c&255)/255];}
     const tv=new THREE.Vector3();
-    surface=addCageSurface(THREE,scene,{seed:u.seed+':surface',R:PR,mpu:TRAV_H/1.7,size:1.5,budget:phone?.22:.55,
+    // Growth nodes (SEEDED placement from the recorded-IBM seed, SIMULATED tick). The home world's nodes (including the SEEDED home-world exception) are moved by the VIEW to the nearest habitat the tint pack covers.
+    // ?growth=off turns the layer off (every list then builds exactly as before).
+    const biomeFn=(d:number[])=>field?legendAt(field,d):(cosmoBiome(tv.set(d[0],d[1],d[2]))||'grassland');
+    const gOn=!/[?&]growth=off\b/.test(location.search);
+    if(gOn){try{gSnap=snapNodesToHabitat(growthNodesAt(u,u.tick),(d:number[])=>TINT_BIOMES.includes(biomeFn(d)));}catch{gSnap=[];}}
+    surface=addCageSurface(THREE,scene,{growth:gOn&&gSnap.length?{nodes:growthNow(),tick:u.tick,cellRad:GROWTH.cellRad}:undefined,seed:u.seed+':surface',R:PR,mpu:TRAV_H/1.7,size:1.5,budget:phone?.22:.55,
      biomeAt:(d:number[])=>field?legendAt(field,d):(cosmoBiome(tv.set(d[0],d[1],d[2]))||'grassland'),lift:(n:any)=>hAt(n)-.004,tint:(b:string)=>tintOf[b]||null});
     // ASCII-CRAFT-style mechanics (engine-driven weather, flowing water, sea life, torch, mountains): additive, seeded
     mech=softGL?null:addMechanics(THREE,scene,{seed:u.seed,R:PR,mpu:TRAV_H/1.7,phone,unitFrom:(r:any)=>unitFrom(r) as number[],isWater:(v:any)=>WATER_IDS.has(field?legendAt(field,[v.x,v.y,v.z]):(cosmoBiome(v)||''))});
@@ -186,7 +195,7 @@ export default function LivingWorld({genome,beastKey,beastName,onClose,embedded=
      beach.ready.then((ok:boolean)=>{(window as any).__lwBeach={biome:field?legendAt(field,pick.toArray()):cosmoBiome(pick),...beach.state(),glb:ok};});}
     // seeded ocean life (fish schools, rays, whales, plankton glow): only in water cells of the world field
     try{if(!(window as any).__lwNoOcean)ocean=addOceanLife(THREE,scene,{seed:u.seed,R:PR,mpu:TRAV_H/1.7,phone,life:Math.max(.4,Math.min(1.6,.6+((u.life||[]).length||0)*.15)),isWater:(d:number[])=>{const id=field?legendAt(field,d):(cosmoBiome(tv.set(d[0],d[1],d[2]))||'');return WATER_IDS.has(id)?id:null;}});cleanup.push(()=>ocean?.dispose());(window as any).__lwOcean=ocean.state();{const w0=ocean.data.schools.find((x:any)=>x.kind==='whale')||ocean.data.schools[0];if(w0)(window as any).__lwOceanN=new THREE.Vector3(w0.n[0],w0.n[1],w0.n[2]);}}catch(e){(window as any).__lwOceanErr=String(e);}
-    surface.ready.then((c:any)=>{if(disposed)return;blades.visible=false;(window as any).__lwSurface={counts:c,meshes:surface.meshes.length};}).catch((e:any)=>{(window as any).__lwSurfaceErr=String(e);});};
+    (window as any).__lwGrowthInfo=()=>surface?.growthInfo?.();surface.ready.then((c:any)=>{if(disposed)return;blades.visible=false;(window as any).__lwSurface={counts:c,meshes:surface.meshes.length};}).catch((e:any)=>{(window as any).__lwSurfaceErr=String(e);});};
    let fieldAcc=0;
    const fieldStep=(dt:number,sunV:import('three').Vector3,activity:number)=>{if(!field)return;
     const heat=Math.min(1,Math.max(0,((homeStar?.temperature_k||5800)-3000)/6000));
@@ -349,6 +358,7 @@ uniform vec3 uPlay[8];
     // growth spreads faster where there is light and water (sunlit home, wet biome) — still SIMULATED
     {const hl=Math.max(0,gpts[0].dot(sunDir));const wet=({ocean:1,beach:.9,papersea:1,mushroom:1,plains:.8,heartwood:.9,pine:.7,tundra:.5,glacier:.3,ember:.2,peaks:.3} as any)[biomeOf(gpts[0])]??.6;growLW=Math.min(1.2,growLW+.004*hl*wet);try{localStorage.setItem('lw:growLW:'+bKey,String(growLW));}catch{}}
     traits=driftTraits(traits,u,bKey,exp||'day');glowBoost=1;alive.onTick(prev,u);UG.uSpread.value=Math.min(Math.PI,spreadAngle(u)+growLW);
+    if(surface&&gSnap.length)try{surface.setGrowth(growthNow(),u.tick);}catch{}
     try{localStorage.setItem('lw:universe',JSON.stringify(u));localStorage.setItem('lw:traits:'+bKey,JSON.stringify(traits));}catch{}};
    // ---- input
    const kd=(e:KeyboardEvent)=>{keys.current.add(e.key.toLowerCase());if(e.key.toLowerCase()==='f')setFlying(v=>!v);},ku=(e:KeyboardEvent)=>{keys.current.delete(e.key.toLowerCase());};
@@ -364,17 +374,23 @@ uniform vec3 uPlay[8];
    (window as any).__lwSetZoom=(z:number)=>{zT=Math.max(0,Math.min(1,z));};
    const pd=(e:PointerEvent)=>{if((!spawnRef.current||zC>.55)&&ptrs.size<2)drag={x:e.clientX,y:e.clientY};},pm=(e:PointerEvent)=>{if(drag&&ptrs.size<2){ox-=(e.clientX-drag.x)*.006;oy=Math.max(-1.3,Math.min(1.3,oy+(e.clientY-drag.y)*.006));drag={x:e.clientX,y:e.clientY};}},pu=()=>{drag=null;};
    canvas.addEventListener('pointerdown',pd);addEventListener('pointermove',pm);addEventListener('pointerup',pu);cleanup.push(()=>{canvas.removeEventListener('pointerdown',pd);removeEventListener('pointermove',pm);removeEventListener('pointerup',pu);});
+   let gRedT=0,gReduced=false;const gBeast=new THREE.Vector3();
+   const reducedNow=()=>{try{return document.documentElement.dataset.beastboxReducedMotion==='true'||matchMedia('(prefers-reduced-motion: reduce)').matches||localStorage.getItem(REDUCED_MOTION_KEY)==='true';}catch{return false;}};
    // E2 (Cosmo): a TAP (not a drag) on your beast opens Look Closer. Only the beast mesh counts; drags keep rotating.
    {const tapRay=new THREE.Raycaster(),tapNdc=new THREE.Vector2();let t0:{x:number;y:number;t:number}|null=null;
     const tpd=(e:PointerEvent)=>{t0={x:e.clientX,y:e.clientY,t:performance.now()};};
-    const tpu=(e:PointerEvent)=>{const d=t0;t0=null;if(!d||!plush||Math.hypot(e.clientX-d.x,e.clientY-d.y)>8||performance.now()-d.t>450)return;
+    const tpu=(e:PointerEvent)=>{const d=t0;t0=null;if(!d||Math.hypot(e.clientX-d.x,e.clientY-d.y)>8||performance.now()-d.t>450)return;
      const rc=canvas.getBoundingClientRect();tapNdc.set((e.clientX-rc.left)/rc.width*2-1,-(e.clientY-rc.top)/rc.height*2+1);tapRay.setFromCamera(tapNdc,camera);
-     if(tapRay.intersectObject(beastNode,true).length)window.dispatchEvent(new CustomEvent('beastbox:look-closer',{detail:{id:'beast'}}));};
+     if(plush&&tapRay.intersectObject(beastNode,true).length){window.dispatchEvent(new CustomEvent('beastbox:look-closer',{detail:{id:'beast'}}));return;}
+     // a tap on a growth node's ground: scale bounce + gold burst (view state only) and one creature-notice line (Emeth's growth_tap_*, active beast name substituted)
+     if(surface&&gSnap.length){const hit=tapRay.ray.intersectSphere(new THREE.Sphere(new THREE.Vector3(),PR+.02),new THREE.Vector3());if(hit){const g=surface.tapGrowth([hit.x/hit.length(),hit.y/hit.length(),hit.z/hit.length()],performance.now());if(g?.key)notice(g.key,1500);}}};
     canvas.addEventListener('pointerdown',tpd);canvas.addEventListener('pointerup',tpu);cleanup.push(()=>{canvas.removeEventListener('pointerdown',tpd);canvas.removeEventListener('pointerup',tpu);});}
    const resize=()=>{if(!host.current)return;const r=host.current.getBoundingClientRect();renderer.setSize(r.width,r.height,false);camera.aspect=r.width/Math.max(1,r.height);camera.updateProjectionMatrix();};
    const ro=new ResizeObserver(resize);ro.observe(host.current!);resize();cleanup.push(()=>ro.disconnect());
    // perf: measure fps for 3s windows and shrink the blade count if the phone can't hold ~50fps
    // test/debug hook: walk the traveler to the first seeded spot of a biome (used for screenshots)
+   // test/debug hook: stand the traveler beside growth node i (view-snapped), facing it
+   (window as any).__lwGrowthGo=(i=0,back=.07)=>{const n=growthNow()[i];if(!n)return false;const la=n.lat*Math.PI/180,lo=n.lon*Math.PI/180;const c=new THREE.Vector3(Math.cos(la)*Math.cos(lo),Math.sin(la),Math.cos(la)*Math.sin(lo));const t=new THREE.Vector3(0,1,0).cross(c);if(t.lengthSq()<1e-6)t.set(1,0,0);t.normalize();pN.copy(c).addScaledVector(t,-back).normalize();pF.copy(c).sub(pN).addScaledVector(pN,-pN.dot(c.clone().sub(pN))).normalize();return true;};
    (window as any).__lwGoZeref=()=>{const z=(gpts[1]||gpts[0]).clone().normalize();const t=new THREE.Vector3(0,1,0).cross(z).normalize();pN.copy(z).addScaledVector(t,-.06).normalize();pF.copy(z).sub(pN).addScaledVector(pN,-pN.dot(z.clone().sub(pN))).normalize();return true;};(window as any).__lwGoBiome=(b:string)=>{const r=lwS(u.seed+':goto');for(let i=0;i<4000;i++){const v=unitFrom(r) as number[];if(biomeOf(new THREE.Vector3(v[0],v[1],v[2]))===b){pN.set(v[0],v[1],v[2]);pF.set(1,0,0).addScaledVector(pN,-pN.x).normalize();return true;}}return false;};
    // physics + events state: gravity hop on the sphere, wind, storm puff, sunrise, meetings; greeting once per visit
    let exWalk=0,exBack=false,exRun=false;
@@ -588,7 +604,7 @@ uniform vec3 uPlay[8];
      const tgt=cT.clone().lerp(cN.clone().multiplyScalar(PR*.15),zb.orbit);if(seaF&&seaF.snap>0){camLook.copy(tgt);seaF.snap--;}else camLook.lerp(tgt,Math.min(1,dt*4));
      camera.position.copy(camPos);camera.up.copy(cN).lerp(new THREE.Vector3(0,1,0),zb.orbit).normalize();camera.lookAt(camLook);}
     // Alive props: real events only (a breath peak in view, a creature entering a crystal's 3 m, flowers visibly turning) -> one of Emeth's lines, picked by seed.
-    {const evs=surface?.update(t,{sunDir,creatures:[bN,...residents.map((r:any)=>r.n)],cam:camera.position})||[];for(const k of evs){const f=aliveGate.fire(k,String(u.seed),t);if(f){lineRef.current(f.line);break;}}}heaven.update(t);{const wid=field?legendAt(field,[cN.x,cN.y,cN.z]):(cosmoBiome(cN.clone())||'');heaven.root.visible=zC<.55&&cN.dot(sunDir)>-.08&&!WATER_IDS.has(wid);} /* the heaven shaft is a land feature: over open water it read as a pale triangular wedge */heaven.root.position.copy(cN).multiplyScalar(PR+hAt(cN));heaven.root.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),cN);
+    {const evs=surface?.update(t,{sunDir,creatures:[bN,...residents.map((r:any)=>r.n)],cam:camera.position})||[];if(surface&&gSnap.length){gRedT-=dt;if(gRedT<=0){gRedT=.5;gReduced=reducedNow();}gBeast.copy(bN).multiplyScalar(PR);surface.growthFrame({t,wind:[field?.mp?.wind?.x||0,field?.mp?.wind?.z||0],turb:field?.mp?.turbulence||0,storm:field?.storm||0,reduced:gReduced,beast:gBeast,px:renderer.domElement.height/(2*Math.tan(camera.fov*Math.PI/360)),nowMs:performance.now()});}for(const k of evs){const f=aliveGate.fire(k,String(u.seed),t);if(f){lineRef.current(f.line);break;}}}heaven.update(t);{const wid=field?legendAt(field,[cN.x,cN.y,cN.z]):(cosmoBiome(cN.clone())||'');heaven.root.visible=zC<.55&&cN.dot(sunDir)>-.08&&!WATER_IDS.has(wid);} /* the heaven shaft is a land feature: over open water it read as a pale triangular wedge */heaven.root.position.copy(cN).multiplyScalar(PR+hAt(cN));heaven.root.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),cN);
     beastLamp.position.copy(beastNode.position).addScaledVector(bN,TRAV_H*1.4);beastLamp.intensity=(1-zb.orbit)*7;
     {const night=1-THREE.MathUtils.smoothstep(cN.dot(sunDir),-.12,.35);const dusk=Math.max(0,1-Math.abs(cN.dot(sunDir))/.18)*.7;
      if(ocean){ocean.update(t,{night,camPos:camera.position});if(((t*2)|0)%4===0)(window as any).__lwOcean=ocean.state();}

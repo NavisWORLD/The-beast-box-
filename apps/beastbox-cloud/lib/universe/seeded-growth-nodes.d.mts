@@ -15,3 +15,6 @@ export function stageScale(x:number,gold?:number):number;
 export function growthNodeState(node:GrowthNode,u:U,tick:number):GrowthState;
 export function growthNodesAt(u:U,tick?:number,o?:{home?:string|null}):GrowthNodeAt[];
 export function growthScaleAt(nodes:GrowthNodeAt[],tick:number,dir:number[],o?:{cellRad?:number;planet?:string}):number;
+export const LAYER_LAG:Readonly<{ring:number;patch:number;shrub:number;canopy:number}>;
+export type GrowthCell={scale:number;hit:boolean;x:number|null;stage:GrowthState['stage']|null;gold:number;scars:number;node:GrowthNodeAt|null;dc:number|null};
+export function growthCellAt(nodes:GrowthNodeAt[],tick:number,dir:number[],o?:{cellRad?:number;planet?:string;layer?:'ring'|'patch'|'shrub'|'canopy'}):GrowthCell;

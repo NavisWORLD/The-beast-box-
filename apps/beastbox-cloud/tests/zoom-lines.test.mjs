@@ -7,7 +7,8 @@ test('Emeth text is exact and every line is toast-sized',()=>{
  assert.deepEqual(Object.keys(J.zoom_out),['leave_ground','see_globe','see_sun','see_planets','see_stars','see_black_hole','far_out']);
  assert.deepEqual(Object.keys(J.zoom_in),['toward_stars','toward_planet','arrive_home']);
  for(const g of [J.zoom_out,J.zoom_in,J.creature_notices])for(const a of Object.values(g))for(const l of a)assert.ok(l.replace('{beast}','Zeref').length<=62,l);
- assert.equal(NOTICE_KEYS.length,9);
+ assert.equal(NOTICE_KEYS.filter(k=>!k.startsWith('growth_tap_')).length,9);// the nine ambient notices are unchanged
+ assert.deepEqual(NOTICE_KEYS.filter(k=>k.startsWith('growth_tap_')),['sprout','full','bloom','gold','shed','canopy','scarred'].map(k=>'growth_tap_'+k));
 });
 test('stage changes pick the right key and a black hole only on the way out of the universe',()=>{
  assert.deepEqual(zoomLineKind('Planet','Orbit'),{kind:'zoom_out',key:'see_sun'});

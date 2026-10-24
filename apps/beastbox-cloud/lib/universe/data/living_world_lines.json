@@ -216,6 +216,93 @@
     "black_hole_away": [
       "{beast} turns back toward the warm light.",
       "The Quiet Door keeps its secrets."
+    ],
+    "growth_tap_sprout": [
+      "{beast} noses the new shoot. So small.",
+      "A sprout. {beast} waits beside it."
+    ],
+    "growth_tap_full": [
+      "{beast} leans on the green. It holds.",
+      "The patch is full. {beast} rests."
+    ],
+    "growth_tap_bloom": [
+      "{beast} finds the first berries. Sweet.",
+      "Fruit, here. {beast} takes only one."
+    ],
+    "growth_tap_gold": [
+      "{beast} noses the gold. It is not sad.",
+      "The leaves turn. {beast} stays close."
+    ],
+    "growth_tap_shed": [
+      "Leaves fall on {beast}. New shoots below.",
+      "{beast} watches the old green let go."
+    ],
+    "growth_tap_canopy": [
+      "{beast} noses the new canopy. It grew.",
+      "It grew while the storms were passing."
+    ],
+    "growth_tap_scarred": [
+      "A storm marked this one. It turns early.",
+      "{beast} remembers the storm on this patch."
     ]
+  },
+  "growth_nodes": {
+    "_note": "EMETH: lines for SEEDED growth nodes. Growth is SIMULATED, placement is SEEDED, never recorded hardware. Each <=44 chars.",
+    "sprout": [
+      "A green thread pushes up. {beast} watches.",
+      "Something small begins here."
+    ],
+    "tuft": [
+      "The grass fills in, cell by cell.",
+      "{beast} feels the ground getting softer."
+    ],
+    "full": [
+      "The patch is full and breathing.",
+      "{beast} rests in the new green."
+    ],
+    "bloom": [
+      "Blooms open. Berries start to show.",
+      "{beast} finds the first sweet fruit."
+    ],
+    "gold": [
+      "The green turns gold. Nothing is lost.",
+      "{beast} walks through the gold slowly."
+    ],
+    "shed": [
+      "Leaves let go and drift down.",
+      "The old growth falls. Soil is waiting."
+    ],
+    "renewal": [
+      "Under the gold, a new sprout.",
+      "The cycle starts again. {beast} stays."
+    ],
+    "scarred": [
+      "A storm touched this patch. It turns early.",
+      "{beast} remembers the storm here."
+    ],
+    "fast_tick": [
+      "The signal runs high. The forest hurries.",
+      "Strong ticks make the green race."
+    ],
+    "slow_tick": [
+      "The signal is quiet. The forest waits.",
+      "Slow ticks, slow roots."
+    ]
+  },
+  "one_cage": {
+    "_note": "EMETH: every area is the same tiny universe, not a separate place.",
+    "footer": "One cage. One tiny universe. Everywhere.",
+    "menu_hint": "Every page is the same living world.",
+    "honesty": "Placement is SEEDED. Growth is SIMULATED."
+  },
+  "zoom_growth": {
+    "_note": "EMETH: templates keyed by stage; {planet} filled by code from growthNodeState. <=44 chars where possible.",
+    "sprout": "New shoots on {planet}.",
+    "tuft": "Grass spreads across {planet}.",
+    "full": "{planet} is green and full.",
+    "bloom": "Berries show on {planet}.",
+    "gold": "The canopy on {planet} turned gold.",
+    "shed": "Leaves drift down on {planet}.",
+    "renewal": "{planet} grows again."
   }
 }

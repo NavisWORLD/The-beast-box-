@@ -21,7 +21,7 @@ export const GROWTH=Object.freeze({
  goldAfter:0.78,// fraction of a node's life span where the gold phase begins
  scarGold:0.08,// each storm scar pulls gold this much earlier
  minGold:0.5,
- cellRad:0.04,// radians per ground cell (about 1 m on the ~27 m living world); callers can pass their own
+ cellRad:0.012,// radians per ground cell (about 0.33 m on the ~27 m living world, so a node's territory is 3 to 9 m); callers can pass their own
  rim:1.12,// canopy overflow: the edge ring out to spread*rim keeps the mature overshoot
  unborn:0.04,// instance scale in a node's territory before the front has reached that cell
  spreadCells:[10,28],// territory radius in cells
@@ -120,17 +120,28 @@ const unit=(lat,lon)=>{const a=lat*Math.PI/180,o=lon*Math.PI/180;return [Math.co
  * the nodes already carry the state for their own tick.
  * @param {any[]} nodes @param {number} tick @param {number[]} dir @param {{cellRad?:number,planet?:string}} [o]
  */
-export function growthScaleAt(nodes,tick,dir,o={}){
- const cellRad=o.cellRad||GROWTH.cellRad;let best=1,hit=false;
+export function growthScaleAt(nodes,tick,dir,o={}){return growthCellAt(nodes,tick,dir,o).scale;}
+/** Layer delay (fraction of the node's lifespan) so the layers of ONE node grow in succession: grass ring first, groundcover fill, shrubs, canopy last. */
+export const LAYER_LAG=Object.freeze({ring:0,patch:0.05,shrub:0.12,canopy:0.22});
+/**
+ * Per-cell state for the view: growthScaleAt plus the life fraction x, stage and gold start of the cell's own age, so colour (tint blend),
+ * fruit and shed use the SAME numbers as scale. `o.layer` delays the cell's age by LAYER_LAG[layer] x lifespan (a layer only appears
+ * once the layers below it are under way). Outside every territory: {scale:1,hit:false}. Pure function of (nodes, tick, dir).
+ * @param {any[]} nodes @param {number} tick @param {number[]} dir @param {{cellRad?:number,planet?:string,layer?:'ring'|'patch'|'shrub'|'canopy'}} [o]
+ */
+export function growthCellAt(nodes,tick,dir,o={}){
+ const cellRad=o.cellRad||GROWTH.cellRad;const lagF=LAYER_LAG[o.layer]||0;let best=null;
  for(const n of nodes||[]){
   if(o.planet&&n.planet!==o.planet)continue;
   const c=unit(n.lat,n.lon);const cos=clamp(c[0]*dir[0]+c[1]*dir[1]+c[2]*dir[2],-1,1);const dc=Math.acos(cos)/cellRad;
   if(dc>n.spread*GROWTH.rim)continue;
-  let s;
+  let s,x=null;
   if(dc>n.spread){const m=Math.max(1,n.norm);s=lerp(m,1,(dc-n.spread)/(n.spread*(GROWTH.rim-1)));}
-  else{const age=Math.max(0,tick-n.born)-dc/Math.max(1e-6,n.rate);
-   s=age<0?GROWTH.unborn:stageScale(lifeX(age,n.lifespan),n.gold);}
-  if(!hit||s>best){best=s;hit=true;}
+  else{const age=Math.max(0,tick-n.born)-dc/Math.max(1e-6,n.rate)-lagF*n.lifespan;
+   if(age<0)s=GROWTH.unborn;else{x=lifeX(age,n.lifespan);s=stageScale(x,n.gold);}}
+  if(dc>n.spread)x=n.x;// the mature overshoot ring shows the node's own stage
+  if(!best||s>best.scale)best={scale:s,x,node:n,dc};
  }
- return hit?f4(best):1;
+ if(!best)return {scale:1,hit:false,x:null,stage:null,gold:GROWTH.goldAfter,scars:0,node:null,dc:null};
+ const n=best.node;return {scale:f4(best.scale),hit:true,x:best.x==null?null:f4(best.x),stage:best.x==null?'sprout':stageAt(best.x,n.gold),gold:n.gold,scars:n.scars||0,node:n,dc:f4(best.dc)};
 }
