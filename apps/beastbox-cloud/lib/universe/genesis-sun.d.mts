@@ -1,0 +1,14 @@
+export function blackBodyToRGB(temp:number):[number,number,number];
+export function coronaParams(temp:number):{intensity:number;noiseScale:number};
+export const STAR_MASS_PER_SOLAR:number;export const G_UNIVERSE:number;export const FIXED_DT:number;
+export function orbitR(au:number):number;
+export function starMass(st:{mass_solar:number}):number;
+export function planetMass(pl:{radius_earth:number}):number;
+export function orbitSpeed(G:number,M:number,d:number):number;
+export function sunIntensity(lum:number):number;
+export function nightFactor(dotNSun:number):number;
+export type SysPlanet={id:string;m:number;p:number[];v:number[]};
+export type System={M:number;planets:SysPlanet[]};
+export function initSystem(star:{mass_solar:number},planets:{id:string;orbit_au:number;phase:number;radius_earth:number}[]):System;
+export function stepSystem(sys:System,dt:number):void;
+export function advanceTo(sys:System,state:{t:number},t:number,maxSteps?:number):number;
