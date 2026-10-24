@@ -135,7 +135,7 @@ vec3 c=texture2D(tScene,bhScreen+s).rgb;float ring=exp(-pow((r-1.5*rs)/(0.08*rs+
    for(const pl of U.planets){if(planetMesh.has(pl.id))continue;
     if(!legacyPlanets){ // the pocket globe's material on every planet (Cosmo's pack): displaced terrain, ocean depth/foam, clouds, atmosphere
      const type=pickType(pl),pv:any=(PLANET_VARIANTS as any)[pl.id],vr=pv?{lonDeg:pv[0],tiltDeg:pv[1],spinDegPerS:pv[2],cloudLonDeg:pv[3]}:variantFor(pl.id,rand);
-     const body=planetKit.create(type,vr);const m=body.mesh as any;m.scale.setScalar(0.35+0.18*Math.sqrt(pl.radius_earth));m.userData.id=pl.id;m.userData.body=body;m.userData.ptype=type;world.add(m);planetMesh.set(pl.id,m);continue;}
+     const body=planetKit.create(type,vr);const m=body.mesh as any;m.scale.setScalar(0.35+0.18*Math.sqrt(pl.radius_earth));m.userData.id=pl.id;m.userData.body=body;(body as any).setTempK?.(pl.temperature_k);m.userData.ptype=type;world.add(m);planetMesh.set(pl.id,m);continue;}
     const bk=biomeOf(pl),bm=BIOME_MAP[bk];const mat=new THREE.MeshStandardMaterial({color:bm?0xffffff:(BIOME_HEX[bk]||0x9988ff),roughness:.85,metalness:0,emissive:bm?0xffffff:0x110822,emissiveIntensity:bm?.35:1});if(bm){mat.map=biomeTex(bm,'color');mat.emissiveMap=biomeTex(bm,'glow');}const sunV=nightGlowOnly(mat);const m=new THREE.Mesh(sphere,mat);
     m.scale.setScalar(0.35+0.18*Math.sqrt(pl.radius_earth));m.userData.id=pl.id;m.userData.sunV=sunV;if((pl.atmosphere||0)>0.08){const at=atmosphereMesh(Math.min(1,0.35+pl.atmosphere));m.add(at);m.userData.atm=at;}world.add(m);planetMesh.set(pl.id,m);}
    if(!legacyPlanets&&!moonsBuilt&&planetMesh.size>=U.planets.length){moonsBuilt=true; // SEEDED moons (the recorded genesis has none): labeled in the HUD, derived only from the universe seed
