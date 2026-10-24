@@ -27,6 +27,7 @@ import {publicProfileFromBeast,publicProfileFromCreature,type CosmosProfile} fro
 import {useCompanion} from './companion-provider';
 import {generateCreature,type BaseLook,type AmbientAction} from '../lib/creature-profile';
 import BrandCrest from '@/components/brand-crest';
+import {useActiveBeastName} from './use-active-beast-name';
 const ZerefDiaryPanel=dynamic(()=>import('./zeref-diary-panel')); // E3: below-the-fold, split out of the first Cage bundle
 const MetaMusePanel=dynamic(()=>import('./meta-muse-panel')); // E3: below-the-fold, split out of the first Cage bundle
 import {ZEREF_PROFILE} from '../lib/zeref/zeref-mind.mjs';
@@ -57,7 +58,8 @@ export default function BeastCagePortal(){
  const onPocketActive=useCallback((active:boolean)=>setPocketReady(active),[]);
  const {profile:creature,selectProfile,clearProfile}=useCompanion();
  const [ambient,setAmbient]=useState<AmbientAction>('hover');
- const {session}=useBeastSession();
+ const {session,ready:sessionReady}=useBeastSession();
+ const activeName=useActiveBeastName();
  const sameSpark=!!session?.beast?.qbeast;
  const qvmCounts=useOwnQvmCounts(session?.beast?.qbeast?.profile?.id?recordedQvmStimulusPath(session.beast):null);
  const creatureName=sameSpark?shownName(session.beast):creature?.name;
@@ -75,7 +77,8 @@ export default function BeastCagePortal(){
  const chooseMode=(next:'friendly'|'advanced')=>{setCageMode(next);try{window.localStorage.setItem('beastbox-cage-mode-v1',next);}catch{}};
  useEffect(()=>{try{const st=window.localStorage.getItem(VIEW_STORAGE);if(st==='classic')setView('classic');else if(st!=='pocket')setView('world');}catch{}},[]);// Oct 22: the shared living world is the default; pocket + classic stay one tap away
  const chooseView=(next:'pocket'|'classic'|'world')=>{setView(next);try{window.localStorage.setItem(VIEW_STORAGE,next);}catch{}};
- const pocketName=creatureName||'Zeref';
+ // Until the saved session has loaded, never show the seeded starter's name (it flashed 'Look Closer at <starter>' before the real beast appeared): use the active beast's name from storage, else a neutral phrase.
+ const pocketName=sessionReady?(creatureName||'Zeref'):(activeName||'your beast');
  const cosmosProfile=useMemo<CosmosProfile|null>(()=>{
   if(sameSpark)return publicProfileFromBeast(session.beast,{name:creatureName});
   if(!creature)return {schema:'cosmos-beast-public/v1',id:ZEREF_PROFILE.id,name:'Zeref',provenance:{kind:'recorded-quantum-genome',backend:'ibm_marrakesh'},traits:{}};
