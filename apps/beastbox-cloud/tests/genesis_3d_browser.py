@@ -27,11 +27,14 @@ with sync_playwright() as p:
   load(page,"/")
   # Home shows the sprite-built 3D Zeref (Cory, Oct 14); the procedural guide lives on /beast-cage/turntable.
   page.wait_for_function("""() => ['ready','fallback'].includes(document.querySelector('[data-zeref-sprite3d]')?.dataset.zerefSprite3d)""",timeout=30000,polling=500)
-  page.locator(".cosmos-home-viewmenu > summary").first.click()  # view controls live in the View menu
+  page.locator("[data-world-menu-button]").first.click()  # Oct 25: the guide's View controls live in the one pocket menu (About section)
+  page.wait_for_selector("[data-home-view-controls]",timeout=15000)
   expect(page.get_by_role("button",name="Rotate 360°")).to_be_visible()
   page.get_by_role("button",name="Rotate 360°").click()
   expect(page.get_by_role("button",name="Rotate 360°")).to_have_attribute("aria-pressed","true")
   page.get_by_role("button",name="Side").click()
+  page.keyboard.press("Escape")  # close the pocket menu before measuring the page and moving on
+  expect(page.locator("[data-world-menu-sheet]")).to_be_hidden()
   fits(page,str(width)+" homepage")
   if width in [1440,390,320]:page.screenshot(path=str(OUT/f"home-{width}.png"),full_page=True,animations="disabled")
   page.get_by_role("link",name=re.compile("Enter the Beast Cage")).click()
@@ -166,7 +169,11 @@ with sync_playwright() as p:
  load(settings_page,"/beast-cage")
  expect(settings_page.locator('[data-pocket-dimension="true"]')).to_have_attribute("data-pocket-state","disabled")
  expect(settings_page.locator('.cage-habitat-visual [data-spark-beast="true"]')).to_be_visible()
+ settings_page.locator("[data-world-menu-button]").first.click()  # Oct 25: Reset 3D camera lives in the one habitat menu
+ expect(settings_page.locator("[data-world-menu-sheet]")).to_be_visible()
  settings_page.get_by_role("button",name="Reset 3D pocket camera").click()
+ settings_page.keyboard.press("Escape")
+ expect(settings_page.locator("[data-world-menu-sheet]")).to_be_hidden()
  fits(settings_page,"3D off still preserves original creature")
  load(settings_page,"/settings")
  settings_page.get_by_role("switch",name="Three.js pocket scenery").click()

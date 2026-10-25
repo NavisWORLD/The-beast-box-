@@ -53,6 +53,7 @@ jobs:
               raise RuntimeError('Built Beast Cage app failed to start')
           PY
           python tests/beast_cage_browser.py
+          python tests/world_menu_browser.py http://127.0.0.1:3100
         env:
           BEASTBOX_OWNER_PASSWORD: public-ci-visual-fixture-not-a-real-password
           BEASTBOX_CLOUD_AUTH_SECRET: public-ci-cosmic-preview-fixture-32-chars-long

@@ -30,6 +30,7 @@ import {guardCanvasTouch} from '../lib/three/touch-guard';
 import {isSoftwareGL} from '../lib/three/soft-gl';
 import {createHop,stepHop} from '../lib/physics/ground-hop.mjs';
 import {useEffect,useRef,useState} from 'react';
+import {createPortal} from 'react-dom';
 import {createPocketSky,orbitPosition} from '../lib/pocket-sky.mjs';
 import {DEFAULT_POCKET_3D,POCKET_3D_KEY,POCKET_3D_EVENT,POCKET_3D_CAMERA_RESET,devicePocket3D,deviceClassicPixel,saveClassicPixel} from '../lib/companion/pocket-3d-settings.mjs';
 import styles from './cage-pocket-dimension.module.css';
@@ -66,7 +67,7 @@ const randomFor=(s:string)=>{let v=visualSeed(s)||1;return()=>{v^=v<<13;v^=v>>>1
  * The existing SparkBeastArena remains visible and interactive IN FRONT of
  * this canvas, with exactly the original canonical QBEAST sprite/voice/saves.
  */
-export default function CagePocketDimension({seed,qbeastId,stage,reduced,behaviorPosition,state,onActiveChange,qvmCounts=null,autoOrbit=false,chatLine=null}:Props&{chatLine?:string|null}){
+export default function CagePocketDimension({seed,qbeastId,stage,reduced,behaviorPosition,state,onActiveChange,qvmCounts=null,autoOrbit=false,chatLine=null,menuHost=null,ignorePixel=false}:Props&{chatLine?:string|null;menuHost?:HTMLElement|null;ignorePixel?:boolean}){
  const lcBus=useRef<any>(null);useEffect(()=>{if(chatLine)lcBus.current?.words(chatLine);},[chatLine]);
  const autoOrbitRef=useRef(autoOrbit);autoOrbitRef.current=autoOrbit;const lastDragAt=useRef(0);
  useEffect(()=>{if(autoOrbit)cameraView.current={...cameraView.current,zoom:8.5,phi:1.18};},[autoOrbit]);
@@ -88,7 +89,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
  // Living pocket: play-god toolbar + classic pixel toggle + collapsible info (LIVE feed framing).
  const godRef=useRef<God|null>(null);const [weatherI,setWeatherI]=useState(0),[timeI,setTimeI]=useState(0),[infoOpen,setInfoOpen]=useState(false);
  const [pixel,setPixel]=useState(false);const pixelRef=useRef(false);pixelRef.current=pixel;
- useEffect(()=>{setPixel(deviceClassicPixel());},[]);
+ useEffect(()=>{const rd=()=>ignorePixel?false:deviceClassicPixel();setPixel(rd());const on=()=>setPixel(rd());window.addEventListener('beastbox:pixel-mode',on);return()=>window.removeEventListener('beastbox:pixel-mode',on);},[]);
  const togglePixel=()=>{const v=!pixel;setPixel(v);saveClassicPixel(v);window.dispatchEvent(new Event('beastbox:pixel-mode'));};
  const [residentsOpen,setResidentsOpen]=useState(true);
  useEffect(()=>{if(window.matchMedia('(max-width:560px)').matches)setResidentsOpen(false);},[]);
@@ -591,15 +592,28 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
    aria-hidden="true"/>:null}
   {!visualSettings.enabled?<span className={styles.sr} role="status">3D scenery is off. Your Beast and game remain available.</span>:!failed&&!ready?<span className={styles.sr} role="status">Opening the dimensional world behind your Beast…</span>:null}
  {ready?<div className={styles.live} aria-hidden="true"><i/>LIVE · CST</div>:null}
- {ready?<div className={styles.godbar} role="toolbar" aria-label="Pocket controls">
-  <button type="button" aria-label={'Weather: '+WEATHERS[weatherI]} title={'Weather: '+WEATHERS[weatherI]} onClick={()=>{const i=(weatherI+1)%4;setWeatherI(i);godRef.current?.weather(WEATHERS[i]);}}>{WEATHER_ICON[WEATHERS[weatherI]]}</button>
-  <button type="button" aria-label="Time of day" title={['Time: live cycle','Time: day','Time: dusk','Time: night'][timeI]} onClick={()=>{const i=(timeI+1)%4;setTimeI(i);godRef.current?.time(TIMES[i]);}}>{TIME_ICON[timeI]}</button>
+ {ready?(()=>{
+  // One menu: when the Cage/Home menu is present these tools live in it (labelled, 44px targets) and nothing sits on the scene.
+  const wLab='Weather: '+WEATHERS[weatherI],tLab=['Time: live cycle','Time: day','Time: dusk','Time: night'][timeI];
+  const cycleWeather=()=>{const i=(weatherI+1)%4;setWeatherI(i);godRef.current?.weather(WEATHERS[i]);};
+  const cycleTime=()=>{const i=(timeI+1)%4;setTimeI(i);godRef.current?.time(TIMES[i]);};
+  if(menuHost)return createPortal(<div role="toolbar" aria-label="Pocket controls" data-pocket-tools-menu>
+   <button type="button" aria-label={wLab} onClick={cycleWeather}><span aria-hidden="true">{WEATHER_ICON[WEATHERS[weatherI]]}</span>{wLab}</button>
+   <button type="button" aria-label="Time of day" onClick={cycleTime}><span aria-hidden="true">{TIME_ICON[timeI]}</span>{tLab}</button>
+   <button type="button" aria-label="Drop a treat" onClick={()=>godRef.current?.treat()}><span aria-hidden="true">●</span>Drop a treat</button>
+   <button type="button" aria-label="Plant a flower" onClick={()=>godRef.current?.flower()}><span aria-hidden="true">✿</span>Plant a flower</button>
+   <button type="button" aria-label="Poke your Beast" onClick={()=>godRef.current?.poke()}><span aria-hidden="true">☝</span>Poke your Beast</button>
+   <button type="button" aria-label="About this world" aria-expanded={infoOpen} onClick={()=>setInfoOpen(o=>!o)}><span aria-hidden="true">ⓘ</span>Who lives here</button>
+  </div>,menuHost);
+  return <div className={styles.godbar} role="toolbar" aria-label="Pocket controls">
+  <button type="button" aria-label={'Weather: '+WEATHERS[weatherI]} title={'Weather: '+WEATHERS[weatherI]} onClick={cycleWeather}>{WEATHER_ICON[WEATHERS[weatherI]]}</button>
+  <button type="button" aria-label="Time of day" title={tLab} onClick={cycleTime}>{TIME_ICON[timeI]}</button>
   <button type="button" aria-label="Drop a treat" title="Drop a treat" onClick={()=>godRef.current?.treat()}>●</button>
   <button type="button" aria-label="Plant a flower" title="Plant a flower" onClick={()=>godRef.current?.flower()}>✿</button>
   <button type="button" aria-label="Poke your Beast" title="Poke" onClick={()=>godRef.current?.poke()}>☝</button>
   <button type="button" aria-label={pixel?'Show 3D Beast':'Show classic pixel Beast'} title={pixel?'3D Beast':'Classic pixel'} aria-pressed={pixel} onClick={togglePixel}>{pixel?'3D':'▦'}</button>
   <button type="button" aria-label="About this world" aria-expanded={infoOpen} onClick={()=>setInfoOpen(o=>!o)}>ⓘ</button>
- </div>:null}
+ </div>;})():null}
  <p className={styles.sandLabel} data-open={infoOpen||!ready} data-sand-source={sandSource}>{SAND_LABEL} · {sandSource==='receipt'?'recorded seed + this Beast\u2019s recorded Azure simulator counts':'recorded seed only · no simulator receipt for this Beast'}</p>
  {infoOpen?<details className={styles.residentsBox} open={residentsOpen} onToggle={e=>setResidentsOpen((e.currentTarget as HTMLDetailsElement).open)}><summary aria-label={residentsOpen?"Minimize residents":"Show residents"}>{residentsOpen?"– Residents":"✦ Who lives here"}</summary>
  <ul className={styles.residents} aria-label="Artist-drawn Pocket residents" data-artist-residents={ARTIST_RESIDENTS.length}>

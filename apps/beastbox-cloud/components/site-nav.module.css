@@ -18,3 +18,21 @@
 .hint{margin:2px 6px 4px;font-size:12px;color:#a9c8dc}
 .foot{margin:12px 6px 8px;padding-top:8px;border-top:1px solid #234a63;display:flex;flex-direction:column;gap:2px;font-size:12px;color:#cfe6f2}
 .foot small{font-size:11px;opacity:.75}
+
+/* One world: the piece chip (phone: in the top bar; desktop: under the Menu tab) and the world map at the top of the sheet. */
+.piece{display:flex;align-items:center;gap:2px;min-width:0}
+.pieceArrow{display:grid;place-items:center;min-width:36px;min-height:36px;color:#dff8ff;text-decoration:none;font:700 20px system-ui,sans-serif;border-radius:999px}
+.pieceBtn{display:inline-flex;align-items:center;gap:5px;min-height:36px;max-width:170px;padding:0 10px;border-radius:999px;border:1px solid #b9a6ff88;background:#17113a;color:#efeaff;font:700 12px system-ui,sans-serif;letter-spacing:.02em;cursor:pointer;white-space:nowrap}
+.pieceName{overflow:hidden;text-overflow:ellipsis;max-width:104px}
+.pieceNum{opacity:.7;font-size:10.5px}
+@media(max-width:400px){.brand{font-size:10px;letter-spacing:.04em}.pieceBtn{padding:0 8px;max-width:150px}.pieceName{max-width:86px}.barBtn{padding:0 10px}}
+@media(min-width:760px){.piece{flex-direction:column;margin-top:6px}.pieceArrow{display:none}.pieceBtn{writing-mode:vertical-rl;max-width:none;min-height:0;padding:10px 6px;border-radius:12px 0 0 12px;border-right:0}.pieceName{max-width:none;overflow:visible}}
+.map{grid-column:1/-1;margin:2px 0 6px;padding:8px;border-radius:14px;background:#171238;border:1px solid #b9a6ff44}
+.map h2{margin:0 0 4px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#cdbdff}
+.mapLine{margin:0 0 8px;font-size:12.5px;line-height:1.4;color:#efeaff}
+.pieces{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.pieces a{display:flex;align-items:center;gap:8px;min-height:44px;padding:4px 8px;border-radius:12px;border:1px solid #ffffff1f;background:#ffffff0a;color:#efeaff;text-decoration:none;font:600 13px/1.25 system-ui,sans-serif}
+.pieces a small{display:block;font-weight:400;font-size:10.5px;opacity:.7}
+.pieces a[data-neighbor]{border-color:#7dd9ea88}
+.pieces a[aria-current=page]{background:#5b3fd6aa;border-color:#cdbdff;font-weight:700}
+.mapNote{margin:8px 0 0;font-size:11px;color:#b9b0dc;line-height:1.4}

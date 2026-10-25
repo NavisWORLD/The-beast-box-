@@ -203,13 +203,13 @@ export default function BeastCareDeck({ chat = true, sprite = true }: { chat?: b
         </ol>
         <form onSubmit={event => void rename(event)}>
           <label className={css.nameLabel}>A name for your beast<input aria-label="Beast name" value={name} maxLength={24} onChange={event => setName(event.target.value)} placeholder={beast ? shownName(beast) : 'A little name'} /></label>
-          <button type="submit" disabled={!beast || busy}>Name</button><button type="button" onClick={() => void meet()} disabled={busy}>Meet a spark beast</button>
+          <button type="submit" disabled={!beast || busy} title={!beast ? 'Meet a spark beast first' : busy ? 'Working…' : undefined}>Name</button><button type="button" onClick={() => void meet()} disabled={busy}>Meet a spark beast</button>
         </form>
         <div className={css.row}>
-          <button className={css.primary} type="button" onClick={() => void act('pet')} disabled={!beast || busy}>Pet</button>
-          <button type="button" onClick={() => void spark()} disabled={!beast || busy}>Train · {round}/6</button>
-          <button type="button" onClick={() => void save()} disabled={!beast || busy}>Save on this device</button>
-          <button type="button" onClick={() => void act('feed')} disabled={!beast || busy}>Feed</button><button type="button" onClick={() => void act('rest')} disabled={!beast || busy}>Rest</button>
+          <button className={css.primary} type="button" onClick={() => void act('pet')} disabled={!beast || busy} title={!beast ? 'Meet a spark beast first' : busy ? 'Working…' : undefined}>Pet</button>
+          <button type="button" onClick={() => void spark()} disabled={!beast || busy} title={!beast ? 'Meet a spark beast first' : busy ? 'Working…' : undefined}>Train · {round}/6</button>
+          <button type="button" onClick={() => void save()} disabled={!beast || busy} title={!beast ? 'Meet a spark beast first' : busy ? 'Working…' : undefined}>Save on this device</button>
+          <button type="button" onClick={() => void act('feed')} disabled={!beast || busy} title={!beast ? 'Meet a spark beast first' : busy ? 'Working…' : undefined}>Feed</button><button type="button" onClick={() => void act('rest')} disabled={!beast || busy} title={!beast ? 'Meet a spark beast first' : busy ? 'Working…' : undefined}>Rest</button>
         </div>
         <div className={css.training} hidden={!round}>
           <div className={css.bar} aria-hidden="true"><i /><b ref={marker} data-training-marker /></div>
@@ -218,7 +218,7 @@ export default function BeastCareDeck({ chat = true, sprite = true }: { chat?: b
         <p className={css.saved} data-care-saved={saved ? 'true' : 'false'}>{saved ? '✓ Saved on this device' : <Details inline label="Not saved yet">Local save has not been verified</Details>} <span>· Care XP {beast?.xp || 0} · Bond {beast?.bond || 0} · Energy {Math.round(beast?.energy ?? 0)}</span></p>
         {chat ? <form onSubmit={event => void speak(event)}>
           <label htmlFor="care-talk">Tell your companion something</label><textarea id="care-talk" value={line} maxLength={400} onChange={event => setLine(event.target.value)} placeholder="A short phrase to remember…" />
-          <button type="submit" disabled={!beast || busy}>Learn this phrase</button>
+          <button type="submit" disabled={!beast || busy} title={!beast ? 'Meet a spark beast first' : busy ? 'Working…' : undefined}>Learn this phrase</button>
         </form> : null}
         {chat && session.chat.length ? <div className={css.reply} role="status"><strong>Local pattern companion</strong><p>{session.chat[session.chat.length - 1]?.text}</p></div> : null}
         <p className={css.note} role="status" data-care-status>{status}</p>
@@ -227,8 +227,8 @@ export default function BeastCareDeck({ chat = true, sprite = true }: { chat?: b
           <summary>Carry your beast · files and native game</summary>
           <p className={css.note}>A device journey carries unsigned care, chat, pattern memory and behavior with the same verified identity. A .qbeast carries that exact identity. Native evolution is earned through LOST COSMOS.</p>
           <div className={css.row}>
-            <button type="button" onClick={() => void saveJourney()} disabled={!beast?.qbeast}>Download device journey</button><button type="button" onClick={saveQbeast} disabled={!beast}>Download .qbeast</button>
-            <button type="button" onClick={saveLcx1} disabled={!beast}>Download LCX1 save</button><button type="button" onClick={() => file.current?.click()}>Import cage or journey</button>
+            <button type="button" onClick={() => void saveJourney()} disabled={!beast?.qbeast} title={!beast?.qbeast ? 'Needs a saved Quantum Beast first' : undefined}>Download device journey</button><button type="button" onClick={saveQbeast} disabled={!beast} title={!beast ? 'Meet a spark beast first' : undefined}>Download .qbeast</button>
+            <button type="button" onClick={saveLcx1} disabled={!beast} title={!beast ? 'Meet a spark beast first' : undefined}>Download LCX1 save</button><button type="button" onClick={() => file.current?.click()}>Import cage or journey</button>
           </div>
           {beast?.journeyNative ? <p className={css.note}>Retained native data is unsigned and unverified. {(beast.journeyNative.game?.native_save || beast.journeyNative.retained?.some((item: any) => item.game?.native_save)) ? <button type="button" onClick={saveRetainedNative}>Download retained native .sav</button> : null} <Link href="/sol-game">Restore through LOST COSMOS →</Link></p> : null}
         </details>

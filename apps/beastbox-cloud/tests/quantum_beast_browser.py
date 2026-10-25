@@ -34,6 +34,7 @@ with sync_playwright() as p:
   page=context.new_page();errors=[];private=[]
   page.on('pageerror',lambda x:errors.append(str(x)));page.on('request',lambda r:private.append(r.url) if '/api/bridge' in r.url else None)
   response=page.goto('http://127.0.0.1:3100/beast-cage',wait_until='domcontentloaded');assert response.status==200
+  page.wait_for_load_state('networkidle',timeout=30000)  # let the page hydrate before the first click
   page.get_by_label('Character seed').fill('quantum-beast-first-contact');page.get_by_label('Cosmic family').select_option('nebula');page.get_by_role('button',name='Generate from this seed',exact=True).click()
   open_advanced(page)
   with page.expect_download() as pending:page.get_by_role('button',name='DOWNLOAD QUANTUM BEAST',exact=True).click()

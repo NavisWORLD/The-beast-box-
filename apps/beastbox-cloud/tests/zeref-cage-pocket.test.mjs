@@ -130,9 +130,11 @@ test('rig skins: exact Moonwraith identity is canonical, names do not override r
 
 test('Cage wiring: rig is default, classic sprite reachable, diary + labels, loop never redeploys',()=>{
  const portal=read('components/beast-cage-portal.tsx'),arena=read('components/spark-beast-arena.tsx'),spark=read('components/spark-beast-companion.tsx');
- assert.match(portal,/useState<'pocket'\|'classic'>\('pocket'\)/);
- assert.match(portal,/Classic pixel sprite/);
- assert.match(portal,/rig=\{view==='pocket'&&\(!savedVisual\|\|savedVisual\.renderer==='moonwraith-rig'\)\}/,
+ // Oct 25: the view state, labels and overlay rule moved into the shared world-options module + useWorldView hook.
+ assert.match(portal,/useWorldView\(sameSpark\)/);
+ assert.match(read('lib/world/world-options.mjs'),/Classic pixel sprite/);
+ assert.match(portal,/overlayFor\(view,\{rigAvailable:!savedVisual\|\|savedVisual\.renderer==='moonwraith-rig'\}\)/);
+ assert.match(portal,/rig=\{overlay==='rig'\}/,
   'pocket view retains the established Moonwraith rig, but other saved QBEASTs render their recorded native genome');
  assert.match(portal,/preferSavedBeast=\{sameSpark\}/,'saved creature must override an unrelated starter profile');
  assert.match(portal,/creatureVisual\(\{id:session\.beast\.qbeast\.profile\.id/,'presentation follows the exact selected QBEAST');

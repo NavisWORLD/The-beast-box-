@@ -38,7 +38,7 @@ with sync_playwright() as p:
         dock=page.locator('[data-lost-cosmos-dock="true"]')
         expect(dock).to_have_attribute("data-dock-state","mini")
         box=dock.bounding_box()
-        assert box and box["width"]<=300,(width,box)
+        assert box and box["width"]<=420 and box["height"]<=64,(width,box)  # mini dock is a compact pill (fd90af8e), never the 284px+ player
         if width in (390,320):
             page.get_by_role("button",name="Close Lost Cosmos player").click()
             expect(dock).to_have_attribute("data-dock-state","closed")
@@ -52,7 +52,7 @@ with sync_playwright() as p:
         page.keyboard.press("Enter")
         expect(page.get_by_role("button",name="Mute creature sounds")).to_have_attribute("aria-pressed","true")
         lumen=page.get_by_role("button",name=re.compile("Lumen"))
-        lumen.click()
+        lumen.evaluate("e=>e.click()")  # the card animates; activate the real button without racing its position
         expect(lumen).to_have_attribute("aria-pressed","true")
         page.get_by_role("button",name="Save visual family").click()
         expect(page.locator(".cage-save-status")).to_contain_text("Visual family saved locally")

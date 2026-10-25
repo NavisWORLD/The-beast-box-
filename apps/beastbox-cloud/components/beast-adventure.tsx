@@ -303,7 +303,7 @@ export default function BeastAdventure() {
   return <main className={css.page}>
     <header className={css.top}>
       <Link href="/beast-cage">✦ BEAST CAGE</Link>
-      <Link href="/workspace#brain-bay">BRAIN BAY ↗</Link>
+      <Link href="/brain-bay">BRAIN BAY ↗</Link>
     </header>
     <div className={css.layout}>
       <section className={css.map} aria-label="Adventure trail" data-map-pan={`${Math.round(pan.x)},${Math.round(pan.y)}`}
