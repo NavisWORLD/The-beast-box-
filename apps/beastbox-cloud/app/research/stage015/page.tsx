@@ -59,7 +59,7 @@ export default function Stage015Research() {
     </section>
 
     <section className={styles.section} aria-labelledby="results-title">
-      <div className={styles.sectionHead}><CheckCircle2 size={19} aria-hidden="true"/> <span>02 / RECORDED RESULTS</span></div>
+      <div className={styles.sectionHead}><CheckCircle2 size={19} aria-hidden="true"/> <span>02 / RESULTS FROM SIMULATED RUNS</span></div>
       <h2 id="results-title">Here&apos;s what <em>actually happened.</em></h2>
       <p>Mean absolute error against the concealed ideal probabilities for two separately evaluated cohorts. Lower means less prediction error. Eight scenarios used genuine Azure cloud simulator outputs; 24 separate scenarios used reproducible local classical simulation.</p>
       <div className={styles.tableScroll} tabIndex={0} aria-label="Horizontally scrollable Stage 015 prediction-error table">

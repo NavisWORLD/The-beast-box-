@@ -52,6 +52,6 @@ export default function PocketLearningCard({journalId,beastName,loop}:{journalId
   <p className={styles.hearRow}><button type="button" className={styles.hear} aria-pressed={hearing} onClick={()=>void toggleHearing()}>{hearing?'👂 Hearing the room · stop':'👂 Let it hear the room (mic)'}</button>
    {hearing?<meter min={0} max={0.25} value={level} aria-label="Room loudness (local only)"/>:null}</p>
   {err?<p className={styles.small}>{err}</p>:null}
-  <p className={styles.small}>Learned behaviour from its own experience (visit counts, move outcomes and running averages), not consciousness. Saved per beast in this browser. The mic is optional and off by default; only a loudness number is analysed locally, nothing is recorded or uploaded.</p>
+  <p className={styles.small}>Learned behaviour from its own experience (visit counts, move outcomes and running averages), not consciousness. Saved per beast in this browser. The mic is optional and off by default; only a loudness number is analysed locally, nothing is saved or uploaded.</p>
  </div>;
 }
