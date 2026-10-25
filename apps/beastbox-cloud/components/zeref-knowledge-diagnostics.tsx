@@ -34,7 +34,7 @@ export default function ZerefKnowledgeDiagnostics({loop,beastId}:{loop:Loop;beas
    {e?<> On {e.layouts} pocket layouts it never trained on, mean patches explored: random {f1(e.random?.cells_visited)}, hand-coded pocket learner {f1(e.pocket_learner?.cells_visited)}, greedy frontier {f1(e.greedy_frontier?.cells_visited)}, parent model {f1(e.parent?.cells_visited)}, trained model {mean(e.candidate_seeds)} (no-memory ablation {mean(e.no_memory_seeds)}, shuffled-label control {mean(e.shuffled_seeds)}).</>:null}
    {st.failed_gates?.length?<> Failed gates: {st.failed_gates.map(g=>g.replace(/^G\d+_/,'').replace(/_/g,' ')).join('; ')}.</>:null}
    {st.run_url?<> <a href={st.run_url} rel="noreferrer" target="_blank">Evidence run</a>.</>:null}</p>
-   :<p className={styles.small}>{err?'Neural experiment status unavailable; nothing is shown rather than an invented result.':'Loading neural model status…'}</p>}
+   :<p className={styles.small}>{err?'Experiment status isn’t available right now. Nothing is made up.':'Checking on the model…'}</p>}
   {st?<p className={styles.small}>{st.identity_note} {st.honesty}</p>:null}
   </Details>
  </div>;

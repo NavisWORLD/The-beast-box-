@@ -4,8 +4,8 @@ import Link from 'next/link';
 export const metadata={title:'Page not found · Beast Box'};
 export default function NotFound(){
  return <main data-not-found style={{minHeight:'60vh',display:'grid',placeContent:'center',textAlign:'center',gap:12,padding:24}}>
-  <h1 style={{fontSize:28,margin:0}}>This page could not be found</h1>
-  <p style={{margin:0,opacity:.8}}>The link may be old or mistyped.</p>
-  <p style={{margin:0,display:'flex',gap:16,justifyContent:'center',flexWrap:'wrap'}}><Link href="/">Home</Link><Link href="/beast-cage">Beast Cage</Link><Link href="/universe">Universe</Link></p>
+  <h1 style={{fontSize:28,margin:0}}>This corner of the universe isn’t here.</h1>
+  <p style={{margin:0,opacity:.8}}>The link may be old. Let’s get you home.</p>
+  <p style={{margin:0,display:'flex',gap:16,justifyContent:'center',flexWrap:'wrap'}}><Link href="/">Home</Link><Link href="/beast-cage">Beast Cage</Link><Link href="/universe">Tiny Universe</Link></p>
  </main>;
 }

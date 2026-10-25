@@ -192,7 +192,7 @@ export default function BeastCareDeck({ chat = true, sprite = true }: { chat?: b
     <span className={css.flag}>YOUR LITTLE COMPANION</span>
     <h2>A name. A soft pet. <em>A shared journey.</em></h2>
     <p className={css.lede}>Start with a name, then pet and train together. Your beast keeps its care, memory and small discoveries on this device.</p>
-    {!ready || !session ? <p className={css.note}>{ready ? storageStatus : 'Opening the local save…'}</p> : <div className={`${css.grid} ${!sprite ? css.withoutSprite : ''}`}>
+    {!ready || !session ? <p className={css.note}>{ready ? storageStatus : 'Opening your saved beast…'}</p> : <div className={`${css.grid} ${!sprite ? css.withoutSprite : ''}`}>
       {sprite ? <div className={css.stage}>
         {beast ? <PixelBeast publicSpark={!!beast.qbeast} genome={beast.genome} stage={beast.qbeast ? beast.nativeStage || 1 : beast.stage} pose={pose} emote={emote} reduced={reduced} label={`${shownName(beast)}, stage ${beast.stage}, ${visual}`} /> : <p className={css.note}>Your companion is waiting.</p>}
         <span className={css.caption}>{beast ? shownName(beast) : 'MEET YOUR BEAST'}</span>

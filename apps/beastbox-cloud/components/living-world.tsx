@@ -718,7 +718,7 @@ uniform vec3 uPlay[8];
  const T=hud.traits;
  return <div ref={host} className="lw-root" data-living-world={spawned?'spawned':'orbit'} data-lw-embedded={embedded?'':undefined} style={{pointerEvents:'auto',position:embedded||door?'absolute':'fixed',inset:0,zIndex:embedded||door?1:2147483000,borderRadius:embedded?18:0,overflow:'hidden',background:'#05030f',touchAction:embedded&&!spawned?'pan-y':'none',fontSize:embedded?11:13,color:'#efeaff',font:'13px/1.35 system-ui,sans-serif'}}>
   <canvas ref={canvasRef} style={{position:'absolute',inset:0,width:'100%',height:'100%',display:'block',touchAction:'none'}}/>
-  {!booted&&!err?<div role="status" aria-live="polite" data-lw-loading style={{position:'absolute',inset:0,zIndex:4,display:'grid',placeItems:'center',background:'#05030f',color:'#d9ccff',fontWeight:600,pointerEvents:'none'}}>Loading your tiny world…</div>:null}
+  {!booted&&!err?<div role="status" aria-live="polite" data-lw-loading style={{position:'absolute',inset:0,zIndex:4,display:'grid',placeItems:'center',background:'#05030f',color:'#d9ccff',fontWeight:600,pointerEvents:'none'}}>Opening your tiny world…</div>:null}
   {embedded?<details data-lw-chips data-lw-info style={{position:'absolute',top:'calc(env(safe-area-inset-top) + 8px)',left:8,maxWidth:'calc(100% - 16px)',zIndex:3}}>
    <summary aria-label="About this world: what is recorded, simulated or modelled" style={{listStyle:'none',cursor:'pointer',width:30,height:30,borderRadius:'50%',display:'grid',placeItems:'center',background:'rgba(10,6,30,.78)',border:'1px solid rgba(190,170,255,.6)',color:'#efeaff',font:'700 15px system-ui'}}>ⓘ</summary>
    <div style={{display:'flex',flexWrap:'wrap',gap:6,marginTop:6,padding:8,borderRadius:12,background:'rgba(10,6,30,.86)'}}>
@@ -729,7 +729,7 @@ uniform vec3 uPlay[8];
   </div>}
   <div style={{position:'absolute',left:10,right:10,bottom:'calc(env(safe-area-inset-bottom) + 10px)',display:'flex',justifyContent:'space-between',alignItems:'flex-end',gap:8,pointerEvents:'none'}}>
    <div data-lw-card style={{background:'rgba(10,6,30,.72)',borderRadius:12,padding:'8px 10px',maxWidth:'62%',pointerEvents:'auto',display:embedded&&!spawned?'none':undefined}}>
-    <b>{beastName||'Your beast'}</b> {genome||(typeof window!=='undefined'&&(window as any).__beastGenome)?'':'(no saved beast yet — hatch one in the Cage)'}<br/>
+    <b>{beastName||'Your beast'}</b> {genome||(typeof window!=='undefined'&&(window as any).__beastGenome)?'':'(No beast yet. Hatch one and it’ll appear.)'}<br/>
     <details data-lw-details style={{fontSize:12}}><summary style={{cursor:'pointer',opacity:.8}}>Details</summary>
     tick {hud.tick} · sim E {hud.simE??'—'} · life {hud.life} · storms {hud.storms} · grass {Math.round(hud.cover*100)}%<br/>
     {hud.learned?<>things awake {hud.awake??0} · learned {Object.entries(hud.learned).map(([k,v])=>k+' '+v).join(' · ')||'—'}<br/></>:null}

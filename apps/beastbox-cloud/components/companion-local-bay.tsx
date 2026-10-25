@@ -341,7 +341,7 @@ export default function CompanionLocalBay({variant='bay'}:{variant?:'bay'|'chat'
    </div>
    <p className={styles.note} role="status">Linked Beast: {beastReady&&beastIdentity(activeSession?.beast)
      ?String(beastIdentity(activeSession.beast)).slice(0,24)+'… · '+(activeSession.beast.senseNotes?.length||0)+' approved text summaries'
-     :'No active Beast chosen yet.'} Source descriptions are model interpretations, not proof of what the camera saw. No raw frames or audio enter the Beast save.</p>
+     :'No beast chosen yet. Pick one to begin.'} Source descriptions are model interpretations, not proof of what the camera saw. No raw frames or audio enter the Beast save.</p>
    <p className={styles.note}>Verified HF references (not automatic paid inference):
     <a href="https://huggingface.co/phera-ra/QC67_cosmo" target="_blank" rel="noopener noreferrer"> QC67 local GGUF</a> ·
     <a href="https://huggingface.co/phera-ra/rawrphos-native-12k" target="_blank" rel="noopener noreferrer"> RAWRPHØS private 12K checkpoint</a>.
