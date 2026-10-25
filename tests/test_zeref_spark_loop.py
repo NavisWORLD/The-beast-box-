@@ -119,3 +119,53 @@ def test_final_spark_001_reseed_is_recorded_ibm_used_once_then_simulated(tmp_pat
     spark.plan(str(d), str(tmp_path / "p1.json"), 1060.0)
     assert "reseed" not in json.loads((tmp_path / "p1.json").read_text())  # used once only
     spark.verify_chain(str(d))
+
+
+def _run_module():
+    s = importlib.util.spec_from_file_location("spark_run", ROOT / "scripts/zeref_spark_run.py")
+    m = importlib.util.module_from_spec(s)
+    s.loader.exec_module(m)
+    return m
+
+
+def test_reseed_hot_refresh_applies_a_reseed_merged_after_the_run_started(tmp_path):
+    run = _run_module()
+    good = (ROOT / "evidence/zeref-final-spark-001/spark-seed.json").read_text()
+    dest = tmp_path / "seed" / "spark-seed.json"
+    d = tmp_path / "zeref"
+    old = spark.RESEED_FILE
+    spark.RESEED_FILE = tmp_path / "absent.json"  # a chain that is already running with no reseed file checked out
+    try:
+        for _ in range(3):
+            tick(tmp_path, 1000.0)
+    finally:
+        spark.RESEED_FILE = old
+    assert "reseeded_from" not in json.loads((d / "state.json").read_text())
+    last = run.refresh_reseed(2000.0, -1e18, fetch=lambda u: good, dest=dest)
+    assert last == 2000.0 and dest.read_text() == good
+    # not before RESEED_REFRESH_S has passed
+    assert run.refresh_reseed(2100.0, last, fetch=lambda u: (_ for _ in ()).throw(AssertionError("fetched too soon")), dest=dest) == last
+    spark.RESEED_FILE = dest
+    try:
+        spark.plan(str(d), str(tmp_path / "p.json"), 2060.0)
+        plan = json.loads((tmp_path / "p.json").read_text())
+        assert plan["reseed"]["kind"] == "recorded-ibm-hardware" and plan["tick"] == 4
+        (tmp_path / "r.json").write_text(json.dumps(receipt()))
+        spark.apply(str(d), str(tmp_path / "p.json"), str(tmp_path / "r.json"), 2060.0)
+        spark.plan(str(d), str(tmp_path / "p2.json"), 2120.0)
+        assert "reseed" not in json.loads((tmp_path / "p2.json").read_text())  # still used once per IBM job
+        spark.verify_chain(str(d))
+    finally:
+        spark.RESEED_FILE = old
+
+
+def test_reseed_hot_refresh_rejects_bad_or_unreachable_sources_and_invents_nothing(tmp_path):
+    run = _run_module()
+    dest = tmp_path / "spark-seed.json"
+    simulated = json.dumps({"source_class": "SIMULATED", "job": "x", "per_question_pair": {}})
+    for body in (simulated, "not json", json.dumps({"source_class": "RECORDED_IBM_HARDWARE"})):
+        run.refresh_reseed(5000.0, -1e18, fetch=lambda u, b=body: b, dest=dest)
+        assert not dest.exists()
+    def boom(u):
+        raise OSError("offline")
+    assert run.refresh_reseed(5000.0, -1e18, fetch=boom, dest=dest) == 5000.0 and not dest.exists()
