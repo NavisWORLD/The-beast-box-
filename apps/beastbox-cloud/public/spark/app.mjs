@@ -116,7 +116,7 @@ function showCreature(entry,nextSession,spawn=true){
  cacheEyes(gen);showTraits(entry.traits);$('keeper').value=session.beast.creatorLabel||entry.user||'';
  $('meta').textContent=`${gen.temperament} · ${gen.element} · ${gen.body} · ${gen.island}`;
  $('quantum').textContent=`${run.qvm?'SIMULATOR SEED':'RECORDED QUANTUM SEED'} · ${run.backend} · ${run.counts_sha256.slice(0,12)}…`;
- $('provenance').textContent=`Job ${run.job_id} · pub ${run.pub_index} · ${run.num_bits}-bit · ${run.shots} recorded shots · counts SHA-256 ${run.counts_sha256}`;
+ $('provenance').textContent=`Job ${run.job_id} · pub ${run.pub_index} · ${run.num_bits}-bit · ${run.shots} ${run.qvm?'SIMULATED':'RECORDED'} shots · counts SHA-256 ${run.counts_sha256}`;
  $('seed').textContent=gen.seed;for(const which of [1,2,3]){paintStage($(`st${which}`),gen,which);$(`nm${which}`).textContent=gen.names[which];}
  qvmGrowth=readQvmGrowth(gen.seed);
  const scene=audioSceneFor(gen);if(scene)beastAudio.setScene(scene);syncAudioUi();

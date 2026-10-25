@@ -14,14 +14,19 @@ export function captionKeepsHonesty(text) {
 }
 export function lookSubjectLabels(id, {activeName = '', profileName = '', labels = {subjects: {}}} = {}) {
   const e = (labels.subjects || {})[id] || {};
-  const live = activeName || profileName || 'companion';
+  const dn = (labels.displayNames || {});
+  const shown = n => (n && dn[n]) || n || '';
+  const act = shown(activeName), prof = shown(profileName);
+  const ch = id === 'workshop' ? (labels.characters || {})[String(activeName || profileName || '').toLowerCase()] || null : null;
+  const live = act || prof || 'companion';
   const attribution = KIND[id] ? dimensionalAttribution(KIND[id]) : null;
-  const custom = attribution && e.caption && captionKeepsHonesty(e.caption) ? e.caption : null;
-  const headingName = e.headingName || (id === 'workshop' ? (activeName || 'your beast') : 'Zeref');
+  const own = e.caption || (ch && ch.subtitle_long) || null;
+  const custom = (attribution || ch) && own && captionKeepsHonesty(own) ? own : null;
+  const headingName = e.headingName || (id === 'workshop' ? (act || 'your beast') : 'Zeref');
   const stageName = e.stageName || (id === 'workshop' ? live : 'Zeref');
   return {
     id,
-    button: e.button || (id === 'workshop' ? (activeName || 'Your beast') : id),
+    button: e.button || (ch && ch.model_button) || (id === 'workshop' ? (act || 'Your beast') : id),
     headingName,
     stageName,
     caption: custom || (attribution ? attribution.label : null),
