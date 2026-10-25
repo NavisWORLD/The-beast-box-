@@ -27,7 +27,7 @@ export default function OpenFieldCamera(){
  const [msg,setMsg]=useState(''),[caps,setCaps]=useState<Caps|null>(null),[grok,setGrok]=useState('checking…');
  useEffect(()=>{setCaps(detect());void voiceStatus().then(v=>setGrok(v.grok.configured?'configured (backend key)':'not set up'));},[]);
  const label=(k:keyof Caps,t:string)=>caps?<li key={k} data-cap={k} data-available={caps[k]}>{t}: {caps[k]?'available':'not in this browser'}</li>:null;
- return <section aria-label="Lost Cosmos Field camera" data-open-field style={{position:'relative',margin:'12px auto',maxWidth:560,padding:12,border:'1px solid #7dd9ea55',borderRadius:20,background:'#0c1329cc',color:'#e8f4ff'}}>
+ return <section aria-label="Lost COSMOS Field camera" data-open-field style={{position:'relative',margin:'12px auto',maxWidth:560,padding:12,border:'1px solid #7dd9ea55',borderRadius:20,background:'#0c1329cc',color:'#e8f4ff'}}>
   <header style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8}}><div><strong>✦ LOST COSMOS FIELD</strong><small style={{display:'block',color:'#9fc6d8'}}>Your companion + Zeref walking in your room · true AR tracking (WebXR, Android) · camera overlay on iPhone (+ Quick Look AR)</small></div>
 </header>
   <CameraField />

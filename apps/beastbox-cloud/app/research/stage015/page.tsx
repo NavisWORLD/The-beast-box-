@@ -6,7 +6,7 @@ import styles from './stage015.module.css';
 import BrandCrest from '@/components/brand-crest';
 
 export const metadata: Metadata = {
-  title: 'COSMOS Lab // Stage 015 — Beast Box',
+  title: 'Research Lab · Stage 015 · Beast Box',
   description: 'Original Azure Rigetti cloud QVM simulator evidence, 192 pinned Qwen inference trials and independently audited COSMOS 12D forecasting controls.',
   robots: { index: true, follow: true },
 };
