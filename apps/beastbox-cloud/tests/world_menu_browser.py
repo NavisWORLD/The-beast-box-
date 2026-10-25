@@ -29,6 +29,8 @@ def run(browser, route, ctx_key, vp, mobile):
     page.wait_for_timeout(1500)
     hit = page.evaluate("""() => {const f=document.querySelector('[data-world-menu-button]');const r=f.getBoundingClientRect();const e=document.elementFromPoint(r.x+r.width/2,r.y+r.height/2);return !!e && f.contains(e)}""")
     check(hit, f"{tag}: nothing (sprite, canvas, chip) covers the menu button, so a real tap lands on it")
+    clash = page.evaluate("""() => {const f=document.querySelector('[data-world-menu-button]').getBoundingClientRect();return [...document.querySelectorAll('[data-spark-beast] button, [aria-label="Show controls"]')].some(b=>{const r=b.getBoundingClientRect();return r.width>0&&r.x<f.right&&r.right>f.x&&r.y<f.bottom&&r.bottom>f.y})}""")
+    check(not clash, f"{tag}: menu button does not overlap the creature's own controls")
     check(page.evaluate("document.querySelectorAll('.cage-look-pill').length") == 0, f"{tag}: no Look Closer pill on the scene")
     check(page.evaluate("document.querySelectorAll('[data-beast-arena]').length") == 0 or ctx_key == "cage", f"{tag}: no pixel sprite overlay by default")
     check(page.evaluate("document.querySelectorAll('.cage-view-toggle, [data-home-view-toggle]').length") == 0, f"{tag}: no loose view buttons")
