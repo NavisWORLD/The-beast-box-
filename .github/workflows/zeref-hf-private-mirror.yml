@@ -1,0 +1,69 @@
+name: Zeref - mirror each promoted checkpoint to the PRIVATE HF model repo
+# 2026-10-25 (Cory approved): after the public pin changes (a reviewed, Gate v2 promotion), copy that checkpoint
+# to the PRIVATE Hugging Face model repo phera-ra/rawrphos-native-12k under zeref-006/cycle-N-step-S/.
+# Additive path only (existing files are never overwritten). Private only: the job refuses if the repo is public.
+# Needs the repo secret HF_WRITE_TOKEN (a fine-grained HF token with write access to that one repo). Without it the
+# job skips with a notice and changes nothing. Never uploads training_state.pt, audio, or secrets.
+on:
+  push:
+    branches: [main]
+    paths: ['apps/beastbox-cloud/lib/rawrphos-public-pin.json']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: zeref-hf-private-mirror
+  cancel-in-progress: false
+jobs:
+  mirror:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      GH_TOKEN: ${{ github.token }}
+      HF_REPO: phera-ra/rawrphos-native-12k
+      HF_TOKEN: ${{ secrets.HF_WRITE_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Skip cleanly when no HF write token is configured
+        id: gate
+        run: |
+          if [ -z "${HF_TOKEN}" ]; then echo "::notice::HF_WRITE_TOKEN secret is not set; mirror skipped (nothing changed)"; echo "go=false" >> "$GITHUB_OUTPUT"; else echo "go=true" >> "$GITHUB_OUTPUT"; fi
+      - name: Download the pinned release and verify its hashes
+        if: steps.gate.outputs.go == 'true'
+        run: |
+          set -Eeuo pipefail
+          python3 - <<'PY'
+          import json,os
+          p=json.load(open('apps/beastbox-cloud/lib/rawrphos-public-pin.json'))
+          tag=p['promotion']['release_tag']
+          open(os.environ['GITHUB_ENV'],'a').write(f"PIN_TAG={tag}\nPIN_STEPS={p['training_steps']}\nPIN_SHA={p['checkpoint_sha256']}\n")
+          PY
+          mkdir -p dl && gh release download "$PIN_TAG" -D dl
+          (cd dl && sha256sum -c ./*.sha256 && tar xzf ./*.tar.gz)
+          CK=$(find dl -type d -name accepted-checkpoint | head -n1)
+          test -n "$CK"
+          ACTUAL=$(sha256sum "$CK/model.safetensors" | cut -d' ' -f1)
+          test "$ACTUAL" = "$PIN_SHA"
+          echo "CK=$CK" >> "$GITHUB_ENV"
+      - name: Upload to the private HF repo (refuses if public)
+        if: steps.gate.outputs.go == 'true'
+        run: |
+          set -Eeuo pipefail
+          pip install -q huggingface_hub
+          python3 - <<'PY'
+          import os,sys
+          from huggingface_hub import HfApi
+          api=HfApi(token=os.environ['HF_TOKEN'])
+          info=api.model_info(os.environ['HF_REPO'])
+          if not info.private:
+              sys.exit("refusing: target HF repo is not private")
+          dest=f"zeref-006/step-{os.environ['PIN_STEPS']}-{os.environ['PIN_SHA'][:12]}"
+          existing=[s.rfilename for s in info.siblings or []]
+          if any(f.startswith(dest+'/') for f in existing):
+              print("already mirrored; nothing to do"); sys.exit(0)
+          ck=os.environ['CK']
+          for rel in ['model.safetensors','config.json','metadata.json','manifest.json','tokenizer/tokenizer.json','tokenizer/metadata.json']:
+              api.upload_file(path_or_fileobj=os.path.join(ck,rel),path_in_repo=f"{dest}/{rel}",repo_id=os.environ['HF_REPO'],
+                              commit_message=f"Mirror promoted Zeref checkpoint {os.environ['PIN_TAG']} (private, no audio)")
+          print("MIRRORED",dest)
+          PY
