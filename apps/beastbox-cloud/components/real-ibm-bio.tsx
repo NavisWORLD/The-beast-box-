@@ -8,14 +8,16 @@ import {measureFingertip,sha256Hex,MEASURE_SECONDS,type Progress} from '../lib/b
 import {buildBioPacket,existingBioInjection,type BioPacket} from '../lib/bio/bio-packet.mjs';
 import {PPG_REASONS} from '../lib/bio/ppg.mjs';
 import {IBM_STATES,QVM_STATES} from '../lib/bio/bio-states.mjs';
+import {buildFeaturePosts,FEED_NOTE} from '../lib/bio/features-feed.mjs';
 
-type Phase='idle'|'measuring'|'invalid'|'injecting'|'dispatching'|'dispatched'|'done'|'error';
+type Phase='idle'|'measuring'|'invalid'|'injecting'|'dispatching'|'dispatched'|'saved'|'done'|'error';
 type Status={found?:boolean;status?:string;conclusion?:string|null;run_url?:string;ibm?:string|null;rigetti?:string|null};
 const POLL_MS=20000,POLL_MAX=135;
 async function post(path:string,body:unknown){const r=await fetch(path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),cache:'no-store'});const j=await r.json().catch(()=>({}));return {status:r.status,body:j as Record<string,unknown>};}
 
 export default function RealIbmBio({owner}:{owner:boolean}){
- const [phase,setPhase]=useState<Phase>('idle'),[withMic,setWithMic]=useState(false);
+ const [phase,setPhase]=useState<Phase>('idle'),[withMic,setWithMic]=useState(false),[sendZeref,setSendZeref]=useState(false);
+ const [saved,setSaved]=useState(''),[feed,setFeed]=useState('');
  const [prog,setProg]=useState<Progress|null>(null),[msg,setMsg]=useState('');
  const [packet,setPacket]=useState<BioPacket|null>(null),[torch,setTorch]=useState<string>('');
  const [inject,setInject]=useState(''),[runUrl,setRunUrl]=useState(''),[status,setStatus]=useState<Status|null>(null);
@@ -33,12 +35,24 @@ export default function RealIbmBio({owner}:{owner:boolean}){
 
  const stop=()=>{abort.current?.abort();};
  const start=async()=>{
-  setMsg('');setPacket(null);setInject('');setRunUrl('');setStatus(null);setProg(null);setTorch('');
+  setMsg('');setSaved('');setFeed('');setPacket(null);setInject('');setRunUrl('');setStatus(null);setProg(null);setTorch('');
   const ac=new AbortController();abort.current=ac;setPhase('measuring');
   try{
    const m=await measureFingertip({withMic,onProgress:setProg,signal:ac.signal});setTorch(m.torch);
    if(!m.ppg.valid){setPhase('invalid');setMsg(PPG_REASONS[m.ppg.reason||'no_pulse']||'No valid pulse.');return;}
    const pk=await buildBioPacket({ppg:m.ppg,light:m.light,audio:m.audio},sha256Hex);setPacket(pk);
+   // 2b) keep the numbers-only packet in the owner's private storage, so the IBM run can be started from the box even if this phone cannot dispatch
+   let savedOk=false;
+   try{const sv=await post('/api/bio-connection/packet',{packet:pk});savedOk=sv.status===200;
+    setSaved(sv.status===200?'Saved to your private storage (numbers only). The IBM run can be started from there.':sv.status===503?'Private storage is not set up on this site, so the numbers were not saved.':sv.status===401?'Owner session needed to save the numbers.':'Numbers were not saved ('+sv.status+').');
+   }catch{setSaved('Numbers were not saved (network).');}
+   // 2c) opt-in only: send heart (and mic level) numbers to Zeref's brain feed. Numbers only; light is not sent (fingertip, not ambient light).
+   if(sendZeref){
+    try{const sent:string[]=[];let bad='';
+     for(const body of buildFeaturePosts(pk)){const r=await post('/api/bridge/features',body);if(r.status===200)sent.push(body.kind);else{bad=r.status===503?'the brain host is offline':r.status===401?'owner session needed':'rejected ('+r.status+')';break;}}
+     setFeed(bad?'Not sent to Zeref: '+bad+'.':'Sent to Zeref: '+sent.join(' + ')+' numbers. '+FEED_NOTE);
+    }catch{setFeed('Not sent to Zeref (network).');}
+   }
    // 3) inject the numbers into the existing bio path (same schema BioPanel uses). Preview only; nothing is persisted by this button.
    setPhase('injecting');
    try{const i=await post('/api/bridge/bio',existingBioInjection(pk));
@@ -47,7 +61,7 @@ export default function RealIbmBio({owner}:{owner:boolean}){
    // 4) dispatch the real IBM workflow (server holds the GitHub token; the workflow holds the IBM secret)
    setPhase('dispatching');
    const d=await post('/api/bio-connection',{packet:pk});
-   if(d.status!==200||d.body.ok!==true){setPhase('error');setMsg(d.status===401?'Owner login required. Sign in as the owner, then try again.':d.status===503?'Dispatch is not configured yet: the server needs BEASTBOX_GITHUB_DISPATCH_TOKEN. Your heartbeat was measured and the numbers are ready, but no IBM job was started.':String(d.body.error||'Dispatch failed ('+d.status+').'));return;}
+   if(d.status!==200||d.body.ok!==true){if(savedOk){setPhase('saved');setMsg('Your heartbeat numbers are saved. This phone could not start the IBM run itself ('+(d.status===503?'dispatch is not configured':String(d.body.error||d.status))+'), so it will be started from the box using the saved numbers. No IBM time was used yet.');return;}setPhase('error');setMsg(d.status===401?'Owner login required. Sign in as the owner, then try again.':d.status===503?'Dispatch is not configured yet: the server needs BEASTBOX_GITHUB_DISPATCH_TOKEN. Your heartbeat was measured and the numbers are ready, but no IBM job was started.':String(d.body.error||'Dispatch failed ('+d.status+').'));return;}
    setRunUrl(String(d.body.run_url||''));setPhase('dispatched');pollStatus(pk.packet_sha256.slice(0,12));
   }catch(e){
    const aborted=e instanceof DOMException&&e.name==='AbortError';
@@ -65,6 +79,8 @@ export default function RealIbmBio({owner}:{owner:boolean}){
    <li>1 · Heartbeat: {packet?<b>MEASURED · {packet.pulse.bpm.toFixed(0)} bpm{packet.pulse.hrv_rmssd_ms!==null?' · HRV '+packet.pulse.hrv_rmssd_ms.toFixed(0)+' ms':''} · quality {packet.pulse.sqi.toFixed(2)}</b>:phase==='measuring'?<b>measuring… {pct}%</b>:phase==='invalid'?<b>no valid pulse</b>:<span>not measured yet</span>}</li>
    <li>2 · Numbers only: {packet?<b>packet {packet.packet_sha256.slice(0,12)} · raw video/audio stay on this phone</b>:<span>waiting</span>}</li>
    <li>3 · Injected into the bio loop: {inject?<b>{inject}</b>:<span>waiting</span>}</li>
+   <li>3b · Saved owner-side: {saved?<b>{saved}</b>:<span>waiting</span>}</li>
+   {sendZeref?<li>3c · Zeref brain feed: {feed?<b>{feed}</b>:<span>waiting</span>}</li>:null}
    <li>4 · Real IBM spark: {phase==='dispatching'?<b>dispatching…</b>:runUrl?<b>dispatched · <a href={runUrl} target="_blank" rel="noreferrer">Actions run <ExternalLink size={12}/></a></b>:<span>waiting</span>}</li>
    <li>5 · Result: {ibm||qvm?<b>{ibm||'IBM result pending'} · {qvm||'Rigetti pending'}</b>:phase==='dispatched'?<b>running… ({status?.status||'queued'})</b>:<span>waiting</span>}</li>
   </ol>
@@ -75,12 +91,14 @@ export default function RealIbmBio({owner}:{owner:boolean}){
   {phase==='invalid'?<p className="cloud-connect-alert" role="alert"><b>No valid pulse.</b> {msg} Nothing was sent and no IBM time was used.</p>:null}
   {phase==='error'?<p className="cloud-connect-alert" role="alert">{msg}</p>:null}
   {phase==='idle'&&msg?<p className="cloud-connect-foot" role="status">{msg}</p>:null}
+  {phase==='saved'?<p className="cloud-connect-success" role="status">{msg}</p>:null}
   {phase==='dispatched'||phase==='done'?<p className="cloud-connect-success" role="status">{phase==='done'?(status?.conclusion==='success'?'Run finished.':'Run finished with conclusion: '+(status?.conclusion||'unknown')+'.'):'Dispatched. IBM and the Rigetti simulator run inside GitHub Actions; this page checks every 20 seconds.'} {ibm?.startsWith('Skipped')?'No IBM job was submitted, so nothing is RECORDED.':''}</p>:null}
+  <label className="cloud-spend"><input type="checkbox" checked={sendZeref} disabled={busy} onChange={e=>setSendZeref(e.target.checked)}/> Also send these numbers to Zeref (heart and mic levels only, never recordings; a snapshot, not a live stream)</label>
   <label className="cloud-spend"><input type="checkbox" checked={withMic} disabled={busy} onChange={e=>setWithMic(e.target.checked)}/> Also use the microphone for light audio numbers (levels only, no recording)</label>
   <div className="cloud-connect-actions">
    <button className="primary-action" type="button" disabled={!owner||busy} onClick={()=>void start()} aria-label="Start Real IBM Bio Connection"><Activity size={16}/> {phase==='measuring'?'MEASURING '+MEASURE_SECONDS+' S…':phase==='injecting'?'INJECTING…':phase==='dispatching'?'DISPATCHING…':'START REAL IBM BIO CONNECTION'}</button>
    {phase==='measuring'?<button className="outline-action" type="button" onClick={stop}><Square size={14}/> Cancel</button>:null}
   </div>
-  <p className="cloud-connect-foot">Tap once, then hold your fingertip over the rear camera and light for {MEASURE_SECONDS} seconds. This sends numbers only (bpm, HRV, quality, light and audio levels, a sha256) and starts one real IBM run of at most 20 QPU seconds; it is skipped if the plan has under 60 seconds left. Heartbeat is MEASURED only when the pulse quality passes; IBM is RECORDED only after the run; Rigetti is SIMULATED. Not a medical device. {torch?'Torch: '+(torch==='requested'?'requested, unconfirmed':'unavailable')+'.':''}</p>
+  <p className="cloud-connect-foot">Tap once, then hold your fingertip over the rear camera and light for {MEASURE_SECONDS} seconds. This sends numbers only and saves them to your private storage so the run can be started from there (bpm, HRV, quality, light and audio levels, a sha256) and starts one real IBM run of at most 20 QPU seconds; it is skipped if the plan has under 60 seconds left. Heartbeat is MEASURED only when the pulse quality passes; IBM is RECORDED only after the run; Rigetti is SIMULATED. Not a medical device. {torch?'Torch: '+(torch==='requested'?'requested, unconfirmed':'unavailable')+'.':''}</p>
  </section>;
 }
