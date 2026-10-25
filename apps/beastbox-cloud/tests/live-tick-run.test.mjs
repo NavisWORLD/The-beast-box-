@@ -25,4 +25,13 @@ test('workflow: chained + watchdog, batch commits, read-only on the recorded dia
  assert.match(y,/schedule:\n    - cron:/);assert.match(y,/workflow_dispatch/);assert.match(y,/group: zeref-live-tick-loop/);assert.match(y,/gh workflow run zeref-live-tick-loop\.yml/);assert.match(y,/zeref-live-tick-run\.mjs diary live "\$RUN_SECONDS" 600/);
  assert.doesNotMatch(y,/secrets\.(?!github)/);assert.doesNotMatch(y,/push[^\n]*zeref-diary\b(?!-)/);assert.match(y,/deploymentEnabled":false/);assert.match(y,/SIMULATED/);
  const s=readFileSync(new URL('../scripts/zeref-live-tick-run.mjs',import.meta.url),'utf8');assert.doesNotMatch(s,/origin','HEAD:zeref-diary/);});
+test('workflow sparse checkout lists every file the tick script imports (transitively), so a new import cannot crash-loop the chain; smoke import runs before the next run is queued',()=>{
+ const y=readFileSync(new URL('../../../.github/workflows/zeref-live-tick-loop.yml',import.meta.url),'utf8');
+ const listed=new Set([...y.matchAll(/^\s+(apps\/beastbox-cloud\/\S+\.mjs)\s*$/gm)].map(m=>m[1]));
+ const seen=new Set();const walk=rel=>{if(seen.has(rel))return;seen.add(rel);const src=readFileSync(new URL('../../../'+rel,import.meta.url),'utf8');
+  for(const m of src.matchAll(/(?:import|export)[^'"]*?from\s*['"](\.[^'"]+)['"]/g)){const t=new URL(m[1],'file:///'+rel).pathname.slice(1);walk(t);}};
+ walk('apps/beastbox-cloud/scripts/zeref-live-tick-run.mjs');
+ for(const f of seen)assert.ok(listed.has(f),'not in sparse checkout: '+f);
+ assert.ok(y.indexOf('Smoke import')>0&&y.indexOf('Smoke import')<y.indexOf('gh workflow run zeref-live-tick-loop.yml'));
+});
 test('engine/orchestrator never use Math.random',()=>{for(const f of ['../lib/zeref/live-tick-run.mjs','../lib/zeref/live-tick.mjs'])assert.doesNotMatch(readFileSync(new URL(f,import.meta.url),'utf8').replace(/\/\*[^]*?\*\//g,''),/Math\.random/);});

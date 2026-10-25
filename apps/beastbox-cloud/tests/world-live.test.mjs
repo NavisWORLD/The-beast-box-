@@ -46,6 +46,8 @@ test('pure engine: no Math.random, clock, network or secrets; route reads only t
  const route=strip('../app/api/world/live/route.ts');
  for(const b of ['zeref-spark/zeref/latest.json','zeref-live-tick/live/latest.json','zeref-live-tick/live/head.json','zeref-diary/zeref/latest.json'])assert.ok(route.includes(b),b);
  assert.doesNotMatch(route,/process\.env|Authorization|token/i);
+ // freshness: never a cached/stale-while-revalidate payload
+ assert.match(route,/export const dynamic='force-dynamic'/);assert.doesNotMatch(route,/export const revalidate|next:\{revalidate|stale-while-revalidate/);assert.match(route,/no-store/);
 });
 test('UI: polls only while visible, shows STALE/DOWN honestly, broadcasts the spark numbers, mounted in the diary panel and heard by the habitat',()=>{
  const ui=readFileSync(new URL('../components/world-live-links.tsx',import.meta.url),'utf8');
