@@ -897,3 +897,6 @@ body:has([data-not-found]) :is(.site-dock,[data-beast-chat-launcher],[data-zeref
 
 /* Oct 25: the home Menu button lives in its own layer ABOVE the 3D Zeref sprite (z2), so the sprite's box can never swallow the tap. */
 .home-menu-layer{position:absolute;inset:0;z-index:5;pointer-events:none}
+
+/* Oct 25: in the round pocket the creature's own controls (sound, attack, ...) sit low and centered, inside the circle and clear of the Menu button; the corner spot was clipped by the circle on phones. */
+.cage-habitat-visual[data-cage-view=pocket] [data-tools-open]{top:auto!important;bottom:24%!important;left:0!important;right:0!important;margin-inline:auto!important;width:min(86%,300px)!important;flex-direction:row!important;flex-wrap:wrap!important;justify-content:center!important;align-items:center!important}
