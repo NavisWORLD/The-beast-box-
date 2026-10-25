@@ -264,6 +264,10 @@ jobs:
           ZEREF_GROW_LAYERS: ${{ steps.growth.outputs.add_layers || '0' }}
           ZEREF_GROWTH_WIP_IN: ${{ steps.growth.outputs.wip || '' }}
           ZEREF_GROWTH_WIP_OUT: build/zeref-006/growth/growth-wip-new.pt
+          # 2026-10-25 multi-candidate rounds: 4 candidates (seed/lr/lr-floor variants) resume from the SAME live pin;
+          # the best on set A goes to the UNCHANGED Gate v2 (set B strict, pin re-scored). Rounds are 320 updates from cycle 45.
+          ZEREF_006_CANDIDATES: '4'
+          ZEREF_006_CANDIDATE_BUDGET_S: '2400'  # stop STARTING new candidates after 40 min so the 90-min job still finishes
           ZEREF_006_TIME_BUDGET_S: '2700'  # physical limit: 90-min job; stop training at 45 min, save WIP, continue next round
         run: |
           set -Eeuo pipefail

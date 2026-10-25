@@ -113,3 +113,13 @@ test('fix 003: same chat yardstick as the public pin, character check, warm slic
  assert.ok(c.includes('candidate["rude_or_unsafe"]<=parent["rude_or_unsafe"]'));
  assert.ok(mix.includes('WARM_MAX_FRACTION=0.05')&&mix.includes('CHARACTER_PROMPTS'),'warm slice capped; check prompts held out');
 });
+
+test('2026-10-25 multi-candidate rounds keep Gate v2 unchanged and select on set A only',()=>{
+ const t=read('scripts/zeref_continuation_006.py'),w=read('.github/workflows/zeref-continuous-learning-006.yml');
+ for(const needle of['CAND_SPECS','ZEREF_006_CANDIDATE=','ZEREF_006_CANDIDATE_SELECTED=','chat_fresh_heldout_b_not_worse_than_pin',
+   'new_chat_b<=max(.01,original_chat_b)','CHAT_A_TOLERANCE=0.005','set B never used to select','WIDE_FROM_CYCLE=45;WIDE_UPDATES=320'])
+  assert.ok(t.includes(needle),'missing '+needle);
+ assert.ok(!t.includes('64-cycle training budget cap'),'64-cycle cap must stay removed');
+ assert.match(w,/ZEREF_006_CANDIDATES: '4'/);
+ assert.match(w,/cron: '17 \*\/6 \* \* \*'/);
+});
