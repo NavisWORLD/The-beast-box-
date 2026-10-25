@@ -1,0 +1,11 @@
+export const WORLD_LIVE_SCHEMA:string;
+export const STALE_AFTER_S:Readonly<{spark:number;liveTick:number;diary:number}>;
+export const WORLD_LIVE_LABELS:Readonly<{spark:string;liveTick:string;diary:string;brain:string}>;
+export type LinkState='CONNECTED'|'STALE'|'DOWN';
+export type Link={state:LinkState;label:string;reason?:string;[k:string]:unknown};
+export type WorldDrive={source:'spark';label:'SIMULATED';tick:number;p0:number;p1:number;p2:number;odd:number;entropy:number};
+export type WorldLive={schema:string;at_ms:number;links:{spark:Link;liveTick:Link;diary:Link;brain:Link};drive:WorldDrive|null;all_connected:boolean;labels:Record<string,string>};
+export function ageSeconds(nowMs:number,atMs:number):number|null;
+export function linkState(age:number|null|undefined,staleAfter:number):LinkState;
+export function countsFeatures(counts:unknown):{p0:number;p1:number;p2:number;odd:number;entropy:number;shots:number}|null;
+export function buildWorldLive(i:{spark?:unknown;liveTick?:unknown;liveHead?:unknown;diary?:unknown;pin?:unknown;nowMs:number}):WorldLive;
