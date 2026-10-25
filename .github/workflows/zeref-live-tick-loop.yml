@@ -1,0 +1,69 @@
+name: Beast live tick loop (per-second, SIMULATED, continuous)
+# A universe never stops receiving signal. Per-second state advances in memory for ~5.3 h per run (rolling hash over every
+# second; seconds missed during a handoff are recomputed, not skipped). Snapshots + a sparse diary line are committed in
+# BATCHES (every 10 min), never per second, to the data-only `zeref-live-tick` branch (Vercel deploys disabled there).
+# Chained like zeref-spark-loop: each run queues the next at its start (concurrency keeps one running + one pending);
+# the hourly cron is the watchdog. READ-ONLY on the recorded diary branch `zeref-diary`; it never writes there and does not touch
+# the Zeref brain growth routine, the signal injection loop or the promotion gate.
+# Honest labels: per-second growth is SIMULATED. Recorded diary ticks (30 min) and the IBM birth spark RECORDED are unchanged. No secrets, no paid inference.
+on:
+  schedule:
+    - cron: '23 * * * *'
+  workflow_dispatch:
+    inputs:
+      run_seconds:
+        description: 'Seconds this run keeps ticking (max 19800)'
+        required: false
+        default: '19200'
+permissions:
+  contents: write
+  actions: write
+concurrency:
+  group: zeref-live-tick-loop
+  cancel-in-progress: false
+jobs:
+  loop:
+    runs-on: ubuntu-latest
+    timeout-minutes: 345
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          sparse-checkout: |
+            apps/beastbox-cloud/lib/zeref/live-tick.mjs
+            apps/beastbox-cloud/lib/zeref/live-tick-run.mjs
+            apps/beastbox-cloud/public/spark/sha.mjs
+            apps/beastbox-cloud/scripts/zeref-live-tick-run.mjs
+          sparse-checkout-cone-mode: false
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Clone the recorded diary (read-only) and check out (or create) the data-only live-tick branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -Eeuo pipefail
+          git config --global user.name 'beast-live-tick[bot]'
+          git config --global user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          remote="https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git"
+          git clone --quiet --depth 1 --branch zeref-diary "$remote" diary
+          if git ls-remote --exit-code --heads "$remote" zeref-live-tick >/dev/null 2>&1; then
+            git clone --quiet --depth 1 --branch zeref-live-tick "$remote" live
+          else
+            mkdir live && cd live && git init -q -b zeref-live-tick && git remote add origin "$remote"
+            printf '{"git":{"deploymentEnabled":false}}\n' > vercel.json
+            printf '# Beast live tick (data only)\n\nPer-second SIMULATED state, committed in batches by .github/workflows/zeref-live-tick-loop.yml on main.\nRecorded diary ticks and the IBM birth spark are unchanged.\n' > README.md
+            git add -A && git commit -q -m 'beast live tick: init [skip ci]' && git push -q origin HEAD:zeref-live-tick
+          fi
+      - name: Queue the next run now (it waits in the concurrency group until this one ends)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_SECONDS: ${{ github.event.inputs.run_seconds || '19200' }}
+        run: |
+          case "$RUN_SECONDS" in ''|*[!0-9]*) RUN_SECONDS=19200;; esac
+          [ "$RUN_SECONDS" -gt 19800 ] && RUN_SECONDS=19800
+          echo "RUN_SECONDS=$RUN_SECONDS" >> "$GITHUB_ENV"
+          gh workflow run zeref-live-tick-loop.yml -R "${{ github.repository }}" -f run_seconds=19200 || echo "next-run dispatch failed; the hourly cron is the watchdog"
+      - name: Tick every second (batch commits every 10 minutes)
+        run: node apps/beastbox-cloud/scripts/zeref-live-tick-run.mjs diary live "$RUN_SECONDS" 600
