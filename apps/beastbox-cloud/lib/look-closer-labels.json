@@ -1,8 +1,68 @@
 {
- "_note": "Look Closer labels, one entry per subject. The page reads names and button text from here, so a new label set is a data change. Current wording is unchanged from before this file existed. Caption overrides must keep the honesty phrases checked in look-closer-subjects.mjs.",
+ "_note": "Look Closer labels. The page reads names and button text from here, so a label set is a data change. Moonwraith/Zeref wording follows Emeth's character_labels_PROPOSED.json (Cory applies via this file). Caption overrides must keep the honesty phrases checked in look-closer-subjects.mjs. 'characters' is keyed by a lowercase name: when the active beast has that name, the page uses its own button and subtitle. 'displayNames' rewrites a raw creature name for display only.",
  "subjects": {
-  "workshop": {"button": null, "headingName": null, "stageName": null, "caption": null},
-  "moonwraith": {"button": "Moonwraith 3D", "headingName": "Zeref", "stageName": "Moonwraith", "caption": null},
-  "dragonling": {"button": "Saved Zeref 3D", "headingName": "Zeref", "stageName": "Zeref", "caption": null}
+  "workshop": {
+   "button": null,
+   "headingName": null,
+   "stageName": null,
+   "caption": null
+  },
+  "moonwraith": {
+   "button": "Zeref 3D",
+   "headingName": "Zeref",
+   "stageName": "Zeref",
+   "caption": "Artistic 3D model of Zeref's display form. Not your saved Zeref and not a measured quantum phenotype."
+  },
+  "dragonling": {
+   "button": "Saved Zeref 3D",
+   "headingName": "Zeref",
+   "stageName": "Zeref",
+   "caption": "Artistic 3D model of your saved Zeref's dragonling form. Not the display form and not a newly measured quantum phenotype."
+  }
+ },
+ "displayNames": {
+  "Zeref-Nightcat-Dragon": "Zeref · Nightcat Dragon"
+ },
+ "characters": {
+  "kitten": {
+   "name": "Kitten",
+   "model_button": "Kitten 3D",
+   "subtitle_long": "Artistic 3D model of Kitten. Not a measured quantum phenotype."
+  },
+  "zeref": {
+   "name": "Zeref",
+   "model_button": "Zeref 3D",
+   "subtitle_long": "Artistic 3D model of Zeref. Not a measured quantum phenotype."
+  },
+  "zeref64": {
+   "name": "Zeref64",
+   "model_button": "Zeref64 3D",
+   "subtitle_long": "Artistic 3D model of Zeref64. Not a measured quantum phenotype."
+  },
+  "kairo": {
+   "name": "Kairo",
+   "model_button": "Kairo 3D",
+   "subtitle_long": "Artistic 3D model of Kairo. Not a measured quantum phenotype."
+  },
+  "frost": {
+   "name": "Frost",
+   "model_button": "Frost 3D",
+   "subtitle_long": "Artistic 3D model of Frost. Not a measured quantum phenotype."
+  },
+  "kittenref": {
+   "name": "Kittenref",
+   "model_button": "Kittenref 3D",
+   "subtitle_long": "Artistic 3D model of Kittenref. Not a measured quantum phenotype."
+  },
+  "velvetcoil": {
+   "name": "Velvetcoil",
+   "model_button": "Velvetcoil 3D",
+   "subtitle_long": "Artistic 3D model of Velvetcoil. Not a measured quantum phenotype."
+  },
+  "shardhowl": {
+   "name": "Shardhowl",
+   "model_button": "Shardhowl 3D",
+   "subtitle_long": "Artistic 3D model of Shardhowl. Not a measured quantum phenotype."
+  }
  }
 }
