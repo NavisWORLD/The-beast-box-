@@ -38,3 +38,17 @@ Both engines use explicit Euler Lorenz with σ=10, ρ=28·(1+0.30·(arousal−½
 At the ≤50 ms steps Beast Box uses, 0.35 gives livelier wind/turbulence for cosmetic motion. This is a visual-tempo choice
 made in the port. It is not calibrated against, or measured to match, Sim Earth. Anyone comparing trajectories between the
 two must rescale time by 10.
+
+## 2. Outer-product Hebbian rule (opt-in) — `stepCSTState(..., {outerHebb:true})`
+
+Over 12 channels (the 11 named CST channels + Lorenz x, all in [0,1]):
+`w_ij ← clamp(w_ij + dt·(η·pre_i·post_j − decay·w_ij), 0, wMax)`, defaults `η = decay = 0.5`, `wMax = 1`, so W tracks the
+running outer product of the channels and cannot leave [0,1]. W (144 numbers) lives on the state as `S.W` and only exists
+when the flag is on. The original relaxation rule for `S.hebb` is untouched and remains the default; with the flag on it still
+runs and `S.hebb` is additionally pulled toward `mean(W)` at 0.10 per second (the only path from W into the dynamics).
+
+Ablation (`tests/cst-outer-hebb.test.mjs`, 20 seeds × 3000 steps, same table style as `research/cst-closed-loop/combined.mjs`):
+with the rule on, `S.hebb` settles about 36% lower than the relaxation baseline (mean(W) of a unit-interval outer product is
+smaller than the relaxation target), coherence about 6% lower, chaos unchanged (the Lorenz block does not read Hebbian). With
+`pull = 0` the trajectory is bit-identical to baseline (W learns but is inert). With `η = 0` the drag is about twice as large,
+so the learned structure does matter. This is a model ablation, not evidence the rule is "better", only a measure of what it does.
