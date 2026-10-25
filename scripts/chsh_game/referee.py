@@ -61,11 +61,42 @@ def circuit():
     qc = QuantumCircuit(2); qc.h(0); qc.cx(0, 1); qc.ry(-ta, 0); qc.ry(-tb, 1); qc.measure_all()
     return qc
 
-def best_pair(svc):
+def pick_backends(svc, min_qubits=147):
+    """Opt-in (CHSH_BACKEND_PICK=least_busy): operational, status_msg 'active' (not maintenance), >= min_qubits,
+    fewest pending jobs first. Returns [(backend, pending_jobs), ...]. Never logs credentials."""
+    out = []
+    for be in svc.backends(simulator=False, operational=True, min_num_qubits=min_qubits):
+        try:
+            st = be.status()
+            if not st.operational or str(getattr(st, "status_msg", "")).lower() != "active": continue
+            out.append((be, int(st.pending_jobs)))
+        except Exception:
+            continue
+    out.sort(key=lambda t: t[1])
+    if not out: raise RuntimeError("no active operational backend with enough qubits")
+    return out
+
+def wait_until_running(job, limit_s):
+    """Opt-in queue-wait guard (CHSH_QUEUE_WAIT_S > 0). If the job is not RUNNING/DONE within limit_s, cancel it
+    and fail closed: no QPU seconds are used while a job sits in the queue."""
+    import time
+    t0 = time.time(); last = None
+    while True:
+        st = str(getattr(job.status(), "name", job.status())).upper()
+        if st != last: print(f"QUEUE_STATUS={st} t={int(time.time()-t0)}s", flush=True); last = st
+        if st in ("RUNNING", "DONE"): return
+        if st in ("ERROR", "CANCELLED"): raise RuntimeError(f"job ended {st} before running")
+        if time.time() - t0 > limit_s:
+            try: job.cancel()
+            except Exception: pass
+            raise RuntimeError(f"queue timeout after {int(limit_s)}s, job cancelled, no QPU used")
+        time.sleep(10)
+
+def best_pair(svc, backends=None):
     """Optional (CHSH_BEST_PAIR=1): pick the operational hardware backend + connected qubit pair with the
     lowest (2-qubit gate error + both readout errors) from published calibration data."""
     best = None
-    for be in svc.backends(simulator=False, operational=True, min_num_qubits=2):
+    for be in (backends if backends is not None else svc.backends(simulator=False, operational=True, min_num_qubits=2)):
         try:
             t = be.target
             g2 = next((g for g in ("cz", "ecr", "cx") if g in t.operation_names), None)
@@ -115,7 +146,13 @@ def run(out: Path):
         y = json.loads((bob / "private_questions.json").read_text())["questions"]
         layout, pick = None, None
         if os.environ.get("CHSH_BEST_PAIR") == "1":
-            cost, backend, layout, g2, e2, ea, eb = best_pair(svc)
+            if os.environ.get("CHSH_BACKEND_PICK") == "least_busy":
+                cand = pick_backends(svc)
+                print("BACKEND_QUEUE=" + json.dumps({b.name: n for b, n in cand}), flush=True)
+                top = [b for b, n in cand if n == cand[0][1]]
+                cost, backend, layout, g2, e2, ea, eb = best_pair(svc, top)
+            else:
+                cost, backend, layout, g2, e2, ea, eb = best_pair(svc)
             pick = {"backend": backend.name, "qubits": layout, "two_qubit_gate": g2, "gate_error": e2, "readout_errors": [ea, eb], "cost": cost}
             save("pair_choice.json", pick); print("PAIR_CHOICE=" + json.dumps(pick), flush=True)
         else:
@@ -131,6 +168,7 @@ def run(out: Path):
         save("submission.json", {"job_id": job.job_id(), "backend": backend.name, "rounds": ROUNDS, "shots_per_round": 1,
                                  "max_qpu_seconds": QPU_CAP, "utc": stamp()})
         print("REAL_QPU_JOB_ID=" + job.job_id(), flush=True)
+        if float(os.environ.get("CHSH_QUEUE_WAIT_S", "0") or 0) > 0: wait_until_running(job, float(os.environ["CHSH_QUEUE_WAIT_S"]))
     res = job.result()
     bits = res[0].data.meas.get_bitstrings()
     if len(bits) != ROUNDS: raise RuntimeError("unexpected result shape")
