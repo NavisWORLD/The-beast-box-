@@ -1,0 +1,15 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {readFileSync} from 'node:fs';
+import {VOICES,VOICE_CATS,voicePool,creatureVoice,roadsterVoice,voiceTurn,voiceCategory} from '../lib/universe/creature-voices.mjs';
+import {RESIDENT_LIFE_KEY} from '../lib/universe/sprite-life.mjs';
+const src=readFileSync(new URL('../components/living-world.tsx',import.meta.url),'utf8');
+const mod=readFileSync(new URL('../lib/universe/creature-voices.mjs',import.meta.url),'utf8');
+const walk=(o,f)=>{if(typeof o==='string')f(o);else if(Array.isArray(o))o.forEach(x=>walk(x,f));else if(o&&typeof o==='object')for(const [k,v] of Object.entries(o))if(!k.startsWith('_')&&k!=='voice'&&k!=='label')walk(v,f);};
+test('generated data is identical to the JSON',()=>{const j=JSON.parse(readFileSync(new URL('../lib/universe/data/creature-voices.json',import.meta.url),'utf8'));assert.deepEqual(JSON.parse(JSON.stringify(VOICES)),j);});
+test('every line is 44 characters or fewer and none claims recorded data',()=>{let n=0;walk(VOICES,s=>{n++;assert.ok(s.length<=44,s);assert.ok(!/recorded|measured|quantum|real data/i.test(s),s);});assert.ok(n>60);});
+test('all five residents have every category',()=>{for(const k of Object.values(RESIDENT_LIFE_KEY))for(const c of VOICE_CATS)assert.ok(voicePool(k,c)?.length>=2,k+':'+c);});
+test('selection is deterministic and seed-dependent',()=>{assert.equal(creatureVoice('kairo','idle','s',3),creatureVoice('kairo','idle','s',3));const seen=new Set();for(let i=0;i<40;i++)seen.add(creatureVoice('kairo','idle','seed'+i,i));assert.ok(seen.size>=2);for(const l of seen)assert.ok(VOICES.sprites.kairo.idle.includes(l));});
+test('unknown creature or category falls back to null (caller keeps its existing line)',()=>{assert.equal(creatureVoice('nobody','idle','s',1),null);assert.equal(creatureVoice('kairo','dance','s',1),null);assert.equal(roadsterVoice('nope','s'),null);});
+test('roadster lines fill {beast} and {other}',()=>{const l=roadsterVoice('board','s',0,{beast:'Pip'});assert.ok(l.includes('Pip')&&!l.includes('{'));const o=roadsterVoice('other_rides','s',1,{beast:'Pip',other:'Kairo'});assert.ok(!o.includes('{'));});
+test('turn and category follow real state',()=>{const a=voiceTurn('s',2,5),b=voiceTurn('s',2,5);assert.deepEqual(a,b);assert.ok(a.who>=0&&a.who<5&&a.wait>=18&&a.wait<=40);assert.equal(voiceCategory({storming:.9,napping:true}),'storm');assert.equal(voiceCategory({napping:true}),'sleep');assert.equal(voiceCategory({moving:true}),'move');assert.equal(voiceCategory({}),'idle');});
+test('module has no Math.random or clock reads',()=>{assert.ok(!/Math\.random|Date\.now|performance\.now/.test(mod));});
+test('the world wires voices additively and never for the active beast or Zeref',()=>{assert.ok(/creatureVoice\(/.test(src)&&/roadsterVoice\(/.test(src));assert.ok(!/creatureVoice\([^)]*'zeref'/.test(src));assert.ok(/data-lw-line/.test(src));});
