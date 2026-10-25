@@ -76,7 +76,7 @@ export default function BeastChatOverlay(){
    <section ref={panel} id="beast-chat-overlay" role="dialog" aria-modal={mobile||undefined} aria-label={`Talk to ${persona.name}`} data-companion-chat-overlay data-expanded={expanded||undefined} className={styles.panel} hidden={!open} style={{'--chat-vh':geometry.height+'px','--chat-bottom':geometry.bottom+'px'} as React.CSSProperties}>
     <header className={styles.header}>
      <div className={styles.portrait}>{session?.beast?.genome?<PixelBeast genome={session.beast.genome} stage={session.beast.stage} publicSpark label={`${persona.name} sprite`} reduced={reduced}/>:persona.source==='zeref'||profile?.id==='bb-7f9c2a03'?<svg viewBox="0 0 400 400" role="img" aria-label="Moonwraith display persona"><ZerefFigure id="beast-chat-moonwraith"/></svg>:<span aria-label="Select a saved Beast to show its sprite">✦</span>}</div>
-     <div className={styles.name}><h2>Talk to {persona.name}</h2><small>{session?.beast?.qbeast?.profile.id||profile?.id||'Moonwraith display persona · choose a saved beast to connect'}</small></div>
+     <div className={styles.name}><h2>Talk to {persona.name}</h2><small data-qbeast-id={session?.beast?.qbeast?.profile.id||profile?.id||''}>{session?.beast?.qbeast?.profile.id||profile?.id?persona.name+' · built on Zeref (RAWRPHØS)':'Zeref’s here. Hatch a beast to chat with it.'}</small></div>
      <button type="button" onClick={()=>setExpanded(x=>!x)} aria-label={expanded?'Compact chat':'Expand chat'}>{expanded?'↙':'↗'}</button>
      <button type="button" onClick={close} aria-label="Minimize chat">−</button><button type="button" onClick={close} aria-label="Close chat">×</button>
     </header>

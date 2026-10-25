@@ -1,6 +1,7 @@
 'use client';
 // Zoomed-out Tiny Universe view. Renders ONLY tiny-universe/v1 engine data; names come from Emeth's bible.
 import {allStorms} from '@/lib/universe/seeded-storms.mjs';
+import {starName,planetName,ageWords} from '@/lib/universe/friendly-names.mjs';
 import {useEffect,useRef,useState,useCallback} from 'react';
 import {grow} from '@/lib/universe/tiny-universe.mjs';
 import {biomeOf,BIOMES,starClass,lifeStage,entangledPairs,homeOf,hearthOf,zerefStar,planetFrame,starFrame,lifeFrame,stormFrame,threadFrame,hearthFrame,GENESIS_LABEL,GROWTH_LABEL,ZEREF_LINES,beastLine} from '@/lib/universe/tiny-universe-view.mjs'
@@ -66,9 +67,9 @@ export default function TinyUniverseView(){
    raf=requestAnimationFrame(draw);};
   raf=requestAnimationFrame(draw);return()=>cancelAnimationFrame(raf);},[sel]);
  const tap=useCallback((e:React.PointerEvent<HTMLCanvasElement>)=>{const b=e.currentTarget.getBoundingClientRect();const x=e.clientX-b.left,y=e.clientY-b.top;let best:string|null=null,bd=28;for(const[id,p]of pos.current){const d=Math.hypot(p.x-x,p.y-y);if(d<Math.max(bd,p.r+6)&&d<bd+p.r){best=id;bd=d;}}setSel(best);},[]);
- const info=(()=>{if(!u||!sel)return null;const st=u.stars.find((x:any)=>x.id===sel);if(st)return <><b>{starClass(st)}</b> · {st.id}<br/>{st.mass_solar} M☉ · {st.temperature_k} K · age {st.age} ticks</>;
-  const pl=u.planets.find((x:any)=>x.id===sel);if(!pl)return null;const L=u.life.find((l:any)=>l.planet===pl.id);const name=pl.id===hearthOf(u)?'Hearth':pl.id;
-  return <><b>{BIOMES[biomeOf(pl) as keyof typeof BIOMES]}</b> · {name}{pl.id===homeOf(u)?' · Beast Box home cage':''}<br/>{pl.temperature_k} K · water {pl.water} · habitability {pl.habitability}<br/>{L?`Life: ${lifeStage(L)} (complexity ${L.complexity_norm??L.complexity}, diversity ${L.diversity}${L.scars?`, ${L.scars} storm scars`:''})`:'No life yet. Just waiting.'}{u.pairs?.find((q:any)=>q.a===pl.id||q.b===pl.id)?(()=>{const q=u.pairs.find((q:any)=>q.a===pl.id||q.b===pl.id);return ` · entangled with ${q.a===pl.id?q.b:q.a} (hardware E ${q.E}${q.sim_E!=null?`, SIMULATED tick E ${q.sim_E}`:''})`;})():''}{u.storms.some((x:any)=>x.planet===pl.id)?' · ⚡ storm':''}</>;})();
+ const info=(()=>{if(!u||!sel)return null;const st=u.stars.find((x:any)=>x.id===sel);if(st)return <><b>{starClass(st)}</b> · {starName(st.id)}<br/>{st.mass_solar} M☉ · {st.temperature_k} K · {ageWords(st.age)}</>;
+  const pl=u.planets.find((x:any)=>x.id===sel);if(!pl)return null;const L=u.life.find((l:any)=>l.planet===pl.id);const name=planetName(pl.id,{home:null,hearth:hearthOf(u)});
+  return <><b>{BIOMES[biomeOf(pl) as keyof typeof BIOMES]}</b> · {name}{pl.id===homeOf(u)?' · your home world':''}<br/>Temperature {pl.temperature_k} K · water {pl.water}<br/>{L?`Life: ${lifeStage(L)} (complexity ${L.complexity_norm??L.complexity}, diversity ${L.diversity}${L.scars?`, ${L.scars} storm scars`:''})`:'No life here yet. Waiting for a spark.'}{u.pairs?.find((q:any)=>q.a===pl.id||q.b===pl.id)?(()=>{const q=u.pairs.find((q:any)=>q.a===pl.id||q.b===pl.id);return ` · linked to ${planetName(q.a===pl.id?q.b:q.a,{home:homeOf(u),hearth:hearthOf(u)})} (RECORDED IBM E ${q.E}${q.sim_E!=null?`, SIMULATED tick E ${q.sim_E}`:''})`;})():''}{u.storms.some((x:any)=>x.planet===pl.id)?' · ⚡ storm':''}</>;})();
  const last=u?.history?.[u.history.length-1];
  return <main className={s.wrap} data-tiny-universe>
   <canvas ref={cv} className={s.canvas} onPointerDown={tap} aria-label="Tiny Universe map" style={three?{visibility:'hidden'}:undefined}/>
