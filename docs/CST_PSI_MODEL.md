@@ -52,3 +52,21 @@ with the rule on, `S.hebb` settles about 36% lower than the relaxation baseline 
 smaller than the relaxation target), coherence about 6% lower, chaos unchanged (the Lorenz block does not read Hebbian). With
 `pull = 0` the trajectory is bit-identical to baseline (W learns but is inert). With `η = 0` the drag is about twice as large,
 so the learned structure does matter. This is a model ablation, not evidence the rule is "better", only a measure of what it does.
+
+## 3. Per-second live tick: opt-in CST engine (SIMULATED)
+
+`lib/zeref/live-tick.mjs`: the per-second wiggle of each recorded diary signal used to be a hash wander (±3). The CST
+engine (**opt-in, off by default**: `liveBase(d,{engine:'cst'})` or a diary carrying `live_engine:'cst'`) is `stepCSTState` (with the `{psi:true}` MODEL nudge), driven by the recorded signals
+(energy→arousal, resonance/warmth→valence, curiosity/signal/memory→curiosity), settled for 600 warm-up steps, then stepped
+6×0.05 per live second. Each recorded signal shows `recorded ± 3`, where the offset is the movement of one CST channel since
+second 0 (energy→chaos, signal→Lorenz x, memory→coherence, resonance→resonance; other keys are assigned by a seeded hash).
+
+What did **not** change: the label stays SIMULATED; the clock is injected; no `Math.random`; `liveSecond(base, nowMs)` is
+still a pure function (second N is always second N; a per-base cursor only caches it, and going backwards recomputes from
+second 0); the xp rule; the rolling hash chain over every second; the recorded diary is only read, never written.
+
+Default / fallback: with no opt-in the tick is exactly the previous hash wander (nothing is switched on automatically). The wander also serves a diary with no signals, and any second beyond `CST_MAX_SECONDS` (1 day with no new
+recorded tick, to keep catch-up under about a quarter of a second) use the previous hash wander, unchanged and pinned in the tests.
+Chain compatibility: the CST engine uses the schema `beast-live-tick/v2` and a different chain genesis and head key, so a head
+chained under the old engine is never resumed under the new one: the run restarts that segment from second 0.
+Lorenz tempo: see the dt note above (0.35 vs 0.035): one live second is about 0.105 Lorenz time units here.
