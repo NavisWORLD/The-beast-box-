@@ -1,5 +1,4 @@
 'use client';
-import {WORLD_SCENE_BG} from '@/lib/world-scene';
 import {useActiveBeastName} from '@/components/use-active-beast-name';
 import {useEffect,useState} from 'react';
 import Link from 'next/link';
@@ -53,10 +52,11 @@ export default function CreatureTurntable(){
   <section className={styles.intro}>
    <span>LOOK CLOSER // 360° VIEW</span>
    <h1>Look Closer at {LB.headingName} <em>in 3D.</em></h1>
-   <p>{LB.caption?LB.caption:'The active browser Beast drives the original procedural Three.js rig: saved hue, glow, fin pattern, halo pattern and constellation seed.'}</p>
+   <p data-look-subtitle>{LB.caption?LB.caption:(LB.headingName.charAt(0).toUpperCase()+LB.headingName.slice(1))+' in 3D, built from your saved look.'}</p>
   </section>
   {/* Cosmo's tap-to-inspect art (select ring, pedestal, info card) mounts here: data-look-closer-hook */}
-  <div className={styles.stage} style={{background:WORLD_SCENE_BG,border:0,borderRadius:0,boxShadow:'none'}} data-look-closer-hook data-stage="real-3d-turntable" data-subject={subject} data-view-angle={spin?'spinning':angle} aria-label="Actual rotating Three.js creature">
+  <div className={styles.stage} data-look-closer-hook data-stage="real-3d-turntable" data-open-sky data-subject={subject} data-view-angle={spin?'spinning':angle} aria-label={'Rotating 3D '+LB.stageName}>
+    <span className={styles.seededChip} data-stage-seeded>SEEDED · OPEN STAGE LOOK</span>
     <span className={styles.star} aria-hidden="true">✧</span>
     {/* Cosmo's Look Closer pedestal set (lookcloser v1): contact shadow, mossy stone pedestal, animated select ring */}
     <div aria-hidden="true" data-look-pedestal className={styles.pedestal}><i className={styles.pedShadow}/><i className={styles.pedStone}/><i className={styles.pedRing}/></div>

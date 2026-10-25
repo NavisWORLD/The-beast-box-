@@ -4,3 +4,4 @@ export function readActiveBeast(storage:Storage|null|undefined):any;
 export function activeBeastName(storage:Storage|null|undefined):{name:string|null;source:'saved'|'seeded'|'shown'|null};
 export function nameOr(n:string|null|undefined,fallback?:string):string;
 export function fillBeast(t:string,name:string|null|undefined):string;
+export function prettyBeastName<T>(n:T):T;

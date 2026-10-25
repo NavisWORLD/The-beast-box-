@@ -7,3 +7,13 @@
 .pedStone{position:absolute;left:8%;right:8%;top:22%;height:62%;border-radius:50%;background:radial-gradient(ellipse at 50% 30%,#7c8a78,#4a5a4c 55%,#2c3a30 100%);box-shadow:inset 0 -10px 0 #26332a,0 0 0 2px #5fae6a55,0 -3px 0 #6fcf7a88}
 .pedRing{position:absolute;left:0;right:0;top:0;height:100%;background:url(/lookcloser/select_ring_8f.png) 0 0/800% 100% no-repeat;filter:drop-shadow(0 0 6px #b48cff) hue-rotate(0deg);opacity:.85;animation:pedRing .9s steps(7) infinite;mix-blend-mode:screen}
 @keyframes pedRing{to{background-position:100% 0}}
+
+/* Open sky (Cory's iPhone shots + Cosmo's open-stage pack, SEEDED look data, mid-class night): no box and no flat ground strip. Nebula lobes
+   (#7662A3 / #3FC9D3 / #FF8AD8 at the pack's alphas), sparse stars, then the horizon haze (#252431) that the ground fades into, so sky and
+   ground meet with no seam. The engine's own sky wins wherever it draws one; this canvas is transparent and full width. */
+.stage{background:radial-gradient(1.5px 1.5px at 14% 16%,#fff9 50%,transparent 51%),radial-gradient(1px 1px at 38% 9%,#fffa 50%,transparent 51%),radial-gradient(1.5px 1.5px at 66% 20%,#fff8 50%,transparent 51%),radial-gradient(1px 1px at 86% 11%,#fff9 50%,transparent 51%),radial-gradient(1px 1px at 24% 36%,#fff6 50%,transparent 51%),
+ radial-gradient(ellipse 34% 26% at 52% 30%,#7662a347,transparent 72%),radial-gradient(ellipse 36% 24% at 12% 34%,#3fc9d338,transparent 72%),radial-gradient(ellipse 28% 18% at 90% 40%,#ff8ad829,transparent 72%),
+ radial-gradient(ellipse 66% 44% at 50% 52%,#6b4fd826,transparent 72%),linear-gradient(180deg,transparent 0 64%,#25243166 78%,#252431b3 100%);border:0;border-radius:0;box-shadow:none;overflow:visible;max-width:none;margin-inline:-18px;-webkit-mask-image:linear-gradient(180deg,transparent 0,#000 12%,#000 82%,transparent 100%);mask-image:linear-gradient(180deg,transparent 0,#000 12%,#000 82%,transparent 100%)}
+.seededChip{position:absolute;top:10px;left:50%;transform:translateX(-50%);z-index:3;padding:3px 10px;border-radius:999px;border:1px solid #b48cff8c;background:#120c24b8;color:#e9deff;font:700 9px/1.4 system-ui,sans-serif;letter-spacing:.14em;pointer-events:none;white-space:nowrap}
+.process{margin-bottom:calc(72px + env(safe-area-inset-bottom,0px));scroll-margin-bottom:calc(120px + env(safe-area-inset-bottom,0px))}
+.page{padding-bottom:calc(210px + env(safe-area-inset-bottom,0px))}

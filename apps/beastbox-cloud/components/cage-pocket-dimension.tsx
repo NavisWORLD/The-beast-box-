@@ -23,6 +23,11 @@ import {motionPersona,createActor,stepActor} from '../lib/companion/film-motion.
 import {addGodView,ZOOM_MIN,ZOOM_LIMIT} from './pocket-god-view';
 import {isPanGesture,panStep,decayPan,centroid,keyPanPixels,worldPerPixel} from '@/lib/universe/view-gestures.mjs';
 import {ARTIST_RESIDENTS} from '../lib/companion/artist-residents.mjs';
+import {MAX_SAVED_ROAMERS,homeLabel} from '../lib/companion/creations.mjs';
+import {addSavedBeastSprites} from './pocket-saved-beasts';
+import {useCreations,readCreations} from './use-creations';
+import {useActiveBeastName} from './use-active-beast-name';
+import CreationThumb from './creation-thumb';
 import {addPocketResidents} from './pocket-residents';
 import {addPocketSand} from './pocket-sand-layer';
 import {SAND_LABEL} from '../lib/pocket-sand.mjs';
@@ -92,6 +97,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
  useEffect(()=>{const rd=()=>ignorePixel?false:deviceClassicPixel();setPixel(rd());const on=()=>setPixel(rd());window.addEventListener('beastbox:pixel-mode',on);return()=>window.removeEventListener('beastbox:pixel-mode',on);},[]);
  const togglePixel=()=>{const v=!pixel;setPixel(v);saveClassicPixel(v);window.dispatchEvent(new Event('beastbox:pixel-mode'));};
  const [residentsOpen,setResidentsOpen]=useState(true);
+ const creations=useCreations();const homeName=useActiveBeastName();
  useEffect(()=>{if(window.matchMedia('(max-width:560px)').matches)setResidentsOpen(false);},[]);
  const id=qbeastId||'visual-preview';
  const key=seed||'beastbox-visual-preview';
@@ -332,7 +338,11 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
       'vec3 c=mix(vec3(.12,.55,.85),vec3(.65,.4,1.0),w);gl_FragColor=vec4(c*(1.0-r*.7),(1.0-r)*.55+.08);}'});
     const pool=new THREE.Mesh(new THREE.CircleGeometry(1,low?32:64),poolMat);pool.rotation.x=-Math.PI/2;pool.position.set(2.15,-.03,-1.7);pool.scale.setScalar(.95);scene.add(pool);
     // Artist-drawn residents (separate creatures, never the active Beast) roam the pocket.
-    const {stepResidents,texCache,disturbers,pickables}=addPocketResidents(THREE,scene,seedRandom,reduced,low,glbTier,groundAt,lcOk&&lcBody);
+    const resi=addPocketResidents(THREE,scene,seedRandom,reduced,low,glbTier,groundAt,lcOk&&lcBody);const texCache=resi.texCache;
+    // Every beast saved on this device roams here too (same list as the legend): see lib/companion/creations.mjs.
+    const saved=addSavedBeastSprites(THREE,scene,readCreations().filter(c=>c.kind==='saved'&&c.genome).slice(0,low?4:MAX_SAVED_ROAMERS),reduced,groundAt);
+    const stepResidents=(t:number,theta:number,cam?:{x:number;z:number},beast?:{x:number;z:number;moment?:string|null}|null)=>{resi.stepResidents(t,theta,cam,beast);saved.step(t,cam);};
+    const disturbers=()=>[...resi.disturbers(),...saved.disturbers()];const pickables=()=>[...resi.pickables(),...saved.pickables()];
     // God view: habitat on a small planet, orbiting its suns, inside a galaxy (Genesis Engine, recoloured).
     const god=addGodView(THREE,scene,{rand:randomFor(key+':system'),low,counts:qvmCounts,stage:motion.current.stage||stage||1});
     const godFocus=new THREE.Vector3();
@@ -577,7 +587,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
        const m=o.material;(Array.isArray(m)?m:[m]).forEach(k=>materials.add(k));
       }
      });
-     texCache.forEach(t=>t.dispose());sand.dispose();geometries.forEach(g=>g.dispose());materials.forEach(m=>m.dispose());renderer.dispose();
+     texCache.forEach(t=>t.dispose());saved.dispose();sand.dispose();geometries.forEach(g=>g.dispose());materials.forEach(m=>m.dispose());renderer.dispose();
     };
    }catch{
     if(!disposed){setFailed(true);setReady(false);}
@@ -616,8 +626,8 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
  </div>;})():null}
  <p className={styles.sandLabel} data-open={infoOpen||!ready} data-sand-source={sandSource}>{SAND_LABEL} · {sandSource==='receipt'?'recorded seed + this Beast\u2019s recorded Azure simulator counts':'recorded seed only · no simulator receipt for this Beast'}</p>
  {infoOpen?<details className={styles.residentsBox} open={residentsOpen} onToggle={e=>setResidentsOpen((e.currentTarget as HTMLDetailsElement).open)}><summary aria-label={residentsOpen?"Minimize residents":"Show residents"}>{residentsOpen?"– Residents":"✦ Who lives here"}</summary>
- <ul className={styles.residents} aria-label="Artist-drawn Pocket residents" data-artist-residents={ARTIST_RESIDENTS.length}>
-  {ARTIST_RESIDENTS.map(r=><li key={r.id} data-resident-id={r.id} data-resident-kind={r.kind}><img src={r.views.front} alt={`${r.name}: ${r.look}`} width={44} height={44} loading="lazy"/><span><b>{r.name}</b><small>{r.kind==='trainer'?'Trainer':'Beast'} · {r.origin}</small></span></li>)}
+ <ul className={styles.residents} aria-label="Everyone who lives in this pocket" data-artist-residents={ARTIST_RESIDENTS.length} data-creations={creations.length}>
+  {creations.length?creations.map(r=><li key={r.id} data-resident-id={r.id} data-resident-kind={r.kind} data-creation-source={r.kind==='active'||r.kind==='saved'?'saved-beast':'artist'}>{r.art?<img src={r.art} alt={`${r.name}: ${r.look||''}`} width={44} height={44} loading="lazy"/>:r.genome?<CreationThumb genome={r.genome} label={`${r.name}, a saved beast`}/>:<span aria-hidden="true" style={{width:30,height:30}}/>}<span><b>{r.name}</b><small>{r.kind==='trainer'?'Trainer':r.kind==='active'?'Your beast':r.kind==='saved'?'Saved beast':'Beast'} · {r.origin}</small></span></li>):<li data-creations-empty><b>{homeLabel(homeName)}</b></li>}
  </ul></details>:null}
  </div>;
 }
