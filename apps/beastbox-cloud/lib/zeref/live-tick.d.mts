@@ -1,0 +1,11 @@
+export const LIVE_TICK_SCHEMA:string;export const LIVE_CADENCE_S:number;export const LIVE_MAX_SECONDS:number;
+export const LIVE_LABELS:Readonly<{live:string;recorded:string}>;
+export type LiveBase={beast_id:string;tick:number;xp:number;last_tick_at_ms:number;signals:Record<string,number>;avg_gain:number};
+export type LiveSnap={schema:string;beast_id:string;recorded_tick:number;seconds_since_recorded:number;xp_live:number;xp_gain_live:number;signals:Record<string,number>;label:'SIMULATED'};
+export function liveBase(d:unknown):LiveBase|null;
+export function liveSecond(b:LiveBase,nowMs:number):LiveSnap;
+export function formatElapsed(sec:number):string;
+export function chainStep(prev:string,snap:LiveSnap):string;
+export function advanceChain(b:LiveBase,prev:string,fromSec:number,toSec:number):string;
+export function CHAIN_GENESIS(b:LiveBase):string;
+export function liveDiaryLine(s:LiveSnap):string;

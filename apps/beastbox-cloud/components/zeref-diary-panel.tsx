@@ -3,7 +3,8 @@ import Details from './details-toggle';
 import {publicDiaryEntries,diarySourceLabel} from '../lib/zeref/diary-privacy.mjs';
 import {fillBeast} from '../lib/companion/beast-name.mjs';
 import {RAWRPHOS_PUBLIC_PIN} from '../lib/companion/brain.mjs';
-import {useEffect,useState} from 'react';
+import {useEffect,useMemo,useState} from 'react';
+import {liveBase,liveSecond,formatElapsed,LIVE_LABELS} from '../lib/zeref/live-tick.mjs';
 import {readJournal,type Journal} from '../lib/zeref/pocket-journal';
 import styles from './zeref-diary-panel.module.css';
 import PocketLearningCard from './pocket-learning-card';
@@ -27,6 +28,29 @@ function GrowthBadge({g}:{g?:Entry['growth_source']}){
  return g.kind==='rigetti-qvm-simulated'
   ?<span className={styles.badgeSim} data-growth-source="rigetti-qvm-simulated" title={`Azure Quantum ${g.target} · job ${g.job_id} · ${g.shots} shots`}>⚛ growth: Rigetti simulator (simulated)</span>
   :<span className={styles.badgeFallback} data-growth-source="deterministic-fallback" title={g.error||''}>growth: deterministic step{g.error?' · simulator unavailable':''}</span>;
+}
+
+
+/** Per-second live tick: computed from the last RECORDED tick + elapsed seconds (never accumulated), so it never stops and catches up after a hidden tab. */
+function LiveTick({diary}:{diary:Diary|null}){
+ const base=useMemo(()=>liveBase(diary),[diary]);
+ const [now,setNow]=useState<number|null>(null);
+ useEffect(()=>{
+  setNow(Date.now());
+  const t=window.setInterval(()=>{if(!document.hidden)setNow(Date.now());},1000);
+  const vis=()=>{if(!document.hidden)setNow(Date.now());};
+  document.addEventListener('visibilitychange',vis);
+  return()=>{window.clearInterval(t);document.removeEventListener('visibilitychange',vis);};
+ },[]);
+ if(!base||now===null)return <div className={styles.live} data-live-tick="pending"><p className={styles.liveHead}>LIVE · SIMULATED</p><p className={styles.small}>Waiting for the last recorded tick…</p></div>;
+ const s=liveSecond(base,now);
+ return <div className={styles.live} data-live-tick="on" data-live-seconds={s.seconds_since_recorded}>
+  <p className={styles.liveHead}><span className={styles.liveDot} aria-hidden="true"/> LIVE · SIMULATED · every second</p>
+  <p className={styles.liveNum}>tick {s.recorded_tick}<b> +{s.seconds_since_recorded}s</b></p>
+  <p className={styles.small}>{formatElapsed(s.seconds_since_recorded)} since recorded tick {s.recorded_tick} · live XP <b>{s.xp_live.toFixed(3)}</b></p>
+  <p className={styles.signals}>{Object.entries(s.signals).map(([k,v])=><span key={k}>{k} <b>{v.toFixed(1)}</b></span>)}</p>
+  <p className={styles.small}>{LIVE_LABELS.live}</p>
+ </div>;
 }
 
 /** ZEREF'S DIARY on the Beast Cage: loop-written entries, growth, discovered combos, and this device's pocket journal. */
@@ -62,6 +86,7 @@ export default function ZerefDiaryPanel({journalId,beastName,cosmosProfile=null,
   <div className={styles.grid}>
    <div className={styles.card}>
     <h3>Growth</h3>
+    <LiveTick diary={diary}/>
     <p className={styles.stage}><strong>Stage {stage} · {diary?.stage_name||'Moonling'}</strong></p>
     <meter min={0} max={100} value={pct} aria-label={`Growth toward ${diary?.next_stage?.name||'max stage'}`}/>
     <p className={styles.small}>{xp} XP{diary?(diary.next_stage?` · ${diary.next_stage.xp-xp} XP to reach ${diary.next_stage.name}`:' · fully grown'):' · opening the diary…'} · {diary?.tick||0} growth steps · {diary?.combos_total||0} combos discovered</p>
