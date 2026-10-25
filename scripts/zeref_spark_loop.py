@@ -36,7 +36,9 @@ SEED_NOTE = ("Zeref's own cosmos loop was blocked on game stats and a provenance
 LO, HI = 0.05 * math.pi, 0.95 * math.pi
 # 2026-10-25 final spark 001: a newer RECORDED IBM hardware spark (ibm_kingston). When this file exists and the chain has not used it
 # yet, the next tick's angles are moved once by its measured win rates (deterministic, no random), then the loop continues as usual.
-RESEED_FILE = Path(__file__).resolve().parents[1] / "evidence/zeref-final-spark-001/spark-seed.json"
+# 2026-10-25: the path is now a LATEST pointer (evidence/zeref-spark-latest/spark-seed.json is a copy of the newest recorded seed, written by
+# scripts/spark_evidence.py). Each IBM job is applied once: the chain remembers every job it has used.
+RESEED_FILE = Path(__file__).resolve().parents[1] / "evidence/zeref-spark-latest/spark-seed.json"
 
 
 def canon(o):
@@ -121,7 +123,8 @@ def reseed_for(st):
     if not RESEED_FILE.exists():
         return None, None
     sd = json.loads(RESEED_FILE.read_text())
-    if sd.get("source_class") != "RECORDED_IBM_HARDWARE" or st.get("reseeded_from") == sd.get("job"):
+    used = set(st.get("reseeded_jobs") or []) | {st.get("reseeded_from")}
+    if sd.get("source_class") != "RECORDED_IBM_HARDWARE" or sd.get("job") in used:
         return None, None
     w = {k: v["win_rate"] for k, v in sd["per_question_pair"].items()}
     a = st["angles"]
@@ -178,6 +181,7 @@ def apply(d, plan_path, receipt_path, now):
     if pl.get("reseed"):
         entry["reseed"] = pl["reseed"]
         st["reseeded_from"] = pl["reseed"]["job"]
+        st["reseeded_jobs"] = sorted(set(st.get("reseeded_jobs") or []) | {pl["reseed"]["job"]})
     if ok:
         counts = {k: int(rc["counts"][k]) for k in sorted(rc["counts"])}
         entry["status"] = "ok"

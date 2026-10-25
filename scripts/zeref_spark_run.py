@@ -19,7 +19,7 @@ qvm = importlib.util.module_from_spec(qspec); qspec.loader.exec_module(qvm)
 MIN_HOURS_LEFT = float(os.environ.get("ZEREF_SPARK_MIN_EMULATOR_HOURS", "0.15"))
 # A run lasts ~5.3 h and checks out `main` once, so a RECORDED reseed merged mid-run would otherwise wait for the next run
 # (never stale: the loop re-reads the public reseed file every RESEED_REFRESH_S and the chain still uses each IBM job once).
-RESEED_URL = "https://raw.githubusercontent.com/NavisWORLD/The-beast-box-/main/evidence/zeref-final-spark-001/spark-seed.json"
+RESEED_URL = "https://raw.githubusercontent.com/NavisWORLD/The-beast-box-/main/evidence/zeref-spark-latest/spark-seed.json"
 RESEED_REFRESH_S = 600
 
 
