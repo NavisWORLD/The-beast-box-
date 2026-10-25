@@ -95,7 +95,7 @@ export default function CreatureTurntable(){
       <p><strong>Implementation:</strong> Three.js SphereGeometry, ExtrudeGeometry, MeshPhysicalMaterial, deterministic CanvasTexture, lights, torus halo and requestAnimationFrame. Four camera-facing yaw presets and a continuous 360-degree model turntable reuse exactly the same source mesh as the Beast Cage interface.</p>
       <a href="https://github.com/NavisWORLD/The-beast-box-/blob/feature/beast-cage-live-sidequest-20261001/apps/beastbox-cloud/components/cosmic-companion-3d.tsx" target="_blank" rel="noreferrer">View the real model source ↗</a>
     </div>:null}
-    <p className={styles.note}>Visual companion, not model consciousness or live neuronal activity. No owner credentials, private memory or synthetic model replies appear in this public turntable. The Moonwraith and saved-Zeref models are artistic geometry. They do not share a body.</p>
+    <p className={styles.note}>Visual companion, not model consciousness or live neuronal activity. No owner credentials, private memory or synthetic model replies appear in this public turntable. The {LBm.stageName} display form and the saved-Zeref model are artistic geometry. They do not share a body.</p>
   </section>
   {subject==='workshop'?null:<FamilyExplain input={explain}/>}
  </main>;
