@@ -79,7 +79,6 @@ export function createCSTState(seed,{emotion={},counts=null}={}){
    quantum_entropy:clamp(qe),phi_harmonics:.6,coherence:.6,chaos:.2,instability:.2,curiosity:clamp(emotion.curiosity??.5),
    resonance:.5,avoid:clamp(emotion.fear??.1)}};
 }
-<<<<<<< HEAD
 // ---------------------------------------------------------------- optional outer-product Hebbian rule (MODEL)
 /**
  * Opt-in true outer-product Hebbian rule over 12 channels (the 11 named CST channels + Lorenz x, each in [0,1]):
@@ -106,16 +105,11 @@ function outerHebbUpdate(S,dt,o){
  S.Wpre=post;
  S.hebb=clamp(S.hebb+(clamp(outerHebbStrength(S)/(wMax||1))-S.hebb)*Math.min(1,dt*pull));
 }
-=======
->>>>>>> origin/main
 /**
  * Advance the state one fixed step: Lorenz, chaos/instability, coherence, Hebbian.
  *
  * DEFAULT (opts omitted/null) is the original behavior, bit for bit. Optional MODEL extensions, each off unless asked:
-<<<<<<< HEAD
  *  - opts.outerHebb:true|{eta,decay,wMax,pull}  true outer-product Hebbian rule on 12 channels (see HEBB_OUTER below).
-=======
->>>>>>> origin/main
  *  - opts.psi:true|{gain}  CST ψ (cst-psi.mjs, MODEL) nudges the coherence AND Hebbian targets by gain·(ψn−½),
  *    gain default PSI_GAIN=0.10, so the shift is bounded to ±gain/2 (±0.05) before the usual clamp.
  *
