@@ -169,7 +169,11 @@ with sync_playwright() as p:
  load(settings_page,"/beast-cage")
  expect(settings_page.locator('[data-pocket-dimension="true"]')).to_have_attribute("data-pocket-state","disabled")
  expect(settings_page.locator('.cage-habitat-visual [data-spark-beast="true"]')).to_be_visible()
+ settings_page.locator("[data-world-menu-button]").first.click()  # Oct 25: Reset 3D camera lives in the one habitat menu
+ expect(settings_page.locator("[data-world-menu-sheet]")).to_be_visible()
  settings_page.get_by_role("button",name="Reset 3D pocket camera").click()
+ settings_page.keyboard.press("Escape")
+ expect(settings_page.locator("[data-world-menu-sheet]")).to_be_hidden()
  fits(settings_page,"3D off still preserves original creature")
  load(settings_page,"/settings")
  settings_page.get_by_role("switch",name="Three.js pocket scenery").click()
