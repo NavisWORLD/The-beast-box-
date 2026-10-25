@@ -100,7 +100,8 @@ EXTRA=[("evidence/zeref-warm-002/dialogue.jsonl",0.05,2),("evidence/zeref-voice-
  ("evidence/zeref-identity-001/dialogue.jsonl",0.15,3),
  ("evidence/zeref-talk-001/dialogue.jsonl",0.06,3),
  ("evidence/zeref-qa-001/dialogue.jsonl",0.12,2),
- ("evidence/zeref-lessons-003/dialogue.jsonl",0.27,1)]  # 2026-10-24 all-subjects lessons (authored, held-out slice in heldout.jsonl is never loaded)
+ ("evidence/zeref-lessons-003/dialogue.jsonl",0.27,1),  # 2026-10-24 all-subjects lessons (authored, held-out slice in heldout.jsonl is never loaded)
+ ("evidence/zeref-lessons-004/dialogue.jsonl",0.35,1)]  # 2026-10-24 English/math/world-knowledge lessons (authored; heldout.jsonl never loaded; cap keeps 003+004 about 28% of the mix)
 #  # 008: short simple Q&A (local free teacher, behind the scenes; gate/held disjoint)  # 007: canon-only identity/home rows; held prompts excluded
 def extra_slice(path,frac,repeat,base_rows,held):
  p=Path(path)
