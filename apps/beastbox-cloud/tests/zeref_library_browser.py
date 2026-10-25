@@ -100,9 +100,11 @@ with sync_playwright() as p:
     # ---- 2. real owner session ---------------------------------------------------------------
     if PASSWORD:
         owner = browser.new_context(viewport={"width": 390, "height": 844})
-        r = owner.request.post(ROOT + "/api/session", data=json.dumps({"password": PASSWORD}), headers={"Content-Type": "application/json"})
-        assert r.status == 200, r.status
-        j = owner.request.get(ROOT + "/api/zeref/library").json()
+        op = owner.new_page(); op.goto(ROOT + "/beast-cage/talk", wait_until="domcontentloaded", timeout=45000)
+        # log in from inside the browser so its own cookie rules (Secure on localhost) apply
+        status = op.evaluate("async pw=>(await fetch('/api/session',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:pw})})).status", PASSWORD)
+        assert status == 200, status
+        j = op.evaluate("async()=>(await fetch('/api/zeref/library',{cache:'no-store'})).json()")
         assert j["owner"] is True and j["limits"]["max_typed_chars"] == 8000 and j["limits"]["brain"]["contextTokens"] == 2048, j
         if not j["configured"]: assert "Azure" in j["hint"]
         print("OWNER_SESSION_OK real owner GET returns limits; configured =", j["configured"])
