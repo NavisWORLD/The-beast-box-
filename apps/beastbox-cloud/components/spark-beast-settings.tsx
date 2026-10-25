@@ -20,7 +20,7 @@ export default function SparkBeastSettings(){
   <div className="insight-line"><span>Voice</span><b>Local WebAudio · tap to play</b></div>
   <div className="insight-line"><span>Separate planetary simulator embedded</span><b>NO</b></div>
   <div className="insight-line"><span>Model / memory / authority changed by these controls</span><b>NO</b></div>
-  <p>Stage buttons are appearance previews only. Lost COSMOS keeps earned XP, bond and evolution in its shared care/game ledger. Recorded quantum counts seed the fictional creature renderer; there is no live quantum connection.</p>
+  <p>Stage buttons are appearance previews only. Lost COSMOS keeps earned XP, bond and evolution in its shared care/game ledger. RECORDED IBM counts and SIMULATED Rigetti counts seed the fictional creature renderer; there is no live quantum connection.</p>
   <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
    <Link className="outline-action" href="/beast-cage#customize">Open full Customize ↗</Link>
    {!profile?<button className="outline-action" type="button" onClick={()=>selectProfile(generateCreature('beastbox-owner-starter','signal'))}>Create a starter Beast</button>:

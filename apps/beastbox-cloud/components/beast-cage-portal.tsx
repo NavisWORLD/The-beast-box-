@@ -45,7 +45,7 @@ const WORLDS=[
  {name:'Brain Bay',description:'Real models, deliberate selection and transparent readiness.',icon:BrainCircuit,tag:'REPLACEABLE INFERENCE',href:'/brain-bay'},
  {name:'Memory Nebula',description:'Your records remain outside the model you select.',icon:DatabaseZap,tag:'AUTHORIZED PERSISTENCE',href:'/workspace#memory-nebula'},
  {name:'Sensorium',description:'Permissioned browser sensing, not imagined perception.',icon:Volume2,tag:'LOCAL SENSORS',href:'/workspace#sensorium'},
- {name:'Synapse Observatory',description:'Recorded events and genuine state receipts.',icon:Orbit,tag:'MEASURED SOFTWARE',href:'/workspace#synapse-observatory'},
+ {name:'Synapse Observatory',description:'Logged events and genuine state receipts.',icon:Orbit,tag:'MEASURED SOFTWARE',href:'/workspace#synapse-observatory'},
  {name:'Connector Dock',description:'Inspect supported integrations and authorization boundaries.',icon:ShieldCheck,tag:'EXPLICIT CONTROL',href:'/workspace#connector-dock'}
 ];
 const STORAGE='beastbox-cage-appearance-v1';
