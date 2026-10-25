@@ -219,6 +219,18 @@ TRINITY=os.environ.get("ZEREF_TRINITY","1")=="1"  # original-kit Trinity 12D+42D
 COND54=os.environ.get("ZEREF_COND54","0")=="1"
 COND54_TICKS=os.environ.get("ZEREF_SPARK_TICKS","")
 COND54_DROP=float(os.environ.get("ZEREF_COND54_DROP","0.5"))
+# OPT-IN (default "time" = the old behavior, unchanged): "content" pairs each training row with a spark tick by a deterministic
+# sha256 key of the row's own token ids (no Math.random / no torch RNG), so the same text always sees the same simulated state
+# instead of whichever tick the step counter happened to land on. This is content-KEYED, not semantic: the ticks carry no meaning
+# about the text. Gate scoring stays unconditioned either way.
+COND54_PAIR=os.environ.get("ZEREF_COND54_PAIR","time")
+if COND54_PAIR not in ("time","content"):COND54_PAIR="time"
+def cond54_key(row):
+ """Deterministic content key of one training row (its input token ids). Stable across runs, batches and positions."""
+ return int(sha(json.dumps([int(t) for t in row["input"]],separators=(",",":")).encode())[:12],16)
+def cond54_pick(bank,row,pos):
+ """Bank vector for one row: by content key (opt-in) or by batch-position time index (default, unchanged)."""
+ return bank[cond54_key(row)%len(bank)] if COND54_PAIR=="content" else bank[pos%len(bank)]
 COND_INFO={}
 _COND_BANK=[]
 def cond54_bank():
@@ -232,7 +244,8 @@ def cond54_bank():
  COND_INFO.update({"ticks":len(rows),"first_tick":rows[0]["tick"] if rows else None,"last_tick":rows[-1]["tick"] if rows else None,
   "bank_sha256":sha(json.dumps([r["receipt_sha256"] for r in rows]).encode()),"drop":COND54_DROP,
   "label":"Rigetti SIMULATED spark ticks (bb-deada969); other bands masked 0.0",
-  "pairing":"by training-step time, not by meaning (no owner sensor feed in training yet)"})
+  "pairing":("by deterministic sha256 content key of each row's token ids (opt-in ZEREF_COND54_PAIR=content; content-keyed, not semantic)" if COND54_PAIR=="content"
+   else "by training-step time, not by meaning (no owner sensor feed in training yet)")})
  print("ZEREF_COND54_BANK="+json.dumps(COND_INFO,sort_keys=True),flush=True)
  return _COND_BANK
 def cond54_ab(model,rows):
@@ -251,6 +264,9 @@ def cond54_ab(model,rows):
  M=len(bank)
  res["unconditioned"]=run(None);res["zeros"]=run(lambda i:[0.]*54)
  res["real_ticks"]=run(lambda i:bank[i%M]);res["mismatched_ticks"]=run(lambda i:bank[(i*7+M//2+1)%M])
+ # report-only (additive): the content-keyed pairing vs its own shuffled control (key shifted by a fixed odd offset)
+ res["content_keyed_ticks"]=run(lambda i:bank[cond54_key(rows[i])%M]);res["content_keyed_shuffled"]=run(lambda i:bank[(cond54_key(rows[i])*7+M//2+1)%M])
+ res["pairing_mode"]=COND54_PAIR;res["label"]="SIMULATED spark ticks; report-only; gate scoring unconditioned"
  res["gain_abs_sum"]=float(model.cond_gain.detach().abs().sum());res["gain_nonzero_slots"]=int((model.cond_gain.detach().abs()>1e-9).sum())
  model.train();return res
 EMA_DECAY=float(os.environ.get("ZEREF_006_EMA_DECAY","0.98"))  # 008 steadier training (0 = off)
@@ -411,7 +427,7 @@ def train_variant(parent_path,tokenizer,pool,seed,chat_pool=(),chat_eval=None,lr
   x,y,m=collate(batch)
   cond=None
   if model.config.cond54 and _COND_BANK:
-   rowsc=[[0.]*54 if float(torch.rand(1,generator=gc))<COND54_DROP else _COND_BANK[(n*len(batch)+j)%len(_COND_BANK)] for j in range(len(batch))]
+   rowsc=[[0.]*54 if float(torch.rand(1,generator=gc))<COND54_DROP else cond54_pick(_COND_BANK,batch[j],n*len(batch)+j) for j in range(len(batch))]
    cond=torch.tensor(rowsc,dtype=torch.float32)
   out=model(x,targets=y,attention_mask=m,**({} if cond is None else {"condition54":cond}));loss=out["loss"]
   # Decision-token loss: the shared "ACTION: " prefix dominated the mean
