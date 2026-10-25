@@ -247,7 +247,7 @@ function BeastTalkContent({onState,compact=false,title,gameBridge}:PanelProps){
     </div>:null}
     <h2>{ready?title||`Talk to ${persona.name}`:'Finding your Beast…'}</h2>
     <p><strong>{persona.name}</strong> · {persona.kind}. {persona.traits.join(', ')}.</p>
-    {persona.source==='zeref'?<small data-chat-identity data-chat-step={RAWRPHOS_PUBLIC_PIN.step}>Zeref · bb-deada969 · voice: RAWRPHØS step {RAWRPHOS_PUBLIC_PIN.step} (public chat pin; each reply is checked against it)</small>:null}
+    {persona.source==='zeref'?<small data-chat-identity data-chat-qbeast="bb-deada969" data-chat-step={RAWRPHOS_PUBLIC_PIN.step}>Zeref · built on RAWRPHØS · voice: RAWRPHØS step {RAWRPHOS_PUBLIC_PIN.step} (public chat pin; each reply is checked against it)</small>:null}
     <small>{persona.source==='zeref'?'Showing Zeref, the site Beast. Meet your own Beast in My Beast and it will talk here instead.':persona.source==='spark'?'Your saved Beast. Its name, personality and memories stay the same whichever brain answers.':'Your Beast Cage creature. Its personality stays the same whichever brain answers.'}</small>
    </div>
   </header>
