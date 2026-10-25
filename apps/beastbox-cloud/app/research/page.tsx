@@ -9,7 +9,7 @@ import BrandCrest from '@/components/brand-crest';
 import ZerefResearchCard from '@/components/zeref-research-card';
 
 export const metadata: Metadata = {
-  title: 'COSMOS Lab // The Two Falsification Tests — Beast Box',
+  title: 'Research Lab · Beast Box',
   description: 'Cory Davis / NavisWORLD: actual RAWRPHØS self-correction and independently trained native 12D controls, original CPU evidence and honest negative outcomes.',
   robots: { index: true, follow: true },
 };

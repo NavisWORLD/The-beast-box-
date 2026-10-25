@@ -94,7 +94,7 @@ export default function UniverseSettings(){
      <summary>Advanced rooms <span>OPEN WHEN YOU NEED THEM</span></summary>
      <div className={styles.advancedLinks}>
       <Link prefetch={false} href="/brain-bay"><BrainCircuit size={20} aria-hidden="true"/><span><strong>Brain Bay</strong><small>Choose pattern, guest or explicit local Ollama.</small></span><ArrowUpRight size={16} aria-hidden="true"/></Link>
-      <Link prefetch={false} href="/workspace"><BrainCircuit size={20} aria-hidden="true"/><span><strong>Workstation</strong><small>All models and teachers: RAWRPHØS home brain, Ollama, Hugging Face, PHOS/SAMGO, with honesty labels.</small></span></Link>
+      <Link prefetch={false} href="/workspace"><BrainCircuit size={20} aria-hidden="true"/><span><strong>Workshop</strong><small>All models and teachers: RAWRPHØS home brain, Ollama, Hugging Face, PHOS/SAMGO, with honesty labels.</small></span></Link>
       <Link prefetch={false} href="/beast-cage/talk"><Eye size={20} aria-hidden="true"/><span><strong>Sensors &amp; conversation</strong><small>Open the explicit camera and microphone controls.</small></span><ArrowUpRight size={16} aria-hidden="true"/></Link>
       <Link prefetch={false} href="/workspace#settings"><LockKeyhole size={20} aria-hidden="true"/><span><strong>Owner workstation</strong><small>Existing credentials, provider and device controls.</small></span><ArrowUpRight size={16} aria-hidden="true"/></Link>
      </div>

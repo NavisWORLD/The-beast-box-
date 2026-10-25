@@ -34,10 +34,10 @@ export default function Home(){
    <a href="/spark/index.html"><span className="journey-icon" aria-hidden="true">🐣</span>My Beast</a>
    <Link href="/beast-cage" prefetch={false}><span className="journey-icon" aria-hidden="true">🏰</span>Beast Cage</Link>
    <Link href="/sol-game" prefetch={false}><span className="journey-icon" aria-hidden="true">🎮</span>Lost COSMOS</Link>
-   <Link href="/beast-cage/field" prefetch={false}><span className="journey-icon" aria-hidden="true">📷</span>Lost Cosmos Field</Link>
+   <Link href="/beast-cage/field" prefetch={false}><span className="journey-icon" aria-hidden="true">📷</span>Lost COSMOS Field</Link>
    <Link href="/brain-bay" prefetch={false}><span className="journey-icon" aria-hidden="true">🧠</span>Brain Bay</Link>
    <Link href="/research" prefetch={false}><span className="journey-icon" aria-hidden="true">🔬</span>Research Lab</Link>
-   <Link href="/workspace" prefetch={false}><span className="journey-icon" aria-hidden="true">🛠️</span>Workstation</Link>
+   <Link href="/workspace" prefetch={false}><span className="journey-icon" aria-hidden="true">🛠️</span>Workshop</Link>
   </nav>
   <span className="pill"><span className="pulse"/> DREAMERS · IDLERS · PLAYERS · BUILDERS</span>
   <Link className="header-enter" href="/settings">Settings <ArrowUpRight size={16}/></Link>

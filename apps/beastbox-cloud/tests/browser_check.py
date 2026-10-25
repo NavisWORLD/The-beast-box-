@@ -45,7 +45,7 @@ with sync_playwright() as p:
     unauth.get_by_role("link",name="Enter the Beast Cage").click()
     expect(unauth.get_by_role("heading",name="A small companion. An entire universe.")).to_be_visible()
     assert_no_overflow(unauth,"desktop cage")
-    unauth.get_by_role("link",name="Owner deck").click()
+    unauth.get_by_role("link",name="Workshop deck").click()
     unauth.get_by_label("OWNER PASSWORD").fill("public-ci-fixture-not-secret")
     unauth.get_by_role("button",name="Unlock workstation").click()
     unauth.get_by_text("BACKEND OFFLINE").wait_for(timeout=20000)

@@ -3,7 +3,7 @@ import JourneyLinks from '@/components/journey-links';
 import BeastAdventure from '@/components/beast-adventure';
 
 export const metadata: Metadata = {
-  title: 'Adventure · BEAST BOX',
+  title: 'Adventure walk · Beast Box',
   description: 'Walk with your beast, talk with the selected brain, and keep Lost COSMOS loaded.',
 };
 
