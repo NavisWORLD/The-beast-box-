@@ -1,0 +1,10 @@
+export const BIO_REPO:string;export const BIO_WORKFLOW:string;export const BIO_REF:string;
+export const BIO_LIMITS:Readonly<{cooldown_ms:number;max_runs_24h:number;burst_per_min:number;max_body_bytes:number}>;
+export function sha256Sync(s:string):string;
+export function burstLimit(nowMs:number,limit?:number):boolean;export function resetBurst():void;
+export function limitDecision(runs:unknown[],nowMs:number,o?:{sha12?:string|null}):{ok:boolean;status?:number;error?:string;retry_after_s?:number};
+export function checkPacket(p:unknown):Promise<{ok:boolean;status?:number;error?:string;sha12?:string}>;
+type Deps={fetch:typeof fetch;token:string|undefined;nowMs:number;sleep:(ms:number)=>Promise<void>};
+export function dispatchBio(p:unknown,d:Deps):Promise<{status:number;body:Record<string,unknown>}>;
+export function bioStatus(sha12:string,d:Omit<Deps,'nowMs'|'sleep'>&Partial<Deps>):Promise<{status:number;body:Record<string,unknown>}>;
+export {IBM_STATES,QVM_STATES} from './bio-states.mjs';

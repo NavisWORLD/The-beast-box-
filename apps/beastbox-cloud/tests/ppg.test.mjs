@@ -1,0 +1,12 @@
+import test from 'node:test';import assert from 'node:assert/strict';
+import {analysePpg,PPG_RULES} from '../lib/bio/ppg.mjs';
+import {synth} from './helpers-bio-synth.mjs';
+test('72 bpm synthetic fingertip waveform is MEASURED-grade',()=>{const a=analysePpg(synth({}));assert.equal(a.valid,true);assert.ok(Math.abs(a.bpm-72)<=2,'bpm '+a.bpm);assert.ok(a.sqi>=PPG_RULES.min_sqi);assert.ok(a.beats>=PPG_RULES.min_beats);assert.ok(a.hrv_rmssd_ms>0&&a.hrv_rmssd_ms<150);});
+test('other heart rates are recovered within 3 bpm',()=>{for(const bpm of [55,90,110,140]){const a=analysePpg(synth({bpm,hrv:.04}));assert.equal(a.valid,true,bpm+' '+a.reason);assert.ok(Math.abs(a.bpm-bpm)<=3,bpm+' -> '+a.bpm);}});
+test('deterministic: same input, same output',()=>{assert.deepEqual(analysePpg(synth({})),analysePpg(synth({})));});
+test('noise with no pulse is NOT a pulse',()=>{const n=synth({});const o=n.rnd;n.v=n.v.map(()=>200+(o()*2-1)*3);const a=analysePpg(n);assert.equal(a.valid,false);assert.equal(a.bpm===null||a.valid===false,true);});
+test('very noisy signal is rejected on quality',()=>{const a=analysePpg(synth({noise:12}));assert.equal(a.valid,false);assert.equal(a.reason,'low_signal_quality');});
+test('no finger (low red) is rejected',()=>{assert.equal(analysePpg(synth({red:30})).reason,'no_finger');});
+test('too short and too few frames are rejected, never invented',()=>{assert.equal(analysePpg(synth({secs:10})).valid,false);assert.equal(analysePpg({t:[0,1],v:[1,2]}).reason,'too_few_frames');});
+test('non-monotonic timestamps are rejected',()=>{const s=synth({});s.t[100]=s.t[50];assert.equal(analysePpg(s).valid,false);});
+test('no Math.random or clock reads in the algorithm',async()=>{const {readFileSync}=await import('node:fs');for(const f of ['../lib/bio/ppg.mjs','../lib/bio/bio-packet.mjs','../lib/bio/dispatch.mjs']){const src=readFileSync(new URL(f,import.meta.url),'utf8');assert.doesNotMatch(src,/Math\.random|Date\.now|new Date\(|performance\.now/,f);}});
