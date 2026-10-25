@@ -79,6 +79,8 @@ with sync_playwright() as p:
     page.on("pageerror", lambda e: errors.append(str(e)))
     guest_calls = []
     page.on("request", lambda r: guest_calls.append(r.url) if "/api/guest" in r.url else None)
+    private_calls = []
+    page.on("request", lambda r: private_calls.append(r.url) if "/api/zeref/" in r.url else None)
     page.goto(ROOT + "/beast-cage/talk", wait_until="domcontentloaded", timeout=45000)
     page.locator('button[data-critical-control][aria-controls="beast-chat-overlay"]').click()
     overlay = page.locator("[data-companion-chat-overlay]"); expect(overlay).to_be_visible()
@@ -93,6 +95,7 @@ with sync_playwright() as p:
     expect(reads).to_contain_text("1,800 characters"); expect(reads).to_contain_text("keyword matching, not understanding")
     assert overlay.locator("[data-zeref-library]").count() == 0, "visitors must not see the library"
     assert not guest_calls and not errors, (guest_calls, errors)
+    assert not private_calls, ("public visitors must not call private library APIs", private_calls)
     check_overflow(page, "visitor 390")
     page.screenshot(path=str(OUT / "visitor-390.png"), full_page=True)
     anon.close()
@@ -113,6 +116,7 @@ with sync_playwright() as p:
     # ---- 3. owner UI at 390 px with mocked storage + labelled mock guest brain -----------------
     fake = FakeLibrary(); prompts = []
     ctx = browser.new_context(viewport={"width": 390, "height": 844}, device_scale_factor=2)
+    ctx.add_init_script("try{localStorage.setItem('beastbox.ownerDevice.v1','1')}catch(e){}")  # what the owner login sets
     page = ctx.new_page(); errors = []
     page.on("pageerror", lambda e: errors.append(str(e)))
     def lib_route(route):

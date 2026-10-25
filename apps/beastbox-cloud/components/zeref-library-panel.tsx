@@ -9,6 +9,7 @@ export type LibraryDoc={id:string;title:string;kind:string;status:string;bytes:n
 type Listing={owner:boolean;configured?:boolean;hint?:string;docs?:LibraryDoc[];totals?:{docs:number;chars:number;chunks:number}};
 export type LibraryState={owner:boolean;ready:boolean;docCount:number};
 const USE_KEY='beastbox-zeref-library-use-v1';
+const OWNER_DEVICE_KEY='beastbox.ownerDevice.v1'; // set by the owner login in the workstation; public visitors never have it
 const n=(v:number)=>v.toLocaleString('en-US');
 
 /** Plain statement of what the brain reads. Shown to every owner, always. */
@@ -27,6 +28,9 @@ export default function ZerefLibraryPanel({onState}:{onState?:(s:LibraryState)=>
  const [use,setUse]=useState(true),[open,setOpen]=useState<boolean|null>(null);
  const input=useRef<HTMLInputElement>(null);
  const load=useCallback(async()=>{
+  // Public rooms must not call private APIs: only a device where the owner logged in asks the server.
+  let ownerDevice=false;try{ownerDevice=localStorage.getItem(OWNER_DEVICE_KEY)==='1';}catch{/* no storage = visitor */}
+  if(!ownerDevice){setInfo({owner:false});return;}
   try{const r=await fetch('/api/zeref/library',{cache:'no-store',credentials:'same-origin'});const j=await r.json().catch(()=>null);setInfo(r.ok&&j?j:{owner:false});}
   catch{setInfo({owner:false});}
  },[]);

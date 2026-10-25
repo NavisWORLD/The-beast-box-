@@ -307,6 +307,8 @@ function BeastTalkContent({onState,compact=false,title,gameBridge}:PanelProps){
    <ul className={styles.helpList}>{connectHelp(route).map(line=><li key={line}>{line}</li>)}</ul>
   </fieldset>:null}
 
+  <details className={styles.options} data-brain-reads-details><summary>How much does {persona.name} read?</summary><ReadsBox/></details>
+
   <div className={styles.log} aria-label={`Conversation with ${persona.name}`} aria-live="polite">
    {log.length===0?<p className={styles.empty}>Say hi to {persona.name}! 👋 Type below, then tap Send.<small> {persona.name}&apos;s replies come from RAWRPHØS, never from a script. Teachers coach RAWRPHØS in the background; their words are never shown as {persona.name}&apos;s.</small></p>:
     log.map((turn,i)=>turn.role==='system'?<div key={i} className={styles.offline} role="status" data-model-offline-turn><strong>⚠ Model offline · not {persona.name}&apos;s voice</strong><p>{turn.text}</p></div>:<div key={i} style={{display:'contents'}}><div className={turn.role==='you'?styles.you:styles.beast}>
@@ -332,7 +334,6 @@ function BeastTalkContent({onState,compact=false,title,gameBridge}:PanelProps){
 
   {persona.source==='zeref'?<ZerefLibraryPanel onState={setLib}/>:null}
   {libNote?<small data-library-note role="status">{libNote}</small>:null}
-  <details className={styles.options} data-brain-reads-details><summary>How much does {persona.name} read?</summary><ReadsBox/></details>
 
   <details className={styles.options}><summary>Conversation & observation settings</summary>
    <p role="status">{cloudStatus}</p><button type="button" disabled={busy||cloudBusy||!conversationReady||!session?.beast} onClick={()=>void restorePrivate()}>Restore my private cloud conversation</button>
