@@ -10,6 +10,7 @@ import styles from './zeref-diary-panel.module.css';
 import PocketLearningCard from './pocket-learning-card';
 import GrowInCosmos from './grow-in-cosmos';
 import ZerefKnowledgeDiagnostics from './zeref-knowledge-diagnostics';
+import WorldLiveLinks from './world-live-links';
 import type {CosmosProfile} from '../public/spark/cosmos-profile.mjs';
 
 type Entry={tick:number;at:string;mood:string;place:string|null;new_combo_count:number;combos_total:number;discovered_combos:{key:string;name:string}[];xp:number;xp_gain:number;stage:number;stage_name:string;grew:boolean;signals:Record<string,number>;thought:{text:string;by:string};hash:string;
@@ -89,6 +90,7 @@ export default function ZerefDiaryPanel({journalId,beastName,cosmosProfile=null,
    <div className={styles.card}>
     <h3>Growth</h3>
     <LiveTick diary={diary}/>
+    <WorldLiveLinks/>
     <p className={styles.stage}><strong>Stage {stage} · {diary?.stage_name||'Moonling'}</strong></p>
     <meter min={0} max={100} value={pct} aria-label={`Growth toward ${diary?.next_stage?.name||'max stage'}`}/>
     <p className={styles.small}>{xp} XP{diary?(diary.next_stage?` · ${diary.next_stage.xp-xp} XP to reach ${diary.next_stage.name}`:' · fully grown'):' · opening the diary…'} · {diary?.tick||0} growth steps · {diary?.combos_total||0} combos discovered</p>

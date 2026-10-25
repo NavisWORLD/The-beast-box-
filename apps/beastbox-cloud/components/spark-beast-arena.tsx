@@ -113,7 +113,12 @@ export default function SparkBeastArena({profile,fallbackLook='nebula',state='id
  useEffect(()=>{
   const onDiary=(e:Event)=>{const st=Number((e as CustomEvent).detail?.stage);if(st>=1&&st<=5)setDiaryStage(st);};
   window.addEventListener('beastbox:zeref-diary',onDiary);
-  return()=>window.removeEventListener('beastbox:zeref-diary',onDiary);
+  // World links: the fresh Rigetti SIMULATED spark numbers (0..1) are exposed on the habitat node for styles/rigs; absent when the spark is stale.
+  const onLive=(e:Event)=>{const node=root.current;const d=(e as CustomEvent).detail?.drive;if(!node)return;
+   if(d&&typeof d.tick==='number'){node.dataset.sparkTick=String(d.tick);node.dataset.sparkLabel='SIMULATED';for(const k of ['p0','p1','p2','odd','entropy'])node.style.setProperty('--spark-'+k,String(d[k]));}
+   else{delete node.dataset.sparkTick;delete node.dataset.sparkLabel;for(const k of ['p0','p1','p2','odd','entropy'])node.style.removeProperty('--spark-'+k);}};
+  window.addEventListener('beastbox:world-live',onLive);
+  return()=>{window.removeEventListener('beastbox:zeref-diary',onDiary);window.removeEventListener('beastbox:world-live',onLive);};
  },[]);
  useEffect(()=>{if(rig)recordCare(journalId,'visits');},[rig,journalId]);
  const cue=useCallback((c:string)=>{if(rig)window.dispatchEvent(new CustomEvent('beastbox:rig-cue',{detail:{channel:'habitat',cue:c}}));},[rig]);
