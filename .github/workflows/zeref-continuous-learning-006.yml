@@ -119,7 +119,10 @@ jobs:
           pin=json.load(open('apps/beastbox-cloud/lib/rawrphos-public-pin.json'))
           if (pin.get('promotion') or {}).get('release_tag'):
            assert actual==pin['checkpoint_sha256'],'parent is not the current public pin; refusing to train from a stale checkpoint'
-          print('ZEREF_PARENT_IS_CURRENT_PIN='+json.dumps({'pin_steps':pin.get('training_steps'),'sha256':actual}),flush=True)
+           # 2026-10-24: the parent's step count must equal the pin's step count too (additive guard; Gate v2 and the bar are untouched).
+           if pin.get('training_steps') is not None and m.get('training_steps') is not None:
+            assert int(m['training_steps'])==int(pin['training_steps']),'parent step count %s != pin step count %s'%(m['training_steps'],pin['training_steps'])
+          print('ZEREF_PARENT_IS_CURRENT_PIN='+json.dumps({'pin_steps':pin.get('training_steps'),'parent_steps':m.get('training_steps'),'sha256':actual}),flush=True)
           print('ZEREF_010_VERIFIED_CANONICAL_PARENT='+json.dumps({
            'sha256':actual,'canonical_root':root,'approved_cycle_count':m['approved_cycle_count']}),flush=True)
           PY
