@@ -40,7 +40,7 @@ export default function ZerefResearchCard({beastId}:{beastId?:string}){
     {view.runtime?<p className={styles.small}>The Railway runtime loaded the separate {view.runtime.stable_training_steps.toLocaleString()}-step checkpoint <code title={view.runtime.stable_checkpoint_sha256}>{short(view.runtime.stable_checkpoint_sha256)}</code>. Host health was checked {view.runtime.audited_at}; no fresh model reply was verified by this audit. The approved research checkpoint is not the served checkpoint.</p>:null}
     <p className={styles.small}>Research audit: {view.auditedAt}. Pocket rules, generated diary lines, native game saves, recorded IBM measurements and neural weights remain distinct. <a href={report} target="_blank" rel="noopener noreferrer">Full audit</a></p>
    </details>
-  </>:<p className={styles.small} role="status">{failed?'Research evidence is unavailable or inconsistent. No approval is inferred.':'Loading the audited research record…'}</p>}
+  </>:<p className={styles.small} role="status">{failed?'The record isn’t available. Nothing is assumed.':'Opening the research record…'}</p>}
   </Details>
  </section>;
 }
