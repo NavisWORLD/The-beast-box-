@@ -281,54 +281,66 @@ export default function LiveSenses({canSend,visible,onDraft,onContext,onActivity
    border:'1px solid #53516b',borderRadius:18,
    background:'#171a2b',color:'#f3f1ff',padding:18}}>
   <h2>Senses · camera &amp; microphone</h2>
-  <p>Start and stop here in Settings. The foreground session stays mounted across Beast Box pages, but stops when the browser tab becomes hidden.</p>
-  <p role="status">Vision: {cameraOn?'ON':'OFF'} · Speech: {speechOn?'ON':'OFF'}</p>
+  <p className="senses-lead">You start everything yourself, and it stops when this tab is hidden. Raw camera frames stay on this device.</p>
+  <p role="status" data-senses-status className="senses-status"><span data-on={cameraOn?'':undefined}>Vision: {cameraOn?'ON':'OFF'}</span><span data-on={speechOn?'':undefined}>Speech: {speechOn?'ON':'OFF'}</span></p>
   <video ref={video} aria-label="Local camera preview" muted playsInline autoPlay
    style={{display:cameraOn?'block':'none',width:'100%',maxHeight:260,objectFit:'contain',background:'#10121d',borderRadius:8}}/>
-  <div>
-   <p>Foreground sensing only. Raw camera frames stay on-device; MediaPipe may send usage metrics. Browser speech recognition may send audio to its provider.</p>
-   <div className="cloud-connect-actions">
-    <button type="button" disabled={starting} onClick={()=>cameraOn?stopCamera():void startCamera()}>
-     {cameraOn?<Square size={15}/>:<Camera size={15}/>} {cameraOn?'Stop vision':'Start vision'}</button>
-   </div>
-   <label className="cloud-spend"><input type="checkbox" checked={allowBrowserSpeech} disabled={speechOn}
-    onChange={e=>setAllowBrowserSpeech(e.target.checked)}/>
-    I consent to browser speech recognition, including possible off-device audio processing when on-device-only mode is OFF.</label>
-   <label className="cloud-spend"><input type="checkbox" checked={onDeviceOnly} disabled={speechOn}
-    onChange={event=>{setOnDeviceOnly(event.target.checked);setOfflineStatus('unchecked');}}/>
-    Require browser-supported on-device recognition only (no automatic cloud fallback). Unsupported browsers, including some iOS Safari versions, may not offer this feature.</label>
-   {onDeviceOnly?<div className="cloud-connect-actions">
-    <button type="button" onClick={()=>void checkOfflineSpeech()} disabled={speechOn||offlineStatus==='checking'||offlineStatus==='downloading'}>Check local speech availability</button>
-    {offlineStatus==='downloadable'?<button type="button" onClick={()=>void installOfflineSpeech()} disabled={speechOn}>Install browser language pack (owner-approved download)</button>:null}
-    <p role="status">Browser-reported offline speech: {offlineStatus}. A downloaded language pack can use device storage and network data; no automatic installation occurs.</p>
-   </div>:null}
-   <div className="cloud-connect-actions"><button type="button" onClick={()=>speechOn?stopSpeech():startSpeech()}
-    disabled={!speechOn&&(!allowBrowserSpeech||(onDeviceOnly&&offlineStatus!=='available'))}>{speechOn?<Square size={15}/>:<Mic size={15}/>}
-    {speechOn?'Stop speech':'Start speech'}</button></div>
-   <p role="status">Collected {freshObservations.length}/8 fresh observations (approximate classes and final transcripts).</p>
-   <div style={{maxHeight:140,overflowY:'auto'}}>{freshObservations.map((o,i)=>
-    <p key={o.timestamp+String(i)} style={{fontSize:12}}>{o.source==='camera_classifier'?'Vision':'Speech'}:
-     {' '}{o.text}{typeof o.confidence==='number'?' ('+Math.round(o.confidence*100)+'% confidence)':''}</p>)}</div>
-   <label className="cloud-spend"><input type="checkbox" checked={includeInChat}
-    onChange={e=>setIncludeInChat(e.target.checked)} disabled={!canSend}/>
-    Include these selected text observations as temporary context in messages I explicitly send. The model receives approximate labels/transcripts, not raw media; they are not retained unless I separately press Remember.</label>
-   {includeInChat&&!text?<p role="status">No observations collected yet. Start vision or speech and wait for a result; nothing will be sent to the model without a result.</p>:null}
-   <div className="cloud-connect-actions">
-    <button type="button" onClick={draft} disabled={!canSend||!freshObservations.length}>Add observations to draft</button>
-    <button type="button" onClick={()=>{setObservations([]);setIncludeInChat(false);setRememberConsent(false);onContext('',false);}}>Discard selection</button>
-    <button type="button" onClick={()=>{stopCamera();stopSpeech();setObservations([]);setIncludeInChat(false);setRememberConsent(false);onContext('',false);setNotice('Live capture stopped; all unsent sensor observations discarded. Previously saved memories require separate owner correction.');}}>Stop all sensing and revoke unsent context</button>
-   </div>
-   <label className="cloud-spend"><input type="checkbox" checked={rememberConsent}
-    onChange={e=>setRememberConsent(e.target.checked)} disabled={!memoryEnabled||!canSend}/>
-    I explicitly approve persisting these selected text observations in COSMOS. Future model providers may retrieve them.</label>
-   <div className="cloud-connect-actions"><button type="button" onClick={()=>void remember()}
-    disabled={!rememberConsent||!memoryEnabled||!canSend||!freshObservations.length||saving}>
-    <ShieldCheck size={15}/> {saving?'Saving…':'Remember selected observations'}</button></div>
-   {!memoryEnabled?<p className="cloud-connect-alert">Durable sensor text is not enabled on this host. Local preview and chat draft remain available.</p>:null}
-   {receipt?<p role="status" className="cloud-connect-success">{receipt}</p>:null}
+  <div className="senses-body">
+   <section className="senses-card" data-senses-section="vision"><h3>1 · Camera</h3>
+    <div className="cloud-connect-actions">
+     <button type="button" disabled={starting} title={starting?'Waiting for camera permission and the local model…':undefined} onClick={()=>cameraOn?stopCamera():void startCamera()}>
+      {cameraOn?<Square size={15}/>:<Camera size={15}/>} {cameraOn?'Stop vision':'Start vision'}</button>
+    </div>
+    <details className="senses-more"><summary>About vision</summary><p>Foreground sensing only. Raw camera frames stay on-device; MediaPipe may send usage metrics.</p></details>
+   </section>
+   <section className="senses-card" data-senses-section="speech"><h3>2 · Speech</h3>
+    <label className="cloud-spend"><input type="checkbox" checked={allowBrowserSpeech} disabled={speechOn}
+     onChange={e=>setAllowBrowserSpeech(e.target.checked)}/>
+     I consent to browser speech recognition, including possible off-device audio processing when on-device-only mode is OFF.</label>
+    <label className="cloud-spend"><input type="checkbox" checked={onDeviceOnly} disabled={speechOn}
+     onChange={event=>{setOnDeviceOnly(event.target.checked);setOfflineStatus('unchecked');}}/>
+     Require on-device recognition only (no cloud fallback)</label>
+    {onDeviceOnly?<div className="cloud-connect-actions">
+     <button type="button" onClick={()=>void checkOfflineSpeech()} disabled={speechOn||offlineStatus==='checking'||offlineStatus==='downloading'}>Check local speech availability</button>
+     {offlineStatus==='downloadable'?<button type="button" onClick={()=>void installOfflineSpeech()} disabled={speechOn}>Install browser language pack (owner-approved download)</button>:null}
+     <p role="status">Browser-reported offline speech: {offlineStatus}.</p>
+    </div>:null}
+    <div className="cloud-connect-actions"><button type="button" onClick={()=>speechOn?stopSpeech():startSpeech()}
+     title={!speechOn&&!allowBrowserSpeech?'Tick the consent box first':!speechOn&&onDeviceOnly&&offlineStatus!=='available'?'Check that on-device speech is available first':undefined}
+     disabled={!speechOn&&(!allowBrowserSpeech||(onDeviceOnly&&offlineStatus!=='available'))}>{speechOn?<Square size={15}/>:<Mic size={15}/>}
+     {speechOn?'Stop speech':'Start speech'}</button></div>
+    <details className="senses-more"><summary>About speech</summary><p>Browser speech recognition may send audio to its provider. Unsupported browsers, including some iOS Safari versions, may not offer on-device recognition. A downloaded language pack can use device storage and network data; no automatic installation occurs.</p></details>
+   </section>
+   <section className="senses-card" data-senses-section="collected"><h3>3 · What was heard or seen</h3>
+    <p role="status">Collected {freshObservations.length}/8 fresh observations (approximate classes and final transcripts).</p>
+    <div style={{maxHeight:140,overflowY:'auto'}}>{freshObservations.map((o,i)=>
+     <p key={o.timestamp+String(i)} style={{fontSize:12}}>{o.source==='camera_classifier'?'Vision':'Speech'}:
+      {' '}{o.text}{typeof o.confidence==='number'?' ('+Math.round(o.confidence*100)+'% confidence)':''}</p>)}</div>
+    <label className="cloud-spend"><input type="checkbox" checked={includeInChat}
+     onChange={e=>setIncludeInChat(e.target.checked)} disabled={!canSend}/>
+     Use these as temporary context in messages I send{!canSend?' (connect the host first)':''}</label>
+    <details className="senses-more"><summary>What the model receives</summary><p>Include these selected text observations as temporary context in messages I explicitly send. The model receives approximate labels/transcripts, not raw media; they are not retained unless I separately press Remember.</p></details>
+    {includeInChat&&!text?<p role="status">No observations collected yet. Start vision or speech and wait for a result; nothing will be sent to the model without a result.</p>:null}
+    <div className="cloud-connect-actions">
+     <button type="button" onClick={draft} disabled={!canSend||!freshObservations.length} title={!canSend?'Connect the host to add observations to a draft':!freshObservations.length?'Nothing collected yet':undefined}>Add observations to draft</button>
+     <button type="button" onClick={()=>{setObservations([]);setIncludeInChat(false);setRememberConsent(false);onContext('',false);}}>Discard selection</button>
+    </div>
+   </section>
+   <section className="senses-card" data-senses-section="remember"><h3>4 · Remember (optional)</h3>
+    <label className="cloud-spend"><input type="checkbox" checked={rememberConsent}
+     onChange={e=>setRememberConsent(e.target.checked)} disabled={!memoryEnabled||!canSend}/>
+     I explicitly approve persisting these selected text observations in COSMOS. Future model providers may retrieve them.</label>
+    <div className="cloud-connect-actions"><button type="button" onClick={()=>void remember()}
+     title={!memoryEnabled?'Durable sensor text is not enabled on this host':!rememberConsent?'Tick the approval box first':!freshObservations.length?'Nothing collected yet':undefined}
+     disabled={!rememberConsent||!memoryEnabled||!canSend||!freshObservations.length||saving}>
+     <ShieldCheck size={15}/> {saving?'Saving…':'Remember selected observations'}</button></div>
+    {!memoryEnabled?<p className="cloud-connect-alert">Durable sensor text is not enabled on this host. Local preview and chat draft remain available.</p>:null}
+    {receipt?<p role="status" className="cloud-connect-success">{receipt}</p>:null}
+   </section>
+   <div className="cloud-connect-actions senses-stop"><button type="button" onClick={()=>{stopCamera();stopSpeech();setObservations([]);setIncludeInChat(false);setRememberConsent(false);onContext('',false);setNotice('Live capture stopped; all unsent sensor observations discarded. Previously saved memories require separate owner correction.');}}>Stop all sensing and revoke unsent context</button></div>
    {notice?<p role="status" className="cloud-connect-success">{notice}</p>:null}
    {error?<p role="alert" className="inline-error">{error}</p>:null}
-   <p className="cloud-connect-foot">Observations expire from sendable context within four minutes. No background capture, automatic sending, diagnosis, identity recognition or live action authority. iOS may end the stream. Press Stop or hide the app to stop capture and revoke unsent context; browser-level device permissions are controlled in browser settings. Previously persisted memories require separate owner correction.</p>
+   <details className="senses-more"><summary>Privacy &amp; limits</summary><p className="cloud-connect-foot">Observations expire from sendable context within four minutes. No background capture, automatic sending, diagnosis, identity recognition or live action authority. iOS may end the stream. Press Stop or hide the app to stop capture and revoke unsent context; browser-level device permissions are controlled in browser settings. Previously persisted memories require separate owner correction.</p></details>
   </div>
  </section>;
 }

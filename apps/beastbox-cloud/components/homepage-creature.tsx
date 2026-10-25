@@ -1,5 +1,6 @@
 'use client';
 import {useEffect,useState} from 'react';
+import {createPortal} from 'react-dom';
 import Link from 'next/link';
 import CosmicCompanion3D from './cosmic-companion-3d';
 import ZerefMoonwraith from './zeref-moonwraith';
@@ -28,6 +29,9 @@ export default function HomepageCreature(){
  const genome=savedBeast?.genome?.seed?savedBeast.genome:null;
  const [spin,setSpin]=useState(false),[angle,setAngle]=useState<number|null>(null);
  const [waved,setWaved]=useState(false),[greet,setGreet]=useState(0);
+ // Oct 25: the View chip folds into the one pocket menu (About section) once that menu is on the page; the old floating chip stays as the fallback.
+ const [menuHost,setMenuHost]=useState<HTMLElement|null>(null);
+ useEffect(()=>{let n=0,t=0;const find=()=>{const h=document.querySelector('[data-world-menu-sheet="home"] [data-menu-host="about"]') as HTMLElement|null;if(h)setMenuHost(h);else if(n++<40)t=window.setTimeout(find,250);};find();return()=>window.clearTimeout(t);},[]);
  const [view,setView]=useState<View>('zeref3d');
  const [savedView,setSavedView]=useState<'mine'|'zeref'>('mine');
  const [line,setLine]=useState(''),[zMood,setZMood]=useState('content');
@@ -79,7 +83,7 @@ export default function HomepageCreature(){
     <small>Guide reaction is visual only. Your own Beast begins when you create one.</small>
    </>}
   </div></details>
-  <details className="cosmos-home-viewmenu"><summary aria-label="View options">⚙ View</summary>
+  {menuHost?createPortal(<div className="cosmos-menu-controls" data-home-view-controls><h4>{genome?'Who appears in the observatory':'How the guide turns'}</h4>
   <div className="cosmos-home-controls" aria-label={genome?'Choose who appears in the observatory':'Guide view and real 3D rotation controls'}>
    {genome?<>
     <button type="button" aria-pressed={savedView==='mine'} onClick={()=>setSavedView('mine')}>My Beast</button>
@@ -94,6 +98,21 @@ export default function HomepageCreature(){
     </>}
    </>}
   </div>
-  </details>
+  </div>,menuHost):<details className="cosmos-home-viewmenu"><summary aria-label="View options">⚙ View</summary>
+  <div className="cosmos-home-controls" aria-label={genome?'Choose who appears in the observatory':'Guide view and real 3D rotation controls'}>
+   {genome?<>
+    <button type="button" aria-pressed={savedView==='mine'} onClick={()=>setSavedView('mine')}>My Beast</button>
+    <button type="button" aria-pressed={savedView==='zeref'} onClick={()=>setSavedView('zeref')}>Zeref</button>
+   </>:<>
+    {/* Cory (Oct 14): home shows only the real 3D Zeref; the flat sprite and the classic puff guide stay in the Cage/turntable. */}
+    {<>
+     <button type="button" aria-pressed={spin} onClick={()=>{setSpin(x=>!x);setAngle(null);}}>Rotate 360°</button>
+     <button type="button" onClick={()=>{setSpin(false);setAngle(0);}}>Front</button>
+     <button type="button" onClick={()=>{setSpin(false);setAngle(90);}}>Side</button>
+     <button type="button" onClick={()=>{setSpin(false);setAngle(180);}}>Back</button>
+    </>}
+   </>}
+  </div>
+  </details>}
  </div>;
 }

@@ -34,7 +34,9 @@ import {ZEREF_PROFILE} from '../lib/zeref/zeref-mind.mjs';
 import {creatureVisual} from '../public/spark/creature-assets.mjs';
 import {POCKET_3D_CAMERA_RESET} from '../lib/companion/pocket-3d-settings.mjs';
 import GeyserControls from './geyser-controls';
-const VIEW_STORAGE='beastbox-cage-view-v1';
+import WorldMenu,{type MenuHosts} from './world-menu';
+import useWorldView from './use-world-view';
+import {overlayFor} from '../lib/world/world-options.mjs';
 const LOOKS:{id:BaseLook;label:string;detail:string;accent:string}[]=[
  {id:'nebula',label:'Nebby',detail:'A curious little pocket galaxy',accent:'violet'},
  {id:'aurora',label:'Lumen',detail:'The quiet glow of cosmic dawn',accent:'cyan'},
@@ -71,12 +73,12 @@ export default function BeastCagePortal(){
  /* E2 fallback: on CPU-rendered WebGL the 3D tap pick is unreliable, so a fixed Look Closer tap target stays on screen there. */
   const [softTap,setSoftTap]=useState(false);useEffect(()=>{setSoftTap(isSoftwareGL());},[]);
   useEffect(()=>{let t=0;const on=(e:Event)=>{const id=(e as CustomEvent).detail?.id;const ok=id==='beast'||id==='zeref';setLookId(ok?id:null);if(ok){/* E2: a tap on your creature opens Look Closer */window.location.assign('/beast-cage/look'+(id==='zeref'?'?with=zeref':''));}clearTimeout(t);t=window.setTimeout(()=>setLookId(null),7000);};window.addEventListener('beastbox:look-closer',on);return()=>{window.removeEventListener('beastbox:look-closer',on);clearTimeout(t);};},[]);
- const [view0,setView0]=useState<'pocket'|'classic'>('pocket');const [worldOn,setWorldOn]=useState(true);const view:'pocket'|'classic'|'world'=worldOn?'world':view0;const setView=(v:'pocket'|'classic'|'world')=>{if(v==='world')setWorldOn(true);else{setWorldOn(false);setView0(v);}};const [worldFull,setWorldFull]=useState(false);
+ // ONE shared view state (Living world / Pocket explorer / Classic pixel sprite): same saved choice as the home pocket and the menu.
+ const {view,setView}=useWorldView(sameSpark);const [worldFull,setWorldFull]=useState(false);
+ const [hosts,setHosts]=useState<MenuHosts>({place:null,tools:null,about:null});
  const [cageMode,setCageMode]=useState<'friendly'|'advanced'>('friendly');
  useEffect(()=>{try{if(window.localStorage.getItem('beastbox-cage-mode-v1')==='advanced'||/^#(menagerie)/.test(window.location.hash))setCageMode('advanced');}catch{}},[]);
  const chooseMode=(next:'friendly'|'advanced')=>{setCageMode(next);try{window.localStorage.setItem('beastbox-cage-mode-v1',next);}catch{}};
- useEffect(()=>{try{const st=window.localStorage.getItem(VIEW_STORAGE);if(st==='classic')setView('classic');else if(st!=='pocket')setView('world');}catch{}},[]);// Oct 22: the shared living world is the default; pocket + classic stay one tap away
- const chooseView=(next:'pocket'|'classic'|'world')=>{setView(next);try{window.localStorage.setItem(VIEW_STORAGE,next);}catch{}};
  // Until the saved session has loaded, never show the seeded starter's name (it flashed 'Look Closer at <starter>' before the real beast appeared): use the active beast's name from storage, else a neutral phrase.
  const pocketName=sessionReady?(creatureName||'Zeref'):(activeName||'your beast');
  const cosmosProfile=useMemo<CosmosProfile|null>(()=>{
@@ -99,6 +101,8 @@ export default function BeastCagePortal(){
   clearProfile();setLook('nebula');setSaved(false);
  }
  const current=LOOKS.find(x=>x.id===look)||LOOKS[0];
+ // Cory Oct 25: the 2D sprite is never drawn over the 3D scene by default (those creatures already live in the world as 3D); only the explicit Classic view or the 3D rig draws here.
+ const overlay=overlayFor(view,{rigAvailable:!savedVisual||savedVisual.renderer==='moonwraith-rig'});
  return <main className="cage-universe" data-reduced-motion={prefersReduced} data-cage-mode={cageMode}>
   <div className="cage-mode-toggle" role="group" aria-label="Cage view mode">
    <button type="button" aria-pressed={cageMode==='friendly'} onClick={()=>chooseMode('friendly')}>✦ Friendly</button>
@@ -129,7 +133,8 @@ export default function BeastCagePortal(){
    <div data-cage-view={view} className={'cage-habitat-visual'+(pocketReady?' cage-pocket-active':'')} role="group" aria-label="Circular dimensional world behind the original Spark Beast; drag or pinch to explore, or focus and use arrow keys and plus/minus to move the view" tabIndex={0}>
     <div className="cage-orbit cage-orbit-one" aria-hidden="true"/><div className="cage-orbit cage-orbit-two" aria-hidden="true"/>
     <GeyserControls/>
-    {lookId?<Link className="cage-look-pill" href="/beast-cage/look" data-cage-look-closer={lookId}>🔍 Look Closer at {lookId==='zeref'?'Zeref':pocketName}</Link>:softTap?<Link className="cage-look-pill" href={creatureName?"/beast-cage/look":"/beast-cage/look?with=zeref"} data-cage-look-fallback="true">🔍 Look Closer at {pocketName}</Link>:null}
+    <WorldMenu context="cage" view={view} onView={setView} hasBeast={sameSpark} beastName={pocketName} onHosts={setHosts}/>
+    {/* Oct 25: 'Look Closer' lives in the menu now so nothing sits on top of the creatures. */}
     <CagePocketDimension
      seed={sameSpark?session.beast.genome?.seed||session.beast.seed:null}
      qbeastId={sameSpark?session.beast.qbeast.profile.id:null}
@@ -137,22 +142,16 @@ export default function BeastCagePortal(){
      behaviorPosition={sameSpark?session.beast.behavior?.position||null:null}
      state={sameSpark?visualStateFromBeast(session.beast):ambient}
      reduced={prefersReduced} onActiveChange={onPocketActive}
-     qvmCounts={qvmCounts}/>
-    <SparkBeastArena profile={creature} fallbackLook={look}
+     qvmCounts={qvmCounts} menuHost={hosts.tools}/>
+    {overlay!=='none'?<SparkBeastArena profile={creature} fallbackLook={look}
      state={sameSpark?visualStateFromBeast(session.beast):ambient==='rest'?'sleeping':ambient==='orbit'?'celebrating':ambient==='perch'?'observing':'idle'}
      label="Active Spark Beast companion" preferSavedBeast={sameSpark}
-     rig={view==='pocket'&&(!savedVisual||savedVisual.renderer==='moonwraith-rig')}/>
-    {view==='world'&&sameSpark&&!worldFull?<LivingWorld embedded genome={session.beast.genome||null} beastKey={session.beast.qbeast.profile.id} beastName={beastDisplayName(session.beast)} onExpand={()=>setWorldFull(true)}/>:null}
+     rig={overlay==='rig'}/>:null}
+    {view==='world'&&sameSpark&&!worldFull?<LivingWorld embedded menuHost={hosts.place} infoHost={hosts.about} genome={session.beast.genome||null} beastKey={session.beast.qbeast.profile.id} beastName={beastDisplayName(session.beast)} onExpand={()=>setWorldFull(true)}/>:null}
     {worldFull&&sameSpark?<LivingWorld genome={session.beast.genome||null} beastKey={session.beast.qbeast.profile.id} beastName={beastDisplayName(session.beast)} onClose={()=>setWorldFull(false)}/>:null}
     <span className="cage-habitat-caption">✧ YOUR OWN POCKET UNIVERSE</span>
    </div>
-   <div className="cage-view-toggle" role="group" aria-label="Habitat view">
-    {sameSpark?<button type="button" aria-pressed={view==='world'} data-cage-view-world onClick={()=>chooseView('world')}>🌍 Living world</button>:null}
-    <button type="button" aria-pressed={view==='pocket'} onClick={()=>chooseView('pocket')}>✦ Pocket explorer</button>
-    <button type="button" aria-pressed={view==='classic'} onClick={()=>chooseView('classic')}>Classic pixel sprite</button>
-    <button type="button" onClick={()=>window.dispatchEvent(new Event(POCKET_3D_CAMERA_RESET))} aria-label="Reset 3D pocket camera">Reset 3D camera</button>
-    <a href="#zeref-diary">{pocketName}&apos;s Diary ↓</a>
-   </div>
+   <p className="cage-view-status" data-cage-view-status aria-live="polite"><span>{view==='world'?'🌍 Living world':view==='classic'?'▦ Classic pixel sprite':'✦ Pocket explorer'}</span> · change the view, reset the camera or open the diary in the <strong>☰ Menu</strong> (top right of the scene).</p>
   </section>
   {sameSpark?<CreatureDashboard beast={session.beast} cosmosProfile={cosmosProfile}/>:null}
   <ZerefDiaryPanel journalId={sameSpark?session.beast.qbeast.profile.id:creature?creature.id:ZEREF_PROFILE.id} beastName={pocketName} cosmosProfile={cosmosProfile} showGrow={!sameSpark}/>

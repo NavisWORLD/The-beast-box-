@@ -871,3 +871,26 @@ body:has([data-not-found]) :is(.site-dock,[data-beast-chat-launcher],[data-zeref
  .site-dock[data-compact]>*:not(:last-child){display:none}
  .site-dock[data-compact]>*:last-child{min-height:34px;min-width:34px;padding:0}
 }
+/* Oct 25 2026: one menu for the pocket world; this quiet line replaces the row of view buttons that sat under the scene. */
+.cage-view-status{grid-column:2;justify-self:center;margin:-8px 0 0;max-width:min(560px,92%);text-align:center;font:600 12.5px/1.45 system-ui,sans-serif;color:#cfd8ff}
+.cage-view-status span{color:#fff}
+@media(max-width:1100px){.cage-view-status{grid-column:1;margin-top:6px}}
+/* Senses panel (Oct 25): short lead, four clear sections, long text folded into "About" details. */
+.senses-lead{margin:4px 0 8px;font-size:13px;color:#cfd2ee}
+.senses-status{display:flex;gap:8px;margin:0 0 8px}
+.senses-status span{padding:4px 10px;border-radius:999px;border:1px solid #53516b;font:700 12px system-ui,sans-serif;color:#cfd2ee}
+.senses-status span[data-on]{background:#1f5f44;border-color:#5bd69a;color:#eafff3}
+.senses-body{display:grid;gap:10px}
+.senses-card{padding:10px 12px;border-radius:14px;border:1px solid #3c3a55;background:#1d2036}
+.senses-card h3{margin:0 0 6px;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:#b9b6ff}
+.senses-card .cloud-spend{display:flex;gap:8px;align-items:flex-start;margin:6px 0;font-size:13px;line-height:1.4}
+.senses-card .cloud-spend input{margin-top:3px;min-width:20px;min-height:20px}
+.senses-card button,.senses-stop button{min-height:44px}
+.senses-more{margin:6px 0 0;font-size:12px;color:#aab0d4}
+.senses-more summary{cursor:pointer;min-height:32px;display:flex;align-items:center}
+.senses-more p{margin:4px 0;line-height:1.45}
+.senses-stop button{width:100%}
+/* Pocket menu hosts the guide's View controls (Oct 25) */
+.cosmos-menu-controls{margin:6px 0}.cosmos-menu-controls h4{margin:0 0 6px;font-size:12px;font-weight:600;color:#cfd2ee}
+.cosmos-menu-controls .cosmos-home-controls{position:static!important;display:flex!important;flex-wrap:wrap;gap:8px;width:auto!important;max-width:none!important;padding:0!important;background:none!important;border:0!important;box-shadow:none!important}
+.cosmos-menu-controls .cosmos-home-controls button{min-height:44px;flex:1 1 40%}

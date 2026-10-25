@@ -29,3 +29,7 @@
 .sandLabel{transition:opacity .25s,transform .25s}
 .sandLabel[data-open=true]{top:12%}
 @media(prefers-reduced-motion:reduce){.live i{animation:none}}
+/* Oct 25: the corner menu button owns the top-right of the scene, so the honesty label keeps to the top-left half. */
+.sandLabel{left:13%;transform:none;max-width:44%;text-align:left}
+.sandLabel[data-open=false]{transform:translateY(-6px)}
+@media(max-width:480px){.sandLabel{left:13%;max-width:42%}}

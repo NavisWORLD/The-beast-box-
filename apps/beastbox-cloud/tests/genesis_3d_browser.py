@@ -27,7 +27,8 @@ with sync_playwright() as p:
   load(page,"/")
   # Home shows the sprite-built 3D Zeref (Cory, Oct 14); the procedural guide lives on /beast-cage/turntable.
   page.wait_for_function("""() => ['ready','fallback'].includes(document.querySelector('[data-zeref-sprite3d]')?.dataset.zerefSprite3d)""",timeout=30000,polling=500)
-  page.locator(".cosmos-home-viewmenu > summary").first.click()  # view controls live in the View menu
+  page.locator("[data-world-menu-button]").first.click()  # Oct 25: the guide's View controls live in the one pocket menu (About section)
+  page.wait_for_selector("[data-home-view-controls]",timeout=15000)
   expect(page.get_by_role("button",name="Rotate 360°")).to_be_visible()
   page.get_by_role("button",name="Rotate 360°").click()
   expect(page.get_by_role("button",name="Rotate 360°")).to_have_attribute("aria-pressed","true")

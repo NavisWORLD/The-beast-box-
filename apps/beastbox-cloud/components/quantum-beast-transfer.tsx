@@ -81,14 +81,14 @@ export default function QuantumBeastTransfer({profile,onImport}:{profile:Creatur
   <div><span className={css.kicker}>QUANTUM BEAST BRIDGE</span><h3>One Beast. Many brains.</h3>
    <p>Carry this creature’s identity, appearance and approved memories to a compatible runtime. Its host approves every new event.</p></div>
   <div className={css.actions}>
-   <button type="button" className={css.playGame} disabled={!profile||busy||!ready||Boolean(snapshot&&!matches)} onClick={()=>void run(openLostCosmos)}>PLAY THIS BEAST IN LOST COSMOS</button>
+   <button type="button" className={css.playGame} disabled={!profile||busy||!ready||Boolean(snapshot&&!matches)} title={!ready?'Getting ready…':busy?'Working…':!profile?'Make or load a Quantum Beast first':'This file belongs to a different creature'} onClick={()=>void run(openLostCosmos)}>PLAY THIS BEAST IN LOST COSMOS</button>
    <input ref={input} disabled={busy||!ready} className={css.file} type="file" accept=".qbeast,application/json" aria-label="Quantum Beast file" onChange={e=>{const file=e.target.files?.[0];e.target.value='';if(file)void run(()=>importFile(file));}}/>
   </div>
   <details className={css.details} data-bridge-advanced><summary>Advanced settings</summary>
-   <button type="button" disabled={!profile||busy||!ready||Boolean(snapshot&&!matches)} onClick={()=>void run(openSynapseShare)}>Open the web Synapse share (github.io)</button>
+   <button type="button" disabled={!profile||busy||!ready||Boolean(snapshot&&!matches)} title={!ready?'Getting ready…':busy?'Working…':!profile?'Make or load a Quantum Beast first':'This file belongs to a different creature'} onClick={()=>void run(openSynapseShare)}>Open the web Synapse share (github.io)</button>
   <div className={css.actions}>
-   <button type="button" disabled={!profile||busy||!ready} onClick={()=>void run(exportPortable)}>DOWNLOAD QUANTUM BEAST</button>
-   <button type="button" disabled={busy||!ready} onClick={()=>input.current?.click()}>IMPORT QUANTUM BEAST</button>
+   <button type="button" disabled={!profile||busy||!ready} title={!ready?'Getting ready…':busy?'Working…':!profile?'Make or load a Quantum Beast first':'This file belongs to a different creature'} onClick={()=>void run(exportPortable)}>DOWNLOAD QUANTUM BEAST</button>
+   <button type="button" disabled={busy||!ready} title={!ready?'Getting ready…':busy?'Working…':undefined} onClick={()=>input.current?.click()}>IMPORT QUANTUM BEAST</button>
    {snapshot&&matches?<button type="button" disabled={busy||!ready} onClick={()=>void run(async()=>{const pack=await exportGba(snapshot,verifiedKey?{trustedPublicKey:verifiedKey}:{});download(Uint8Array.from(pack.zip).buffer,snapshot.profile.id+'-gba.zip','application/zip');setStatus('Exported original BCG1 art and BCP1 seeded stats for offline LOST COSMOS import.');})}>Export this Beast to GBA</button>:null}
   </div>
   {snapshot?<div className={css.receipt} aria-label="Portable Beast verification">

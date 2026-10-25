@@ -1,0 +1,14 @@
+export type ViewId='world'|'pocket'|'classic';
+export const VIEW_STORAGE:string;export const VIEW_EVENT:string;
+export const VIEW_OPTIONS:readonly {id:ViewId;icon:string;label:string;needsBeast:boolean;hint:string}[];
+export const CONTEXTS:Record<'cage'|'home',{key:string;menuLabel:string;title:string;frame:string;diaryHref:string;reset:string}>;
+export const SHARED_LABELS:{reset:string;resetAria:string;diary:(name?:string|null)=>string;senses:string;look:string;sensesNote:string};
+export function viewOptionsFor(o:{hasBeast:boolean}):{id:ViewId;icon:string;label:string;needsBeast:boolean;hint:string}[];
+export function normalizeView(v:unknown,o:{hasBeast:boolean}):ViewId;
+export function readView(storage:{getItem?:(k:string)=>string|null}|null|undefined,o:{hasBeast:boolean}):ViewId;
+export function writeView(storage:{setItem?:(k:string,v:string)=>void}|null|undefined,v:string):boolean;
+export function pixelFlagForView(v:ViewId):boolean;
+export function viewForPixelFlag(on:boolean,current:ViewId):ViewId;
+export function overlayFor(view:ViewId,o:{rigAvailable:boolean}):'sprite'|'rig'|'none';
+export const MENU_SECTIONS:readonly string[];
+export function menuModel(ctx:string,o:{hasBeast:boolean;beastName?:string|null}):{ctx:{key:string;menuLabel:string;title:string;frame:string;diaryHref:string;reset:string};views:{id:ViewId;icon:string;label:string;hint:string}[];reset:{label:string;aria:string};diary:{label:string;href:string};senses:{label:string;note:string;href:string};look:{label:string;href:string};sections:readonly string[]};
