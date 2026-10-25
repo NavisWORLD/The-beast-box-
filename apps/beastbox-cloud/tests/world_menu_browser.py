@@ -25,6 +25,10 @@ def run(browser, route, ctx_key, vp, mobile):
     tag = f"{route} @{vp[0]}"
     fab = page.evaluate(JS_RECT, "[data-world-menu-button]")
     check(fab and fab["w"] >= 44 and fab["h"] >= 44, f"{tag}: menu button is a 44px target {fab}")
+    page.evaluate("document.querySelector('[data-world-menu-button]').scrollIntoView({block:'center',behavior:'instant'})")
+    page.wait_for_timeout(1500)
+    hit = page.evaluate("""() => {const f=document.querySelector('[data-world-menu-button]');const r=f.getBoundingClientRect();const e=document.elementFromPoint(r.x+r.width/2,r.y+r.height/2);return !!e && f.contains(e)}""")
+    check(hit, f"{tag}: nothing (sprite, canvas, chip) covers the menu button, so a real tap lands on it")
     check(page.evaluate("document.querySelectorAll('.cage-look-pill').length") == 0, f"{tag}: no Look Closer pill on the scene")
     check(page.evaluate("document.querySelectorAll('[data-beast-arena]').length") == 0 or ctx_key == "cage", f"{tag}: no pixel sprite overlay by default")
     check(page.evaluate("document.querySelectorAll('.cage-view-toggle, [data-home-view-toggle]').length") == 0, f"{tag}: no loose view buttons")

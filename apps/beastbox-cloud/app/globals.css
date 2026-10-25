@@ -894,3 +894,6 @@ body:has([data-not-found]) :is(.site-dock,[data-beast-chat-launcher],[data-zeref
 .cosmos-menu-controls{margin:6px 0}.cosmos-menu-controls h4{margin:0 0 6px;font-size:12px;font-weight:600;color:#cfd2ee}
 .cosmos-menu-controls .cosmos-home-controls{position:static!important;display:flex!important;flex-wrap:wrap;gap:8px;width:auto!important;max-width:none!important;padding:0!important;background:none!important;border:0!important;box-shadow:none!important}
 .cosmos-menu-controls .cosmos-home-controls button{min-height:44px;flex:1 1 40%}
+
+/* Oct 25: the home Menu button lives in its own layer ABOVE the 3D Zeref sprite (z2), so the sprite's box can never swallow the tap. */
+.home-menu-layer{position:absolute;inset:0;z-index:5;pointer-events:none}

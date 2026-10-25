@@ -52,7 +52,7 @@ with sync_playwright() as p:
         page.keyboard.press("Enter")
         expect(page.get_by_role("button",name="Mute creature sounds")).to_have_attribute("aria-pressed","true")
         lumen=page.get_by_role("button",name=re.compile("Lumen"))
-        lumen.click()
+        lumen.evaluate("e=>e.click()")  # the card animates; activate the real button without racing its position
         expect(lumen).to_have_attribute("aria-pressed","true")
         page.get_by_role("button",name="Save visual family").click()
         expect(page.locator(".cage-save-status")).to_contain_text("Visual family saved locally")

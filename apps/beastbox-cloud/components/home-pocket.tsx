@@ -42,14 +42,16 @@ export default function HomePocket(){
  const qvmCounts=useOwnQvmCounts(beast?recordedQvmStimulusPath(beast):null);
  const chat=Array.isArray(session?.chat)?session.chat:[];const lastYou=[...chat].reverse().find((m:any)=>m?.role==='you')?.text||null;
  // Oct 16: the same cage look Cory loves; living-core Zeref + life layer live inside it. The ⋯ button tucks sound/game/help on phones.
- return <div className="home-pocket-layer is-roamer" data-home-pocket={own?'saved-beast':zeref?'zeref-bb-deada969':'guide'}>
+ return <><div className="home-pocket-layer is-roamer" data-home-pocket={own?'saved-beast':zeref?'zeref-bb-deada969':'guide'}>
   {own&&homeView==='world'&&!world&&!softHome?<LivingWorld embedded menuHost={hosts.place} infoHost={hosts.about} genome={own.genome||null} beastKey={own.qbeast?.profile?.id||null} beastName={beastDisplayName(own)} onExpand={()=>setWorld(true)}/>:<CagePocketDimension seed={beast?beast.genome?.seed||beast.seed:null} qbeastId={beast?beast.qbeast.profile.id:null}
    stage={beast?(beast.nativeStage||1):1} behaviorPosition={beast?beast.behavior?.position||null:null}
    state={beast?visualStateFromBeast(beast):'idle'} reduced={reduced} onActiveChange={noop} qvmCounts={qvmCounts} autoOrbit chatLine={lastYou} menuHost={hosts.tools} ignorePixel/>}
-  {/* Oct 25: ONE menu replaces the three buttons that used to sit on the scene (view toggle, sound/game/help dots, Enter the tiny world). */}
-  <WorldMenu context="home" view={homeView} onView={chooseHomeView} hasBeast={!!own} beastName={beast?beastDisplayName(beast):null} onHosts={setHosts} hideViews={['classic']}
-   extra={[{label:'Enter the tiny world',icon:'🌍',onClick:()=>setWorld(true),attr:'data-open-living-world'},{label:'Sound, game & help controls',icon:'🔊',onClick:()=>document.body.classList.toggle('lc-tools-open'),attr:'data-home-tools'}]}/>
   {world&&typeof document!=='undefined'?createPortal(<LivingWorld genome={own?.genome||null} beastKey={own?.qbeast?.profile?.id||null} beastName={own?(beastDisplayName(own)):null} onClose={()=>setWorld(false)}/>,document.body):null}
   {reduced?null:<FluidSwirlLayer storm={sc.storm} chaos={sc.chaos} count={60}/>}
- </div>;
+ </div>
+ {/* Oct 25: ONE menu replaces the three buttons that used to sit on the scene. It sits in its own layer above the 3D sprite so it is always tappable. */}
+ <div className="home-menu-layer">
+  <WorldMenu context="home" view={homeView} onView={chooseHomeView} hasBeast={!!own} beastName={beast?beastDisplayName(beast):null} onHosts={setHosts} hideViews={['classic']}
+   extra={[{label:'Enter the tiny world',icon:'🌍',onClick:()=>setWorld(true),attr:'data-open-living-world'},{label:'Sound, game & help controls',icon:'🔊',onClick:()=>document.body.classList.toggle('lc-tools-open'),attr:'data-home-tools'}]}/>
+ </div></>;
 }
