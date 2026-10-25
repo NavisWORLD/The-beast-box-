@@ -1,7 +1,7 @@
 import test from 'node:test';import assert from 'node:assert/strict';import {readFileSync} from 'node:fs';
 const r=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8');
 test('talk header names the creature and its teacher; RAWRPHØS detail only in the advanced view',()=>{const s=r('components/beast-talk-panel.tsx');
- assert.match(s,/\{persona\.name\}&apos;s teacher: \{TEACHER_LABEL\[route\]\|\|info\.label\}/);assert.match(s,/href="\/workspace">Workstation →/);
+ assert.match(s,/\{persona\.name\}&apos;s teacher: \{TEACHER_LABEL\[route\]\|\|info\.label\}/);assert.match(s,/href="\/workspace">Workshop →/);
  const bar=s.slice(s.indexOf('data-teacher-header'),s.indexOf('Change teacher'));assert.doesNotMatch(bar,/RAWRPH/);
  assert.match(s,/data-advanced-brain>Advanced · Brain: \{info\.label\}/);
  const sp=r('public/spark/chat-popup.mjs');assert.match(sp,/Teacher: \$\{TEACHER_LABEL\[route\]\|\|info\.label\}/);});

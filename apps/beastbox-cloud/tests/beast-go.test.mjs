@@ -63,7 +63,7 @@ test("Brain Bay, Model Bay, cosmos world, and owner settings are not edited for 
 
 test("cage keeps game discovery paths and main deployment remains intentionally enabled", () => {
   const portal = read("components/beast-cage-portal.tsx");
-  assert.match(portal, /href="\/beast-cage\/play">Adventure<\/Link>/);
+  assert.match(portal, /href="\/beast-cage\/play">Adventure walk<\/Link>/);
   assert.match(portal, /href="\/sol-game"/);
   assert.match(read("components/beast-care-deck.tsx"), /href="\/beast-cage\/go"/);
   assert.match(read("app/beast-cage/go/page.tsx"), /BeastGo/);

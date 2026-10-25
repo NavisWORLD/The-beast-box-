@@ -257,7 +257,7 @@ function BeastTalkContent({onState,compact=false,title,gameBridge}:PanelProps){
    <div className={styles.brainText} role="status" aria-live="polite">
     <strong data-teacher-header style={{fontSize:11,fontWeight:500,opacity:.7}}>{persona.name}&apos;s teacher: {TEACHER_LABEL[route]||info.label}</strong>
     <span>{connection.text}</span>
-    <a className={styles.workstationLink} href="/workspace">Workstation →</a>
+    <a className={styles.workstationLink} href="/workspace">Workshop →</a>
    </div>
    <button type="button" className={styles.ghost} aria-expanded={showBrains} onClick={()=>setShowBrains(v=>!v)}>{showBrains?'Done':'Change teacher'}</button>
   </div>
