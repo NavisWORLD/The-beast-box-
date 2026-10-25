@@ -44,13 +44,11 @@ function LiveTick({diary}:{diary:Diary|null}){
  },[]);
  if(!base||now===null)return <div className={styles.live} data-live-tick="pending"><p className={styles.liveHead}>LIVE · SIMULATED</p><p className={styles.small}>Waiting for the last recorded tick…</p></div>;
  const s=liveSecond(base,now);
- const cst=(s as {cst?:{coherence:number;chaos:number;hebb:number}}).cst;
- return <div className={styles.live} data-live-tick="on" data-live-seconds={s.seconds_since_recorded} data-live-engine={cst?'cst':'wander'}>
+ return <div className={styles.live} data-live-tick="on" data-live-seconds={s.seconds_since_recorded}>
   <p className={styles.liveHead}><span className={styles.liveDot} aria-hidden="true"/> LIVE · SIMULATED · every second</p>
   <p className={styles.liveNum}>tick {s.recorded_tick}<b> +{s.seconds_since_recorded}s</b></p>
   <p className={styles.small}>{formatElapsed(s.seconds_since_recorded)} since recorded tick {s.recorded_tick} · live XP <b>{s.xp_live.toFixed(3)}</b></p>
   <p className={styles.signals}>{Object.entries(s.signals).map(([k,v])=><span key={k}>{k} <b>{v.toFixed(1)}</b></span>)}</p>
-  {cst&&<p className={styles.small} data-live-cst="on">CST field (SIMULATED, ψ nudge is MODEL): coherence <b>{cst.coherence.toFixed(3)}</b> · chaos <b>{cst.chaos.toFixed(3)}</b> · hebb <b>{cst.hebb.toFixed(3)}</b></p>}
   <p className={styles.small}>{LIVE_LABELS.live}</p>
  </div>;
 }
