@@ -69,3 +69,43 @@ def test_optimizer_resume_maps_parent_state_after_cond54_upgrade():
     new.load_state_dict(out)
     assert log["layout"] == "saved_names"
     assert [g["fresh"] for g in log["groups"]] == [0, 1] and not any(g["reinitialized"] for g in log["groups"])  # only cond_gain is fresh
+
+
+def test_content_keyed_pairing_is_opt_in_deterministic_and_default_unchanged(ticks_file, monkeypatch):
+    monkeypatch.setenv("ZEREF_COND54", "1"); monkeypatch.setenv("ZEREF_SPARK_TICKS", ticks_file)
+    monkeypatch.delenv("ZEREF_COND54_PAIR", raising=False)
+    sys.modules.pop("zeref_continuation_006", None)
+    import zeref_continuation_006 as Z
+    bank = Z.cond54_bank()
+    r1, r2 = {"input": [1, 2, 3, 4]}, {"input": [9, 8, 7]}
+    assert Z.COND54_PAIR == "time"  # default = old behavior
+    assert [Z.cond54_pick(bank, r1, p) for p in range(8)] == [bank[p % len(bank)] for p in range(8)]
+    # opt-in: key depends only on the row content, not on batch position / step; no RNG involved
+    monkeypatch.setenv("ZEREF_COND54_PAIR", "content")
+    sys.modules.pop("zeref_continuation_006", None)
+    import zeref_continuation_006 as Z2
+    bank2 = Z2.cond54_bank()
+    assert Z2.COND54_PAIR == "content" and "content key" in Z2.COND_INFO["pairing"]
+    assert Z2.cond54_key(r1) == Z2.cond54_key({"input": [1, 2, 3, 4], "target": [5]})
+    assert len({id(Z2.cond54_pick(bank2, r1, p)) for p in range(50)}) == 1
+    assert Z2.cond54_key(r1) != Z2.cond54_key(r2)
+    # unknown value falls back to the old behavior
+    monkeypatch.setenv("ZEREF_COND54_PAIR", "bogus")
+    sys.modules.pop("zeref_continuation_006", None)
+    import zeref_continuation_006 as Z3
+    assert Z3.COND54_PAIR == "time"
+
+
+def test_ab_reports_content_keyed_arms_and_stays_report_only(ticks_file, monkeypatch):
+    monkeypatch.setenv("ZEREF_COND54", "1"); monkeypatch.setenv("ZEREF_SPARK_TICKS", ticks_file)
+    sys.modules.pop("zeref_continuation_006", None)
+    import zeref_continuation_006 as Z
+    from rawrphos.architecture.model import RawrphosLM, RawrphosConfig, upgrade_to_trinity, upgrade_to_hebbian, upgrade_to_cond54
+    torch.manual_seed(0)
+    m = upgrade_to_hebbian(upgrade_to_trinity(RawrphosLM(RawrphosConfig(vocab_size=64, d_model=32, n_layers=2, n_heads=2, max_seq_len=16))))
+    c = upgrade_to_cond54(m)
+    rows = [{"input": [1, 2, 3, 4], "target": [-100, -100, 5, 6]}, {"input": [2, 3, 4, 5], "target": [-100, 4, 5, 6]}]
+    ab = Z.cond54_ab(c, rows)
+    for k in ("content_keyed_ticks", "content_keyed_shuffled"):
+        assert abs(ab[k] - ab["unconditioned"]) < 1e-5  # zero gain at upgrade: arms equal unconditioned
+    assert ab["pairing_mode"] == "time" and "SIMULATED" in ab["label"]
