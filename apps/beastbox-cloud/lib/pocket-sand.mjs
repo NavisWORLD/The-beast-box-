@@ -25,8 +25,10 @@ export function createSandField({seed,count,half=4.3,counts=null}){
  const rnd=rngFrom('sand:'+(seed||'beastbox-visual-preview'));
  const pos=new Float32Array(count*3),vel=new Float32Array(count*3),home=new Float32Array(count*3),kind=new Uint8Array(count);
  const wells=COUNT_KEYS.map((_,i)=>{const a=i*Math.PI/2+rnd()*.8;const r=1.6+rnd()*1.9;return {x:Math.cos(a)*r,y:.05,z:Math.sin(a)*r,w:1};});
- const field={pos,vel,home,kind,wells,count,half,receipt:false,
-  setCounts(c){const w=wellWeights(c);wells.forEach((well,i)=>well.w=w[i]);field.receipt=Boolean(c);},
+ const field={pos,vel,home,kind,wells,count,half,receipt:false,environment:false,envMult:null,counts:null,
+  setCounts(c){field.counts=c||null;const w=field.envMult?field.envMult:wellWeights(c);wells.forEach((well,i)=>well.w=w[i]);field.receipt=Boolean(c);},
+  /** Consent-based environment tilt (numbers only): weights = the receipt weights x the measured tilt. null restores the receipt weights. */
+  setEnvironment(weights){field.envMult=Array.isArray(weights)&&weights.length===4&&weights.every(Number.isFinite)?weights:null;const w=field.envMult||wellWeights(field.counts);wells.forEach((well,i)=>well.w=w[i]);field.environment=Boolean(field.envMult);},
   step(dt,disturbers=[]){
    const d=clampDt(dt),k=genesisDrag(d);
    for(let i=0;i<count;i++){

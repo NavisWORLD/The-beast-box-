@@ -26,6 +26,8 @@ import {ARTIST_RESIDENTS} from '../lib/companion/artist-residents.mjs';
 import {addPocketResidents} from './pocket-residents';
 import {addPocketSand} from './pocket-sand-layer';
 import {SAND_LABEL} from '../lib/pocket-sand.mjs';
+import {environmentWeights,isFresh} from '../lib/environment/environment-link.mjs';
+import {getEnvironment} from '../lib/environment/environment-store.mjs';
 import {guardCanvasTouch} from '../lib/three/touch-guard';
 import {isSoftwareGL} from '../lib/three/soft-gl';
 import {createHop,stepHop} from '../lib/physics/ground-hop.mjs';
@@ -377,6 +379,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     if(typeof window!=='undefined')(window as any).__pocketCamera=cameraView;
     const sand=addPocketSand(THREE,scene,{seed:key,low,reduced});
     sand.field.setCounts(qvmCounts);
+    let envSig=-1;// consent-based environment numbers tilt the same wells (see lib/environment)
     // ---- LIVING POCKET (CST-driven world) + the Beast as a plush 3D creature living its own life
     const life=addPocketLife(THREE,scene,{seed:key,low,reduced,counts:qvmCounts,hemi,soft});
     // Software GL (CI SwiftShader, GPU-less VMs): the terrain/ocean/nebula-sky shaders take tens of seconds to link there and
@@ -469,6 +472,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
      }
      const v=cameraView.current;
      stepResidents(elapsed,v.theta,{x:camera.position.x,z:camera.position.z},plush?{x:brain.x,z:brain.z,moment:brain.moment}:null);
+     {const E=getEnvironment(),live=E.consent&&isFresh(E.numbers,E.measuredAtMs,Date.now()),sig=live?E.version:-1;if(sig!==envSig){envSig=sig;sand.field.setEnvironment(live?environmentWeights(sand.field.counts,E.numbers):null);}}
      sand.update(dt,[{x:glow.position.x,z:glow.position.z,r:1.2,s:1.6+motion.current.impulse*3},{x:0,z:0,r:1.1,s:1.2},...disturbers()]);
      const ze=(window as any).__zerefEmbed;
      if(ze?.root&&ze.root.parent!==zActorNode){zActorNode.add(ze.root);ze.root.position.y=1.68;ze.claimed=true;}

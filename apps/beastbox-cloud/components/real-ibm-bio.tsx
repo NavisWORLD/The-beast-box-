@@ -2,6 +2,7 @@
 // Real IBM Bio Connection: ONE button. Measure a fingertip heartbeat on this device (rear camera + torch, optional mic),
 // reduce it to numbers, inject the numbers into the existing bio path, dispatch the repo's real-IBM workflow, show the result.
 // Raw video/audio never leave the device. Heartbeat MEASURED only if the PPG quality gate passes. IBM RECORDED only after the run. Rigetti SIMULATED.
+import {setHeartNumbers} from '../lib/environment/environment-store.mjs';
 import {useCallback,useEffect,useRef,useState} from 'react';
 import {Activity,HeartPulse,Square,ExternalLink} from 'lucide-react';
 import {measureFingertip,sha256Hex,MEASURE_SECONDS,type Progress} from '../lib/bio/capture';
@@ -40,7 +41,7 @@ export default function RealIbmBio({owner}:{owner:boolean}){
   try{
    const m=await measureFingertip({withMic,onProgress:setProg,signal:ac.signal});setTorch(m.torch);
    if(!m.ppg.valid){setPhase('invalid');setMsg(PPG_REASONS[m.ppg.reason||'no_pulse']||'No valid pulse.');return;}
-   const pk=await buildBioPacket({ppg:m.ppg,light:m.light,audio:m.audio},sha256Hex);setPacket(pk);
+   const pk=await buildBioPacket({ppg:m.ppg,light:m.light,audio:m.audio},sha256Hex);setPacket(pk);setHeartNumbers({bpm:pk.pulse.bpm,sqi:pk.pulse.sqi,atMs:Date.now()});
    // 2b) keep the numbers-only packet in the owner's private storage, so the IBM run can be started from the box even if this phone cannot dispatch
    let savedOk=false;
    try{const sv=await post('/api/bio-connection/packet',{packet:pk});savedOk=sv.status===200;
