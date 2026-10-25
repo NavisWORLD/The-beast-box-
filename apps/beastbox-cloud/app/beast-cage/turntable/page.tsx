@@ -11,6 +11,8 @@ const ZerefGlb3D=dynamic(()=>import('@/components/zeref-glb-3d'),{ssr:false});
 import FamilyExplain from '@/components/family-explain';
 import {useCompanion} from '@/components/companion-provider';
 import {MOONWRAITH_DISPLAY_ID,SAVED_ZEREF_ID,dimensionalAttribution} from '@/lib/creature-dimensional.mjs';
+import {lookSubjectLabels} from '@/lib/look-closer-subjects.mjs';
+import LOOK_LABELS from '@/lib/look-closer-labels.json';
 import {ZEREF_RECORDED_SOURCE} from '@/lib/zeref/zeref-mind.mjs';
 import heartSound from '../../../public/spark/ibm-zeref-heart-sound-20261010.json';
 import styles from './turntable.module.css';
@@ -35,12 +37,13 @@ export default function CreatureTurntable(){
  useEffect(()=>{setGlb(new URLSearchParams(window.location.search).get('glb')==='1');},[]);
  const dimensionalId=subject==='moonwraith'?MOONWRAITH_DISPLAY_ID:subject==='dragonling'?SAVED_ZEREF_ID:null;
  const attribution=dimensionalId?dimensionalAttribution(subject==='moonwraith'?'moonwraith-artistic':'dragonling-artistic'):null;
+ const LB=lookSubjectLabels(subject,{activeName:activeName||'',profileName:profile?.name||"",labels:LOOK_LABELS}),LBm=lookSubjectLabels('moonwraith',{labels:LOOK_LABELS}),LBd=lookSubjectLabels('dragonling',{labels:LOOK_LABELS}),LBw=lookSubjectLabels('workshop',{activeName:activeName||'',profileName:profile?.name||"",labels:LOOK_LABELS});
  const explain=subject==='moonwraith'?{
-  id:MOONWRAITH_DISPLAY_ID,name:'Zeref',nextAction:'talk' as const,
+  id:MOONWRAITH_DISPLAY_ID,name:LB.explainName,nextAction:'talk' as const,
   genome:{quantum:{source_class:'RECORDED_IBM_HARDWARE',backend:ZEREF_RECORDED_SOURCE.backend,job_id:ZEREF_RECORDED_SOURCE.job_id}},
   behavior:{lastAction:'idle',energy:90,curiosity:70},
  }:{
-  id:SAVED_ZEREF_ID,name:'Zeref',nextAction:'play' as const,
+  id:SAVED_ZEREF_ID,name:LB.explainName,nextAction:'play' as const,
   genome:{quantum:{source_class:heartSound.source_class,backend:heartRun.b,job_id:heartRun.j}},
   behavior:{lastAction:'idle',energy:63,curiosity:52},
  };
@@ -49,22 +52,22 @@ export default function CreatureTurntable(){
   <div className="room-strip"><JourneyLinks current="cage" label="Beast Box rooms"/></div>
   <section className={styles.intro}>
    <span>LOOK CLOSER // 360° VIEW</span>
-   <h1>Look Closer at {subject==='workshop'?(activeName||'your beast'):'Zeref'} <em>in 3D.</em></h1>
-   <p>{attribution?attribution.label:'The active browser Beast drives the original procedural Three.js rig: saved hue, glow, fin pattern, halo pattern and constellation seed.'}</p>
+   <h1>Look Closer at {LB.headingName} <em>in 3D.</em></h1>
+   <p>{LB.caption?LB.caption:'The active browser Beast drives the original procedural Three.js rig: saved hue, glow, fin pattern, halo pattern and constellation seed.'}</p>
   </section>
   {/* Cosmo's tap-to-inspect art (select ring, pedestal, info card) mounts here: data-look-closer-hook */}
   <div className={styles.stage} style={{background:WORLD_SCENE_BG,border:0,borderRadius:0,boxShadow:'none'}} data-look-closer-hook data-stage="real-3d-turntable" data-subject={subject} data-view-angle={spin?'spinning':angle} aria-label="Actual rotating Three.js creature">
     <span className={styles.star} aria-hidden="true">✧</span>
     {/* Cosmo's Look Closer pedestal set (lookcloser v1): contact shadow, mossy stone pedestal, animated select ring */}
     <div aria-hidden="true" data-look-pedestal className={styles.pedestal}><i className={styles.pedShadow}/><i className={styles.pedStone}/><i className={styles.pedRing}/></div>
-    {glb?<ZerefGlb3D spin={spin} angle={angle} mood={mood}/>:<><CosmicCompanion3D profile={subject==='workshop'?profile:null} dimensionalId={dimensionalId} look={look} state={pose} speaking={speaking&&pose==='listening'} turntable={spin} turntableAngle={spin?null:angle} quality="auto" className={styles.model} label={(attribution?attribution.label:'Real 3D '+(subject==='workshop'?(activeName||profile?.name||'companion'):subject==='dragonling'?'Zeref':'Moonwraith'))+(spin?' · rotating':' · '+angle+' degrees')}/></>}
+    {glb?<ZerefGlb3D spin={spin} angle={angle} mood={mood}/>:<><CosmicCompanion3D profile={subject==='workshop'?profile:null} dimensionalId={dimensionalId} look={look} state={pose} speaking={speaking&&pose==='listening'} turntable={spin} turntableAngle={spin?null:angle} quality="auto" className={styles.model} label={(LB.caption?LB.caption:'Real 3D '+LB.stageName)+(spin?' · rotating':' · '+angle+' degrees')}/></>}
     <div className={styles.stageLabel}>{spin?'LIVE GEOMETRY • FULL 360° ROTATION':'LIVE GEOMETRY • '+angle+'° VIEW'}</div>
   </div>
   <section className={styles.controls} aria-label="3D turntable camera controls">
     <div className={styles.buttons} role="group" aria-label="Choose which creature is on the turntable">
-      <button type="button" className={subject==='moonwraith'?styles.active:''} aria-pressed={subject==='moonwraith'} onClick={()=>setSubject('moonwraith')}>Moonwraith 3D</button>
-      <button type="button" className={subject==='dragonling'?styles.active:''} aria-pressed={subject==='dragonling'} onClick={()=>setSubject('dragonling')}>Saved Zeref 3D</button>
-      <button type="button" className={subject==='workshop'?styles.active:''} aria-pressed={subject==='workshop'} onClick={()=>setSubject('workshop')}>{activeName||'Your beast'}</button>
+      <button type="button" className={subject==='moonwraith'?styles.active:''} aria-pressed={subject==='moonwraith'} onClick={()=>setSubject('moonwraith')}>{LBm.button}</button>
+      <button type="button" className={subject==='dragonling'?styles.active:''} aria-pressed={subject==='dragonling'} onClick={()=>setSubject('dragonling')}>{LBd.button}</button>
+      <button type="button" className={subject==='workshop'?styles.active:''} aria-pressed={subject==='workshop'} onClick={()=>setSubject('workshop')}>{LBw.button}</button>
     </div>
     <div className={styles.buttons}>
       <button className={spin?styles.active:''} aria-pressed={spin} onClick={()=>setSpin(true)}>↻ Rotate 360°</button>
