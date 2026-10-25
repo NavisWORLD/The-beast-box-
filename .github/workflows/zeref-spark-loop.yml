@@ -34,6 +34,7 @@ jobs:
             scripts/zeref_spark_loop.py
             scripts/zeref_spark_run.py
             apps/beastbox-cloud/scripts/zeref_diary_qvm.py
+            evidence/zeref-final-spark-001/spark-seed.json
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:

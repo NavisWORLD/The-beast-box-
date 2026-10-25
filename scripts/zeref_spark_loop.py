@@ -34,6 +34,9 @@ IBM_SEED = {
 SEED_NOTE = ("Zeref's own cosmos loop was blocked on game stats and a provenance seed the owner never supplied. "
              "Seeded from his recorded IBM spark instead; no stats were invented and bb-7f9c2a03 is not used.")
 LO, HI = 0.05 * math.pi, 0.95 * math.pi
+# 2026-10-25 final spark 001: a newer RECORDED IBM hardware spark (ibm_kingston). When this file exists and the chain has not used it
+# yet, the next tick's angles are moved once by its measured win rates (deterministic, no random), then the loop continues as usual.
+RESEED_FILE = Path(__file__).resolve().parents[1] / "evidence/zeref-final-spark-001/spark-seed.json"
 
 
 def canon(o):
@@ -113,14 +116,35 @@ def verify_chain(d):
         raise SystemExit("state.json does not match the tick log head")
 
 
+def reseed_for(st):
+    """Return (angles, reseed_record) when an unused RECORDED IBM reseed exists, else (None, None)."""
+    if not RESEED_FILE.exists():
+        return None, None
+    sd = json.loads(RESEED_FILE.read_text())
+    if sd.get("source_class") != "RECORDED_IBM_HARDWARE" or st.get("reseeded_from") == sd.get("job"):
+        return None, None
+    w = {k: v["win_rate"] for k, v in sd["per_question_pair"].items()}
+    a = st["angles"]
+    th = [a[0] + 2 * math.pi * (w["x0y0"] - 0.75), a[1] + 2 * math.pi * (w["x0y1"] - 0.75),
+          a[2] + 2 * math.pi * ((w["x1y0"] + w["x1y1"]) / 2 - 0.75)]
+    rec = {"kind": "recorded-ibm-hardware", "backend": sd["backend"], "job": sd["job"], "win_rate": sd["win_rate"],
+           "result_file_sha256": sd["result_file_sha256"], "from_angles": a, "label": "RECORDED IBM spark; ticks after it are Rigetti SIMULATED"}
+    return [round(fold(v), 6) for v in th], rec
+
+
 def plan(d, out, now):
     verify_chain(d)
     st = load(d)
     tick = st["tick"] + 1
+    new_angles, reseed = reseed_for(st)
+    if new_angles is not None:
+        st = {**st, "angles": new_angles}
     q = quil(st["angles"])
     doc = {"schema": "zeref-spark-plan/v1", "beast_id": BEAST_ID, "tick": tick, "target": TARGET, "shots": SHOTS,
            "angles": st["angles"], "quil": q, "quil_sha256": sha(q), "cost_cap_usd": 0,
            "job_name": f"zeref-spark-tick-{tick}-{BEAST_ID}", "planned_at": now}
+    if reseed:
+        doc["reseed"] = reseed
     Path(out).write_text(json.dumps(doc, indent=1, sort_keys=True) + "\n")
     print(f"ZEREF_SPARK_PLAN tick={tick} angles={st['angles']}")
 
@@ -151,6 +175,9 @@ def apply(d, plan_path, receipt_path, now):
                                 "seed": None if st["tick"] else "recorded-ibm-ibm_fez-db4q484vf2bc73cuuuag"},
              "seed_note": SEED_NOTE if st["tick"] == 0 else None,
              "angles": pl["angles"], "quil_sha256": pl["quil_sha256"], "prev_hash": st["last_hash"]}
+    if pl.get("reseed"):
+        entry["reseed"] = pl["reseed"]
+        st["reseeded_from"] = pl["reseed"]["job"]
     if ok:
         counts = {k: int(rc["counts"][k]) for k in sorted(rc["counts"])}
         entry["status"] = "ok"

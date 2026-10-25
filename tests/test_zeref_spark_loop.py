@@ -103,3 +103,19 @@ def test_spark_feed_routes_counts_as_simulated_then_stale_never_refilled(tmp_pat
     stale = route({"quantum_rigetti": src2}, now=now + 2000)
     assert {r["cls"] for r in stale["receipts"] if r.get("band") == 0} == {"stale"}
     assert spark_source(None)[0] is None
+
+
+def test_final_spark_001_reseed_is_recorded_ibm_used_once_then_simulated(tmp_path):
+    sd = json.loads((ROOT / "evidence/zeref-final-spark-001/spark-seed.json").read_text())
+    assert sd["source_class"] == "RECORDED_IBM_HARDWARE" and sd["backend"].startswith("ibm_")
+    d = tmp_path / "zeref"
+    spark.plan(str(d), str(tmp_path / "p0.json"), 1000.0)
+    p0 = json.loads((tmp_path / "p0.json").read_text())
+    assert p0["reseed"]["job"] == sd["job"] and p0["angles"] != spark.genesis()["angles"]
+    first = tick(tmp_path, 1000.0)
+    ent = json.loads((d / "ticks.jsonl").read_text().splitlines()[0])
+    assert ent["reseed"]["job"] == sd["job"] and ent["simulated"] is True and "SIMULATED" in first["label"]
+    assert json.loads((d / "state.json").read_text())["reseeded_from"] == sd["job"]
+    spark.plan(str(d), str(tmp_path / "p1.json"), 1060.0)
+    assert "reseed" not in json.loads((tmp_path / "p1.json").read_text())  # used once only
+    spark.verify_chain(str(d))

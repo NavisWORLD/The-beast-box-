@@ -194,6 +194,9 @@ def rigetti_order_seed(cycle,fresh_digest=None,run_id=None):
  # 2026-10-22 heart restart 001: newest heart spark (RECORDED_IBM_HARDWARE, ibm_marrakesh). Order-only.
  hs6=Path(__file__).resolve().parents[1]/"evidence/zeref-heart-restart-001/heart-seed-v6.json"
  if hs6.exists():mix["heart_seed_v6_sha256"]=json.loads(hs6.read_text()).get("heart_seed_sha256")
+ # 2026-10-25 final spark 001: newest heart spark (RECORDED_IBM_HARDWARE, ibm_kingston). Order-only; seeds the next growth round (no Math.random).
+ hs7=Path(__file__).resolve().parents[1]/"evidence/zeref-final-spark-001/heart-seed-v7.json"
+ if hs7.exists():mix["heart_seed_v7_sha256"]=json.loads(hs7.read_text()).get("heart_seed_sha256")
  h=sha(json.dumps(mix,sort_keys=True).encode())
  return int(h[:15],16),{"rigetti_sim_job_id":job["job_id"],"counts":job["counts"],
    "order_seed_sha256":h,"source_class":d.get("source_class"),"label":"SIMULATED",
