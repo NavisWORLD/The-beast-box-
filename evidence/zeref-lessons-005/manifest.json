@@ -1,0 +1,38 @@
+{
+ "author": "Grok Bot for Cory Davis, original wording, no helper/teacher model, no scraped dataset",
+ "collisions_vs_all_evidence_dialogue_heldout_and_gate_sets_v2": 0,
+ "date": "2026-10-25",
+ "dedupe_against": [
+  "evidence/*/dialogue.jsonl (incl. lessons-003, lessons-004)",
+  "evidence/*/heldout.jsonl",
+  "scripts/zeref_gate_sets_v2.json (Gate v2 sets A and B)",
+  "scripts/rawrphos_chat_eval.py PAIRS+CHAT",
+  "scripts/zeref_heldout_b.py PAIRS_B",
+  "scripts/zeref_character_check.py CHARACTER_PROMPTS"
+ ],
+ "heldout_by_subject": {
+  "english": 40,
+  "math": 40,
+  "world_knowledge": 30
+ },
+ "heldout_loaded_for_training": false,
+ "heldout_rows": 110,
+ "license": "Original authored text for Cory Davis; no third-party corpus.",
+ "mix_cap": {
+  "entry": "scripts/zeref_chat_corpus.py EXTRA",
+  "frac": 0.3,
+  "note": "rotating window seeded by ZEREF_CHAT_ROTATE_SEED; additive to 003/004",
+  "repeat": 1
+ },
+ "schema": "zeref-lessons-005",
+ "sha256": {
+  "dialogue.jsonl": "26df1ef8316696580b8681a0384fb7365d5255cab91ba0fa41ad96ecf1850de9",
+  "heldout.jsonl": "da5aaf666390053fa3a9d858a23ae1deff5406542bb9347f07d03d3e3f64bdfc"
+ },
+ "train_by_subject": {
+  "english": 532,
+  "math": 557,
+  "world_knowledge": 252
+ },
+ "train_rows": 1341
+}
