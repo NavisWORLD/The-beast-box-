@@ -1,0 +1,54 @@
+name: Zeref diary keep-alive (chained; dispatches the recorded diary tick on time)
+# GitHub's scheduled cron is delayed or dropped for hours (the recorded diary landed every 2-5 h instead of every 30 min, and the
+# 20-minute watchdog is itself a cron, so it drops too). This run is CHAINED like zeref-spark-loop / zeref-live-tick-loop: it queues
+# the next run at its start (concurrency keeps one running + one pending), then checks every 2 minutes whether the recorded diary loop
+# has started in the last 40 minutes and dispatches ONE tick of the existing zeref-diary-loop.yml when it has not.
+# It does not write any data, does not touch the diary code, the Rigetti spark loop (bb-deada969), the Zeref growth routine or the
+# promotion gate. The recorded diary stays RECORDED + hash-chained; its Rigetti growth circuit stays SIMULATED. No secrets, $0.
+on:
+  schedule:
+    - cron: '41 * * * *'
+  workflow_dispatch:
+    inputs:
+      run_seconds:
+        description: 'Seconds this run keeps watching (max 19800)'
+        required: false
+        default: '19200'
+permissions:
+  actions: write
+  contents: read
+concurrency:
+  group: zeref-diary-keepalive
+  cancel-in-progress: false
+jobs:
+  keepalive:
+    runs-on: ubuntu-latest
+    timeout-minutes: 345
+    steps:
+      - name: Queue the next run now (it waits in the concurrency group until this one ends)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_SECONDS: ${{ github.event.inputs.run_seconds || '19200' }}
+        run: |
+          case "$RUN_SECONDS" in ''|*[!0-9]*) RUN_SECONDS=19200;; esac
+          [ "$RUN_SECONDS" -gt 19800 ] && RUN_SECONDS=19800
+          echo "RUN_SECONDS=$RUN_SECONDS" >> "$GITHUB_ENV"
+          gh workflow run zeref-diary-keepalive.yml -R "${{ github.repository }}" -f run_seconds=19200 || echo "next-run dispatch failed; the hourly cron is the watchdog"
+      - name: Watch the recorded diary loop and dispatch a tick when it is late
+        env:
+          GH_TOKEN: ${{ github.token }}
+          R: ${{ github.repository }}
+        run: |
+          end=$(( $(date -u +%s) + RUN_SECONDS ))
+          while [ "$(date -u +%s)" -lt "$end" ]; do
+            last=$(gh run list -R "$R" -w zeref-diary-loop.yml -L 1 --json createdAt -q '.[0].createdAt // ""' 2>/dev/null || echo "")
+            if [ -n "$last" ]; then
+              age=$(( $(date -u +%s) - $(date -u -d "$last" +%s) ))
+              if [ "$age" -gt 2400 ]; then
+                gh workflow run zeref-diary-loop.yml -R "$R" --ref main && echo "keep-alive: last diary run ${age}s ago -> dispatched one tick" || echo "dispatch failed (will retry)"
+              fi
+            else
+              echo "could not read the diary loop's last run (will retry)"
+            fi
+            sleep 120
+          done

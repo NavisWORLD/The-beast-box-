@@ -79,10 +79,37 @@ export function createCSTState(seed,{emotion={},counts=null}={}){
    quantum_entropy:clamp(qe),phi_harmonics:.6,coherence:.6,chaos:.2,instability:.2,curiosity:clamp(emotion.curiosity??.5),
    resonance:.5,avoid:clamp(emotion.fear??.1)}};
 }
+// ---------------------------------------------------------------- optional outer-product Hebbian rule (MODEL)
+/**
+ * Opt-in true outer-product Hebbian rule over 12 channels (the 11 named CST channels + Lorenz x, each in [0,1]):
+ *    w_ij ← clamp( w_ij + dt·(η·pre_i·post_j − decay·w_ij), 0, wMax )
+ * pre = the channel vector at the end of the previous step, post = the vector after this step. The fixed point is
+ * w* = (η/decay)·pre·post, so with η=decay the weights track the running channel outer product and stay inside [0,wMax].
+ * It is the "fire together, wire together" rule written as an actual matrix. The ORIGINAL rule (S.hebb relaxing toward
+ * coherence·0.6+valence·0.2) is untouched and stays the default; with the flag on it still runs, and S.hebb is
+ * additionally pulled toward mean(W) at rate `pull` per second (that pull is the only way W reaches the dynamics).
+ * Rates are per model-second (dt is seconds). LABEL: MODEL: a hypothesis about how weights could form, not a measurement.
+ */
+export const HEBB_OUTER=Object.freeze({eta:.5,decay:.5,wMax:1,pull:.10});
+export const HEBB12=Object.freeze(['valence','arousal','dominance','quantum_entropy','phi_harmonics','coherence','chaos','instability','curiosity','resonance','avoid','lorenz_x']);
+/** The 12-vector the outer-product rule works on (all clamped to [0,1]). */
+export function hebbVector(S){const c=S.ch,v=[];for(const k of HEBB12)v.push(k==='lorenz_x'?clamp(.5+S.L.x/40):clamp(c[k]));return v;}
+/** Mean of W in [0,wMax]: the scalar the pull uses (and a readout for diagnostics). */
+export function outerHebbStrength(S){if(!S.W)return 0;let t=0;for(let i=0;i<S.W.length;i++)t+=S.W[i];return t/S.W.length;}
+function outerHebbUpdate(S,dt,o){
+ const eta=Number.isFinite(o.eta)?o.eta:HEBB_OUTER.eta,decay=Number.isFinite(o.decay)?o.decay:HEBB_OUTER.decay,
+  wMax=Number.isFinite(o.wMax)?o.wMax:HEBB_OUTER.wMax,pull=Number.isFinite(o.pull)?o.pull:HEBB_OUTER.pull,n=HEBB12.length;
+ const post=hebbVector(S),pre=S.Wpre||post;
+ if(!S.W)S.W=new Array(n*n).fill(0);
+ for(let i=0;i<n;i++)for(let j=0;j<n;j++){const k=i*n+j,w=S.W[k]+dt*(eta*pre[i]*post[j]-decay*S.W[k]);S.W[k]=w<0?0:w>wMax?wMax:w;}
+ S.Wpre=post;
+ S.hebb=clamp(S.hebb+(clamp(outerHebbStrength(S)/(wMax||1))-S.hebb)*Math.min(1,dt*pull));
+}
 /**
  * Advance the state one fixed step: Lorenz, chaos/instability, coherence, Hebbian.
  *
  * DEFAULT (opts omitted/null) is the original behavior, bit for bit. Optional MODEL extensions, each off unless asked:
+ *  - opts.outerHebb:true|{eta,decay,wMax,pull}  true outer-product Hebbian rule on 12 channels (see HEBB_OUTER below).
  *  - opts.psi:true|{gain}  CST ψ (cst-psi.mjs, MODEL) nudges the coherence AND Hebbian targets by gain·(ψn−½),
  *    gain default PSI_GAIN=0.10, so the shift is bounded to ±gain/2 (±0.05) before the usual clamp.
  *
@@ -106,6 +133,7 @@ export function stepCSTState(S,dt,emotion=null,opts=null){
  S.hebb+=(clamp(c.coherence*.6+c.valence*.2+psiN)-S.hebb)*dt*.05;
  c.resonance+=(clamp(c.coherence*.7+c.valence*.3)-c.resonance)*Math.min(1,dt);
  S.phase+=dt*(1+c.arousal);
+ if(opts&&opts.outerHebb)outerHebbUpdate(S,dt,typeof opts.outerHebb==='object'?opts.outerHebb:{});
  return S;
 }
 /**
