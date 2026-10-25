@@ -106,7 +106,7 @@ def test_spark_feed_routes_counts_as_simulated_then_stale_never_refilled(tmp_pat
 
 
 def test_final_spark_001_reseed_is_recorded_ibm_used_once_then_simulated(tmp_path):
-    sd = json.loads((ROOT / "evidence/zeref-final-spark-001/spark-seed.json").read_text())
+    sd = json.loads((ROOT / "evidence/zeref-spark-latest/spark-seed.json").read_text())
     assert sd["source_class"] == "RECORDED_IBM_HARDWARE" and sd["backend"].startswith("ibm_")
     d = tmp_path / "zeref"
     spark.plan(str(d), str(tmp_path / "p0.json"), 1000.0)
@@ -130,7 +130,7 @@ def _run_module():
 
 def test_reseed_hot_refresh_applies_a_reseed_merged_after_the_run_started(tmp_path):
     run = _run_module()
-    good = (ROOT / "evidence/zeref-final-spark-001/spark-seed.json").read_text()
+    good = (ROOT / "evidence/zeref-spark-latest/spark-seed.json").read_text()
     dest = tmp_path / "seed" / "spark-seed.json"
     d = tmp_path / "zeref"
     old = spark.RESEED_FILE
@@ -169,3 +169,30 @@ def test_reseed_hot_refresh_rejects_bad_or_unreachable_sources_and_invents_nothi
     def boom(u):
         raise OSError("offline")
     assert run.refresh_reseed(5000.0, -1e18, fetch=boom, dest=dest) == 5000.0 and not dest.exists()
+
+
+def test_latest_pointer_is_the_newest_recorded_seed_and_each_job_is_used_once(tmp_path):
+    latest = json.loads((ROOT / "evidence/zeref-spark-latest/spark-seed.json").read_text())
+    s003 = json.loads((ROOT / "evidence/zeref-final-spark-003/spark-seed.json").read_text())
+    s001 = json.loads((ROOT / "evidence/zeref-final-spark-001/spark-seed.json").read_text())
+    assert latest == s003 and latest["job"] == "dbf655om94ac738su3ag" and latest["source_class"] == "RECORDED_IBM_HARDWARE"
+    d = tmp_path / "zeref"
+    old = spark.RESEED_FILE
+    try:
+        spark.RESEED_FILE = ROOT / "evidence/zeref-final-spark-001/spark-seed.json"
+        tick(tmp_path, 1000.0)  # a chain that already used 001
+        spark.RESEED_FILE = ROOT / "evidence/zeref-spark-latest/spark-seed.json"
+        spark.plan(str(d), str(tmp_path / "p1.json"), 1060.0)
+        assert json.loads((tmp_path / "p1.json").read_text())["reseed"]["job"] == s003["job"]  # 003 is new for this chain
+        (tmp_path / "r.json").write_text(json.dumps(receipt()))
+        spark.apply(str(d), str(tmp_path / "p1.json"), str(tmp_path / "r.json"), 1060.0)
+        st = json.loads((d / "state.json").read_text())
+        assert set(st["reseeded_jobs"]) == {s001["job"], s003["job"]}
+        for jobs in (s003, s001):  # neither is ever applied again, even if the pointer moved back
+            spark.RESEED_FILE = tmp_path / "x.json"
+            (tmp_path / "x.json").write_text(json.dumps(jobs))
+            spark.plan(str(d), str(tmp_path / "p2.json"), 1120.0)
+            assert "reseed" not in json.loads((tmp_path / "p2.json").read_text())
+        spark.verify_chain(str(d))
+    finally:
+        spark.RESEED_FILE = old
