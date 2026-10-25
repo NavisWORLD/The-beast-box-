@@ -25,6 +25,8 @@ def test_short_round_lineage():
     src=Path("scripts/zeref_continuation_006.py").read_text()
     ns={"os":__import__("os")};exec(src[src.index("LEGACY_UPDATES=64"):src.index("# Growth-fix (2026-10-15)")],ns)
     assert ns["expected_steps"](38)==31344 and ns["expected_steps"](39)==31344+160 and ns["expected_steps"](40)==31344+320
+    # live pin cycle 44 = step 32304; from cycle 45 each round is 320 updates (2026-10-25)
+    assert ns["expected_steps"](44)==32304 and ns["expected_steps"](45)==32304+320 and ns["expected_steps"](46)==32304+640
 def test_frozen_rotation_and_spike_guard():
     w=Path(".github/workflows/zeref-continuous-learning-006.yml").read_text()
     assert 'ZEREF_CHAT_ROTATE_SEED="${{ github.run_id }}"' not in w and "zeref-gate-v2-20261023" in w

@@ -33,10 +33,16 @@ LEGACY_CYCLES=5
 # cycle 39 on each round is SHORT_UPDATES (local replicas peaked at step 64-96, then drifted).
 SHORT_FROM_CYCLE=39;SHORT_UPDATES=160
 UPDATES=int(os.environ.get("ZEREF_006_UPDATES",str(SHORT_UPDATES)))  # bounded cycle size
+# 2026-10-25 ("make him faster", Cory approved): from cycle 45 each round is WIDE_UPDATES (2x) so a
+# round can use a longer, non-collapsing lr schedule. Fixed constant so the step lineage stays checkable.
+WIDE_FROM_CYCLE=45;WIDE_UPDATES=320
+# 2026-10-25 ("infinite growth, no size cap"): the old 64-cycle research cap was only a throttle; raised.
+MAX_CYCLES=int(os.environ.get("ZEREF_006_MAX_CYCLES","1000000"))
 def expected_steps(cycle):
  if cycle<=LEGACY_CYCLES:return 14000+128+LEGACY_UPDATES*cycle
  if cycle<SHORT_FROM_CYCLE:return 14000+128+LEGACY_UPDATES*LEGACY_CYCLES+512*(cycle-LEGACY_CYCLES)
- return expected_steps(SHORT_FROM_CYCLE-1)+SHORT_UPDATES*(cycle-SHORT_FROM_CYCLE+1)
+ if cycle<WIDE_FROM_CYCLE:return expected_steps(SHORT_FROM_CYCLE-1)+SHORT_UPDATES*(cycle-SHORT_FROM_CYCLE+1)
+ return expected_steps(WIDE_FROM_CYCLE-1)+WIDE_UPDATES*(cycle-WIDE_FROM_CYCLE+1)
 # Growth-fix (2026-10-15): the 9e-6 LR with uniform sampling over a RIGHT-heavy
 # (539/840) history could never move the RIGHT-only parent. Labels are now
 # sampled action-balanced, older real captures are replayed, and an L2 anchor
@@ -322,7 +328,7 @@ def identity_probe(path):
  for kind in("identity","controls"):out[kind+"_hits"]=sum(x["hit"] for x in out[kind])
  out["hebbian"]=bool(e.model.config.hebbian);del e
  return out
-def train_variant(parent_path,tokenizer,pool,seed,chat_pool=(),chat_eval=None):
+def train_variant(parent_path,tokenizer,pool,seed,chat_pool=(),chat_eval=None,lr=None,min_frac=None):
  """64 bounded AdamW updates with action-balanced sampling and parent anchor."""
  from collections import defaultdict
  parent=load_checkpoint(parent_path,load_training_state=True)
@@ -354,12 +360,13 @@ def train_variant(parent_path,tokenizer,pool,seed,chat_pool=(),chat_eval=None):
   else:print("ZEREF_GROWTH_WIP_IGNORED (different parent or shape)",flush=True)
  anchor=[p.detach().clone() for p in base]  # L2 anchor on the approved parent's weights only
  groups=[{"params":base}]+([{"params":hebb}] if hebb else [])
- opt=torch.optim.AdamW(groups,lr=LR,weight_decay=.01)
+ lr=LR if lr is None else lr;min_frac=LR_MIN_FRACTION if min_frac is None else min_frac
+ opt=torch.optim.AdamW(groups,lr=lr,weight_decay=.01)
  if not hebb:opt.load_state_dict(parent["state"]["optimizer"])  # flag off: exact old resume
  else:
   _sd,_log=map_optimizer_state(parent["state"]["optimizer"],model,[base,hebb],parent["metadata"],parent_model)
   OPT_RESUME.append(_log);opt.load_state_dict(_sd)
- for gi,group in enumerate(opt.param_groups):group["lr"]=HEBBIAN_LR if gi==1 else LR
+ for gi,group in enumerate(opt.param_groups):group["lr"]=HEBBIAN_LR if gi==1 else lr
  by=defaultdict(list)
  for i,(a,_) in enumerate(pool):by[a].append(i)
  classes=sorted(by)
@@ -375,7 +382,7 @@ def train_variant(parent_path,tokenizer,pool,seed,chat_pool=(),chat_eval=None):
    torch.save({"model":{k:v.detach().clone() for k,v in model.state_dict().items()},"n_layers":model.config.n_layers,
     "parent_checkpoint_sha256":parent["metadata"]["checkpoint_sha256"],"steps_done":n},WIP_OUT)
    print("ZEREF_GROWTH_LIMIT_HIT="+json.dumps(LIMITS_HIT[-1]),flush=True);break
-  for gi,group in enumerate(opt.param_groups):group["lr"]=(HEBBIAN_LR if gi==1 else LR)*(LR_MIN_FRACTION+(1-LR_MIN_FRACTION)*.5*(1+math.cos(math.pi*n/UPDATES)))
+  for gi,group in enumerate(opt.param_groups):group["lr"]=(HEBBIAN_LR if gi==1 else lr)*(min_frac+(1-min_frac)*.5*(1+math.cos(math.pi*n/UPDATES)))
   opt.zero_grad(set_to_none=True)
   idx=[];src=defaultdict(int)
   for _ in range(BATCH):
@@ -477,7 +484,7 @@ def parent_proof():
      approval.get("checkpoint_sha256")!=digest or
      approval.get("parent_checkpoint_sha256")!=metadata.get("parent_checkpoint_sha256") or
      approval.get("dataset_sha256")!=metadata.get("dataset_sha256") or
-     type(cycle) is not int or cycle<1 or cycle>64 or
+     type(cycle) is not int or cycle<1 or cycle>MAX_CYCLES or
      approval.get("approved_cycle_count")!=cycle or
      metadata.get("training_steps")!=expected_steps(cycle)):
   raise ValueError("Invalid signed original Zeref 006 CPU checkpoint lineage/approval")
@@ -496,7 +503,16 @@ def parent_proof():
  if not isinstance(parent["state"],dict) or "optimizer" not in parent["state"]:
   raise ValueError("Cannot resume native AdamW without verified original optimizer state")
  return parent,cycle,metadata["dataset_sha256"]
+# 2026-10-25 multi-candidate rounds (Cory approved "make him faster"). Each candidate resumes from the SAME
+# live pin and differs only in a seed derived from the RECORDED order seed (no Math.random) and in lr / lr floor.
+# Selection uses set A only (the in-cycle selection set, lowest NLL); fresh set B is never used to pick.
+# ONLY the selected candidate goes to the UNCHANGED Gate v2 below (A within 0.5% of the re-scored pin, B strict).
+# Spec = (lr multiplier, lr floor fraction). Index 0 is the previous single recipe (x1.0, floor 0.1).
+CAND_SPECS=[(1.0,.1),(.6,.1),(1.6,.3),(1.0,.5),(2.0,.5),(.8,.4)]
+N_CANDIDATES=max(1,min(len(CAND_SPECS),int(os.environ.get("ZEREF_006_CANDIDATES","1"))))
+CAND_BUDGET_S=float(os.environ.get("ZEREF_006_CANDIDATE_BUDGET_S","0"))  # 0 = no extra cap; else stop starting new candidates after this
 def main():
+ global UPDATES
  now=time.perf_counter()
  torch.set_num_threads(2)
  torch.manual_seed(SEED)
@@ -504,11 +520,11 @@ def main():
  torch.use_deterministic_algorithms(True)
  manifest,source_digest,rows=inspect_source()
  parent,cycle,prior_digest=parent_proof()
+ if cycle+1>=WIDE_FROM_CYCLE and "ZEREF_006_UPDATES" not in os.environ:UPDATES=WIDE_UPDATES
  if source_digest==prior_digest:
   raise RuntimeError("No fresh native observation dataset: refusing repeated identical optimizer training")
- if cycle>=64:
-  # Bounded research budget: 64 approved cycles × 64 updates, not unlimited cloud spend.
-  raise RuntimeError("64-cycle training budget cap reached; explicit owner renewal required")
+ if cycle>=MAX_CYCLES:
+  raise RuntimeError("training cycle ceiling %d reached"%MAX_CYCLES)  # effectively unbounded; was a 64-cycle throttle
  train=[row for row in rows if row["episode"]<3]
  heldout=[row for row in rows if row["episode"]==3]
  if len(train)!=42 or len(heldout)!=14:raise ValueError("Missing genuine independent heldout episode")
@@ -586,7 +602,26 @@ def main():
  control={"heldout_nll":nll(ctrl,held_t),"chat_nll":pair_nll(ctrl,chat_t),"retention_nll":nll(ctrl,retention),**counts(control_out),
    "unique_actions":len({r["legal_action"] for r in control_out if r["legal_action"]})}
  import shutil;shutil.rmtree(ctrl_dir);del ctrl
- model,opt,torch_generator,logs=train_variant(PARENT,tokenizer,pool,order_seed,chat_pool,ce)
+ cands=[];best_c=None;c_t0=time.perf_counter()
+ for ci in range(N_CANDIDATES):
+  if ci>0 and CAND_BUDGET_S and time.perf_counter()-c_t0>CAND_BUDGET_S:
+   print("ZEREF_006_CANDIDATE_SKIPPED="+json.dumps({"index":ci,"reason":"candidate time budget","budget_s":CAND_BUDGET_S}),flush=True);break
+  mult,floor=CAND_SPECS[ci]
+  cseed=order_seed if ci==0 else int(sha(f"{order_seed}:cand:{ci}".encode())[:12],16)%(2**62)
+  t_c=time.perf_counter()
+  m_c,o_c,g_c,l_c=train_variant(PARENT,tokenizer,pool,cseed,chat_pool,ce,lr=LR*mult,min_frac=floor)
+  a_c=pair_nll(m_c,chat_t)
+  rec={"index":ci,"seed":cseed,"lr":LR*mult,"lr_min_fraction":floor,"chat_a_nll":a_c,"best_in_cycle":next((x for x in l_c if "best_in_cycle_step" in x),None),
+   "skipped_batches":len(SKIPPED),"elapsed_s":round(time.perf_counter()-t_c,1)}
+  cands.append(rec);print("ZEREF_006_CANDIDATE="+json.dumps(rec,sort_keys=True),flush=True)
+  if best_c is None or a_c<best_c[0]:
+   best_c=(a_c,ci,m_c,o_c,g_c,l_c,list(SKIPPED),OPT_RESUME[-1] if OPT_RESUME else None)
+  del m_c,o_c
+ _,sel_i,model,opt,torch_generator,logs,_sk,_ol=best_c
+ SKIPPED[:]=_sk
+ if _ol is not None:OPT_RESUME.append(_ol)
+ SEL=cands[sel_i];SEL_LR=SEL["lr"]
+ print("ZEREF_006_CANDIDATE_SELECTED="+json.dumps({"index":sel_i,"chat_a_nll":SEL["chat_a_nll"],"of":len(cands),"rule":"lowest set A NLL; set B never used to select; unchanged Gate v2 applies to the selected candidate only"}),flush=True)
  if parameter_hash(model)==before_hash:raise AssertionError("Zeref weights never changed")
  new_held=nll(model,held_t)
  new_ret=nll(model,retention)
@@ -612,6 +647,7 @@ def main():
   "teacher":"OBSERVATION_CONDITIONED_SCRIPTED_HEURISTIC_NOT_HUMAN_NOT_MODEL",
   "production_promoted":False,"learned_game_progress_proven":False,
   "growth_recipe":"sqrt_balanced+replay+l2_anchor+rigetti_sim_order+chat_mix",
+  "selected_candidate":sel_i,"candidates_trained":len(cands),
   "growth_limits_hit":LIMITS_HIT,
   "capacity_growth_lineage":list(parent["metadata"].get("capacity_growth_lineage",[]))+([{"from_layers":parent["model"].config.n_layers,
    "to_layers":parent["model"].config.n_layers+GROW_LAYERS,"method":"grow_depth_function_preserving","parent_checkpoint_sha256":parent["metadata"]["checkpoint_sha256"]}] if GROW_LAYERS else [])}
@@ -667,11 +703,11 @@ def main():
   "candidate_literal_heldout_replies":trial_out,
   "parent_literal_heldout_replies":parent_out,
   "gate":guard,"accepted_as_next_training_parent":accepted,
-  "recipe":{"lr":LR,"batch":BATCH,"anchor_l2":ANCHOR,"decision_token_weight":DECISION_WEIGHT,"sampling":"sqrt_action_balanced",
+  "candidates":cands,"selected_candidate":sel_i,"candidate_selection_rule":"lowest set-A NLL (in-cycle selection set). Fresh set B never used to select. Only the selected candidate is gated; Gate v2 thresholds unchanged.","recipe":{"lr":SEL_LR,"lr_min_fraction":SEL["lr_min_fraction"],"batch":BATCH,"anchor_l2":ANCHOR,"decision_token_weight":DECISION_WEIGHT,"sampling":"sqrt_action_balanced",
     "replay_datasets":replay_digests,"replay_rows":len(replay),"chat_mix_sha256":chat_digest,"chat_rows":len(chat_pool),"pretrain_rows":len(PRETRAIN_POOL),"pretrain_sha256":pretrain_digest,"pretrain_per_batch":PRETRAIN_PER_BATCH if PRETRAIN_POOL else 0,"hebbian":bool(model.config.hebbian),"state_mode":model.config.state_mode,"chat_per_batch":CHAT_PER_BATCH if chat_pool else 0,
     "chat_before_nll":original_chat,"chat_after_nll":new_chat,"chat_gate_bar":chat_bar,"chat_gate_bar_with_tolerance":chat_bar_a,"chat_a_tolerance":CHAT_A_TOLERANCE,
     "chat_b_before_nll":original_chat_b,"chat_b_after_nll":new_chat_b,"chat_b_rule":"fresh set B (scripts/zeref_heldout_b.py), never trained or selected on; candidate must not be worse than the pin",
-    "chat_gate_public14k_ref_nll":public_ref_chat,"chat_metric":"fix-003 per-pair mean (same as rawrphos_chat_eval.ref_nll), no margin","character_check":{k:character[k] for k in("warmth_delta","no_rude_or_unsafe_regression")},"chat_gate_rule":"fix-002: not worse than the public-pin parent (absolute); promotion additionally requires rawrphos_chat_eval not worse than 14000 AND ref_nll below the current pin","lr_schedule":"cosine to 10%","best_in_cycle":True,"fresh_train_rows":len(train)},
+    "chat_gate_public14k_ref_nll":public_ref_chat,"chat_metric":"fix-003 per-pair mean (same as rawrphos_chat_eval.ref_nll), no margin","character_check":{k:character[k] for k in("warmth_delta","no_rude_or_unsafe_regression")},"chat_gate_rule":"fix-002: not worse than the public-pin parent (absolute); promotion additionally requires rawrphos_chat_eval not worse than 14000 AND ref_nll below the current pin","lr_schedule":"cosine to %d%% of lr"%round(SEL["lr_min_fraction"]*100),"best_in_cycle":True,"fresh_train_rows":len(train)},
   "rigetti_batch_order":rigetti,
   "cond54":{"enabled":bool(model.config.cond54),"gate_evaluation":"unconditioned (unchanged)","bank":COND_INFO or None,"report_only_ab_on_set_b":cond_report},
   "rigetti_on_off":{"on_candidate":{"heldout_nll":new_held,"chat_nll":new_chat,"retention_nll":new_ret,**trial,
