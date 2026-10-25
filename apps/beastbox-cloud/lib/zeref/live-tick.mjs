@@ -13,13 +13,13 @@
  * (the CST engine below adds Math.sqrt of 5 for φ, Math.abs, Math.min/max: all exact/correctly rounded in IEEE-754).
  *
  * ENGINES (SIMULATED either way). The per-second wiggle of each recorded signal comes from:
- *  - 'cst' (default when the diary has signals): the CST integrator `stepCSTState` (Lorenz + coherence + Hebbian relaxation,
+ *  - 'cst' (OPT-IN: liveBase(d,{engine:'cst'}) or a diary carrying live_engine:'cst'; never on by default): the CST integrator `stepCSTState` (Lorenz + coherence + Hebbian relaxation,
  *    with the opt-in ψ MODEL nudge) is driven by the RECORDED signals (energy→arousal, resonance→valence, signal/memory→curiosity),
  *    settled for a fixed warm-up, then stepped CST_SUBSTEPS times per live second. The displayed signal is
  *    recorded ± 3 where the offset is the movement of one CST channel since second 0. Second N is still always second N: the
  *    state is a pure function of (base, N) (a per-base cursor only caches it; going backwards recomputes from second 0).
  *    Integration is bounded: past CST_MAX_SECONDS (1 day without a new recorded tick) it falls back to
- *  - 'wander' (the previous engine, kept unchanged as the fallback): hash-anchored interpolation within ±3.
+ *  - 'wander' (the DEFAULT, the previous engine, unchanged; also the fallback): hash-anchored interpolation within ±3.
  * Lorenz dt note: stepCSTState integrates the Lorenz system at dt·0.35, the Sim Earth reference at dt·0.035 (see
  * docs/CST_PSI_MODEL.md). Here dt = 0.05 and 6 substeps per second, so one live second ≈ 0.105 Lorenz time units. A model tempo
  * choice, not a calibration.
@@ -41,6 +41,8 @@ const r2=v=>Math.round(v*100)/100,r4=v=>Math.round(v*1e4)/1e4;
 function hash32(text){let h=0x811c9dc5;for(let i=0;i<text.length;i++){h^=text.charCodeAt(i);h=Math.imul(h,0x01000193);}return h>>>0;}
 /** Build the live base from /api/zeref/diary JSON or the loop's state.json (+ optional recent entries). Returns null if there is no real recorded tick. */
 export function liveBase(d,{engine}={}){
+ // CST is opt-in: only an explicit option or a diary field asks for it. Default stays the hash wander.
+ const want=engine||(d&&typeof d==='object'?d.live_engine:undefined);
  if(!d||typeof d!=='object')return null;
  const at=Date.parse(d.last_tick_at||'');
  if(!Number.isFinite(at))return null;
@@ -49,7 +51,7 @@ export function liveBase(d,{engine}={}){
  const avg_gain=gains.length?gains.reduce((s,g)=>s+g,0)/gains.length:10;
  const sig={};for(const [k,v] of Object.entries(d.signals||{}))if(Number.isFinite(Number(v)))sig[k]=Number(v);
  return {beast_id:String(d.identity?.beast_id||d.beast_id||'beast'),tick:Math.max(0,Math.floor(Number(d.tick)||0)),xp:Number(d.xp)||0,last_tick_at_ms:at,signals:sig,avg_gain:r4(avg_gain),
-  engine:engine==='wander'||!Object.keys(sig).length?'wander':'cst'};
+  engine:want==='cst'&&Object.keys(sig).length?'cst':'wander'};
 }
 /** Smooth deterministic wander for one signal: linear interpolation between per-7-second hashed anchors, within +-3 of the recorded value. */
 function wander(base,key,sec){
