@@ -40,6 +40,7 @@ import {weatherFrom,createMover,stepMover,createWater,stepWater,waterTotal} from
 import {LW_LABELS,gatheringPoints,spreadAngle,initialTraits,driftTraits,lattice12D,lwStream,unitFrom} from '@/lib/universe/living-world.mjs';
 import {ARTIST_RESIDENTS} from '@/lib/companion/artist-residents.mjs';
 import {RESIDENT_LIFE_KEY,lifeTransform,hopSeconds} from '@/lib/universe/sprite-life.mjs';
+import {creatureVoice,roadsterVoice,voiceTurn,voiceCategory} from '@/lib/universe/creature-voices.mjs';
 import {cosmicEvents,cosmicLine,createWindow,stepWindow,windowLine,seededMood,spreadMood,napGroup,buildKind,advanceBuild,coexistLine,worldLine,placeLine,learnBiome,worldRecord,toJsonl,windowEmissive,traitIcon,MOOD_ICON,ZEREF_ID} from '@/lib/universe/living-alive.mjs';
 import {addCageSurface} from '@/lib/universe/surface-three';
 import {ROADSTER_LABEL,bodyVariantIndex,wheelOmega,steerAngle,driveState,bodyBob,headlamp,underglow} from '@/lib/universe/roadster-view.mjs';
@@ -438,6 +439,8 @@ uniform vec3 uPlay[8];
     const tpu=(e:PointerEvent)=>{const d=t0;t0=null;if(!d||Math.hypot(e.clientX-d.x,e.clientY-d.y)>8||performance.now()-d.t>450)return;
      const rc=canvas.getBoundingClientRect();tapNdc.set((e.clientX-rc.left)/rc.width*2-1,-(e.clientY-rc.top)/rc.height*2+1);tapRay.setFromCamera(tapNdc,camera);
      if(plush&&tapRay.intersectObject(beastNode,true).length){window.dispatchEvent(new CustomEvent('beastbox:look-closer',{detail:{id:'beast'}}));return;}
+     // a tap on an artist resident: its approved 'tap' voice line (seeded by world seed + tap count); no line, no change
+     for(const r of residents as any[]){if(r.node&&tapRay.intersectObject(r.node,true).length){const vk=(RESIDENT_LIFE_KEY as any)[r.name];const vl=vk?creatureVoice(vk,'tap',String(u.seed),++voiceN):null;if(vl){r.hopT=0;lineRef.current(r.name+': '+vl);evCool=3;return;}}}
      // a tap on a landscape: its authored tap line (active beast + place name), view state only
      {const hl=tapRay.ray.intersectSphere(new THREE.Sphere(new THREE.Vector3(),PR+.02),new THREE.Vector3());if(hl&&lwLand){const lsT=lwLand.tapAt([hl.x/hl.length(),hl.y/hl.length(),hl.z/hl.length()]);if(lsT){const g=noticeGate(lmGate,'land:tap',performance.now(),3000,6000);lmGate=g.state;if(g.show){const tx=landscapeTapLine(lsT,{beast:beastName||'Your beast',planet:(homePl as any)?.name||'this world',seed:String(u.seed),n:lmN++});if(tx)lineRef.current(tx);}}}}
      // a tap on a growth node's ground: scale bounce + gold burst (view state only) and one creature-notice line (Emeth's growth_tap_*, active beast name substituted)
@@ -460,7 +463,7 @@ uniform vec3 uPlay[8];
     // a line when what the nodes are doing changes (derived from the SIMULATED state; the first reading is silent)
     const k=growthNoteKey(nodes),dk=growthDriveKey(nodes);const tryShow=(key:string|null)=>{if(!key)return;const g=noticeGate(gGate,'growth:'+key,performance.now(),20000,90000);gGate=g.state;if(!g.show)return;const tx=growthNoteLine(key,beastName||'Your beast',String(u.seed),gN++);if(tx)lineRef.current(tx);};
     const dkS=dk||'';if(gKey!==null&&k&&k!==gKey)tryShow(k);else if(gKey!==null&&gDKey!==null&&dk&&dkS!==gDKey)tryShow(dk);if(k)gKey=k;if(gKey!==null)gDKey=dkS;};}
-   let bY=0,bVY=0,puff=0,storming=0,windS=.3,greeted=false,lastSunH=0,evCool=0;const G_SURF=4.2;const windV=new THREE.Vector3(1,0,.4).normalize();const metCool:Record<string,number>={};
+   let voiceN=0,voiceT=14,carVoiceWas=false,carVoiceFast=false;let bY=0,bVY=0,puff=0,storming=0,windS=.3,greeted=false,lastSunH=0,evCool=0;const G_SURF=4.2;const windV=new THREE.Vector3(1,0,.4).normalize();const metCool:Record<string,number>={};
    const beastNm=beastName||'Your beast';const say=(s:string,cd=6)=>{if(evCool>0)return;evCool=cd;lineRef.current(s);};
    const hop=(v:number)=>{if(bY<=0.001)bVY=v;};
    let growLW=(()=>{try{return +(localStorage.getItem('lw:growLW:'+bKey)||0)||0;}catch{return 0;}})();
@@ -603,6 +606,8 @@ uniform vec3 uPlay[8];
       let hu:number|null=null;if(typeof r.hopT==='number'){r.hopT+=dt;if(r.hopT>=hopSeconds(lk))r.hopT=null;else hu=r.hopT/hopSeconds(lk);}
       const tf=lifeTransform(lk,{t,walk:r.wk,sleep:r.sk,hopU:hu,reduced:slReduced});r.sp.scale.set(r.h*tf.sx,r.h*tf.sy,1);r.sp.position.set(tf.dx*r.h,-tf.dy*r.h,0);r.sp.material.rotation=tf.rot;}}}
     alive.frame(dt,t);
+    // creature voices (Emeth's approved lines, additive): every 18-40 s one seeded resident says an idle/move/sleep/storm line from its real state; evCool gates it so existing lines win
+    voiceT-=dt;if(voiceT<=0){if(evCool>0||!(residents as any[]).length)voiceT=2;else{const vt=voiceTurn(String(u.seed),++voiceN,(residents as any[]).length);const vr=(residents as any[])[vt.who];const vk=vr?(RESIDENT_LIFE_KEY as any)[vr.name]:null;voiceT=vt.wait;const vl=vk?creatureVoice(vk,voiceCategory({storming,napping:vr.nap>0,moving:vr.pause<=0}),String(u.seed),voiceN):null;if(vl)say(vr.name+': '+vl,6);}}
     // beast: wander by traits; when you're spawned in, run to greet (timing from JSON)
     const sp=spawnRef.current;let restored=false;if(sp&&!wasSpawned){try{const st=JSON.parse(localStorage.getItem(TKEY)||'null');if(st&&st.n&&st.f){pN.fromArray(st.n).normalize();pF.fromArray(st.f);pF.addScaledVector(pN,-pF.dot(pN)).normalize();restored=pF.lengthSq()>.5;}}catch{}}
     if(sp&&!wasSpawned&&!restored){pN.copy(bN).applyAxisAngle(bF,.0).addScaledVector(bF,-3/PR).normalize();pF.copy(bF);pF.addScaledVector(pN,-pF.dot(pN)).normalize();spawnT=0;greetT=-1;travNode.visible=true;}
@@ -645,6 +650,7 @@ uniform vec3 uPlay[8];
      exMixer?.update(dt);exWalk=0;
      if(roadsterRef.current&&!car&&!carLoading)loadCar();
      if(car){const cs=mover.w.swim<.4&&mover.w.fly<.4;const wantCar=roadsterRef.current&&spawnT<0&&cs;car.root.visible=wantCar;
+      {/* roadster voices (approved lines, additive; the existing Roadster · SEEDED label is unchanged): board on getting in, stop after a real drive */const rcat=wantCar&&!carVoiceWas?(storming>.6?'storm':lastSunH<0?'night':'board'):(wantCar&&carVoiceFast&&Math.abs(carV)<.3?'stop':null);if(wantCar&&Math.abs(carV)>2)carVoiceFast=true;if(rcat){if(rcat==='stop')carVoiceFast=false;const rl=roadsterVoice(rcat,String(u.seed),++voiceN,{beast:beastNm});if(rl)say(rl,5);}carVoiceWas=wantCar;}
       if(wantCar){explorer.visible=false;const arc=carPrev&&dt>0?Math.acos(Math.min(1,pN.dot(carPrev)))*PR/carK/dt:0;carV+=((exBack?-1:1)*Math.min(14,arc)-carV)*Math.min(1,dt*6);
        const st=driveState(carV),reduced=reducedNow();const P=car.parts;const om=wheelOmega(carV);for(const w of P.wheels)w.rotation.x+=om*dt;
        carSteer+=(steerAngle(ix*(iy>.3?-1:1))-carSteer)*Math.min(1,dt*5);for(const sn of P.steer)sn.rotation.y=carSteer;
@@ -766,7 +772,7 @@ uniform vec3 uPlay[8];
    <style>{'@keyframes lwbob{0%,100%{transform:translateY(0) rotate(-8deg)}50%{transform:translateY(-7px) rotate(-4deg)}}'}</style>
    <img src="/universe/livingworld/asciimode/glow_sprite_torch_256.png" alt="" style={{position:'absolute',left:-25,top:-30,width:120,height:120,mixBlendMode:'screen'}}/>
    <div style={{position:'absolute',left:28,top:26,width:12,height:58,borderRadius:4,background:'linear-gradient(#7a4a24,#4a2a12)'}}/><div style={{position:'absolute',left:22,top:66,width:30,height:30,borderRadius:'40% 40% 46% 46%',background:'#c99a7a',boxShadow:'0 0 18px rgba(255,190,110,.6)'}}/></div>:null}
-  {line?<div data-lw-line style={{position:'absolute',left:'50%',top:'calc(env(safe-area-inset-top) + 70px)',transform:'translateX(-50%)',background:'rgba(20,10,50,.82)',borderRadius:12,padding:'8px 14px',fontSize:15,maxWidth:'86%',textAlign:'center',pointerEvents:'none'}}>{line}</div>:null}
+  {line?<><style>{embedded?'':'@media (max-width:640px){[data-lw-line]{--lw-line-top:calc(env(safe-area-inset-top) + 136px)}}'}</style><div data-lw-line style={{position:'absolute',left:'50%',top:'var(--lw-line-top, calc(env(safe-area-inset-top) + 70px))',transform:'translateX(-50%)',background:'rgba(20,10,50,.82)',borderRadius:12,padding:'8px 14px',fontSize:15,maxWidth:'86%',textAlign:'center',pointerEvents:'none'}}>{line}</div></>:null}
   {spawned?<div data-lw-joystick onPointerDown={jd} onPointerMove={jm} onPointerUp={ju} onPointerCancel={ju}
    style={{position:'absolute',left:'calc(50% - 60px)',bottom:'calc(env(safe-area-inset-bottom) + 120px)',width:120,height:120,borderRadius:'50%',background:'rgba(255,255,255,.08)',border:'2px solid rgba(255,255,255,.25)',touchAction:'none'}}>
    <div style={{position:'absolute',left:60-22+(stick?.x||0)*38,top:60-22+(stick?.y||0)*38,width:44,height:44,borderRadius:'50%',background:'rgba(200,180,255,.55)'}}/>
