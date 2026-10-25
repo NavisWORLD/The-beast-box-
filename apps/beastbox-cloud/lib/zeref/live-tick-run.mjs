@@ -17,7 +17,7 @@ export async function runLiveTickLoop({io,clock,runSeconds,batchSeconds=600,log=
  let base=liveBase(io.readDiary());
  if(!base){log('no recorded tick available; nothing to simulate');return {ok:false,reason:'no-recorded-tick',batches:0};}
  const head=io.readHead();
- const key=b=>b.beast_id+'|'+b.tick+'|'+b.last_tick_at_ms;
+ const key=b=>b.beast_id+'|'+b.tick+'|'+b.last_tick_at_ms+(b.engine==='cst'?'|cst/v2':''); // engine in the key: a head chained under the old wander engine is never resumed under CST
  let chain,done; // done = last second already folded into `chain`
  if(head&&head.key===key(base)&&Number.isInteger(head.last_sec)){chain=head.chain;done=head.last_sec;}else{chain=CHAIN_GENESIS(base);done=-1;}
  let prevEntry=head?.entry_hash||'0'.repeat(64),batches=0,lastBatchMs=startMs;
@@ -25,7 +25,7 @@ export async function runLiveTickLoop({io,clock,runSeconds,batchSeconds=600,log=
   const sec=Math.floor((nowMs-base.last_tick_at_ms)/1000);
   const snap=liveSecond(base,base.last_tick_at_ms+Math.max(sec,0)*1000);
   const entryBody={schema:RUN_SCHEMA,beast_id:base.beast_id,recorded_tick:base.tick,seconds_since_recorded:snap.seconds_since_recorded,at_ms:nowMs,xp_live:snap.xp_live,
-   signals:snap.signals,chain:chain,label:'SIMULATED',text:liveDiaryLine(snap),prev:prevEntry};
+   signals:snap.signals,...(snap.engine?{engine:snap.engine,cst:snap.cst}:{}),chain:chain,label:'SIMULATED',text:liveDiaryLine(snap),prev:prevEntry};
   const entry={...entryBody,hash:sha256Hex(JSON.stringify(entryBody))};prevEntry=entry.hash;
   io.writeBatch({head:{key:key(base),last_sec:done,chain,entry_hash:entry.hash,recorded_tick:base.tick,at_ms:nowMs},snapshot:snap,entry});
   const ok=await io.commit(`beast live tick: tick ${base.tick} +${snap.seconds_since_recorded}s (${why}) [skip ci]`);batches++;lastBatchMs=nowMs;log('batch',batches,why,done,ok);
