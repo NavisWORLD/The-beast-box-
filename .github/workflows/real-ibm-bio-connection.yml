@@ -1,0 +1,89 @@
+name: Real IBM Bio Connection - owner fingertip heartbeat numbers seed/tag ONE real IBM CHSH run, then ONE Rigetti QVM SIMULATOR job
+run-name: Real IBM Bio Connection ${{ inputs.packet_sha12 }}
+# Dispatched ONLY by the owner-gated server route /api/bio-connection (token held server-side). Numbers only: bpm, HRV, quality, light/audio levels, sha256.
+# Raw video, audio and frames never leave the phone and are never in this repo. Heartbeat MEASURED on the phone (quality-gated); IBM RECORDED only if a real job result exists;
+# Rigetti SIMULATED. Real IBM run: 20 QPU s hard cap, fails closed (SKIPPED_RESERVE) unless plan remaining >= cap + 60 s. Tag-idempotent: a replay never resubmits.
+on:
+  workflow_dispatch:
+    inputs:
+      packet_sha12:
+        description: first 12 hex of the measured packet sha256
+        required: true
+        type: string
+      packet_json:
+        description: numbers-only bio packet (schema beastbox-real-ibm-bio-connection-v1)
+        required: true
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: chsh-game-daily-qpu
+  cancel-in-progress: false
+jobs:
+  bio:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify numbers-only packet (fails before any IBM time is used)
+        id: pkt
+        env:
+          BIO_PACKET_JSON: ${{ inputs.packet_json }}
+          BIO_PACKET_SHA12: ${{ inputs.packet_sha12 }}
+        run: python scripts/bio_connection_packet.py verify
+      - run: python -m pip install 'qiskit-ibm-runtime>=0.45,<0.50' 'qiskit>=2.1,<2.5' 'qdk[azure]'
+      - name: Real IBM hardware CHSH tagged by the measured heartbeat packet (20 s cap, 60 s reserve)
+        env:
+          IBM_QUANTUM_TOKEN: ${{ secrets.IBM_QUANTUM_TOKEN }}
+          BEAST_CHSH_GAME_DAILY: YES_DAILY_SMALL_BATCH
+          CHSH_QPU_CAP: '20'
+          CHSH_GAME_ROUNDS: '20000'
+          CHSH_BEST_PAIR: '1'
+          CHSH_RUN_TAG: ${{ steps.pkt.outputs.tag }}
+          CHSH_GAME_OUT: _bio_connection_ibm
+        run: python scripts/chsh_game/referee.py
+      - name: Rigetti QVM (SIMULATED) seeded by the measured heartbeat vector
+        if: always() && steps.pkt.outcome == 'success'
+        env:
+          AZURE_QUANTUM_CONNECTION_STRING: ${{ secrets.AZURE_QUANTUM_CONNECTION_STRING }}
+          BEAST_AZURE_QVM_ONE_JOB: YES_ONE_FREE_SIMULATOR
+          HB_QVM_PACKET: _bio_connection/features.json
+          HB_QVM_OUT: _bio_connection_qvm
+          HB_QVM_SHOTS: '4096'
+          HB_QVM_VECTOR_KEY: bio_vector_12
+          HB_QVM_PREFIX: beastbox-real-ibm-bio-
+        run: PYTHONPATH=scripts python scripts/zeref_heartbeat_qvm.py
+      - name: Read-only quota after
+        if: always()
+        env:
+          IBM_QUANTUM_TOKEN: ${{ secrets.IBM_QUANTUM_TOKEN }}
+        run: python scripts/ibm_open_plan_preflight.py || true
+      - name: Mix seed and summarise (no private data)
+        id: res
+        if: always() && steps.pkt.outcome == 'success'
+        run: python scripts/bio_connection_packet.py finish
+      - name: Result · IBM ${{ steps.res.outputs.ibm || 'missing' }} · QVM ${{ steps.res.outputs.qvm || 'missing' }}
+        if: always()
+        run: echo "IBM ${{ steps.res.outputs.ibm || 'missing' }} / Rigetti QVM ${{ steps.res.outputs.qvm || 'missing' }} (see artifact)"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: real-ibm-bio-connection-${{ github.run_id }}
+          path: |
+            _bio_connection/features.json
+            _bio_connection/result.json
+            _bio_connection_ibm/chsh_game_result.json
+            _bio_connection_ibm/skipped.json
+            _bio_connection_ibm/failure.json
+            _bio_connection_ibm/submission.json
+            _bio_connection_ibm/commitments.json
+            _bio_connection_ibm/pair_choice.json
+            _bio_connection_qvm/
+            _ibm_open_plan_preflight/receipt.json
+          retention-days: 90
+          if-no-files-found: ignore
