@@ -1,0 +1,561 @@
+{
+ "schema": "beastbox-creature-model-slot-v1",
+ "id": "art-kairo",
+ "rig_format": "chars3d-node-rig-v1",
+ "forward": "+Z",
+ "honesty": "Artistic 3D model by Cosmo. SEEDED procedural build (seed from the recorded IBM ibm_marrakesh run, not live quantum input). Motion amplitudes are SIMULATED. Not a measured quantum phenotype.",
+ "key": "kairo",
+ "format": "chars3d rig v1",
+ "label": "SEEDED procedural model; amplitudes SIMULATED from spritelife.json; not a measured quantum phenotype; not tested in live engine, phone or GBA",
+ "glb": "art-kairo.glb",
+ "height_m": 0.83,
+ "root": "root",
+ "units": "metres, Y up, forward +Z, creature-left +X, ground y=0",
+ "rotation_note": "node-transform rig (no skin). Rotations multiply the rest quaternion. Raised arm on creature-right (-X) = negative Z rotation; +X rotation on head = nod forward/down.",
+ "nodes": [
+  {
+   "name": "root",
+   "parent": null,
+   "role": "root",
+   "pivot_world": [
+    0,
+    0,
+    0
+   ],
+   "local_translation": [
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "name": "body",
+   "parent": "root",
+   "role": "body",
+   "pivot_world": [
+    0,
+    0.27,
+    0
+   ],
+   "local_translation": [
+    0,
+    0.27,
+    0
+   ]
+  },
+  {
+   "name": "head",
+   "parent": "body",
+   "role": "head",
+   "pivot_world": [
+    0,
+    0.505,
+    0
+   ],
+   "local_translation": [
+    0,
+    0.235,
+    0
+   ]
+  },
+  {
+   "name": "eye_L",
+   "parent": "head",
+   "role": "eye",
+   "pivot_world": [
+    0.04,
+    0.58,
+    0.088
+   ],
+   "local_translation": [
+    0.04,
+    0.075,
+    0.088
+   ]
+  },
+  {
+   "name": "eye_R",
+   "parent": "head",
+   "role": "eye",
+   "pivot_world": [
+    -0.04,
+    0.58,
+    0.088
+   ],
+   "local_translation": [
+    -0.04,
+    0.075,
+    0.088
+   ]
+  },
+  {
+   "name": "beanie",
+   "parent": "head",
+   "role": "beanie",
+   "pivot_world": [
+    0,
+    0.64,
+    0
+   ],
+   "local_translation": [
+    0,
+    0.135,
+    0
+   ]
+  },
+  {
+   "name": "horn_L",
+   "parent": "head",
+   "role": "horn",
+   "pivot_world": [
+    0.072,
+    0.715,
+    0.01
+   ],
+   "local_translation": [
+    0.072,
+    0.21,
+    0.01
+   ]
+  },
+  {
+   "name": "horn_R",
+   "parent": "head",
+   "role": "horn",
+   "pivot_world": [
+    -0.072,
+    0.715,
+    0.01
+   ],
+   "local_translation": [
+    -0.072,
+    0.21,
+    0.01
+   ]
+  },
+  {
+   "name": "ear_L",
+   "parent": "head",
+   "role": "ear",
+   "pivot_world": [
+    0.105,
+    0.69,
+    -0.01
+   ],
+   "local_translation": [
+    0.105,
+    0.185,
+    -0.01
+   ]
+  },
+  {
+   "name": "ear_R",
+   "parent": "head",
+   "role": "ear",
+   "pivot_world": [
+    -0.105,
+    0.69,
+    -0.01
+   ],
+   "local_translation": [
+    -0.105,
+    0.185,
+    -0.01
+   ]
+  },
+  {
+   "name": "arm_L",
+   "parent": "body",
+   "role": "arm",
+   "pivot_world": [
+    0.128,
+    0.46,
+    0
+   ],
+   "local_translation": [
+    0.128,
+    0.19,
+    0
+   ]
+  },
+  {
+   "name": "forearm_L",
+   "parent": "arm_L",
+   "role": "forearm",
+   "pivot_world": [
+    0.152,
+    0.37,
+    0
+   ],
+   "local_translation": [
+    0.024,
+    -0.09,
+    0
+   ]
+  },
+  {
+   "name": "arm_R",
+   "parent": "body",
+   "role": "arm",
+   "pivot_world": [
+    -0.128,
+    0.46,
+    0
+   ],
+   "local_translation": [
+    -0.128,
+    0.19,
+    0
+   ]
+  },
+  {
+   "name": "forearm_R",
+   "parent": "arm_R",
+   "role": "forearm",
+   "pivot_world": [
+    -0.152,
+    0.37,
+    0
+   ],
+   "local_translation": [
+    -0.024,
+    -0.09,
+    0
+   ]
+  },
+  {
+   "name": "leg_L",
+   "parent": "body",
+   "role": "leg",
+   "pivot_world": [
+    0.052,
+    0.275,
+    0
+   ],
+   "local_translation": [
+    0.052,
+    0.005,
+    0
+   ]
+  },
+  {
+   "name": "foot_L",
+   "parent": "leg_L",
+   "role": "foot",
+   "pivot_world": [
+    0.054,
+    0.05,
+    0
+   ],
+   "local_translation": [
+    0.002,
+    -0.225,
+    0
+   ]
+  },
+  {
+   "name": "leg_R",
+   "parent": "body",
+   "role": "leg",
+   "pivot_world": [
+    -0.052,
+    0.275,
+    0
+   ],
+   "local_translation": [
+    -0.052,
+    0.005,
+    0
+   ]
+  },
+  {
+   "name": "foot_R",
+   "parent": "leg_R",
+   "role": "foot",
+   "pivot_world": [
+    -0.054,
+    0.05,
+    0
+   ],
+   "local_translation": [
+    -0.002,
+    -0.225,
+    0
+   ]
+  },
+  {
+   "name": "anchor_stand",
+   "parent": "root",
+   "role": "anchor",
+   "pivot_world": [
+    0,
+    0,
+    0
+   ],
+   "local_translation": [
+    0,
+    0,
+    0
+   ]
+  }
+ ],
+ "eyes": {
+  "nodes": [
+   "eye_L",
+   "eye_R"
+  ],
+  "closed_scale_y": 0.08,
+  "pivot": "eye centre (scale.y = lid)"
+ },
+ "glow_nodes": [
+  "eye_L",
+  "eye_R"
+ ],
+ "rest_pose": {
+  "note": "the GLB is authored AT rest: every node has identity rotation and scale 1; local_translation is the rest offset",
+  "rotations": "identity",
+  "scales": 1
+ },
+ "actions": {
+  "idle": {
+   "period_s": 3.111,
+   "amp_y": 0.0135,
+   "amp_x": 0.0067,
+   "phase": 0.6324,
+   "maps": "root.scale (y breathe, x inverse), head sway",
+   "head_sway": [
+    {
+     "node": "head",
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "deg": 0.94
+    }
+   ],
+   "extra": [
+    {
+     "node": "ear_L",
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "deg": 5,
+     "ph": 0
+    },
+    {
+     "node": "ear_R",
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "deg": -5,
+     "ph": 0.3
+    }
+   ]
+  },
+  "blink": {
+   "loop_s": 12,
+   "events": [
+    1.989,
+    5.79,
+    6.17,
+    9.383,
+    9.763
+   ],
+   "close_s": 0.07,
+   "hold_s": 0.05,
+   "open_s": 0.11,
+   "maps": "eyes.nodes scale.y -> eyes.closed_scale_y about the eye centre",
+   "label": "SEEDED timings (recorded run)"
+  },
+  "walk": {
+   "period_s": 0.622,
+   "bob_frac": 0.0158,
+   "tilt_deg": 1.35,
+   "sway_frac": 0.0054,
+   "squash": 0.0158,
+   "maps": "root.position.y bob, root rotZ tilt, root.position.x sway, root.scale.y squash",
+   "gait": [
+    {
+     "node": "arm_L",
+     "axis": [
+      1,
+      0,
+      0
+     ],
+     "deg": 22,
+     "ph": 0
+    },
+    {
+     "node": "arm_R",
+     "axis": [
+      1,
+      0,
+      0
+     ],
+     "deg": 22,
+     "ph": 1
+    },
+    {
+     "node": "leg_L",
+     "axis": [
+      1,
+      0,
+      0
+     ],
+     "deg": 24,
+     "ph": 1
+    },
+    {
+     "node": "leg_R",
+     "axis": [
+      1,
+      0,
+      0
+     ],
+     "deg": 24,
+     "ph": 0
+    }
+   ]
+  },
+  "hop": {
+   "period_s": 1,
+   "phases": [
+    0.18,
+    0.08,
+    0.45,
+    0.12,
+    0.17
+   ],
+   "height_frac": 0.154,
+   "stretch": 0.056,
+   "maps": "root.position.y parabola 4k(1-k), root.scale stretch"
+  },
+  "wave": {
+   "period_s": 1.6,
+   "cycles": 3,
+   "limbs": [
+    {
+     "node": "arm_R",
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "raise_deg": -140,
+     "deg": 0
+    },
+    {
+     "node": "forearm_R",
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "raise_deg": -20,
+     "deg": -30
+    }
+   ],
+   "head_node": "head",
+   "head_deg": 3.9,
+   "lean_deg": 2.9,
+   "maps": "raise_deg*env + deg*env*sin(2*pi*cycles*u) on limb nodes, head rotZ, root lean"
+  },
+  "sleep": {
+   "sx": 1.04,
+   "sy": 0.92,
+   "tilt_deg": -4,
+   "head_node": "head",
+   "nod_axis": [
+    1,
+    0,
+    0
+   ],
+   "nod_deg": 8,
+   "curl": [],
+   "breath_amp": 0.02,
+   "breath_period_s": 4.2,
+   "enter_s": 1.4,
+   "maps": "root squash + tilt, head nod (+X rot = forward/down), tail/neck curl, eyes closed"
+  }
+ },
+ "rider": {
+  "class_": "tall",
+  "seat": {
+   "height_m_max": 1.9,
+   "pose": "sit_legs_forward",
+   "offset": [
+    0,
+    0,
+    0.06
+   ],
+   "scale_to_height_m": 0.8,
+   "billboard_pivot": "hip-centre",
+   "note": "humanoid sprite: seated height ~0.8 m, legs tucked forward, hands on the wheel when in rider_L"
+  },
+  "anchors": [
+   "anchor_stand"
+  ],
+  "seat_pose": [
+   {
+    "node": "leg_L",
+    "axis": [
+     1,
+     0,
+     0
+    ],
+    "deg": -85
+   },
+   {
+    "node": "leg_R",
+    "axis": [
+     1,
+     0,
+     0
+    ],
+    "deg": -85
+   },
+   {
+    "node": "foot_L",
+    "axis": [
+     1,
+     0,
+     0
+    ],
+    "deg": 10
+   },
+   {
+    "node": "foot_R",
+    "axis": [
+     1,
+     0,
+     0
+    ],
+    "deg": 10
+   },
+   {
+    "node": "arm_L",
+    "axis": [
+     1,
+     0,
+     0
+    ],
+    "deg": -60
+   },
+   {
+    "node": "arm_R",
+    "axis": [
+     1,
+     0,
+     0
+    ],
+    "deg": -60
+   }
+  ]
+ },
+ "look": "kairo: boy in black hoodie jacket with violet trims, black beanie with two violet-tipped horns and cat ears, spiky black hair, violet eyes, violet-soled sneakers. No wings. Neck/arm tattoo and face freckles from the still are NOT modelled (texture detail)"
+}

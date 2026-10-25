@@ -8,6 +8,7 @@
  */
 export const MODEL_SLOT_SCHEMA = 'beastbox-creature-model-slot-v1';
 export const MODEL_SLOT_BASE = '/creatures3d/custom/';
+import {isNodeRig, validateNodeRig} from './node-rig.mjs';
 /** Clip roles the runtime understands; a rig json maps its own clip names onto these. */
 export const CLIP_ROLES = Object.freeze(['idle', 'walk', 'sleep', 'happy', 'startle']);
 const ROLE_RX = {idle: /idle|stand|breath/i, walk: /walk|run|trot|move/i, sleep: /sleep|nap|rest/i, happy: /happy|play|joy|greet/i, startle: /startle|scare|jump|hop/i};
@@ -26,6 +27,7 @@ export function validateRig(rig, id) {
       if (typeof name !== 'string' || !name) errors.push('clip "' + role + '" needs a name');
     }
   }
+  if (isNodeRig(rig)) errors.push(...validateNodeRig(rig));
   if (rig.sprite_fallback !== undefined && typeof rig.sprite_fallback !== 'string') errors.push('sprite_fallback must be a url string');
   if (typeof rig.honesty !== 'string' || rig.honesty.length < 8) errors.push('honesty: say what the model is and is not (artist-made, not measured, and so on)');
   return {ok: errors.length === 0, errors};
@@ -37,7 +39,7 @@ export function resolveModelEntry(manifest, id, base = MODEL_SLOT_BASE) {
   if (!m || typeof m !== 'object') return null;
   const file = (f, fb) => (typeof f === 'string' && /^[A-Za-z0-9_.\-]+$/.test(f) ? base + f : fb);
   const glb = file(m.glb, base + id + '.glb'), rig = file(m.rig, base + id + '.rig.json');
-  return {id, glb, rig, glbLow: m.glb_low ? file(m.glb_low, null) : null};
+  return {id, glb, rig, glbLow: m.glb_low ? file(m.glb_low, null) : null, bytes: Number.isFinite(m.bytes) ? m.bytes : null, tris: Number.isFinite(m.tris) ? m.tris : null, tier: m.tier === 'heavy' ? 'heavy' : 'light', variants: m.variants && typeof m.variants === 'object' ? m.variants : null};
 }
 
 /** Which clip name plays a role: the rig's own mapping first, then a name match. */
@@ -60,3 +62,24 @@ export function roleFor({speed = 0, sleep = 0, startle = 0, joy = 0} = {}) {
   if (joy > 0.75) return 'happy';
   return 'idle';
 }
+
+/**
+ * Size budget so phones never load a heavy model. A manifest entry declares bytes and tris; the runtime also
+ * checks the real downloaded size. Phone limits fit the light chars3d models (all under 140 KB and 4k tris);
+ * the sculpted res_* beasts (0.47-3 MB, 33k-49k tris) are over them by design.
+ */
+export const MODEL_BUDGET = Object.freeze({phone: Object.freeze({bytes: 300000, tris: 8000}), desktop: Object.freeze({bytes: 8000000, tris: 120000})});
+export function budgetFor(phone) { return phone ? MODEL_BUDGET.phone : MODEL_BUDGET.desktop; }
+/** True when a declared or measured size fits. A missing number does not pass on a phone (unknown size is not light). */
+export function withinBudget({bytes, tris} = {}, phone = false) {
+  const b = budgetFor(phone);
+  const ok = (v, max) => (Number.isFinite(v) ? v <= max : !phone);
+  return ok(bytes, b.bytes) && ok(tris, b.tris);
+}
+/** Which tier a device gets: phones always the light models; a stronger device may take the heavy one when it declares enough memory and cores. */
+export function deviceTier({phone = false, deviceMemory, cores} = {}) {
+  if (phone) return 'light';
+  return (deviceMemory === undefined || deviceMemory >= 4) && (cores === undefined || cores >= 4) ? 'heavy' : 'light';
+}
+/** Heavy sculpted GLBs (res_*) are only for the heavy tier; a phone keeps the light model or the sprite. */
+export function heavyAllowed(device) { return deviceTier(device) === 'heavy'; }

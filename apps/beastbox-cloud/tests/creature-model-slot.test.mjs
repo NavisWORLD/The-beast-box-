@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
-import {readFileSync,readdirSync} from 'node:fs';
+import {createHash} from 'node:crypto';
+import {readFileSync} from 'node:fs';
 import {test} from 'node:test';
 import {validateRig,resolveModelEntry,pickClipName,fitScale,roleFor,MODEL_SLOT_SCHEMA,CLIP_ROLES} from '../lib/creatures3d/creature-model-slot.mjs';
 const read=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8');
@@ -10,9 +11,12 @@ test('a good rig validates and a bad one says why',()=>{
  assert.equal(bad.ok,false);for(const w of [/does not match/,/height_m/,/forward/,/unknown clip role/,/honesty/])assert.ok(bad.errors.some(e=>w.test(e)),String(w));
  assert.equal(validateRig(null,'x').ok,false);
 });
-test('the manifest ships empty: no fake models are listed',()=>{
- const m=JSON.parse(read('public/creatures3d/custom/manifest.json'));assert.equal(m.schema,MODEL_SLOT_SCHEMA);assert.deepEqual(m.models,{});
- assert.deepEqual(readdirSync(new URL('../public/creatures3d/custom/',import.meta.url)).filter(f=>/\.glb$/.test(f)),[]);
+test('the manifest lists only models whose files really exist and match',()=>{
+ const m=JSON.parse(read('public/creatures3d/custom/manifest.json'));assert.equal(m.schema,MODEL_SLOT_SCHEMA);
+ for(const [id,e] of Object.entries(m.models)){const buf=readFileSync(new URL('../public/creatures3d/custom/'+e.glb,import.meta.url));
+  assert.equal(buf.byteLength,e.bytes,id);assert.equal(createHash('sha256').update(buf).digest('hex'),e.sha256,id);
+  assert.equal(buf.subarray(0,4).toString(),'glTF',id);
+  const rig=JSON.parse(read('public/creatures3d/custom/'+e.rig));assert.deepEqual(validateRig(rig,id),{ok:true,errors:[]},id);}
  assert.equal(resolveModelEntry(m,'art-x'),null);
 });
 test('manifest entries resolve to file names only, no path tricks',()=>{
@@ -33,5 +37,5 @@ test('the module is pure: no clock, no random, no three import',()=>{
  const s=read('lib/creatures3d/creature-model-slot.mjs');assert.doesNotMatch(s,/Math\.random|Date\.now|new Date|performance\.now|from 'three'/);
 });
 test('the runtime keeps the sprite unless every step succeeds',()=>{
- const s=read('components/creature-model-slot.ts');assert.match(s,/validateRig\(rig,id\)/);assert.match(s,/return null/);assert.match(s,/catch\(e\)/);
+ const s=read('components/creature-model-slot.ts');assert.match(s,/validateRig\(rig0,id\)/);assert.match(s,/return null/);assert.match(s,/catch\(e\)/);
 });
