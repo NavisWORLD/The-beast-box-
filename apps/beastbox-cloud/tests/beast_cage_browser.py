@@ -38,7 +38,7 @@ with sync_playwright() as p:
         dock=page.locator('[data-lost-cosmos-dock="true"]')
         expect(dock).to_have_attribute("data-dock-state","mini")
         box=dock.bounding_box()
-        assert box and box["width"]<=300,(width,box)
+        assert box and box["width"]<=420 and box["height"]<=64,(width,box)  # mini dock is a compact pill (fd90af8e), never the 284px+ player
         if width in (390,320):
             page.get_by_role("button",name="Close Lost Cosmos player").click()
             expect(dock).to_have_attribute("data-dock-state","closed")

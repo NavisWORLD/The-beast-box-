@@ -33,6 +33,8 @@ with sync_playwright() as p:
   page.get_by_role("button",name="Rotate 360°").click()
   expect(page.get_by_role("button",name="Rotate 360°")).to_have_attribute("aria-pressed","true")
   page.get_by_role("button",name="Side").click()
+  page.keyboard.press("Escape")  # close the pocket menu before measuring the page and moving on
+  expect(page.locator("[data-world-menu-sheet]")).to_be_hidden()
   fits(page,str(width)+" homepage")
   if width in [1440,390,320]:page.screenshot(path=str(OUT/f"home-{width}.png"),full_page=True,animations="disabled")
   page.get_by_role("link",name=re.compile("Enter the Beast Cage")).click()

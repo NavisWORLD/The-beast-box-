@@ -52,7 +52,7 @@ for(const width of widths){
  const layout=await page.evaluate(()=>({body:document.documentElement.scrollWidth,w:innerWidth,view:document.querySelector('#view').getBoundingClientRect().toJSON(),buttons:[...document.querySelectorAll('.interactions button,#voice,#music,#mic-react,#generate,#lost-cosmos,.mobile-nav button,.mobile-nav a')].map(el=>el.getBoundingClientRect().toJSON())}));assert.ok(layout.body<=width,`overflow at ${width}: ${layout.body}`);assert.ok(layout.view.width>230);for(const b of layout.buttons)assert.ok(b.x>=0&&b.right<=width);
  await page.locator('[data-jump="#seed-lab"]').first().click();await page.waitForFunction(()=>location.hash==='#seed-lab');await page.locator('[data-jump="#habitat"]').first().click();await page.waitForFunction(()=>location.hash==='#habitat');
  await page.screenshot({path:out+`/spark-${width}.png`,fullPage:true});
- console.log('Width',width,'public interaction passed');await page.goto(root+'/beast-cage');await page.waitForFunction(id=>document.querySelector('[data-spark-beast][data-creature-id="'+id+'"]'),identity.profile.id,{timeout:30000});
+ console.log('Width',width,'public interaction passed');await page.goto(root+'/beast-cage');await page.waitForFunction(id=>document.querySelector('[data-cage-view][data-creature-id="'+id+'"]'),identity.profile.id,{timeout:30000});
  await page.waitForFunction(name=>{const dock=document.querySelector('[data-lost-cosmos-dock]');return dock?.dataset.dockState==='native'&&dock.getAttribute('aria-label')==='Lost Cosmos cartridge connected to '+name;},saved.beast.displayName);
  const player=page.locator('[data-lost-cosmos-player-shell]');
  assert.equal(await player.getAttribute('data-player-mode'),'minimized');
