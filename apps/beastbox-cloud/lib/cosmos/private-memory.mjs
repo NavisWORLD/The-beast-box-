@@ -32,7 +32,7 @@ function apply(record,action,at,event){
   case 'conversation-exchange':{
    if(next.sync.conversationConsent!==true)throw fail('CONVERSATION_NOT_OPTED_IN',403);
    if(!['guest-rawrphos','local-ollama','hf-byok','connected-brain-bay'].includes(action.provider))throw fail('INVALID_MODEL');
-   const saying=text(action.text,400),reply=text(action.reply,6000),model=action.model==null?null:text(action.model,150);
+   const saying=text(action.text,8000),reply=text(action.reply,6000),model=action.model==null?null:text(action.model,150);
    if(action.clientAt!==undefined&&(!Number.isSafeInteger(action.clientAt)||action.clientAt<0))throw fail('INVALID_CLIENT_TIMESTAMP');
    // The owner imports a completed exchange. Client text cannot attest a world
    // event or provider execution, and never enters a training dataset here.

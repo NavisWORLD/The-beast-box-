@@ -23,7 +23,7 @@ test('completed chat requires separate creature consent, then stores both unveri
 });
 test('invalid or interrupted chat never exposes half an exchange; reset turns consent off',async()=>{
  const {store,io,a}=await fixture();await store.create(a,profile,'event-create');await store.update(a,profile.id,{kind:'chat-consent',enabled:true},'event-chat-consent',1);
- for(const invalid of [{reply:''},{text:'x'.repeat(401)},{provider:'paid-fallback'},{clientAt:-1}])await assert.rejects(store.update(a,profile.id,{...exchange,...invalid},'event-invalid-'+Object.keys(invalid)[0],2));
+ for(const invalid of [{reply:''},{text:'x'.repeat(8001)},{provider:'paid-fallback'},{clientAt:-1}])await assert.rejects(store.update(a,profile.id,{...exchange,...invalid},'event-invalid-'+Object.keys(invalid)[0],2));
  assert.equal((await store.read(a,profile.id)).record.conversations.length,0);
  const put=io.put;let interrupted=true;io.put=async(path,...rest)=>{if(path.endsWith('/head.json')&&interrupted){interrupted=false;throw Error('TEST HEAD INTERRUPTED');}return put(path,...rest);};
  await assert.rejects(store.update(a,profile.id,exchange,'event-atomic-retry',2));assert.equal((await store.read(a,profile.id)).record.conversations.length,0);

@@ -10,14 +10,21 @@ import { Stream } from "../../public/spark/engine.mjs";
 import { beastIdentity, shownName } from "./session.mjs";
 import { gameObservationLine } from "./native-optics.mjs";
 import { ownerChatBody, interpretModelResult, RAWRPHOS_PUBLIC_PIN } from "./brain.mjs";
+import { fitMessage } from "../library/text.mjs";
+import { MAX_TYPED_CHARS, BRAIN, readBudgetNote } from "../library/limits.mjs";
 
 export const TALK_ROUTES = Object.freeze(["guest-rawrphos", "shared-ollama", "local-ollama", "hf-byok", "connected-brain-bay"]);
 export const DEFAULT_ROUTE = "guest-rawrphos";
 export const DEFAULT_OLLAMA_URL = "http://127.0.0.1:11434";
 export const DEFAULT_OLLAMA_MODEL = "companion-glacecoil";
 export const DEFAULT_HF_MODEL = "meta-llama/Llama-3.2-3B-Instruct";
-export const MAX_MESSAGE = 400;
-const GUEST_LIMIT = 700;
+/** What the keeper may TYPE. This is not what the small native brain reads: see BRAIN and readInfo(). */
+export const MAX_MESSAGE = MAX_TYPED_CHARS;
+/** Prompt characters sent to the free guest brain (its context is 2048 tokens; see lib/library/limits.mjs). */
+export const GUEST_LIMIT = BRAIN.promptChars;
+const LEGACY_SAY = 400;
+/** Space the persona line, labels and memory need around the keeper's words. */
+const FRAME_RESERVE = 330;
 const MODEL_TAG = /^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,79}$/;
 const HF_MODEL = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+(?::[A-Za-z0-9_.-]+)?$/;
 const CATCHPHRASES = ["oh crumbs", "tiny beep", "hehe", "psst", "star crumb", "wiggle"];
@@ -115,22 +122,43 @@ export function personaFrame(persona) {
   ].join(" ");
 }
 
+/** The retrieved-notes block as it appears in the prompt (capped so the keeper's words keep >= 40% of the room). */
+export function libraryBlock(library, limit = GUEST_LIMIT) {
+  if (!library) return "";
+  const cap = Math.floor(Math.max(0, limit - FRAME_RESERVE) * 0.6);
+  return ("\nNotes copied from the keeper's file: " + clean(library, 4000)).slice(0, cap);
+}
+
+/**
+ * How much of the keeper's message the brain will actually read for a prompt limit.
+ * Deterministic extraction (no model): the closing question is always kept, then the
+ * sentences that share the most keywords with it. Used by framePrompt and by the UI.
+ */
+export function readInfo(text, limit = GUEST_LIMIT, libraryChars = 0) {
+  const said = clean(text, MAX_MESSAGE);
+  if (said.length <= LEGACY_SAY && !libraryChars) return { text: said, readChars: said.length, totalChars: said.length, omittedChars: 0, extracted: false, note: readBudgetNote(said.length, said.length) };
+  const fit = fitMessage(said, Math.max(200, limit - FRAME_RESERVE - libraryChars));
+  return { ...fit, note: readBudgetNote(fit.readChars, fit.totalChars) };
+}
+
 /** Single bounded prompt for text-only routes (guest host, HF). The keeper's words always survive. */
-export function framePrompt(persona, history, text, limit = GUEST_LIMIT, context = "", observation = null) {
+export function framePrompt(persona, history, text, limit = GUEST_LIMIT, context = "", observation = null, library = "") {
   if(context&&typeof context==='object'){observation=context;context='';}
   const p = persona || ZEREF;
-  const said = clean(text, MAX_MESSAGE);
-  const tail = `\nKeeper: ${said}\n${p.name}:`;
   const personaText = personaFrame(p);
+  // Retrieved passages, copied verbatim from the keeper's own uploads. Never more than 60% of the free space.
+  const libText = libraryBlock(library, limit);
+  const said = readInfo(text, limit, libText.length).text;
+  const tail = `\nKeeper: ${said}\n${p.name}:`;
   const opticalText=gameObservationLine(observation);
   const memoryText = context ? "\n" + clean(context, 260) : "";
   let head = personaText + memoryText + (opticalText?'\n'+opticalText:'');
   const recent = (Array.isArray(history) ? history : []).slice(-2)
     .map((turn) => (turn.role === "you" ? "Keeper: " : p.name + ": ") + clean(turn.text, 110));
   let body = recent.length ? "\n" + recent.join("\n") : "";
-  if (head.length + body.length + tail.length > limit) body = "";
-  if (head.length + tail.length > limit) {
-    const budget = Math.max(0, limit - tail.length);
+  if (head.length + libText.length + body.length + tail.length > limit) body = "";
+  if (head.length + libText.length + tail.length > limit) {
+    const budget = Math.max(0, limit - tail.length - libText.length);
     // Preserve the complete optical limitation. Cutting its disclaimer would
     // incorrectly turn brightness measurements into claimed game perception.
     const opticalBlock=opticalText?'\n'+opticalText:'';
@@ -139,7 +167,7 @@ export function framePrompt(persona, history, text, limit = GUEST_LIMIT, context
     const memoryBudget=Math.min(memoryText.length,Math.max(0,budget-safeOptics.length-identityBudget));
     head=personaText.slice(0,identityBudget)+memoryText.slice(0,memoryBudget)+safeOptics;
   }
-  return (head + body + tail).slice(0, limit);
+  return (head + libText + body + tail).slice(-limit);
 }
 
 export function validOllamaUrl(value) {
@@ -205,13 +233,15 @@ export async function talkToBeast(input) {
   const history = input?.shareHistory === true && Array.isArray(input?.history) ? input.history : [];
   const observation = input?.observation;
   const context = clean(input?.context,260);
+  // Passages copied verbatim from the owner's uploaded library (RECORDED, never rewritten).
+  const library = clean(input?.library, 4000);
   if (!text) return failure(route, "Type a message first.");
   try {
     if (route === "connected-brain-bay") {
       const statusResponse=await fetchImpl("/api/status",{cache:"no-store",signal});
       const status=await readJson(statusResponse);
       if(!statusResponse.ok||status.owner!==true||status.backendReachable!==true)return failure(route,"Pair your owner session with an available Brain Bay provider first.");
-      const response=await fetchImpl("/api/bridge/chat-start",{method:"POST",signal,headers:{"Content-Type":"application/json"},body:JSON.stringify(ownerChatBody(framePrompt(persona,history,text,8192,context,observation),crypto.randomUUID()))});
+      const response=await fetchImpl("/api/bridge/chat-start",{method:"POST",signal,headers:{"Content-Type":"application/json"},body:JSON.stringify(ownerChatBody(framePrompt(persona,history,text,8192,context,observation,library),crypto.randomUUID()))});
       let payload=await readJson(response);
       if(!response.ok)return failure(route,payload?.error||"Brain Bay did not accept the request.",response.status);
       const until=Date.now()+55000;
@@ -231,7 +261,8 @@ export async function talkToBeast(input) {
       const response = await fetchImpl("/api/teacher/ollama", {
         method: "POST", credentials: "same-origin", cache: "no-store", redirect: "error", signal,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: text }),
+        // The teacher service takes short prompts; long messages are reduced by the same keyword extraction.
+        body: JSON.stringify({ prompt: text.length > 1200 ? fitMessage(text, 1200).text : text }),
       });
       const payload = await readJson(response).catch(() => null);
       if (!response.ok) return failure(route, typeof payload?.error === "string" ? payload.error : `The Ollama teacher did not answer (${response.status}).`, response.status);
@@ -244,7 +275,7 @@ export async function talkToBeast(input) {
       const model = String(input?.ollama?.model || DEFAULT_OLLAMA_MODEL).trim();
       if (!validOllamaUrl(base)) return failure(route, "Local Ollama must be on this computer (http://127.0.0.1:11434 or http://localhost:11434).");
       if (!MODEL_TAG.test(model) || model.includes("://")) return failure(route, "Enter the tag of a model you installed in Ollama, e.g. qwen2.5:0.5b.");
-      const messages = [{ role: "system", content: (gameObservationLine(observation)?gameObservationLine(observation)+"\n":"")+personaFrame(persona)+(context?"\n"+context:"") }];
+      const messages = [{ role: "system", content: (gameObservationLine(observation)?gameObservationLine(observation)+"\n":"")+personaFrame(persona)+(context?"\n"+context:"")+(library?"\nNotes copied from the keeper's file: "+library:"") }];
       for (const turn of history.slice(-6)) messages.push({ role: turn.role === "you" ? "user" : "assistant", content: clean(turn.text, 400) });
       messages.push({ role: "user", content: text });
       const response = await fetchImpl(base + "/api/chat", {
@@ -272,7 +303,7 @@ export async function talkToBeast(input) {
       const response = await fetchImpl("/api/guest", {
         method: "POST", credentials: "same-origin", cache: "no-store", redirect: "error", signal,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ provider: "huggingface-byok", text: framePrompt(persona, history, text, GUEST_LIMIT, context, observation), hf_key: key, model, spend_confirmed: true }),
+        body: JSON.stringify({ provider: "huggingface-byok", text: framePrompt(persona, history, text, GUEST_LIMIT, context, observation, library), hf_key: key, model, spend_confirmed: true }),
       });
       const payload = await readJson(response).catch(() => null);
       if (!response.ok) return failure(route, typeof payload?.error === "string" ? payload.error : `Hugging Face request failed (${response.status}).`, response.status);
@@ -283,7 +314,7 @@ export async function talkToBeast(input) {
     const response = await fetchImpl("/api/guest", {
       method: "POST", credentials: "same-origin", cache: "no-store", redirect: "error", signal,
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ provider: "rawrphos-local", text: framePrompt(persona, history, text, GUEST_LIMIT, context, observation) }),
+      body: JSON.stringify({ provider: "rawrphos-local", text: framePrompt(persona, history, text, GUEST_LIMIT, context, observation, library) }),
     });
     const payload = await readJson(response).catch(() => null);
     if (!response.ok) {
@@ -297,7 +328,8 @@ export async function talkToBeast(input) {
     }
     const read = interpretModelResult("guest-rawrphos", payload);
     if (!read.ok || !read.reply || read.reply.length > 6000) return failure(route, read.reason || "The guest brain sent no verified reply.");
-    return { ok: true, route, reply: read.reply, model: `rawrphos-native · step ${read.step ?? RAWRPHOS_PUBLIC_PIN.step}`, label: ROUTE_INFO[route].label, at: Date.now() };
+    const promptChars = Number.isFinite(payload?.prompt_chars) ? payload.prompt_chars : undefined;
+    return { ok: true, route, reply: read.reply, model: `rawrphos-native · step ${read.step ?? RAWRPHOS_PUBLIC_PIN.step}`, label: ROUTE_INFO[route].label, at: Date.now(), read: readInfo(text, GUEST_LIMIT, libraryBlock(library, GUEST_LIMIT).length), promptChars };
   } catch (error) {
     if (signal?.aborted) return failure(route, "The request was cancelled or timed out. No reply was received.");
     if (fetchFailed(error)) {

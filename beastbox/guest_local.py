@@ -20,7 +20,7 @@ from .providers import _local_opener
 from .rawrphos_local import MODEL, SHA, STEP, status as native_status
 
 SCHEMA = "beastbox-guest-local-v1"
-MAX_PROMPT = 700
+MAX_PROMPT = 1800
 MAX_OUTPUT_TOKENS = 64
 _PER_GUEST_MINUTE_DEFAULT = 6
 _GLOBAL_MINUTE_DEFAULT = 120

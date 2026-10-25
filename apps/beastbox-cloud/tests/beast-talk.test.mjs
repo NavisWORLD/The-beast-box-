@@ -22,11 +22,11 @@ test('persona comes from the visitor\'s own Beast, then the Cage creature, then 
  assert.match(personaFrame(a),/not a person/);
 });
 
-test('framed prompt always keeps the keeper\'s words and fits the 700-character guest limit',()=>{
+test('framed prompt always keeps the keeper\'s words and fits a 700-character prompt limit',()=>{
  const p=talkPersona({});
  const history=Array.from({length:10},(_,i)=>({role:i%2?'beast':'you',text:'line '+i+' '+'x'.repeat(200)}));
  const said='y'.repeat(400);
- const prompt=framePrompt(p,history,said);
+ const prompt=framePrompt(p,history,said,700);
  assert.ok(prompt.length<=700);
  assert.ok(prompt.endsWith('Keeper: '+said+'\nZeref:'));
  assert.match(framePrompt(p,[{role:'you',text:'hi'},{role:'beast',text:'purr'}],'how are you?'),/Keeper: hi\nZeref: purr\nKeeper: how are you\?/);

@@ -6,7 +6,11 @@ const PIN_STEP:number=PUBLIC_PIN.training_steps,PIN_SHA:string=PUBLIC_PIN.checkp
 export const runtime='nodejs';
 export const dynamic='force-dynamic';
 const HF_ENDPOINT='https://router.huggingface.co/v1/chat/completions';
-const MAX_PROMPT=700;
+// 1800 characters ~ 630 tokens of the native brain's 2048-token context (see lib/library/limits.mjs).
+const MAX_PROMPT=1800;
+// A bridge deployed before this limit existed refuses more than this; we then retry once with the tail.
+const LEGACY_BRIDGE_PROMPT=700;
+const MAX_BODY=8000;
 const MODEL_ID=/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+(?::[A-Za-z0-9_.-]+)?$/;
 
 async function boundedJson(response:Response,max:number):Promise<unknown>{
@@ -31,12 +35,12 @@ export async function POST(request:Request){
   return safeJson(403,{error:'Same-origin guest request required'});
  if(!request.headers.get('content-type')?.toLowerCase().startsWith('application/json'))
   return safeJson(415,{error:'JSON required'});
- if(Number(request.headers.get('content-length')||0)>1800)
+ if(Number(request.headers.get('content-length')||0)>MAX_BODY)
   return safeJson(413,{error:'Guest request exceeds the size limit'});
  let data:unknown;
  try{
   const raw=await request.text();
-  if(raw.length>1800)return safeJson(413,{error:'Guest request exceeds the size limit'});
+  if(raw.length>MAX_BODY)return safeJson(413,{error:'Guest request exceeds the size limit'});
   data=JSON.parse(raw);
  }catch{return safeJson(400,{error:'Invalid guest JSON'});}
  if(!data||typeof data!=='object'||Array.isArray(data))
@@ -47,7 +51,7 @@ export async function POST(request:Request){
   return safeJson(400,{error:'Choose a supported guest model'});
  if(typeof item.text!=='string'||item.text.trim().length<1||item.text.length>MAX_PROMPT||
     /[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/.test(item.text))
-  return safeJson(400,{error:'Guest message must contain 1–700 characters'});
+  return safeJson(400,{error:'Guest message must contain 1–1800 characters'});
  const text=item.text.trim();
  if(provider==='rawrphos-local'){
   if(Object.keys(item).sort().join(',')!=='provider,text')
@@ -62,10 +66,17 @@ export async function POST(request:Request){
   const identity=createHmac('sha256',secret).update(forwarded.slice(0,256)).digest('hex');
   const host=new URL('/api/guest-local',process.env.BEASTBOX_CLOUD_BRIDGE_URL!);
   try{
-   const res=await fetch(host,{method:'POST',redirect:'error',cache:'no-store',
+   const send=(prompt:string)=>fetch(host,{method:'POST',redirect:'error',cache:'no-store',
     headers:{Authorization:'Bearer '+process.env.BEASTBOX_CLOUD_BRIDGE_TOKEN!,
       'Content-Type':'application/json'},
-    body:JSON.stringify({text,guest_identity:identity}),signal:AbortSignal.timeout(55_000)});
+    body:JSON.stringify({text:prompt,guest_identity:identity}),signal:AbortSignal.timeout(55_000)});
+   let sent=text;
+   let res=await send(sent);
+   if(res.status===400&&text.length>LEGACY_BRIDGE_PROMPT){
+    // Older bridge: keep the END (the keeper's question and the speaker cue) and say so in the reply metadata.
+    sent=text.slice(-LEGACY_BRIDGE_PROMPT).trim();
+    res=await send(sent);
+   }
    const parsed=await boundedJson(res,16000);
    if(!parsed||typeof parsed!=='object'||Array.isArray(parsed))
     return safeJson(502,{error:'Invalid guest host response'});
@@ -80,7 +91,7 @@ export async function POST(request:Request){
    return safeJson(200,{provider:'rawrphos-local',model:'rawrphos-native',
     step:PIN_STEP,checkpoint_sha256:PIN_SHA,reply:result.reply,
     hebbian:result.hebbian===true,state_mode:result.state_mode==='tri'||result.state_mode==='dyn12'?result.state_mode:null,
-    guest_stateless:true,
+    guest_stateless:true,prompt_chars:sent.length,
     ...(result.routing&&typeof result.routing==='object'&&!Array.isArray(result.routing)?{routing:result.routing}:{})});
   }catch{return safeJson(502,{error:'Local guest inference unavailable or timed out'});}
  }

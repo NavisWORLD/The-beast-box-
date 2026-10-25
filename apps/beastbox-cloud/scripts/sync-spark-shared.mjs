@@ -8,3 +8,10 @@ for(const name of ['session','learn','adventure','beast-audio','beast-audio-engi
  const text=readFileSync(src,'utf8');
  writeFileSync(dest,name==='beast-talk'?text.replace('../../public/spark/engine.mjs','../engine.mjs'):text);
 }
+// beast-talk imports the deterministic length/extraction helpers from ../library/ (see lib/library/).
+for(const name of ['text','limits']){
+ const src=new URL(`../lib/library/${name}.mjs`,import.meta.url);
+ const dest=new URL(`../public/spark/library/${name}.mjs`,import.meta.url);
+ mkdirSync(new URL('.',dest),{recursive:true});
+ writeFileSync(dest,readFileSync(src,'utf8'));
+}
