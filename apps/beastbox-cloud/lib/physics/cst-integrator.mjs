@@ -13,6 +13,7 @@
  *
  * Pure: no DOM, clock or network. Same seed + same inputs → identical trajectories.
  */
+import {psiNudge,PSI_GAIN} from './cst-psi.mjs';
 export const PHI=(1+Math.sqrt(5))/2;
 export const GOLDEN_ANGLE=Math.PI*2*(1-1/PHI);
 /** Same coupling gains as CSTClosedLoop.GAIN. */
@@ -78,8 +79,19 @@ export function createCSTState(seed,{emotion={},counts=null}={}){
    quantum_entropy:clamp(qe),phi_harmonics:.6,coherence:.6,chaos:.2,instability:.2,curiosity:clamp(emotion.curiosity??.5),
    resonance:.5,avoid:clamp(emotion.fear??.1)}};
 }
-/** Advance the state one fixed step: Lorenz, chaos/instability, coherence, Hebbian. */
-export function stepCSTState(S,dt,emotion=null){
+/**
+ * Advance the state one fixed step: Lorenz, chaos/instability, coherence, Hebbian.
+ *
+ * DEFAULT (opts omitted/null) is the original behavior, bit for bit. Optional MODEL extensions, each off unless asked:
+ *  - opts.psi:true|{gain}  CST ψ (cst-psi.mjs, MODEL) nudges the coherence AND Hebbian targets by gain·(ψn−½),
+ *    gain default PSI_GAIN=0.10, so the shift is bounded to ±gain/2 (±0.05) before the usual clamp.
+ *
+ * Lorenz dt NOTE (documented honestly, not hidden): this port integrates the Lorenz system at dt·0.35 per call, while the
+ * Sim Earth reference engine (standalone/SIM_EARTH_7_08_REALITY_BODY.html) uses dt·0.035: ten times slower. Both are
+ * explicit Euler with the same σ, ρ, β. Beast Box runs at ≤50 ms steps, so 0.35 gives a livelier wind/turbulence for
+ * cosmetic motion; the .35 is a visual-tempo choice made here, it is not a calibrated or measured match to Sim Earth.
+ */
+export function stepCSTState(S,dt,emotion=null,opts=null){
  const c=S.ch;
  if(emotion){for(const [k,src] of [['valence','valence'],['arousal','arousal'],['curiosity','curiosity'],['avoid','fear']])
   if(Number.isFinite(emotion[src]))c[k]+=(clamp(emotion[src])-c[k])*Math.min(1,dt*3);}
@@ -87,9 +99,11 @@ export function stepCSTState(S,dt,emotion=null){
  const lx=clamp(.5+S.L.x/40),ly=clamp(.5+S.L.y/50);
  c.chaos+=(clamp(Math.abs(lx-.5)*1.4+Math.abs(ly-.5)*.6)-c.chaos)*Math.min(1,dt*2);
  c.instability+=(clamp(c.chaos*.5+c.avoid*.4+c.arousal*.2)-c.instability)*Math.min(1,dt*2);
- const coh=coherenceFeedback(clamp((1-c.instability)*.5+c.valence*.3+c.phi_harmonics*.2),S.hebb);
+ const psiN=opts&&opts.psi?psiNudge(c,typeof opts.psi==='object'&&Number.isFinite(opts.psi.gain)?opts.psi.gain:PSI_GAIN):0; // MODEL, bounded, 0 by default
+ let coh=coherenceFeedback(clamp((1-c.instability)*.5+c.valence*.3+c.phi_harmonics*.2),S.hebb);
+ if(psiN)coh=clamp(coh+psiN);
  c.coherence+=(coh-c.coherence)*Math.min(1,dt*2);
- S.hebb+=(clamp(c.coherence*.6+c.valence*.2)-S.hebb)*dt*.05;
+ S.hebb+=(clamp(c.coherence*.6+c.valence*.2+psiN)-S.hebb)*dt*.05;
  c.resonance+=(clamp(c.coherence*.7+c.valence*.3)-c.resonance)*Math.min(1,dt);
  S.phase+=dt*(1+c.arousal);
  return S;
