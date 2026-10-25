@@ -11,7 +11,7 @@ test('history stays local until explicit sharing consent',async()=>{
 test('drafts and retention are bounded per canonical chat key',()=>{
  const values=new Map(),storage={getItem:key=>values.get(key)||null,setItem:(k,v)=>values.set(k,v)};
  talk.writeTalkDraft(storage,'saved:A','unfinished');assert.equal(talk.readTalkDraft(storage,'saved:A'),'unfinished');assert.equal(talk.readTalkDraft(storage,'saved:B'),'');
- talk.writeTalkDraft(storage,'saved:A','x'.repeat(1000));assert.equal(talk.readTalkDraft(storage,'saved:A').length,talk.MAX_MESSAGE);
+ talk.writeTalkDraft(storage,'saved:A','x'.repeat(9000));assert.equal(talk.readTalkDraft(storage,'saved:A').length,talk.MAX_MESSAGE);
  assert.equal(talk.readTalkRetention(storage),'device');storage.setItem(talk.TALK_RETENTION_KEY,'session');assert.equal(talk.readTalkRetention(storage),'session');
 });
 test('optical context admits actual bounded measurements only',async()=>{
