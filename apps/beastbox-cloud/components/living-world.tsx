@@ -53,6 +53,7 @@ import {zoomBlend,zoomDistance,stepZoom,clampAboveGround,isMeadow} from '@/lib/u
 import {addHeaven} from '@/lib/worlds/heaven';
 import {buildPlush,type PlushGenome} from './creature-plush-3d';
 import {loadCreatureModel} from './creature-model-slot';
+import {heavyAllowed} from '../lib/creatures3d/creature-model-slot.mjs';
 import RES_PAINTS from '@/lib/creatures3d/resident-paints.json';
 import {skyAt} from '@/lib/universe/sky-state.mjs';
 import {skyConfigFor,sunSource,skyBooms,skyMoons,boomSpriteScale,boomBearing,SKY_VIEW,engineChannels} from '@/lib/universe/sky-view.mjs';
@@ -314,11 +315,15 @@ uniform vec3 uPlay[8];
     (residents as any[]).forEach((r:any,i:number)=>{const art=(ARTIST_RESIDENTS as any[])[i];const stub=(RES_PAINTS as any[]).find(x=>x.body==='res_'+String(art.id).replace('art-',''));
      const put=(root:any,drive:(dt:number,l:any)=>void,dispose:()=>void,kind:string)=>{if(disposed){dispose();return;}root.traverse((o:any)=>{if(o.isMesh)o.castShadow=true;});r.node.add(root);r.sp.visible=false;r.body={drive,kind};kinds[i]=r.name+':'+kind;cleanup.push(dispose);};
      q=q.catch(()=>{}).then(async()=>{if(disposed)return;
-      const slot=await loadCreatureModel(THREE,art.id,{low:phone,targetH:r.h});
-      if(slot){put(slot.root,(dt,l)=>slot.drive(dt,l),()=>slot.dispose(),'slot');return;}
-      if(!stub)return;const {loadBeastGlb}=await import('./creature-glb-beast');const gb=await loadBeastGlb(THREE,stub as any,{tier:phone?'low':'med',paint:(stub as any).paint});if(!gb)return;
-      const bb=new THREE.Box3().setFromObject(gb.root);const hh=Math.max(.01,bb.max.y-bb.min.y);const k=r.h/hh;const holder=new THREE.Group();gb.root.scale.multiplyScalar(k);gb.root.position.y=-bb.min.y*k;holder.add(gb.root);
-      put(holder,(dt,l)=>gb.drive(dt,l,null,null),()=>gb.dispose(),'glb');}).catch((e:any)=>{(window as any).__lwResident3dErr=String(e);});});}
+      // Strong devices take the sculpted heavy GLB first. A phone never loads it (size budget): it takes the light rigged model, else the sprite stays.
+      const heavy=async()=>{if(!stub||!heavyAllowed({phone,deviceMemory:(navigator as any).deviceMemory,cores:navigator.hardwareConcurrency}))return false;
+       const {loadBeastGlb}=await import('./creature-glb-beast');const gb=await loadBeastGlb(THREE,stub as any,{tier:'med',paint:(stub as any).paint});if(!gb)return false;
+       const bb=new THREE.Box3().setFromObject(gb.root);const hh=Math.max(.01,bb.max.y-bb.min.y);const k=r.h/hh;const holder=new THREE.Group();gb.root.scale.multiplyScalar(k);gb.root.position.y=-bb.min.y*k;holder.add(gb.root);
+       put(holder,(dt,l)=>gb.drive(dt,l,null,null),()=>gb.dispose(),'glb');return true;};
+      if(await heavy())return;
+      const slot=await loadCreatureModel(THREE,art.id,{low:phone,phone,targetH:r.h});
+      if(slot)put(slot.root,(dt,l)=>slot.drive(dt,l),()=>slot.dispose(),'slot');
+     }).catch((e:any)=>{(window as any).__lwResident3dErr=String(e);});});}
    // ---- things to explore: seeded flowers, crystals, cairns, ponds, burrows, trees; they wake as the grass reaches them
    const COL:Record<string,number>={flower:0xff7ad9,crystal:0x7fe8ff,cairn:0xb9b0c8,pond:0x3a7bd5,burrow:0x2a1c14,tree:0x2f8f5b};
    const mkThing=(kind:string)=>{const g=new THREE.Group();const m=(geo:any,c:number,em=0)=>{const x=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({color:c,emissive:c,emissiveIntensity:em,roughness:.7}));g.add(x);return x;};

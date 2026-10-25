@@ -1,5 +1,407 @@
 {
  "schema": "beastbox-creature-model-slot-v1",
- "_note": "Delivered GLB plus rig json per creature id. Empty on purpose: an id is added only when its real files are delivered. The sprite or sculpted body stays the fallback.",
- "models": {}
+ "_note": "Delivered light GLB plus rig json per creature id (Cosmo chars3d v1, validator 0 errors). SEEDED, not a measured quantum phenotype. Not tested on a real phone. The sprite or sculpted body stays the fallback.",
+ "models": {
+  "art-kairo": {
+   "glb": "art-kairo.glb",
+   "rig": "art-kairo.rig.json",
+   "tier": "light",
+   "bytes": 133464,
+   "tris": 3916,
+   "sha256": "6ea4ac18fadebed7d8076126a7b08b12ba614490f64ec81dae25c12ddbf4e705"
+  },
+  "art-frostmitt": {
+   "glb": "art-frostmitt.glb",
+   "rig": "art-frostmitt.rig.json",
+   "tier": "light",
+   "bytes": 115320,
+   "tris": 3404,
+   "sha256": "28359efe838e144c721ec4f2ff52496f83ef48735d1db37684e73566d59d9dff"
+  },
+  "art-nyxbean": {
+   "glb": "art-nyxbean.glb",
+   "rig": "art-nyxbean.rig.json",
+   "tier": "light",
+   "bytes": 91972,
+   "tris": 2820,
+   "sha256": "3d2a2671c9017a54ee5cf848b4fe7c7d1dde7465460a629533f4ae698dfa0b8e"
+  },
+  "art-velvetcoil": {
+   "glb": "art-velvetcoil.glb",
+   "rig": "art-velvetcoil.rig.json",
+   "tier": "light",
+   "bytes": 126212,
+   "tris": 2996,
+   "sha256": "713229188c8ccf8a42a3c97cea5c9b0ad9aff719a2cbbbe1db0996e8f91a6ea3"
+  },
+  "art-shardhowl": {
+   "glb": "art-shardhowl.glb",
+   "rig": "art-shardhowl.rig.json",
+   "tier": "light",
+   "bytes": 138744,
+   "tris": 1188,
+   "sha256": "fb09f03cb1fc6a61512a6ce742f5d4c3deb9e41e3bafe2ff1cca1e0d883d10b4"
+  },
+  "kitten": {
+   "glb": "kitten.glb",
+   "rig": "kitten.rig.json",
+   "tier": "light",
+   "bytes": 94320,
+   "tris": 2960,
+   "sha256": "4b9f499fcf6a198741651b1290864a2b0ca8c4b015ac248b9246da16604e9bb3"
+  },
+  "zeref64": {
+   "glb": "zeref64.glb",
+   "rig": "zeref64.rig.json",
+   "tier": "light",
+   "bytes": 60952,
+   "tris": 1674,
+   "sha256": "7641085be5c225cf206c7c75c88314154be34d5d54ca4064315e5e35966cc028"
+  },
+  "wisp_nebula": {
+   "glb": "wisp_nebula.glb",
+   "rig": "wisp_nebula.rig.json",
+   "tier": "light",
+   "bytes": 52480,
+   "tris": 1272,
+   "sha256": "76fe4c7ee85cadf54e4117d86757429ef5ae3e0f196988b178e9b22b5e27b33b",
+   "variants": {
+    "NEBULA": {
+     "glow_hex": "#B48CFF",
+     "materials": {
+      "wisp_glow": {
+       "baseColorFactor": [
+        0.2054,
+        0.118,
+        0.45,
+        1
+       ],
+       "emissiveFactor": [
+        0.4564,
+        0.2623,
+        1
+       ],
+       "emissive_intensity": 0.85
+      },
+      "wisp_body": {
+       "baseColorFactor": [
+        0.6189,
+        0.4578,
+        1,
+        1
+       ],
+       "emissiveFactor": [
+        0.0822,
+        0.0472,
+        0.18
+       ]
+      },
+      "wisp_eye": {
+       "emissiveFactor": [
+        1,
+        1,
+        1
+       ]
+      }
+     },
+     "action_multipliers": {
+      "amp": 1,
+      "tempo": 0.85,
+      "blink_hold": 1,
+      "applies": "multiply the idle amp_y/amp_x by amp, divide the periods by tempo, scale blink interval and hold by blink_hold; rider class small"
+     }
+    },
+    "VOID": {
+     "glow_hex": "#4A3144",
+     "materials": {
+      "wisp_glow": {
+       "baseColorFactor": [
+        0.0308,
+        0.0138,
+        0.026,
+        1
+       ],
+       "emissiveFactor": [
+        0.0685,
+        0.0307,
+        0.0578
+       ],
+       "emissive_intensity": 0.5
+      },
+      "wisp_body": {
+       "baseColorFactor": [
+        0.2516,
+        0.1915,
+        0.2363,
+        1
+       ],
+       "emissiveFactor": [
+        0.0123,
+        0.0055,
+        0.0104
+       ]
+      },
+      "wisp_eye": {
+       "emissiveFactor": [
+        1,
+        1,
+        1
+       ]
+      }
+     },
+     "action_multipliers": {
+      "amp": 0.6,
+      "tempo": 0.7,
+      "blink_hold": 2,
+      "applies": "multiply the idle amp_y/amp_x by amp, divide the periods by tempo, scale blink interval and hold by blink_hold; rider class small"
+     }
+    }
+   }
+  },
+  "wisp_aurora": {
+   "glb": "wisp_aurora.glb",
+   "rig": "wisp_aurora.rig.json",
+   "tier": "light",
+   "bytes": 56580,
+   "tris": 1500,
+   "sha256": "e1c4a760700cc96e8748eeb6c37dc0802aa1519419e83cd49aadeb4b874c0d6b",
+   "variants": {
+    "AURORA": {
+     "glow_hex": "#7DFFB0",
+     "materials": {
+      "wisp_glow": {
+       "baseColorFactor": [
+        0.0923,
+        0.45,
+        0.1954,
+        1
+       ],
+       "emissiveFactor": [
+        0.2051,
+        1,
+        0.4342
+       ],
+       "emissive_intensity": 0.85
+      },
+      "wisp_body": {
+       "baseColorFactor": [
+        0.4046,
+        1,
+        0.6015,
+        1
+       ],
+       "emissiveFactor": [
+        0.0369,
+        0.18,
+        0.0781
+       ]
+      },
+      "wisp_eye": {
+       "emissiveFactor": [
+        1,
+        1,
+        1
+       ]
+      }
+     },
+     "action_multipliers": {
+      "amp": 0.9,
+      "tempo": 0.9,
+      "blink_hold": 1.2,
+      "applies": "multiply the idle amp_y/amp_x by amp, divide the periods by tempo, scale blink interval and hold by blink_hold; rider class small"
+     }
+    },
+    "SIGNAL": {
+     "glow_hex": "#5FE7FF",
+     "materials": {
+      "wisp_glow": {
+       "baseColorFactor": [
+        0.0515,
+        0.3596,
+        0.45,
+        1
+       ],
+       "emissiveFactor": [
+        0.1144,
+        0.7991,
+        1
+       ],
+       "emissive_intensity": 0.85
+      },
+      "wisp_body": {
+       "baseColorFactor": [
+        0.3095,
+        0.8664,
+        1,
+        1
+       ],
+       "emissiveFactor": [
+        0.0206,
+        0.1438,
+        0.18
+       ]
+      },
+      "wisp_eye": {
+       "emissiveFactor": [
+        1,
+        1,
+        1
+       ]
+      }
+     },
+     "action_multipliers": {
+      "amp": 1.1,
+      "tempo": 1.2,
+      "blink_hold": 0.7,
+      "applies": "multiply the idle amp_y/amp_x by amp, divide the periods by tempo, scale blink interval and hold by blink_hold; rider class small"
+     }
+    }
+   }
+  },
+  "wisp_starlight": {
+   "glb": "wisp_starlight.glb",
+   "rig": "wisp_starlight.rig.json",
+   "tier": "light",
+   "bytes": 33100,
+   "tris": 576,
+   "sha256": "c030c2cb21bc38848ae27ac2865805411748c3477f1ba451aa0709ba88d746b3",
+   "variants": {
+    "PLASMA": {
+     "glow_hex": "#FFD94A",
+     "materials": {
+      "wisp_glow": {
+       "baseColorFactor": [
+        0.45,
+        0.3122,
+        0.0308,
+        1
+       ],
+       "emissiveFactor": [
+        1,
+        0.6939,
+        0.0685
+       ],
+       "emissive_intensity": 0.85
+      },
+      "wisp_body": {
+       "baseColorFactor": [
+        1,
+        0.7936,
+        0.2516,
+        1
+       ],
+       "emissiveFactor": [
+        0.18,
+        0.1249,
+        0.0123
+       ]
+      },
+      "wisp_eye": {
+       "emissiveFactor": [
+        1,
+        1,
+        1
+       ]
+      }
+     },
+     "action_multipliers": {
+      "amp": 1.4,
+      "tempo": 1.4,
+      "blink_hold": 0.8,
+      "applies": "multiply the idle amp_y/amp_x by amp, divide the periods by tempo, scale blink interval and hold by blink_hold; rider class small"
+     }
+    },
+    "MEMORY": {
+     "glow_hex": "#FF8AD8",
+     "materials": {
+      "wisp_glow": {
+       "baseColorFactor": [
+        0.45,
+        0.1144,
+        0.309,
+        1
+       ],
+       "emissiveFactor": [
+        1,
+        0.2542,
+        0.6867
+       ],
+       "emissive_intensity": 0.85
+      },
+      "wisp_body": {
+       "baseColorFactor": [
+        1,
+        0.4505,
+        0.7886,
+        1
+       ],
+       "emissiveFactor": [
+        0.18,
+        0.0457,
+        0.1236
+       ]
+      },
+      "wisp_eye": {
+       "emissiveFactor": [
+        1,
+        1,
+        1
+       ]
+      }
+     },
+     "action_multipliers": {
+      "amp": 0.8,
+      "tempo": 0.8,
+      "blink_hold": 1.6,
+      "applies": "multiply the idle amp_y/amp_x by amp, divide the periods by tempo, scale blink interval and hold by blink_hold; rider class small"
+     }
+    },
+    "STARLIGHT": {
+     "glow_hex": "#D7E8FF",
+     "materials": {
+      "wisp_glow": {
+       "baseColorFactor": [
+        0.3058,
+        0.3631,
+        0.45,
+        1
+       ],
+       "emissiveFactor": [
+        0.6795,
+        0.807,
+        1
+       ],
+       "emissive_intensity": 0.85
+      },
+      "wisp_body": {
+       "baseColorFactor": [
+        0.7835,
+        0.8718,
+        1,
+        1
+       ],
+       "emissiveFactor": [
+        0.1223,
+        0.1453,
+        0.18
+       ]
+      },
+      "wisp_eye": {
+       "emissiveFactor": [
+        1,
+        1,
+        1
+       ]
+      }
+     },
+     "action_multipliers": {
+      "amp": 1,
+      "tempo": 1,
+      "blink_hold": 1,
+      "applies": "multiply the idle amp_y/amp_x by amp, divide the periods by tempo, scale blink interval and hold by blink_hold; rider class small"
+     }
+    }
+   }
+  }
+ }
 }

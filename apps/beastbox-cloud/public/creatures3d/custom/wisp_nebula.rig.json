@@ -1,0 +1,432 @@
+{
+ "schema": "beastbox-creature-model-slot-v1",
+ "id": "wisp_nebula",
+ "rig_format": "chars3d-node-rig-v1",
+ "forward": "+Z",
+ "honesty": "Artistic 3D model by Cosmo. SEEDED procedural build (seed from the recorded IBM ibm_marrakesh run, not live quantum input). Motion amplitudes are SIMULATED. Not a measured quantum phenotype.",
+ "key": "wisp_nebula",
+ "format": "chars3d rig v1",
+ "label": "SEEDED procedural model; amplitudes SIMULATED from spritelife.json; not a measured quantum phenotype; not tested in live engine, phone or GBA",
+ "glb": "wisp_nebula.glb",
+ "height_m": 0.34,
+ "root": "root",
+ "units": "metres, Y up, forward +Z, creature-left +X, ground y=0",
+ "rotation_note": "node-transform rig (no skin). Rotations multiply the rest quaternion. Raised arm on creature-right (-X) = negative Z rotation; +X rotation on head = nod forward/down.",
+ "nodes": [
+  {
+   "name": "root",
+   "parent": null,
+   "role": "root",
+   "pivot_world": [
+    0,
+    0,
+    0
+   ],
+   "local_translation": [
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "name": "body",
+   "parent": "root",
+   "role": "body",
+   "pivot_world": [
+    0,
+    0.2,
+    0
+   ],
+   "local_translation": [
+    0,
+    0.2,
+    0
+   ]
+  },
+  {
+   "name": "eye_L",
+   "parent": "body",
+   "role": "eye",
+   "pivot_world": [
+    0.038,
+    0.2095,
+    0.072
+   ],
+   "local_translation": [
+    0.038,
+    0.0095,
+    0.072
+   ]
+  },
+  {
+   "name": "eye_R",
+   "parent": "body",
+   "role": "eye",
+   "pivot_world": [
+    -0.038,
+    0.2095,
+    0.072
+   ],
+   "local_translation": [
+    -0.038,
+    0.0095,
+    0.072
+   ]
+  },
+  {
+   "name": "puff_0",
+   "parent": "root",
+   "role": "puff",
+   "pivot_world": [
+    0.13375,
+    0.23952,
+    0.03546
+   ],
+   "local_translation": [
+    0.13375,
+    0.23952,
+    0.03546
+   ]
+  },
+  {
+   "name": "puff_1",
+   "parent": "root",
+   "role": "puff",
+   "pivot_world": [
+    0.00198,
+    0.20198,
+    0.11999
+   ],
+   "local_translation": [
+    0.00198,
+    0.20198,
+    0.11999
+   ]
+  },
+  {
+   "name": "puff_2",
+   "parent": "root",
+   "role": "puff",
+   "pivot_world": [
+    -0.13252,
+    0.15727,
+    0.03869
+   ],
+   "local_translation": [
+    -0.13252,
+    0.15727,
+    0.03869
+   ]
+  },
+  {
+   "name": "puff_3",
+   "parent": "root",
+   "role": "puff",
+   "pivot_world": [
+    -0.08389,
+    0.26716,
+    -0.09607
+   ],
+   "local_translation": [
+    -0.08389,
+    0.26716,
+    -0.09607
+   ]
+  },
+  {
+   "name": "puff_4",
+   "parent": "root",
+   "role": "puff",
+   "pivot_world": [
+    0.08068,
+    0.13407,
+    -0.09807
+   ],
+   "local_translation": [
+    0.08068,
+    0.13407,
+    -0.09807
+   ]
+  },
+  {
+   "name": "halo",
+   "parent": "root",
+   "role": "glow",
+   "pivot_world": [
+    0,
+    0.2,
+    0
+   ],
+   "local_translation": [
+    0,
+    0.2,
+    0
+   ]
+  },
+  {
+   "name": "tail_0",
+   "parent": "body",
+   "role": "tail",
+   "pivot_world": [
+    0,
+    0.13,
+    -0.02
+   ],
+   "local_translation": [
+    0,
+    -0.07,
+    -0.02
+   ]
+  },
+  {
+   "name": "tail_1",
+   "parent": "tail_0",
+   "role": "tail",
+   "pivot_world": [
+    0.02,
+    0.03,
+    -0.02
+   ],
+   "local_translation": [
+    0.02,
+    -0.1,
+    0
+   ]
+  },
+  {
+   "name": "sparkles",
+   "parent": "root",
+   "role": "glow",
+   "pivot_world": [
+    0,
+    0.2,
+    0
+   ],
+   "local_translation": [
+    0,
+    0.2,
+    0
+   ]
+  },
+  {
+   "name": "anchor_float",
+   "parent": "root",
+   "role": "anchor",
+   "pivot_world": [
+    0,
+    0.2,
+    0
+   ],
+   "local_translation": [
+    0,
+    0.2,
+    0
+   ]
+  }
+ ],
+ "eyes": {
+  "nodes": [
+   "eye_L",
+   "eye_R"
+  ],
+  "closed_scale_y": 0.08,
+  "pivot": "eye centre (scale.y = lid)"
+ },
+ "glow_nodes": [
+  "halo",
+  "sparkles",
+  "eye_L",
+  "eye_R"
+ ],
+ "rest_pose": {
+  "note": "the GLB is authored AT rest: every node has identity rotation and scale 1; local_translation is the rest offset",
+  "rotations": "identity",
+  "scales": 1
+ },
+ "actions": {
+  "idle": {
+   "period_s": 2.6,
+   "amp_y": 0.03,
+   "amp_x": 0.015,
+   "phase": 0,
+   "maps": "root.scale (y breathe, x inverse), head sway",
+   "head_sway": [
+    {
+     "node": "body",
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "deg": 1
+    }
+   ],
+   "extra": [
+    {
+     "node": "tail_0",
+     "axis": [
+      0,
+      1,
+      0
+     ],
+     "deg": 12,
+     "ph": 0
+    },
+    {
+     "node": "tail_1",
+     "axis": [
+      0,
+      1,
+      0
+     ],
+     "deg": 16,
+     "ph": 0.2
+    },
+    {
+     "node": "puff_0",
+     "axis": [
+      0,
+      1,
+      0
+     ],
+     "deg": 25,
+     "ph": 0
+    },
+    {
+     "node": "puff_1",
+     "axis": [
+      0,
+      1,
+      0
+     ],
+     "deg": 25,
+     "ph": 0.2
+    },
+    {
+     "node": "puff_2",
+     "axis": [
+      0,
+      1,
+      0
+     ],
+     "deg": 25,
+     "ph": 0.4
+    },
+    {
+     "node": "puff_3",
+     "axis": [
+      0,
+      1,
+      0
+     ],
+     "deg": 25,
+     "ph": 0.6000000000000001
+    },
+    {
+     "node": "puff_4",
+     "axis": [
+      0,
+      1,
+      0
+     ],
+     "deg": 25,
+     "ph": 0.8
+    }
+   ]
+  },
+  "blink": {
+   "loop_s": 12,
+   "events": [
+    2.7,
+    6.9
+   ],
+   "close_s": 0.07,
+   "hold_s": 0.05,
+   "open_s": 0.11,
+   "maps": "eyes.nodes scale.y -> eyes.closed_scale_y about the eye centre",
+   "label": "SEEDED timings (recorded run)"
+  },
+  "walk": {
+   "period_s": 1.8199999999999998,
+   "bob_frac": 0.02,
+   "tilt_deg": 2,
+   "sway_frac": 0.01,
+   "squash": 0,
+   "maps": "root.position.y bob, root rotZ tilt, root.position.x sway, root.scale.y squash",
+   "gait": []
+  },
+  "hop": {
+   "period_s": 0.9,
+   "phases": [
+    0.18,
+    0.08,
+    0.45,
+    0.12,
+    0.17
+   ],
+   "height_frac": 0.2,
+   "stretch": 0.08,
+   "maps": "root.position.y parabola 4k(1-k), root.scale stretch"
+  },
+  "wave": {
+   "period_s": 1.6,
+   "cycles": 3,
+   "limbs": [],
+   "head_node": "body",
+   "head_deg": 5,
+   "lean_deg": 3,
+   "maps": "raise_deg*env + deg*env*sin(2*pi*cycles*u) on limb nodes, head rotZ, root lean"
+  },
+  "sleep": {
+   "sx": 1.06,
+   "sy": 0.88,
+   "tilt_deg": -5,
+   "head_node": "body",
+   "nod_axis": [
+    1,
+    0,
+    0
+   ],
+   "nod_deg": 10,
+   "curl": [
+    {
+     "node": "tail_0",
+     "axis": [
+      0,
+      1,
+      0
+     ],
+     "deg": 35
+    },
+    {
+     "node": "tail_1",
+     "axis": [
+      0,
+      1,
+      0
+     ],
+     "deg": -25
+    }
+   ],
+   "breath_amp": 0.02,
+   "breath_period_s": 4.2,
+   "enter_s": 1.4,
+   "maps": "root squash + tilt, head nod (+X rot = forward/down), tail/neck curl, eyes closed"
+  }
+ },
+ "rider": {
+  "class_": "small",
+  "seat": null,
+  "anchors": [
+   "anchor_float"
+  ],
+  "seat_pose": null
+ },
+ "look": "nebula wisp: round dusk-violet body, orbiting puffs, soft halo ring, small tapering tail",
+ "species": {
+  "amp": 1,
+  "tempo": 1,
+  "blink_hold": 1,
+  "note": "family base (neutral multipliers); per-species multipliers are in wisp_species.json"
+ }
+}
