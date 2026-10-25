@@ -52,6 +52,8 @@ import {addLandscapes} from '@/lib/universe/landscape-three';
 import {zoomBlend,zoomDistance,stepZoom,clampAboveGround,isMeadow} from '@/lib/universe/groundcover.mjs';
 import {addHeaven} from '@/lib/worlds/heaven';
 import {buildPlush,type PlushGenome} from './creature-plush-3d';
+import {loadCreatureModel} from './creature-model-slot';
+import RES_PAINTS from '@/lib/creatures3d/resident-paints.json';
 import {skyAt} from '@/lib/universe/sky-state.mjs';
 import {skyConfigFor,sunSource,skyBooms,skyMoons,boomSpriteScale,boomBearing,SKY_VIEW,engineChannels} from '@/lib/universe/sky-view.mjs';
 const ART='/universe/livingworld/';
@@ -307,6 +309,16 @@ uniform vec3 uPlay[8];
     (sp.material.map as any).colorSpace=THREE.SRGBColorSpace;const h=.75*r.scale;sp.scale.set(h,h,1);sp.center.set(.5,.05);node.add(sp);node.add(mkShadow(h*.9));scene.add(node);
     const n=new THREE.Vector3(...(unitFrom(rr) as [number,number,number]));const f=new THREE.Vector3(...(unitFrom(rr) as [number,number,number]));f.addScaledVector(n,-f.dot(n)).normalize();return {node,n,f,sp,h,spd:.25+rr()*.35,wob:rr()*10,name:r.name};});
    residents.slice(0,7).forEach((r,i)=>gpts[i+1].copy(r.n));(window as any).__lwResidents=()=>(residents as any[]).map((r:any)=>({name:r.name,n:[r.n.x,r.n.y,r.n.z]}));// grass starts under the beasts' feet
+   // ---- residents in 3D: a delivered slot model (public/creatures3d/custom) first, else the sculpted resident GLB (res_*), else the flat sprite stays.
+   {const kinds:string[]=[];(window as any).__lwResident3d=()=>kinds.slice();let q:Promise<any>=Promise.resolve();
+    (residents as any[]).forEach((r:any,i:number)=>{const art=(ARTIST_RESIDENTS as any[])[i];const stub=(RES_PAINTS as any[]).find(x=>x.body==='res_'+String(art.id).replace('art-',''));
+     const put=(root:any,drive:(dt:number,l:any)=>void,dispose:()=>void,kind:string)=>{if(disposed){dispose();return;}root.traverse((o:any)=>{if(o.isMesh)o.castShadow=true;});r.node.add(root);r.sp.visible=false;r.body={drive,kind};kinds[i]=r.name+':'+kind;cleanup.push(dispose);};
+     q=q.catch(()=>{}).then(async()=>{if(disposed)return;
+      const slot=await loadCreatureModel(THREE,art.id,{low:phone,targetH:r.h});
+      if(slot){put(slot.root,(dt,l)=>slot.drive(dt,l),()=>slot.dispose(),'slot');return;}
+      if(!stub)return;const {loadBeastGlb}=await import('./creature-glb-beast');const gb=await loadBeastGlb(THREE,stub as any,{tier:phone?'low':'med',paint:(stub as any).paint});if(!gb)return;
+      const bb=new THREE.Box3().setFromObject(gb.root);const hh=Math.max(.01,bb.max.y-bb.min.y);const k=r.h/hh;const holder=new THREE.Group();gb.root.scale.multiplyScalar(k);gb.root.position.y=-bb.min.y*k;holder.add(gb.root);
+      put(holder,(dt,l)=>gb.drive(dt,l,null,null),()=>gb.dispose(),'glb');}).catch((e:any)=>{(window as any).__lwResident3dErr=String(e);});});}
    // ---- things to explore: seeded flowers, crystals, cairns, ponds, burrows, trees; they wake as the grass reaches them
    const COL:Record<string,number>={flower:0xff7ad9,crystal:0x7fe8ff,cairn:0xb9b0c8,pond:0x3a7bd5,burrow:0x2a1c14,tree:0x2f8f5b};
    const mkThing=(kind:string)=>{const g=new THREE.Group();const m=(geo:any,c:number,em=0)=>{const x=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({color:c,emissive:c,emissiveIntensity:em,roughness:.7}));g.add(x);return x;};
@@ -580,7 +592,7 @@ uniform vec3 uPlay[8];
      for(const o of residents as any[])if(o!==r&&ang(r.n,o.n)<.5){steerTo(r.n,r.f,r.n.clone().multiplyScalar(2).sub(o.n),dt*2);if(socialCool<=0&&!spawnRef.current){socialCool=25;lineRef.current(r.name+' and '+o.name+' bumped noses.');}alive.meet(r,o,t);}
      if(ang(r.n,bN)<.6){steerTo(r.n,r.f,r.n.clone().multiplyScalar(2).sub(bN),dt*2);if(!(metCool[r.name]>t)){metCool[r.name]=t+40;r.hopT=0;say(beastNm+' met '+r.name+' and sniffed hello.',5);hop(1.2);traits=driftTraits(traits,u,bKey,'greet');}}
      {const gl=lwLand?.goalFor?.('res:'+r.name,String(u.seed));if(gl){landGoal.set(gl.target[0],gl.target[1],gl.target[2]);if(ang(r.n,landGoal)>gl.arrive*PR){steerTo(r.n,r.f,landGoal,dt*2.2);r.pause=0;}else if(gl.mode!=='gather')r.pause=Math.max(r.pause,.25);}} // landscape routine: gather at the ring and seats, huddle at the shelter in rain and at night (roam-brain SPOTS pattern)
-     if(r.pause<=0){const rb=biomeOf(r.n);walkOn(r.n,r.f,r.spd*dt*((BIOME_FEEL as any)[rb]?.speed??1));if(rb==='ocean')steerTo(r.n,r.f,gpts[0],dt*2);}place(r.node,r.n,r.f);
+     if(r.pause<=0){const rb=biomeOf(r.n);walkOn(r.n,r.f,r.spd*dt*((BIOME_FEEL as any)[rb]?.speed??1));if(rb==='ocean')steerTo(r.n,r.f,gpts[0],dt*2);}place(r.node,r.n,r.f);if(r.body)r.body.drive(dt,{speed:(r.pause<=0&&!(r.nap>0))?.6:0,mode:'wander',sleep:r.nap>0?1:0,lookCam:0,bob:t*6,heading:0,startle:0,joy:.3});
      {const lk=(RESIDENT_LIFE_KEY as any)[r.name];if(lk&&r.sp){const sl=r.nap>0?1:0;r.sk=(r.sk||0)+(sl-(r.sk||0))*Math.min(1,dt*2.1);r.wk=(r.wk||0)+(((r.pause<=0&&!sl)?1:0)-(r.wk||0))*Math.min(1,dt*4);
       let hu:number|null=null;if(typeof r.hopT==='number'){r.hopT+=dt;if(r.hopT>=hopSeconds(lk))r.hopT=null;else hu=r.hopT/hopSeconds(lk);}
       const tf=lifeTransform(lk,{t,walk:r.wk,sleep:r.sk,hopU:hu,reduced:slReduced});r.sp.scale.set(r.h*tf.sx,r.h*tf.sy,1);r.sp.position.set(tf.dx*r.h,-tf.dy*r.h,0);r.sp.material.rotation=tf.rot;}}}
