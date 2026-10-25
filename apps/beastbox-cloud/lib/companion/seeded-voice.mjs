@@ -6,9 +6,9 @@ export const SEEDED_VOICE_SCHEMA='beastbox-seeded-voice-v1';
 export const VOICE_LABEL='Synthetic seeded voice (on-device, not a recording)';
 export const ZEREF_VOICE_SEED='bb-deada969';
 export const PREF_KEY='beastbox.zerefVoice.v1';
-export const MIN_GAP_MS=4*60*1000;   // autonomous: at most one every 4 minutes
+export const MIN_GAP_MS=30*1000;     // autonomous: 30 s so one spoken line finishes before the next (was 4 min; soft throttle removed 2026-10-25)
 export const IDLE_MS=60*1000;        // only after 60 s without user taps or typing
-export const MAX_PER_HOUR=8;
+export const MAX_PER_HOUR=Infinity; // hourly cap removed 2026-10-25 (Cory: let him speak). The user's reachOut on/off toggle, the visible check and the idle check stay.
 function hash32(s){let h=2166136261;for(const c of String(s)){h^=c.codePointAt(0);h=Math.imul(h,16777619)>>>0;}return h>>>0;}
 function unit(seed,salt){return hash32(seed+'|'+salt)/4294967295;}
 const r3=n=>Math.round(n*1000)/1000;
