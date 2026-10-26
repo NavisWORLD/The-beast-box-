@@ -1,0 +1,87 @@
+# READ-ONLY. Looks up ONE existing IBM job by id with the repo's IBM secret on the runner. It never submits, cancels or edits a job.
+# Prints: status, queue position, usage seconds, and (if DONE) win rate + counts/outcomes hashes. Never prints the token or instance.
+# If DONE it also uploads recovered_chsh_game_result.json (no question lists, no per-round outcomes, no salts) for scripts/spark_evidence.py.
+name: IBM job recover (read-only, no submit)
+run-name: IBM job recover ${{ inputs.job_id }}
+on:
+  workflow_dispatch:
+    inputs:
+      job_id:
+        description: existing IBM Runtime job id (lookup only)
+        required: true
+        type: string
+      job_tag:
+        description: optional job tag, recorded in the result
+        required: false
+        default: ''
+        type: string
+      commit_alice:
+        description: optional public Alice commitment sha256 (from the original run log)
+        required: false
+        default: ''
+        type: string
+      commit_bob:
+        description: optional public Bob commitment sha256
+        required: false
+        default: ''
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: ibm-job-recover-${{ inputs.job_id }}
+  cancel-in-progress: false
+jobs:
+  recover:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install 'qiskit-ibm-runtime>=0.45,<0.50' 'qiskit>=2.1,<2.5'
+      - name: Look up the job (read-only)
+        env:
+          IBM_QUANTUM_TOKEN: ${{ secrets.IBM_QUANTUM_TOKEN }}
+          IBM_JOB_ID: ${{ inputs.job_id }}
+          IBM_JOB_TAG: ${{ inputs.job_tag }}
+          COMMIT_ALICE: ${{ inputs.commit_alice }}
+          COMMIT_BOB: ${{ inputs.commit_bob }}
+        run: python scripts/ibm_job_recover.py --out _ibm_job_recover
+      - name: Read-only quota
+        if: always()
+        env:
+          IBM_QUANTUM_TOKEN: ${{ secrets.IBM_QUANTUM_TOKEN }}
+        run: python scripts/ibm_open_plan_preflight.py || true
+      - name: Summary
+        if: always()
+        run: |
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          lines = ["### IBM job recover (read-only)"]
+          s = Path("_ibm_job_recover/status.json")
+          if s.exists():
+              d = json.loads(s.read_text())
+              lines.append("status **%s** on %s, queue position %s, usage seconds %s" % (d["status"], d["backend"], d["queue_position"], d["usage_quantum_seconds"]))
+          r = Path("_ibm_job_recover/recovered_chsh_game_result.json")
+          if r.exists():
+              d = json.loads(r.read_text()); q = d["quantum"]
+              lines.append("win rate %.4f over %d rounds; outcomes_sha256 %s; counts_sha256 %s" % (q["win_rate"], q["rounds"], d["outcomes_sha256"], d["counts_sha256"]))
+          p = Path("_ibm_open_plan_preflight/receipt.json")
+          if p.exists():
+              lines.append("Open Plan remaining seconds: %s" % json.loads(p.read_text()).get("remaining_seconds"))
+          Path(os.environ["GITHUB_STEP_SUMMARY"]).write_text("\n\n".join(lines) + "\n")
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ibm-job-recover-${{ github.run_id }}
+          path: |
+            _ibm_job_recover/status.json
+            _ibm_job_recover/recovered_chsh_game_result.json
+            _ibm_open_plan_preflight/receipt.json
+          retention-days: 90
+          if-no-files-found: ignore

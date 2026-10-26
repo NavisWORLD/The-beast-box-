@@ -29,7 +29,8 @@ def public_result(full):
     """Strip everything private or bulky. Keeps the numbers, the hashes and the honest loophole list."""
     c = full.get("commitments") or {}
     keep = ("backend", "classical_bound", "classical_control", "date_utc", "job_id", "job_tag", "label", "loopholes", "outcomes_sha256",
-            "quantum", "quantum_ideal", "quantum_seconds", "recorded_utc", "schema", "source_class")
+            "quantum", "quantum_ideal", "quantum_seconds", "recorded_utc", "schema", "source_class",
+            "counts", "counts_sha256", "commitments_verified", "recovery")
     out = {k: full[k] for k in keep if k in full}
     out["commitments_sha256"] = {k: c[k] for k in ("alice_sha256", "bob_sha256") if k in c}
     out["withheld"] = "question lists, commitment salts and the per-round outcome list are not published; only their hashes are"
@@ -103,6 +104,7 @@ def build(artifact, out, tag, version, prev, run_url="", latest=None, bio_packet
               (" plus the measured numbers-only heartbeat packet hash." if bio else ". No heartbeat is in this seed (heartbeat: none, no pulse used and none invented); it is a recorded-IBM-only seed."),
               "  bb-deada969 only; bb-7f9c2a03 untouched. Order-only: it seeds batch order in the growth export, it does not change Gate v2.",
               "- `spark-seed.json` is the compact record the Rigetti SIMULATED spark loop uses to move its angles once (each IBM job used once).",
+              *([f"- **Recovered by job id** (`scripts/ibm_job_recover.py`, read-only): {full['recovery']} commitments_verified = {full.get('commitments_verified')}."] if full.get("recovery") else []),
               "- Not published: question lists, commitment salts, per-round outcomes, the private question files, raw media."]
     (o / "README.md").write_text("\n".join(readme) + "\n")
     if latest:
