@@ -38,7 +38,7 @@ export default function PrivacyPage() {
               <li><strong>SEEDED</strong>. How your signals change your world. Your numbers shape sky, light and creature moods, and the same seed with the same numbers always gives the same result.</li>
             </ul>
             <h3>How your signals are used</h3>
-            <p>Your universe can react to five signals: time of day, device motion, light level, sound level and fingertip pulse. Each one has its own switch, and every switch is off until you turn it on. Turning world signals on asks you to confirm first.</p>
+            <p>Your universe can react to five signals: time of day, device motion, light level, sound level and fingertip pulse. Each one has its own switch, and every switch is off until you turn it on.</p>
             <p>Your numbers join the same IBM seed that built your universe. A Rigetti-style run turns them into sky, light and creature moods, and that run is SIMULATED. Nothing about your surroundings runs on quantum hardware.</p>
             <p>Every creature has its own brain state. We do not claim more than that.</p>
             <h3>What leaves your phone</h3>
