@@ -13,7 +13,10 @@
 @media(max-width:480px){.shell[data-player-mode=minimized]{width:auto;max-width:calc(100vw - 120px);max-height:54px;bottom:max(8px,env(safe-area-inset-bottom));right:auto;left:80px;max-width:calc(100vw - 180px);padding:4px 6px;border-radius:999px}
  .shell[data-player-mode=minimized] .identity small,.shell[data-player-mode=minimized] .sound,.shell[data-player-mode=minimized] .status,.shell[data-player-mode=minimized] .screen{display:none}
  .shell[data-player-mode=minimized] .header{flex-direction:row;align-items:center;gap:6px}
- .shell[data-player-mode=minimized]{max-height:none}
+ .shell[data-player-mode=minimized]{max-height:none;transition:opacity .18s ease}
+ .shell[data-player-mode=minimized] .identity{display:none}
+ .shell[data-player-mode=minimized] .header>.open,.shell[data-player-mode=minimized] .header>button:not(.closeCard){flex:1 1 auto;min-width:0;min-height:48px;white-space:nowrap}
+ .shell[data-player-mode=minimized][data-scrolling=true]{opacity:.0;pointer-events:none}
  .shell[data-player-mode=minimized] .open,.shell[data-player-mode=minimized] .header>button{min-height:40px;padding:6px 10px;font-size:11px}}
 .status details>summary{min-height:36px;display:flex;align-items:center}
 /* OPEN THE LIVING COSMOS: expanded portrait play gives the framebuffer the full width
@@ -40,8 +43,8 @@
 .preboot{inset:0}
 
 /* Oct 19: closable mini-player card (per session) + reopen tab; the cartridge iframe stays mounted while hidden. */
-.shell[data-player-mode=minimized] .header>button.closeCard,.closeCard{position:absolute;top:4px;right:4px;width:24px!important;min-width:24px;height:24px;z-index:2;padding:0!important;border-radius:50%;border:1px solid #fff4;background:#0c1228cc;color:#dff9ff;font:700 16px/1 system-ui,sans-serif;cursor:pointer}
+.shell[data-player-mode=minimized] .header>button.closeCard,.closeCard{position:absolute;top:0;right:0;width:48px!important;min-width:48px;height:48px;z-index:2;padding:0!important;border-radius:50%;border:0;background:radial-gradient(circle at center,#120c24e6 0 15px,#b48cff8c 15px 16px,transparent 16.5px);color:#f5eeff;font:700 18px/1 system-ui,sans-serif;cursor:pointer}.closeCard:focus-visible{outline:2px solid #5fe7ff;outline-offset:-4px}
 .shell[data-dismissed="true"]{visibility:hidden!important;pointer-events:none!important;position:fixed!important;left:-200vw!important;opacity:0}
 .reopenTab{position:fixed;right:10px;bottom:calc(164px + env(safe-area-inset-bottom));z-index:85;width:40px;height:40px;border-radius:12px 0 0 12px;border:1px solid #9beffd8a;background:#101a31e6;color:#fff;font-size:18px;cursor:pointer;backdrop-filter:blur(8px)}
-@media(max-width:480px){.shell[data-player-mode=minimized] .header>button.closeCard{position:static;flex:0 0 24px;height:24px!important;margin-left:2px}}
-.shell[data-player-mode=minimized] .header>button.closeCard{height:24px!important}
+@media(max-width:480px){.shell[data-player-mode=minimized] .header>button.closeCard{position:static;flex:0 0 48px;height:48px!important;margin-left:0}}
+.shell[data-player-mode=minimized] .header>button.closeCard{height:48px!important}

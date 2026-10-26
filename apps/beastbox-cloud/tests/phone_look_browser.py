@@ -58,6 +58,23 @@ with sync_playwright() as p:
         page.wait_for_timeout(500)
         o = page.evaluate(OVERLAPS)
         check(not o, f"no floating control sits on another at scrollY={y}: {o}")
+    # The OPEN GAME pill: label fully visible, 48 px close, never on another floating control when idle, steps aside while scrolling.
+    page.evaluate("window.scrollTo(0, 600)")
+    page.wait_for_timeout(1200)
+    pill = page.evaluate("""() => {const s=document.querySelector('[data-spark-player][data-player-mode=minimized]');if(!s)return null;const o=s.querySelector('a,button:not([aria-label^=Close])');const c=s.querySelector('[aria-label="Close game card"]');
+      const r=s.getBoundingClientRect(),cr=c.getBoundingClientRect(),or=o.getBoundingClientRect();return {op:+getComputedStyle(s).opacity,w:r.width,right:r.right,vw:innerWidth,cw:cr.width,ch:cr.height,clipped:o.scrollWidth>o.clientWidth+1,label:o.textContent.trim(),ol:or.right<=cr.left+1,bottom:r.bottom,vh:innerHeight}}""")
+    check(pill is not None, "minimized game pill is present on Look Closer")
+    if pill:
+        check(pill["op"] > 0.9, f"pill is back after scrolling stops {pill}")
+        check(pill["cw"] >= 48 and pill["ch"] >= 48, f"pill close button is at least 48x48 {pill}")
+        check(not pill["clipped"] and pill["label"] == "OPEN GAME" and pill["ol"], f"pill label is whole and does not run under the close button {pill}")
+        check(pill["right"] <= pill["vw"] and pill["bottom"] <= pill["vh"], f"pill is inside the screen {pill}")
+        o = page.evaluate(OVERLAPS)
+        check(not o, f"idle pill sits on no other floating control: {o}")
+        page.evaluate("window.scrollBy(0, 40)")
+        page.wait_for_timeout(120)
+        check(page.evaluate("+getComputedStyle(document.querySelector('[data-spark-player]')).opacity") < 0.5, "pill steps aside while the page scrolls")
+        page.wait_for_timeout(1000)
     # The last section must clear the bottom bar.
     page.evaluate("window.scrollTo(0, document.documentElement.scrollHeight)")
     page.wait_for_timeout(600)
