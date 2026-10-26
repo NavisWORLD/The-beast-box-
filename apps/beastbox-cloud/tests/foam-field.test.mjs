@@ -9,7 +9,7 @@ const world=(seed='foam')=>createWorldField({seed,W:32,H:16,initial:split});
 const rough={dir:0.4,wind:.9,storm:.8,amp:.05,chop:.85,whitecap:.9};
 const calm={dir:0,wind:0,storm:0,amp:SEA.ampBase*.35,chop:.25,whitecap:0};
 const run=(F,sea,n,f=createFoamField(F))=>{for(let i=0;i<n;i++){F.tick++;stepFoam(f,F,sea);}return f;};
-const snap=f=>JSON.stringify({b:[...f.born],a:[...f.age],f:[...f.foam],d:f.drift,t:f.tick});
+const snap=f=>JSON.stringify({b:[...f.born],a:[...f.age],c:[...f.cap],f:[...f.foam],d:f.drift,t:f.tick});
 test('same seed + same ticks = the same foam, byte for byte, twice (stepped by the real world field)',()=>{
  const go=()=>{const F=world();const f=createFoamField(F);for(let i=0;i<300;i++){stepWorldField(F,.25);syncFoam(f,F);}return snap(f);};
  assert.equal(go(),go());
@@ -37,10 +37,13 @@ test('foam advects downwind: a patch moves with the engine wind and keeps its di
  let s=0,m=0;for(let i=0;i<g.W;i++){const v=h.foam[4*g.W+i];s+=v*i;m+=v;}assert.ok(s/m<20-1.5,'reversed wind carries it the other way');
  assert.ok(f.drift[0]>0&&f.drift[0]<.5&&h.drift[0]>.5,'drift integrates the wind (wraps in 0..1, opposite way for reversed wind)');
 });
-test('foam fades with age and is exactly zero at the age cap (no births)',()=>{
- const F=world();const f=createFoamField(F);const k=6*F.W+12;f.born[k]=1;f.age[k]=0;f.foam[k]=1;let last=2;
- for(let i=1;i<=FOAM.ageCapTicks;i++){F.tick++;stepFoam(f,F,{...calm,wind:0});const m=Math.max(...f.foam);assert.ok(m<=last+1e-9);last=m;}
- assert.equal(Math.max(...f.foam),0);assert.equal(Math.min(...f.age),FOAM.ageCapTicks);
+test('foam fades with age on the pack curve and is exactly zero at its own cap (crest 8, shore 24, storm 40 ticks)',()=>{
+ assert.equal(FOAM.capCrest,8);assert.equal(FOAM.capShore,24);assert.equal(FOAM.capStorm,40);assert.equal(FOAM.ageCapTicks,40);
+ for(const cap of [FOAM.capCrest,FOAM.capShore,FOAM.capStorm]){
+  const F=world();const f=createFoamField(F);const k=6*F.W+12;f.born[k]=1;f.cap[k]=cap;f.age[k]=0.08*cap;f.foam[k]=1;let last=2;
+  for(let i=1;i<=cap;i++){F.tick++;stepFoam(f,F,{...calm,wind:0});const m=Math.max(...f.foam);assert.ok(m<=last+1e-9,'cap '+cap+' tick '+i);last=m;}
+  assert.equal(Math.max(...f.foam),0,'gone at cap '+cap);
+ }
 });
 test('calm tick: zero wind and zero storm give zero foam, even from a shore',()=>{
  const F=world();const real=seaFrom({mp:{wind:{x:0,z:0}},storm:0});assert.equal(real.whitecap,0);
