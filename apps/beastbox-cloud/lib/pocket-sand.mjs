@@ -7,7 +7,7 @@
  * the Beast has its own validated Azure simulator receipt, its 4 recorded counts weight the wells.
  * Nothing is measured live and no receipt is invented.
  */
-export const SAND_LABEL='Simulated world seeded from recorded measurements';
+export const SAND_LABEL='IBM seed RECORDED on IBM hardware · Rigetti growth SIMULATED · where the world places things is SEEDED';
 import {seededRng,clampDt,genesisDrag} from './physics/cst-integrator.mjs';
 /** Seeded PRNG: the shared CST integrator one (bit-identical to the previous local copy). */
 export const rngFrom=seededRng;

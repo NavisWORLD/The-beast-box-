@@ -19,7 +19,7 @@ export function entangledPairs(u){if(u.pairs)return u.pairs.map(p=>[p.a,p.b,p]);
 /** Zeref's perch: the home planet's star, unless it died, then the brightest living star. */
 export function zerefStar(u){const home=u.planets.find(p=>p.id===homeOf(u));const s=home&&u.stars.find(x=>x.id===home.star);if(s&&!s.remnant)return s.id;
  const alive=u.stars.filter(x=>!x.remnant).sort((a,b)=>b.luminosity-a.luminosity);return (alive[0]||u.stars[0])?.id??null;}
-export const GENESIS_LABEL='Seeded from recorded IBM hardware (ibm_marrakesh)';
+export const GENESIS_LABEL='IBM seed RECORDED on IBM hardware (ibm_marrakesh)';
 export const GROWTH_LABEL='Growth: SIMULATED (Rigetti Bell simulator)';
 /** Emeth's reaction lines; {beast} is the ACTIVE beast's name (Zeref when Zeref is active, so those lines read exactly as before). */
 export const ZEREF_LINES={abiogenesis:'New life. {beast}\u2019s tail curls happy.',storm:'A storm. {beast} puffs up, then waits.',supernova:'A star let go. {beast} goes very still.'};

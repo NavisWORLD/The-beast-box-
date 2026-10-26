@@ -55,7 +55,7 @@ export default function HomepageCreature(){
    speaking={false}
    spriteId={savedBeast?.qbeast?.profile?.id||''}
    look={profile?.baseLook??'nebula'}
-   label={showDimensional?'Artistic 3D Moonwraith '+ZEREF_PROFILE.id+' · not saved Zeref':genome?activeName+' · QBEAST '+savedBeast.qbeast.profile.id:'Original procedural cosmic dragon workshop guide'}
+   label={showDimensional?'Artistic 3D model of Zeref\u2019s display form · not the saved Zeref':genome?activeName+' · QBEAST '+savedBeast.qbeast.profile.id:'Original procedural cosmic dragon workshop guide'}
    turntable={spin} turntableAngle={angle}/>}
   {/* Cory (Oct 15): the big round flower billboard of the active Beast is removed from the home pocket. */}
   <details className={styles.bubble+' cosmos-home-card'} open={cardOpen} onToggle={e=>setCardOpen((e.currentTarget as HTMLDetailsElement).open)}><summary className="cosmos-home-cardsum" aria-label={cardOpen?'Minimize card':'Open card'}>{cardOpen?'–':'✦ Hi!'}</summary><div role="status" aria-live="polite">
@@ -65,7 +65,7 @@ export default function HomepageCreature(){
     <p className={styles.stats}>XP {Number(savedBeast.xp)||0} · Bond {Number(savedBeast.bond)||0} · Energy {Number(savedBeast.energy)||0}</p>
     <Link href="/beast-cage#habitat">Visit {activeName} →</Link>
     {showZeref?<small>Showing Zeref, the site guide. Your Beast&apos;s identity is unchanged.</small>:null}
-   </>:showZeref?<><strong>✦ ZEREF · MOONWRAITH · <span data-zeref-mood>{zMood.toUpperCase()}</span></strong>
+   </>:showZeref?<><strong>✦ ZEREF · <span data-zeref-mood>{zMood.toUpperCase()}</span></strong>
     <p>{line||'*soft moon-purr* I\u2019m right here.'}</p>
     <ZerefLatestThought className={styles.thought}/>
     <div className={styles.actions}>
@@ -73,8 +73,8 @@ export default function HomepageCreature(){
      <a href="/spark/index.html">Meet your Beast →</a>
     </div>
     <p className={styles.stats+' '+styles.zerefStats}>Zeref&apos;s profile · QBEAST {ZEREF_PROFILE.id} · Energy {zerefStats.energy} · Signal {zerefStats.signal} · Memory {zerefStats.memory} · Resonance {zerefStats.resonance}</p>
-    <small>Tap to play, hold to pet. Moods: recorded IBM {ZEREF_RECORDED_SOURCE.backend} counts (job {ZEREF_RECORDED_SOURCE.job_id.slice(0,8)}…) + Zeref&apos;s stats + your taps, not a live quantum link. Guide reaction is visual only.</small>
-   </>:<><strong>✦ HELLO FROM THE WORKSHOP</strong>
+    <small>Tap to play, hold to pet. Moods: IBM seed RECORDED on IBM hardware ({ZEREF_RECORDED_SOURCE.backend}, job {ZEREF_RECORDED_SOURCE.job_id}) + Zeref&apos;s stats + your taps, not a live quantum link. Guide reaction is visual only.</small>
+   </>:<><strong>✦ HELLO FROM THE POCKET</strong>
     <p>{waved?'Oh! A visitor waved. Want to meet a creature of your own?':'That little dragon noticed you. Curious what lives in here?'}</p>
     <div className={styles.actions}>
      <button type="button" aria-pressed={waved} onClick={()=>setWaved(value=>!value)}>{waved?'Wave again ✦':'Wave hello ✦'}</button>

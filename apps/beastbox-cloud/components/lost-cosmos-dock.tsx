@@ -47,7 +47,7 @@ export default function LostCosmosDock({ creature }: { creature?: CreatureProfil
   // On phones the mini player is a collapsed pill so it stays clear of page buttons.
   const floating = mode === 'mini' && !closed && !wide;
   const pill = floating && (narrow || crowded);
-  const connectedName = spark ? shownName(session.beast) : creature?.name || 'Spark Beast';
+  const connectedName = spark ? shownName(session.beast) : creature?.name || 'your beast';
   const readyText = `V12.2 is ready for ${connectedName}. The cartridge stays mounted while you move around Beast Box.`;
 
   useEffect(() => {

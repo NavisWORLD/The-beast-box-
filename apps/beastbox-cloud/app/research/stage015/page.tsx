@@ -26,7 +26,7 @@ export default function Stage015Research() {
   return <main className={styles.root}>
     <div className={styles.glow} aria-hidden="true" />
     <header className={styles.header}>
-      <Link href="/" className={styles.brand}><BrandCrest size={24} decorative style={{verticalAlign:'middle',marginRight:8}}/> BEAST BOX <span>// COSMOS LAB</span></Link>
+      <Link href="/" className={styles.brand}><BrandCrest size={24} decorative style={{verticalAlign:'middle',marginRight:8}}/> BEAST BOX <span>// RESEARCH LAB</span></Link>
       <Link href="/" className={styles.back}><ArrowLeft size={15} aria-hidden="true"/> Back to Beast Box</Link>
     </header><div className="room-strip"><JourneyLinks current="lab" label="Beast Box rooms"/></div>
 
