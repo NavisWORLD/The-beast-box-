@@ -14,6 +14,16 @@ on:
         description: numbers-only bio packet (schema beastbox-real-ibm-bio-connection-v1)
         required: true
         type: string
+      backend:
+        description: optional IBM backend name (e.g. ibm_fez). Empty = current behaviour (best calibrated pair across operational backends). Refused if not operational and active.
+        required: false
+        default: ''
+        type: string
+      tag_suffix:
+        description: optional suffix for the IBM job tag (e.g. -fez) so a deliberate resubmit on another backend does not collide with an earlier job tagged by the same packet. Empty = current behaviour.
+        required: false
+        default: ''
+        type: string
 permissions:
   contents: read
 concurrency:
@@ -44,7 +54,8 @@ jobs:
           CHSH_QPU_CAP: '20'
           CHSH_GAME_ROUNDS: '20000'
           CHSH_BEST_PAIR: '1'
-          CHSH_RUN_TAG: ${{ steps.pkt.outputs.tag }}
+          CHSH_RUN_TAG: ${{ steps.pkt.outputs.tag }}${{ inputs.tag_suffix }}
+          CHSH_BACKEND_NAME: ${{ inputs.backend }}
           CHSH_GAME_OUT: _bio_connection_ibm
         run: python scripts/chsh_game/referee.py
       - name: Rigetti QVM (SIMULATED) seeded by the measured heartbeat vector
