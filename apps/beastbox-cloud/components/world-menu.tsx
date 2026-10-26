@@ -45,7 +45,7 @@ export default function WorldMenu({context,view,onView,hasBeast,beastName,onHost
     <button type="button" className={css.mapBtn} data-menu-open-map onClick={()=>{close(false);window.dispatchEvent(new Event('beastbox:open-site-nav'));}}><span aria-hidden="true">🧩</span>Where am I in the one world? Open the world map</button></section>
   </section></>;
  return <div className={css.root} data-world-menu={context}>
-  <button ref={fab} type="button" className={css.fab} data-world-menu-button aria-haspopup="dialog" aria-expanded={open} aria-controls={sheetId} aria-label={model.ctx.menuLabel} onClick={()=>setOpen(o=>!o)}><span aria-hidden="true">☰</span><span className={css.fabText}>Menu</span></button>
+  <button ref={fab} type="button" className={css.fab} data-world-menu-button aria-haspopup="dialog" aria-expanded={open} aria-controls={sheetId} aria-label={model.ctx.menuLabel} onClick={()=>setOpen(o=>!o)}><span aria-hidden="true">☰</span><span className={css.fabText}>{context==='cage'?'Habitat':'Universe'}</span></button>
   {mounted?createPortal(sheet,document.body):null}
  </div>;
 }
