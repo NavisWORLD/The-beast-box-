@@ -111,7 +111,7 @@ test('end to end: recorded seed -> loop -> pocket universe, moments -> experienc
 });
 
 test('loop status is tied to real code and tests (no fictional links)', () => {
-  const ok=new Set(['wired','optin','design','outside','approval']);
+  const ok=new Set(['wired','optin','design','outside','approval','gap']);
   for(const l of LINKS){
    assert.ok(ok.has(l.status),l.id);
    for(const c of l.code){assert.ok(existsSync(new URL(c.path,ROOT)),l.id+' missing '+c.path);assert.ok(read(c.path).includes(c.has),l.id+': '+c.path+' lacks '+c.has);}
@@ -120,6 +120,8 @@ test('loop status is tied to real code and tests (no fictional links)', () => {
   const by=Object.fromEntries(LINKS.map(l=>[l.id,l.status]));
   assert.equal(by['creature-birth-dna'],'design');assert.equal(by['diary-genesis'],'design');
   assert.equal(by['records-to-training-mix'],'approval');
+  // known gaps are reported as gaps, never hidden
+  assert.equal(by['moments-to-pocket-view'],'gap');assert.equal(by['bio-to-chat-context'],'gap');assert.equal(by['spark-latest-pointer'],'wired');
   // new behaviour stays opt-in
   assert.match(read('apps/beastbox-cloud/components/pocket-sand-layer.ts'),/getItem\(LOOP_WORLD_KEY\)==='on'/);
 });
