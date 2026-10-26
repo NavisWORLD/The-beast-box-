@@ -105,7 +105,7 @@ export default function CosmicSupportWidget() {
   return createPortal(
     <aside className={`cosmic-support ${open ? 'is-open' : ''} ${audioState.hidden ? 'is-paused' : ''}`} aria-label="Support Beast Box">
       {!open ? <button ref={launcherRef} type="button" className="cosmic-support-launcher" onClick={openPanel}
-        aria-expanded="false" aria-controls="living-support-shrine" aria-label="Open Feed the Beast support panel">
+        aria-expanded="false" aria-controls="living-support-shrine" aria-label="Open Feed the Beast support panel" title="Feed the Beast (support)">
         <span className="support-beast-shell" aria-hidden="true"><SupportMascot reacting={reaction === 'beast'}/></span>
         <span className="support-launcher-copy"><small>THE BEAST HAS NOTICED YOU</small><strong>Feed the Beast</strong><em>Support the tiny universe.</em></span>
         <Heart className="support-launcher-heart" size={18} aria-hidden="true"/>
