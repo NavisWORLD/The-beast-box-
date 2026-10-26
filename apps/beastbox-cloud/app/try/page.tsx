@@ -50,7 +50,7 @@ export default function TryBeastBox(){
     <input id="guest-hf-model" value={model} onChange={e=>setModel(e.target.value)} maxLength={150} required disabled={busy} placeholder="namespace/model:provider" />
     <label className="guest-consent"><input type="checkbox" checked={confirm} disabled={busy} onChange={e=>setConfirm(e.target.checked)}/> I approve sending my message and key through this website to Hugging Face. My HF account may incur charges. The website does not intentionally save the token or use Cory&apos;s token for this request.</label>
     <p>Key is cleared from this form after submission. It is sent server-side to the fixed Hugging Face router; never put a key into your message. No fallback to Cory&apos;s account.</p>
-   </div>:<p className="guest-note"><ShieldCheck size={17}/> Guest requests use a separate inference route, not the owner workstation. 30-day trial; bounded daily and total usage. Your prompt is sent to Cory&apos;s hosted model for inference, not saved to COSMOS memory.</p>}
+   </div>:<p className="guest-note"><ShieldCheck size={17}/> Guest requests use a separate inference route, not the owner Workshop. 30-day trial; bounded daily and total usage. Your prompt is sent to Cory&apos;s hosted model for inference, not saved to COSMOS memory.</p>}
    <label htmlFor="guest-input">Your message</label>
    <textarea id="guest-input" maxLength={700} rows={4} required value={text} onChange={e=>setText(e.target.value)} disabled={busy} placeholder="Say hi to the Beast..."/>
    <div className="guest-submit"><small>{text.length}/700 characters · no persistent guest chat</small>

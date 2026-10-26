@@ -254,7 +254,7 @@ export default function CompanionProvider({children}:{children:ReactNode}){
        state={state} compact paused={parked||reduced} audioChannel="roamer"
        seedRunKey={DRAGON_RUN_KEY} seedTraits={DRAGON_TRAITS}
        onGenome={(genome:{element?:string;seed?:string})=>{petGenome.current=genome;}}
-       label="Roaming pet dragon Spark Beast"/>
+       label="Roaming pet dragon beast"/>
      </div>:null}
     <span className={styles.sr} aria-live="polite">
       {halted?'Decorative character stopped; backend permissions unchanged':
