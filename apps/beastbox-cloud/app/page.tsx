@@ -10,7 +10,7 @@ import { ROOMS } from '@/lib/rooms';
 import RoomLink from '@/components/room-link';
 
 const ROOM_BLURBS:Record<string,string>={
- beast:'Hatch, name and care for your own Spark Beast.',
+ beast:'Hatch, name and care for your own beast.',
  cage:'Visit its habitat, talk to it and change its look.',
  game:'Take your Beast into the LOST COSMOS adventure.',
  brain:'Pick which brain your Beast thinks with.',

@@ -75,22 +75,22 @@ export default function GuestGbaLab(){
  return <main className={styles.page}>
   <header className={styles.header}>
    <Link href="/beast-cage"><ArrowLeft size={16}/> Beast Cage</Link>
-   <span>THE LITTLE BEAST // GAME LAB</span>
+   <span>THE LITTLE BEAST · GAME LAB</span>
    <Link href="/beast-cage/talk">Real guest chat <ArrowRight size={16}/></Link>
    <Link href="/beast-cage/play">Adventure <ArrowRight size={16}/></Link>
-   <Link href="/beast-cage/go">Lost Cosmos field <ArrowRight size={16}/></Link>
+   <Link href="/beast-cage/go">Lost COSMOS Field <ArrowRight size={16}/></Link>
   </header>
   <section className={styles.intro}>
    <span><Sparkles size={16}/> FREE PUBLIC PLAYGROUND • ZERO OWNER PERMISSIONS</span>
    <h1>Catch a star.<br/><em>Take it into your game.</em></h1>
-   <p>Meet the same Spark Beast used by Customize, care and the owner dock. Preview its recorded-seed sprite, movement, eyes, stages and local generated voice, then carry that portable identity into Lost COSMOS or export a GBA-ready module. This playground is game software, not a consciousness or sensor claim.</p>
+   <p>Meet the same beast used by Customize, care and the owner dock. Preview its recorded-seed sprite, movement, eyes, stages and local generated voice, then carry that portable identity into Lost COSMOS or export a GBA-ready module. This playground is game software, not a consciousness or sensor claim.</p>
   </section>
   <GenesisForge value={creature} onChange={next=>{setCreature(next);selectProfile(next);setLook(next.baseLook);setDone(false);}} onAmbient={setAmbient}/>
   <div className={styles.grid}>
    <section className={styles.orbit} aria-label="Animated companion test environment">
     <span className={styles.constellation} aria-hidden="true">✧ ✦ ･｡ ☆ ﾟ</span>
     <div className={styles.model} data-ambient-behavior={ambient}><SparkBeastCompanion profile={creature} fallbackLook={look}
-      state={mood} controls label={'Spark Beast game companion: '+mood}/></div>
+      state={mood} controls label={'Game companion: '+mood}/></div>
     <div className={styles.status}><span aria-hidden="true">✧</span> {label.description}</div>
     <div className={styles.actions} role="group" aria-label="Explore illustrative companion animation states">
      {STATES.map(item=><button type="button" key={item.value} className={mood===item.value?styles.active:''}
@@ -126,7 +126,7 @@ export default function GuestGbaLab(){
      {error?<p role="alert" className={styles.error}>{error}</p>:null}
      {done?<p role="status" className={styles.success}>Your portable game pack was generated in this browser.</p>:null}
      <p className={styles.disclaimer}><ShieldCheck size={16}/> To include actual COSMOS numeric
-      synaptic signals instead, authenticate in the owner workstation and explicitly export
+      synaptic signals instead, authenticate in the owner Workshop and explicitly export
       a validated checkpoint from Synapse Trace. Guests never receive that data.</p>
     </div>
    </section>
