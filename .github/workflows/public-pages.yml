@@ -65,7 +65,7 @@ jobs:
           python-version: '3.12'
       - name: Stage pinned RAWRPHOS 14K inference files
         run: python scripts/stage_public_site_weights.py --destination site/weights
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: site
       - id: deployment
