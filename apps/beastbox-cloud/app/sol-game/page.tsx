@@ -2,7 +2,7 @@ import type {Metadata} from 'next';
 import Link from 'next/link';
 import BrandCrest from '@/components/brand-crest';
 
-export const metadata:Metadata={title:'LOST COSMOS · Your Spark Beast',description:'Send your same QBEAST into the current native LOST COSMOS cartridge.'};
+export const metadata:Metadata={title:'LOST COSMOS · Your Beast',description:'Send your same QBEAST into the current native LOST COSMOS cartridge.'};
 
 export default function SolGame(){return <main style={{minHeight:'100vh',background:'#0b1122',color:'#eef5ff',padding:'18px min(5vw,30px)'}}>
  {/* data-page-nav: the full-screen Lost COSMOS player starts below this bar, so the nav is never covered.

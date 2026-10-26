@@ -136,7 +136,7 @@ test('one persistent public companion stores only its validated game profile',()
 test('generated character moves between Cage and guest via client navigation, never full reload',()=>{
  const cage=read('components/beast-cage-portal.tsx');
  const guest=read('components/gba-guest-lab.tsx');
- assert.match(cage,/<Link href="\/beast-cage\/guest">Take this creature/);
+ assert.match(cage,/<Link href="\/beast-cage\/guest">Take \{creatureName\} to the game lab/);
  assert.doesNotMatch(cage,/<a href="\/beast-cage\/guest">Take this creature/);
  assert.match(guest,/profile:sharedProfile/);
  assert.match(guest,/createCreatureGlb\(creature,look\)/);
