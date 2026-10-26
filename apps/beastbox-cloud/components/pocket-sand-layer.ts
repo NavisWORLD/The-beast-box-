@@ -1,4 +1,7 @@
 import {createSandField,sandBudget} from '../lib/pocket-sand.mjs';
+import {createLoop,stepLoop,loopWellWeights} from '../lib/loop/loop-chain.mjs';
+/** Opt-in (default off): the loop's SEEDED well weights tilt the sand. A consented environment tilt always wins. */
+export const LOOP_WORLD_KEY='beastbox-loop-world-v1';
 type Three=typeof import('three');
 /** Cosmic sand + fluid (Cory's Genesis Engine physics) as an additive pocket layer. */
 export function addPocketSand(THREE:Three,scene:import('three').Scene,{seed,low,reduced}:{seed:string;low:boolean;reduced:boolean}){
@@ -14,11 +17,13 @@ export function addPocketSand(THREE:Three,scene:import('three').Scene,{seed,low,
  const map=new THREE.CanvasTexture(dot);
  const points=new THREE.Points(geom,new THREE.PointsMaterial({size:low?.11:.085,map,vertexColors:true,transparent:true,opacity:.85,depthWrite:false,blending:THREE.AdditiveBlending,sizeAttenuation:true}));
  points.name='pocket-sand';scene.add(points);
- let acc=0;
+ let acc=0,loop:ReturnType<typeof createLoop>|null=null,lt=0,ownTilt=false;
+ try{if(localStorage.getItem(LOOP_WORLD_KEY)==='on')fetch('/spark/zeref-bio-spark.json').then(r=>r.json()).then(j=>{loop=createLoop({seed:j.heart_seed_v9_sha256});}).catch(()=>{});}catch{/* off */}
  const update=(dt:number,disturbers:{x:number;z:number;r:number;s:number}[])=>{
   if(reduced)return; // reduced motion: the field stays still
+  if(loop){lt+=dt;while(lt>=1){lt-=1;loop=stepLoop(loop,{});if(!field.environment||ownTilt){field.setEnvironment(loopWellWeights(loop));ownTilt=true;}}}
   acc+=dt;if(low&&acc<1/30)return;const step=acc;acc=0;
   field.step(step,disturbers);(geom.attributes.position as import('three').BufferAttribute).needsUpdate=true;
  };
- return {field,update,count,dispose:()=>map.dispose()};
+ return {field,update,count,loopMoments:()=>loop?loop.moments:[],dispose:()=>map.dispose()};
 }

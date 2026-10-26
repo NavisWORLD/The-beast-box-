@@ -1,0 +1,15 @@
+export const LOOP_SCHEMA:string;export const TICK_SECONDS:number;export const KEEP_MOMENTS:number;
+export const LOOP_LABELS:Readonly<{pulse:string;ibm_seed:string;rigetti:string;placement:string;theory:string}>;
+export const MOMENT_KINDS:ReadonlyArray<{kind:string;text:(name:string)=>string}>;
+export type LoopInputs={pulse?:{bpm:number;hrv_rmssd_ms?:number|null;sqi?:number|null}|null;audio?:{rms_mean:number}|null;rigetti_ticks?:number};
+export type LoopMoment={schema:string;tick:number;sim_seconds:number;kind:string;creature:string;text:string;effect:{well:number;weight_delta:number};label:'SEEDED'|'SIMULATED';measured_input:boolean;provenance:string;prev_hash:string;hash:string};
+export type LoopCreature={id:string;name:string;brain:number[]};
+export type LoopState={schema:string;seed:string;seed_label:string;tick:number;sim_seconds:number;head:string;last_moment_hash:string;creatures:LoopCreature[];wells:number[];moments:LoopMoment[];moments_total:number};
+export function normalizeInputs(inp?:LoopInputs):{pulse:{bpm:number;hrv_rmssd_ms:number|null;sqi:number|null}|null;audio:{rms_mean:number}|null;rigetti_ticks:number};
+export function createLoop(o:{seed:string;seedLabel?:string;creatures?:{id:string;name?:string}[]}):LoopState;
+export function stepLoop(state:LoopState,inputs?:LoopInputs):LoopState;
+export function runLoop(state:LoopState,n:number,inputsFor?:(tick:number)=>LoopInputs):LoopState;
+export function verifyMoments(moments:LoopMoment[],startHash?:string|null):{ok:boolean;reason?:string;index?:number;count?:number;head?:string|null};
+export function loopWellWeights(state:LoopState):number[];
+export function momentLine(m:LoopMoment):string;
+export function momentRecord(m:LoopMoment,o?:{prev?:string|null}):Record<string,unknown>;
