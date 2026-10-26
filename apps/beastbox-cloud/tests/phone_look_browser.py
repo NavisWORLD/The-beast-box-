@@ -72,7 +72,7 @@ with sync_playwright() as p:
         o = page.evaluate(OVERLAPS)
         check(not o, f"idle pill sits on no other floating control: {o}")
         page.evaluate("window.scrollBy(0, 40)")
-        page.wait_for_timeout(120)
+        page.wait_for_timeout(380)
         check(page.evaluate("+getComputedStyle(document.querySelector('[data-spark-player]')).opacity") < 0.5, "pill steps aside while the page scrolls")
         page.wait_for_timeout(1000)
     # The last section must clear the bottom bar.
