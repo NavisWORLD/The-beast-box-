@@ -1,4 +1,5 @@
 'use client';
+import {stageRig,stageTimeOfHour,dirFromCam,STAGE_FLOOR} from '../lib/universe/open-stage-rig.mjs';
 import {useUniverseMotion} from './use-universe-motion';
 import {useEffect,useRef,useState} from 'react';
 import {type CreatureProfile,validCreature} from '../lib/creature-profile';
@@ -41,12 +42,23 @@ export default function CosmicCompanion3D({state='idle',look='nebula',intensity=
     renderer.outputColorSpace=THREE.SRGBColorSpace;
     renderer.toneMapping=THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure=1.45;
+    const dimensional0=!!boundKind;
     const scene=new THREE.Scene();
     const camera=new THREE.PerspectiveCamera(35,1,.1,50);
     camera.position.set(0,0,7.6);
+    // Look Closer / turntable: Cosmo's open-stage key / fill / rim / hemisphere (SEEDED look, picked by the local hour). Everywhere else keeps its old lights.
+    const stageLit=!!(rotationRef.current.turntable||rotationRef.current.angle!==null);
+    if(stageLit){
+     const rigT=stageRig('thick',stageTimeOfHour(new Date().getHours()+new Date().getMinutes()/60)),tgt=dimensional0?new THREE.Vector3(0,.95,0):new THREE.Vector3(0,.05,0);
+     renderer.toneMappingExposure=Math.max(rigT.exposure>0?rigT.exposure*1.2:1.2,rigT.floor>=1.5?1.7:0);
+     scene.add(new THREE.HemisphereLight(new THREE.Color(rigT.hemi.sky),new THREE.Color(rigT.hemi.ground),rigT.hemi.i*1.6));
+     if(rigT.floor>0)scene.add(new THREE.AmbientLight(new THREE.Color(STAGE_FLOOR.colour),rigT.floor));
+     for(const k of ['key','fill','rim'] as const){const l=rigT[k],d=dirFromCam(l.az,l.el);const light=new THREE.DirectionalLight(new THREE.Color(l.hex),l.i);light.position.set(tgt.x+d[0]*6,tgt.y+d[1]*6,tgt.z+d[2]*6);light.target.position.copy(tgt);scene.add(light,light.target);}
+    }else{
     scene.add(new THREE.AmbientLight(0xaacfff,1.5));
     const warm=new THREE.PointLight(0xffd6ef,30,14);warm.position.set(-2.1,2.5,3.4);scene.add(warm);
     const rim=new THREE.PointLight(0x7fffff,34,13);rim.position.set(2,-1,-2);scene.add(rim);
+    }
     const dimensional=boundKind?buildDimensionalRig(THREE,boundKind,{quality}):null;
     const rig=dimensional?{group:dimensional.root,dispose:()=>dimensional.dispose(),dimensional}:{...createCreatureRig(profile,look,quality),dimensional:null};
     const {group:creature,body,bodyMaterial,fins,halo,motes}=rig.dimensional?{group:rig.group,body:null,bodyMaterial:null,fins:[],halo:null,motes:null}:rig;
