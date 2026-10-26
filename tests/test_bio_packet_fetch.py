@@ -41,3 +41,81 @@ def test_tampered_or_old_or_low_quality_packet_is_refused():
     low = {**p, "pulse": {**p["pulse"], "sqi": 0.3}}
     with pytest.raises(SystemExit):
         bf.check({"packet": low, "saved_at_ms": 1_000_000}, 3600, now=1_001)
+
+
+def test_sas_url_becomes_blob_url_without_changing_the_query():
+    sas = "https://acct.blob.core.windows.net/beast-cosmos?sv=2021-08-06&sr=c&sp=rl&sig=SECRETSIG"
+    assert bf.sas_blob_url(sas) == "https://acct.blob.core.windows.net/beast-cosmos/owner/bio-packets/latest.json?sv=2021-08-06&sr=c&sp=rl&sig=SECRETSIG"
+    assert bf.sas_blob_url(sas.replace("beast-cosmos?", "beast-cosmos/?")).endswith("/beast-cosmos/owner/bio-packets/latest.json?sv=2021-08-06&sr=c&sp=rl&sig=SECRETSIG")
+
+
+@pytest.mark.parametrize("bad", ["", "http://a.blob.core.windows.net/c?sig=x", "https://a.blob.core.windows.net/c", "https://a.blob.core.windows.net/?sig=x", "https://a.blob.core.windows.net/c/d?sig=x"])
+def test_bad_sas_url_is_refused_without_echoing_it(bad):
+    with pytest.raises(SystemExit) as e:
+        bf.sas_blob_url(bad)
+    assert "sig=x" not in str(e.value)
+
+
+class _Resp:
+    def __init__(self, data): self.data = data
+    def read(self): return self.data
+    def __enter__(self): return self
+    def __exit__(self, *a): return False
+
+
+def test_fetch_sas_reads_envelope_and_missing_blob_is_none(monkeypatch):
+    p = packet()
+    seen = {}
+    def ok(req, timeout=0):
+        seen["url"] = req.full_url
+        return _Resp(json.dumps({"packet": p, "saved_at_ms": 5}).encode())
+    monkeypatch.setattr(bf.urllib.request, "urlopen", ok)
+    env = bf.fetch_sas("https://acct.blob.core.windows.net/c?sv=1&sig=S")
+    assert env["packet"] == p and seen["url"].startswith("https://acct.blob.core.windows.net/c/owner/bio-packets/latest.json?")
+    def missing(req, timeout=0):
+        raise bf.urllib.error.HTTPError(req.full_url, 404, "nf", {}, None)
+    monkeypatch.setattr(bf.urllib.request, "urlopen", missing)
+    assert bf.fetch_sas("https://acct.blob.core.windows.net/c?sv=1&sig=S") is None
+
+
+def test_fetch_sas_forbidden_fails_closed_and_never_prints_the_url(monkeypatch):
+    def deny(req, timeout=0):
+        raise bf.urllib.error.HTTPError(req.full_url, 403, "no", {}, None)
+    monkeypatch.setattr(bf.urllib.request, "urlopen", deny)
+    with pytest.raises(SystemExit) as e:
+        bf.fetch_sas("https://acct.blob.core.windows.net/c?sv=1&sig=TOPSECRET")
+    assert "403" in str(e.value) and "TOPSECRET" not in str(e.value)
+
+
+def test_main_prefers_connection_string_then_sas_and_requires_one(monkeypatch, tmp_path):
+    for k in ("AZURE_STORAGE_CONNECTION_STRING", "AZURE_STORAGE_CONTAINER_SAS_URL"):
+        monkeypatch.delenv(k, raising=False)
+    with pytest.raises(SystemExit):
+        bf.main(["--out", str(tmp_path / "o.json")])
+    p = packet()
+    monkeypatch.setenv("AZURE_STORAGE_CONTAINER_SAS_URL", "https://acct.blob.core.windows.net/c?sv=1&sig=S")
+    monkeypatch.setattr(bf, "fetch_sas", lambda u: {"packet": p, "saved_at_ms": bf.time.time() * 1000})
+    bf.main(["--out", str(tmp_path / "o.json")])
+    assert json.loads((tmp_path / "o.json").read_text())["packet_sha256"] == p["packet_sha256"]
+    monkeypatch.setenv("AZURE_STORAGE_CONNECTION_STRING", "AccountName=a;AccountKey=Zm9v")
+    called = {}
+    monkeypatch.setattr(bf, "fetch", lambda cs, c=None: called.setdefault("cs", {"packet": p, "saved_at_ms": bf.time.time() * 1000}))
+    bf.main(["--out", str(tmp_path / "o2.json")])
+    assert "cs" in called
+
+
+def test_check_script_reports_valid_and_no_valid_without_secrets(monkeypatch):
+    spec2 = importlib.util.spec_from_file_location("bio_packet_check", ROOT / "scripts/bio_packet_check.py")
+    bc = importlib.util.module_from_spec(spec2); spec2.loader.exec_module(bc)
+    p = packet()
+    sas = "https://acct.blob.core.windows.net/c?sv=1&sig=TOPSECRET"
+    monkeypatch.setattr(bc.bf, "fetch_sas", lambda u: {"packet": p, "saved_at_ms": bc.bf.time.time() * 1000})
+    r = bc.result(env_vars={"AZURE_STORAGE_CONTAINER_SAS_URL": sas})
+    assert r["valid"] and r["sha12"] == p["packet_sha256"][:12] and r["bpm"] == 72.0
+    monkeypatch.setattr(bc.bf, "fetch_sas", lambda u: None)
+    r = bc.result(env_vars={"AZURE_STORAGE_CONTAINER_SAS_URL": sas})
+    assert r["valid"] is False and "no valid pulse" in r["reason"] and "TOPSECRET" not in json.dumps(r)
+    r = bc.result(env_vars={})
+    assert r["valid"] is False
+    monkeypatch.setattr(bc.bf, "fetch_sas", lambda u: {"packet": p, "saved_at_ms": 1})
+    assert bc.result(env_vars={"AZURE_STORAGE_CONTAINER_SAS_URL": sas})["valid"] is False  # too old

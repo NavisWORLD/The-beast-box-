@@ -1,0 +1,64 @@
+name: Bio packet check - is there a valid saved fingertip pulse? (read-only, never starts IBM by default)
+run-name: Bio packet check${{ inputs.dispatch_ibm == 'YES_RUN_REAL_IBM_NOW' && ' + dispatch real IBM' || '' }}
+# Reads owner/bio-packets/latest.json from the owner's PRIVATE Azure container with the existing AZURE_STORAGE_CONTAINER_SAS_URL secret,
+# re-validates it with the same strict gate as real-ibm-bio-connection.yml and reports ONLY: valid yes/no, sha12, age, bpm/quality.
+# It never prints the secret and never starts IBM unless a human types the exact confirm word below AND the packet is valid and recent.
+# Numbers only. Heartbeat MEASURED on the phone; this check reads nothing from IBM or Rigetti.
+on:
+  workflow_dispatch:
+    inputs:
+      max_age_s:
+        description: newest acceptable packet age in seconds (default 6 hours)
+        required: false
+        default: '21600'
+        type: string
+      dispatch_ibm:
+        description: leave EMPTY to only check. Type YES_RUN_REAL_IBM_NOW to also start real-ibm-bio-connection.yml (20 s cap, 60 s reserve) if the packet is valid
+        required: false
+        default: ''
+        type: string
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      valid: ${{ steps.chk.outputs.valid }}
+      sha12: ${{ steps.chk.outputs.sha12 }}
+      packet_json: ${{ steps.chk.outputs.packet_json }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Fetch and re-validate the latest saved packet (numbers only)
+        id: chk
+        env:
+          AZURE_STORAGE_CONTAINER_SAS_URL: ${{ secrets.AZURE_STORAGE_CONTAINER_SAS_URL }}
+          MAX_AGE_S: ${{ inputs.max_age_s }}
+        run: |
+          if [ -n "$AZURE_STORAGE_CONTAINER_SAS_URL" ]; then
+            echo "::add-mask::${AZURE_STORAGE_CONTAINER_SAS_URL#*\?}"
+          fi
+          python scripts/bio_packet_check.py
+  dispatch-real-ibm:
+    # Manual, typed-confirm only. Never runs on a plain check. Uses the repo token to start the existing workflow, which keeps its own 20 s cap / 60 s reserve guard.
+    needs: check
+    if: needs.check.outputs.valid == 'yes' && inputs.dispatch_ibm == 'YES_RUN_REAL_IBM_NOW'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      actions: write
+      contents: read
+    steps:
+      - name: Start real-ibm-bio-connection with the validated packet
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA12: ${{ needs.check.outputs.sha12 }}
+          PACKET_JSON: ${{ needs.check.outputs.packet_json }}
+        run: |
+          gh workflow run real-ibm-bio-connection.yml -R "$GITHUB_REPOSITORY" --ref main -f "packet_sha12=$SHA12" -f "packet_json=$PACKET_JSON"
+          echo "Started real-ibm-bio-connection.yml for packet $SHA12 (numbers only)." >> "$GITHUB_STEP_SUMMARY"

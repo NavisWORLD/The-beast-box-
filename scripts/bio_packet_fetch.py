@@ -3,6 +3,8 @@
 exact (secret-free) `gh workflow run` command. Never prints the storage secret. Never dispatches. Never invents a pulse.
 
     AZURE_STORAGE_CONNECTION_STRING=... [AZURE_STORAGE_CONTAINER=name] python scripts/bio_packet_fetch.py --out /tmp/bio_packet.json [--max-age-s 21600]
+    AZURE_STORAGE_CONTAINER_SAS_URL=https://acct.blob.core.windows.net/container?sv=... python scripts/bio_packet_fetch.py --out ...
+        (the container SAS URL is used when no connection string is set; it only needs read permission on the container)
 
 Exit 0 only for a packet that passes the SAME strict checks the workflow uses (schema, ranges, sqi>=0.6, hash) and is recent.
 Exit 2 = nothing saved / invalid / too old -> say "no valid pulse" and do not run IBM."""
@@ -51,6 +53,29 @@ def containers(acct, key, ep):
     return re.findall(r"<Name>([^<]+)</Name>", body.decode("utf-8", "replace"))
 
 
+def sas_blob_url(sas_url, blob=BLOB):
+    """Container SAS URL -> blob URL carrying the same SAS query. Never printed."""
+    u = urllib.parse.urlsplit(sas_url.strip())
+    if u.scheme != "https" or not u.netloc or not u.query or len(u.path.strip("/").split("/")) != 1 or not u.path.strip("/"):
+        raise SystemExit("AZURE_STORAGE_CONTAINER_SAS_URL must look like https://<account>.blob.core.windows.net/<container>?<sas>")
+    return urllib.parse.urlunsplit((u.scheme, u.netloc, u.path.rstrip("/") + "/" + blob, u.query, ""))
+
+
+def fetch_sas(sas_url):
+    """GET latest.json with the container SAS. Returns the envelope, or None if the blob is absent (404).
+    Any other failure raises SystemExit with the HTTP status only (never the URL)."""
+    url = sas_blob_url(sas_url)
+    try:
+        with urllib.request.urlopen(urllib.request.Request(url, headers={"x-ms-version": VERSION}), timeout=20) as r:  # noqa: S310
+            return json.loads(r.read())
+    except urllib.error.HTTPError as e:
+        if e.code == 404:
+            return None
+        raise SystemExit(f"storage refused the read (HTTP {e.code}): cannot check for a pulse")
+    except (urllib.error.URLError, ValueError, TimeoutError):
+        raise SystemExit("storage read failed (network or unreadable file): cannot check for a pulse")
+
+
 def fetch(cs, container=None):
     acct, key, ep = parse_cs(cs)
     names = [container] if container else (containers(acct, key, ep) or ["beast-cosmos"])
@@ -89,9 +114,13 @@ def main(argv=None):
     ap.add_argument("--max-age-s", type=int, default=6 * 3600)
     a = ap.parse_args(argv)
     cs = os.environ.get("AZURE_STORAGE_CONNECTION_STRING", "")
-    if not cs:
-        raise SystemExit("AZURE_STORAGE_CONNECTION_STRING is not set")
-    env = fetch(cs, os.environ.get("AZURE_STORAGE_CONTAINER") or None)
+    sas = os.environ.get("AZURE_STORAGE_CONTAINER_SAS_URL", "")
+    if cs:
+        env = fetch(cs, os.environ.get("AZURE_STORAGE_CONTAINER") or None)
+    elif sas:
+        env = fetch_sas(sas)
+    else:
+        raise SystemExit("set AZURE_STORAGE_CONNECTION_STRING or AZURE_STORAGE_CONTAINER_SAS_URL")
     p, age = check(env, a.max_age_s)
     Path(a.out).write_text(json.dumps(p, sort_keys=True, separators=(",", ":")))
     print(f"BIO_PACKET_VALID sha12={p['packet_sha256'][:12]} bpm={p['pulse']['bpm']} sqi={p['pulse']['sqi']} age_s={int(age)} (numbers only)")
