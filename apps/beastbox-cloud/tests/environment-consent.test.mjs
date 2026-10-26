@@ -82,3 +82,19 @@ test('time of day and pulse signals: bounded lean, off by default, explicit star
  E.grantEnvironment();E.revokeEnvironmentLocal();assert.equal(E.isPulseReading(),true);E.signalPulse('pulse_read_ended');assert.equal(E.isPulseReading(),false);
 });
 test('old three-channel posts still validate (additive)',()=>{const v=validateEnvironment(good);assert.ok(v.ok);assert.equal(v.numbers.time.state,'off');});
+test('status lines: every server/status string on the card is 44 characters or fewer, with the approved short wording',()=>{
+ const c=src('components/environment-consent.tsx'),fixes=JSON.parse(src('tests/fixtures/consent_status_fixes.json'));
+ const all=[...c.matchAll(/'((?:[^'\\]|\\.)*)'/g)].map(m=>m[1].replace(/\\'/g,"'")).filter(t=>/Nothing is stored|Saved |Stopped|Couldn't|storage|Used on this device|not available/i.test(t));
+ for(const k of ['status_not_signed_in','status_saved_record','status_stored','status_no_storage','status_stop_erase_failed','status_stop_unreachable','status_check_failed','pulse_not_ready_hint','pulse_not_ready_row'])assert.ok(c.replace(/\\'/g,"'").includes(fixes[k]),k+': '+fixes[k]);
+ for(const t of all)assert.ok(t.length<=44,t.length+' chars: '+t);assert.ok(all.length>=8);
+ for(const old of ['Not signed in: your numbers','Your account has a saved record','Stored privately for your account','Private storage is not set up on this site','could not be erased right now','could not reach the site to erase','Could not reach the site to check'])assert.ok(!c.includes(old),old);
+ assert.ok(fixes.pulse_not_ready_row.length<=22,'status slot holds 22');
+});
+test('pulse for visitors: never faked. Not available yet, switch disabled, hint matches, owner flow unchanged',()=>{
+ const c=src('components/environment-consent.tsx');
+ assert.match(c,/fetch\('\/api\/session'/);assert.match(c,/useState\(false\)/);// visitor until the session says owner
+ assert.match(c,/if\(k==='pulse'&&!isOwnerView\)return PULSE_NOT_READY_ROW/);assert.match(c,/disabled=\{!env\.consent\|\|locked\}/);assert.match(c,/if\(locked\)hint=PULSE_NOT_READY_HINT/);
+ assert.match(c,/w\.pulse&&w\.camera&&isOwnerRef\.current/g);// visitors never send heart numbers
+ assert.match(c,/Uses the camera\. Beats per minute\./);// owner hint kept
+ assert.match(c,/'No valid pulse'/);// owner flow unchanged
+});
