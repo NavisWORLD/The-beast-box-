@@ -1,0 +1,74 @@
+{
+ "backend": "ibm_fez",
+ "classical_bound": 0.75,
+ "classical_control": {
+  "per_question_pair": {
+   "x0y0": {
+    "rounds": 2040,
+    "win_rate": 1.0
+   },
+   "x0y1": {
+    "rounds": 1967,
+    "win_rate": 1.0
+   },
+   "x1y0": {
+    "rounds": 1933,
+    "win_rate": 1.0
+   },
+   "x1y1": {
+    "rounds": 2060,
+    "win_rate": 0.0
+   }
+  },
+  "rounds": 8000,
+  "sigma_above_classical_bound": -1.5341556054046657,
+  "standard_error": 0.004888682721347336,
+  "win_rate": 0.7425,
+  "wins": 5940
+ },
+ "commitments_sha256": {
+  "alice_sha256": "d1c12b3067a412bd9db4ca4c520acbf83777c124047e2c17693e68494a21aea7",
+  "bob_sha256": "77b70955b8a3f1b115437384fe6d755dae9bc8ec153094f181813bbd1877d9ef"
+ },
+ "date_utc": "20261026",
+ "job_id": "dbffvhvgdj9s73bbj940",
+ "job_tag": "navisworld-real-ibm-bio-81057f386532-fez2",
+ "label": "CHSH game (Bell nonlocality)",
+ "loopholes": [
+  "No space-like separation: both qubits sit on one chip and one classical controller applies both settings, so locality is NOT enforced; this is not a loophole-free Bell test.",
+  "Detection/fair-sampling and readout errors are not mitigated.",
+  "Questions come from os.urandom on the GitHub runner (freedom-of-choice assumed, not proven)."
+ ],
+ "outcomes_sha256": "86d92cfbe5e2fbff55b831aef685ca9ef7ec01db57f68e06e8e462a7b07db397",
+ "quantum": {
+  "per_question_pair": {
+   "x0y0": {
+    "rounds": 2040,
+    "win_rate": 0.8166666666666667
+   },
+   "x0y1": {
+    "rounds": 1967,
+    "win_rate": 0.833248601931876
+   },
+   "x1y0": {
+    "rounds": 1933,
+    "win_rate": 0.8329022245214692
+   },
+   "x1y1": {
+    "rounds": 2060,
+    "win_rate": 0.8451456310679611
+   }
+  },
+  "rounds": 8000,
+  "sigma_above_classical_bound": 19.617449435243152,
+  "standard_error": 0.004179952152836203,
+  "win_rate": 0.832,
+  "wins": 6656
+ },
+ "quantum_ideal": 0.8535533905932737,
+ "quantum_seconds": null,
+ "recorded_utc": "2026-10-26T07:25:06.703597+00:00",
+ "schema": "navisworld-chsh-game-v1",
+ "source_class": "RECORDED_IBM_HARDWARE",
+ "withheld": "question lists, commitment salts and the per-round outcome list are not published; only their hashes are"
+}
