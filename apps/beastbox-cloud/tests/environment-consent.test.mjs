@@ -94,6 +94,7 @@ test('pulse for visitors: never faked. Not available yet, switch disabled, hint 
  const c=src('components/environment-consent.tsx');
  assert.match(c,/fetch\('\/api\/session'/);assert.match(c,/useState\(false\)/);// visitor until the session says owner
  assert.match(c,/if\(k==='pulse'&&!isOwnerView\)return PULSE_NOT_READY_ROW/);assert.match(c,/disabled=\{!env\.consent\|\|locked\}/);assert.match(c,/if\(locked\)hint=PULSE_NOT_READY_HINT/);
+ assert.match(c,/PULSE_NOT_READY_HINT='Not available here yet\.'/);assert.ok('Not available here yet.'.length<=35,'hint slot holds 35');assert.ok(!/hint=PULSE_NOT_READY_LONG/.test(c)&&/\{PULSE_NOT_READY_LONG\}/.test(c));// the 40-char line lives only in the full-width notice line
  assert.match(c,/w\.pulse&&w\.camera&&isOwnerRef\.current/g);// visitors never send heart numbers
  assert.match(c,/Uses the camera\. Beats per minute\./);// owner hint kept
  assert.match(c,/'No valid pulse'/);// owner flow unchanged

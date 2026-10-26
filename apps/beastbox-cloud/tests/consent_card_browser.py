@@ -63,7 +63,7 @@ with sync_playwright() as p:
     # a visitor cannot read a pulse (the IBM BIO page is owner-only): honest "Not available yet", switch disabled, hint matches
     check(st("pulse") == "Not available yet", "visitor pulse row: Not available yet (got %r)" % st("pulse"))
     check(page.locator("[data-env-switch=pulse]").is_disabled(), "visitor pulse switch is disabled")
-    check("Pulse reading is not available here yet." in page.locator("[data-env-row=pulse]").inner_text() and "Uses the camera. Beats per minute." not in page.locator("[data-env-row=pulse]").inner_text(), "visitor pulse hint says not available")
+    check("Not available here yet." in page.locator("[data-env-row=pulse]").inner_text() and "Uses the camera. Beats per minute." not in page.locator("[data-env-row=pulse]").inner_text(), "visitor pulse hint says not available")
     page.locator("[data-env-switch=light]").check(); page.wait_for_timeout(600)
     check(st("light") == "Needs camera switch", "light: Needs camera switch (got %r)" % st("light"))
     page.locator("[data-env-switch=time]").check(); page.wait_for_timeout(1500)

@@ -11,7 +11,8 @@ type Sw={time:boolean;motion:boolean;light:boolean;sound:boolean;pulse:boolean;c
 const allOff:Sw={time:false,motion:false,light:false,sound:false,pulse:false,camera:false};
 // Status lines are 44 characters or fewer (wording from consent_status_fixes_PROPOSED.json); the right-hand status slot of a switch row holds 22.
 const SIGNED_OUT='Used on this device only. Nothing is stored.';
-const PULSE_NOT_READY_HINT='Pulse reading is not available here yet.';
+const PULSE_NOT_READY_HINT='Not available here yet.';// 23: fits the 35-char hint slot under the switch
+const PULSE_NOT_READY_LONG='Pulse reading is not available here yet.';// 40: full-width notice line only, never a row hint
 const PULSE_NOT_READY_ROW='Not available yet';
 const ROWS:{k:keyof Sw;label:string;hint:string}[]=[
  {k:'time',label:'Time of day',hint:'Uses your clock'},
@@ -96,7 +97,7 @@ export default function EnvironmentConsent({onClose,beastName}:{onClose:()=>void
   <div style={{opacity:env.consent?1:.55}}>{ROWS.map(r=>row(r.k,r.label,r.hint))}{row('camera','Camera','One switch for light and pulse')}</div>
   {err?<p role="alert" style={{color:'#ffb3b3',margin:'4px 0'}}>{err}</p>:null}
   <p style={{margin:'6px 0'}} data-env-server>{server}</p>
-  {notice?<p role="status" data-env-notice style={{margin:'6px 0'}}>{notice}</p>:null}
+  {notice?<p role="status" data-env-notice style={{margin:'6px 0'}}>{notice}</p>:env.consent&&!isOwnerView?<p role="status" data-env-notice="pulse" style={{margin:'6px 0'}}>{PULSE_NOT_READY_LONG}</p>:null}
   <button type="button" data-environment-revoke onClick={()=>void stop()} style={{minHeight:48,width:'100%'}}>Stop sharing</button>
   <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,marginTop:6}}><span style={{opacity:.8}}>Stop sharing deletes your saved numbers.</span><a href="/privacy#labels-and-signals" data-env-learn-more style={{flex:'0 0 auto',display:'inline-flex',alignItems:'center',justifyContent:'center',width:120,height:44,color:'#9beffd',textDecoration:'underline'}}>Learn more</a></div>
   {confirm?<div role="alertdialog" aria-modal="true" aria-label="Turn on world signals?" data-env-confirm style={{position:'fixed',inset:0,zIndex:9100,display:'grid',placeItems:'center',background:'rgba(4,3,12,.7)'}}>
