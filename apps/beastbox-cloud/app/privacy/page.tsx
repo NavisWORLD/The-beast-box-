@@ -44,7 +44,8 @@ export default function PrivacyPage() {
             <h3>What leaves your phone</h3>
             <p>Sound level uses the microphone. Fingertip pulse and light use the camera, and one camera switch covers both. The camera does one job at a time, so while it reads your pulse, the light reading waits. Time of day uses your clock.</p>
             <p>Audio, video and the pulse waveform never leave your phone. Only numbers made from your readings are kept, such as a level or a beats-per-minute value. When you are signed in they are saved privately for your account, and no page on this site shows them to other people. If you are not signed in, nothing is stored: your numbers stay on this device.</p>
-            <h3>Stopping</h3>
+            <h3>Starting and stopping</h3>
+            <p>Turning world signals on asks you to confirm first.</p>
             <p>Stop sharing ends all reading right away and deletes the numbers saved for you. It is one tap, with no confirm step.</p>
             <h3>Not covered</h3>
             <p>Weather is not used. 12D is a simulation, not a measurement of anything in your room.</p>

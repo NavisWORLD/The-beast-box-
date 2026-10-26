@@ -7,13 +7,15 @@ export const ENV_SCHEMA='beastbox-environment-numbers-v1';
 export const ENV_FRESH_MS=15000;
 export const STATES=Object.freeze(['MEASURED','off','denied','unavailable']);
 export const LIGHT_SOURCES=Object.freeze(['ambient-light-sensor','camera-brightness']);
-export const CHANNELS=Object.freeze(['light','sound','motion','heart']);
+export const CHANNELS=Object.freeze(['light','sound','motion','heart','time']);
 /** Visible labels. The world is a SIMULATION; only the environment numbers are measured, and only when the sensor really gave them. */
 export const ENV_LABELS=Object.freeze({ibm_seed:'RECORDED',rigetti:'SIMULATED',environment:'MEASURED only when real',world_placement:'SEEDED'});
+/** Short honesty chips for the consent card. The longer meanings live on /privacy ("Privacy and info"). */
+export const ENV_CHIPS=Object.freeze(['IBM seed RECORDED','Rigetti run SIMULATED','Your reading MEASURED','Effect on your world SEEDED']);
 export const ENV_NOTE='IBM seed RECORDED on IBM hardware · Rigetti SIMULATED · your surroundings MEASURED only when a sensor really reports · where the world places things is SEEDED. Numbers only: audio, video and your pulse waveform never leave your phone.';
 const r3=x=>Math.round(x*1000)/1000;
 const num=(v,lo,hi)=>typeof v==='number'&&Number.isFinite(v)&&v>=lo&&v<=hi;
-const KEYS={light:['state','level','source'],sound:['state','level'],motion:['state','level'],heart:['state','bpm','sqi']};
+const KEYS={light:['state','level','source'],sound:['state','level'],motion:['state','level'],heart:['state','bpm','sqi'],time:['state','level']};
 /** -> {ok,numbers,errors}. A channel that is not MEASURED carries no values at all (nothing is invented). */
 export function validateEnvironment(raw){
  const errors=[];
@@ -36,11 +38,14 @@ export function validateEnvironment(raw){
  return errors.length?{ok:false,numbers:null,errors}:{ok:true,numbers,errors:[]};
 }
 const unit=(x,lo,hi)=>Math.max(0,Math.min(1,(x-lo)/(hi-lo)));
-/** Channel -> sand well (the four wells the Rigetti counts '00','01','10','11' weight). Missing channel = neutral 1. */
+/** Channel -> sand well (the four wells the Rigetti counts '00','01','10','11' weight). Missing channel = neutral 1.
+ *  Time of day (the device clock, a 0..1 day phase) adds a gentle, bounded lean: each well is favoured at its own quarter of the day. */
+export function timeLean(level,k){return r3(1+0.2*Math.cos(2*Math.PI*(level-k/4)));}
 export function wellMultipliers(numbers){
  const lv=[numbers?.light,numbers?.sound,numbers?.motion].map(c=>c&&c.state==='MEASURED'?c.level:null);
  const h=numbers?.heart&&numbers.heart.state==='MEASURED'?unit(numbers.heart.bpm,40,180):null;
- return [...lv,h].map(v=>v===null?1:r3(0.6+0.8*v));// 0.6..1.4, bounded
+ const t=numbers?.time&&numbers.time.state==='MEASURED'?numbers.time.level:null;
+ return [...lv,h].map((v,k)=>{const m=v===null?1:0.6+0.8*v;return r3(Math.max(0.6,Math.min(1.4,t===null?m:m*timeLean(t,k))));});// 0.6..1.4, bounded
 }
 /** Same normalisation as the receipt weights (sum 4), then the environment tilt. counts null -> even weights tilted. */
 export function environmentWeights(counts,numbers){
@@ -56,9 +61,9 @@ export function isFresh(numbers,measuredAtMs,nowMs){
 export function seededPhase(label){return seedFrom('environment:'+String(label))/4294967296;}
 /** Plain per-channel words for the panel; says so instead of inventing. */
 export function describeChannel(ch,c){
- const name={light:'Light',sound:'Sound level',motion:'Motion',heart:'Fingertip pulse'}[ch];
+ const name={light:'Light level',sound:'Sound level',motion:'Device motion',heart:'Fingertip pulse',time:'Time of day'}[ch];
  if(!c||c.state==='off')return name+': off';
  if(c.state==='denied')return name+': permission declined, not used';
  if(c.state==='unavailable')return ch==='heart'?name+': no valid pulse, not used':name+': no valid reading on this device, not used';
- return ch==='heart'?name+': '+Math.round(c.bpm)+' bpm (measured snapshot)':name+': '+Math.round(c.level*100)+'% (measured)';
+ return ch==='heart'?name+': '+Math.round(c.bpm)+' bpm (measured snapshot)':ch==='time'?name+': on (your clock)':name+': '+Math.round(c.level*100)+'% (measured)';
 }
