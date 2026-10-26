@@ -28,7 +28,7 @@ export default function ResearchIndex() {
     <main className={styles.page}>
       <div className={styles.aura} aria-hidden="true" />
       <header className={styles.header}>
-        <Link href="/" className={styles.brand} aria-label="Beast Box home"><BrandCrest size={28} decorative style={{verticalAlign:'middle',marginRight:8}}/>BEAST BOX <span>// COSMOS LAB</span></Link>
+        <Link href="/" className={styles.brand} aria-label="Beast Box home"><BrandCrest size={28} decorative style={{verticalAlign:'middle',marginRight:8}}/>BEAST BOX <span>// RESEARCH LAB</span></Link>
         <Link href="/" className={styles.back}><ArrowLeft size={15} aria-hidden="true" /> Back to the Beast</Link>
       </header><div className="room-strip"><JourneyLinks current="lab" label="Beast Box rooms"/></div>
       <div className={styles.content}>

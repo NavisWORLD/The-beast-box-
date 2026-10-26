@@ -9,7 +9,7 @@ test('research stage 015 results head says SIMULATED (Rigetti simulator runs), n
 test('spark page and arena never call simulator shots recorded',()=>{
  assert.ok(/256 SIMULATED shots/.test(read('public/spark/index.html')));assert.ok(!/256 recorded shots/.test(read('public/spark/index.html')));
  assert.ok(/run\.qvm\?'SIMULATED':'RECORDED'/.test(read('public/spark/app.mjs')));
- const c=read('components/spark-beast-companion.tsx');assert.ok(/SIMULATED RIGETTI SEED/.test(c)&&/RECORDED QUANTUM SEED/.test(c));
+ const c=read('components/spark-beast-companion.tsx');assert.ok(/SIMULATED RIGETTI SEED/.test(c)&&/IBM seed RECORDED on IBM hardware/.test(c));
 });
 test('privacy page splits RECORDED (IBM) from SIMULATED (Rigetti)',()=>{
  const s=read('app/privacy/page.tsx');assert.ok(/RECORDED seeds are the real IBM run/.test(s));assert.ok(/SIMULATED seeds are archived Rigetti simulator output/.test(s));assert.ok(!/Rigetti entries are archived/.test(s));

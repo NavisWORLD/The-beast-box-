@@ -13,6 +13,6 @@ test('receipt counts weight wells; no receipt means even weights and no attribut
  assert.deepEqual(wellWeights(null),[1,1,1,1]);const w=wellWeights({'00':115,'01':136,'10':154,'11':107});assert.ok(Math.abs(w.reduce((a,b)=>a+b)-4)<1e-9);
  assert.equal(ownReceiptPath('/spark/azure-rigetti-qvm-20261009.json'),null);assert.equal(ownReceiptPath(null),null);
  assert.equal(ownReceiptPath('/spark/azure-wraith-20261010.json'),'/spark/azure-wraith-20261010.json');
- assert.equal(SAND_LABEL,'Simulated world seeded from recorded measurements');});
+ assert.equal(SAND_LABEL,'IBM seed RECORDED on IBM hardware · Rigetti growth SIMULATED · where the world places things is SEEDED');});
 test('pocket wires sand with validated receipt only',()=>{const s=readFileSync(new URL('../components/cage-pocket-dimension.tsx',import.meta.url),'utf8');
  assert.ok(s.includes('sand.field.setCounts(qvmCounts)')&&readFileSync(new URL('../components/use-own-qvm-counts.ts',import.meta.url),'utf8').includes('validateRecordedQvmStimulus(j)')&&s.includes('sand.update(dt')&&s.includes('sand.dispose()')&&s.includes('{SAND_LABEL}'));});

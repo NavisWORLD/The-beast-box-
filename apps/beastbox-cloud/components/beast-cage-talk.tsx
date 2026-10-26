@@ -58,7 +58,7 @@ export default function BeastCageTalk(){
    <div className={styles.panel}>
     <div className={styles.yard}><SparkWanderer profile={profile} pulse={talk==='replied'?'reply':''} thinking={talk==='thinking'}/></div>
     <BeastTalkPanel onState={onState}/>
-    <div className={styles.foot}><Link href="/beast-cage/go">Lost COSMOS field ↗</Link><Link href="/brain-bay">Brain Bay ↗</Link><Link href="/beast-cage">Beast Cage ↗</Link><Link href="/sol-game">Lost COSMOS ↗</Link><Link href="/try">Other guest options ↗</Link></div>
+    <div className={styles.foot}><Link href="/beast-cage/go">Star field ↗</Link><Link href="/brain-bay">Brain Bay ↗</Link><Link href="/beast-cage">Beast Cage ↗</Link><Link href="/sol-game">Lost COSMOS ↗</Link><Link href="/try">Other guest options ↗</Link></div>
    </div>
   </div>
   <BeastCareDeck />

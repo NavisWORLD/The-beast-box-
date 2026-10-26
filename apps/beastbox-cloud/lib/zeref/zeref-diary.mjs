@@ -37,7 +37,7 @@ export const STAGES=Object.freeze([
 ]);
 export const XP_PER_TICK=10,XP_PER_COMBO=3,XP_PER_CARE=5,CARE_CAP_PER_TICK=20;
 export const DIARY_LABELS=Object.freeze({
- seed:'Seeded from recorded IBM ibm_marrakesh counts (job db4te7slf4us73c3888g). Not a live quantum link.',
+ seed:'IBM seed RECORDED on IBM hardware (ibm_marrakesh job db4te7slf4us73c3888g, counts never re-run). Not a live quantum link.',
  mind:'Zeref is a game companion with a deterministic mind. Diary lines are generated, not a conscious mind.',
  loop:'Written by the scheduled Zeref diary loop (GitHub Actions), one hash-chained entry per growth step.',
  growth:'Each growth step runs a small circuit on the free Azure Quantum Rigetti QVM simulator (simulated, not hardware). If it fails, the deterministic step runs and the real error is logged.'
