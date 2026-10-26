@@ -10,7 +10,7 @@ export const LIGHT_SOURCES=Object.freeze(['ambient-light-sensor','camera-brightn
 export const CHANNELS=Object.freeze(['light','sound','motion','heart']);
 /** Visible labels. The world is a SIMULATION; only the environment numbers are measured, and only when the sensor really gave them. */
 export const ENV_LABELS=Object.freeze({ibm_seed:'RECORDED',rigetti:'SIMULATED',environment:'MEASURED only when real',world_placement:'SEEDED'});
-export const ENV_NOTE='IBM seed RECORDED · Rigetti SIMULATED · your surroundings MEASURED only when a sensor really reports · where the world places things is SEEDED. Numbers only: never audio, video or a heartbeat waveform.';
+export const ENV_NOTE='IBM seed RECORDED on IBM hardware · Rigetti SIMULATED · your surroundings MEASURED only when a sensor really reports · where the world places things is SEEDED. Numbers only: audio, video and your pulse waveform never leave your phone.';
 const r3=x=>Math.round(x*1000)/1000;
 const num=(v,lo,hi)=>typeof v==='number'&&Number.isFinite(v)&&v>=lo&&v<=hi;
 const KEYS={light:['state','level','source'],sound:['state','level'],motion:['state','level'],heart:['state','bpm','sqi']};
@@ -56,9 +56,9 @@ export function isFresh(numbers,measuredAtMs,nowMs){
 export function seededPhase(label){return seedFrom('environment:'+String(label))/4294967296;}
 /** Plain per-channel words for the panel; says so instead of inventing. */
 export function describeChannel(ch,c){
- const name={light:'Light',sound:'Sound level',motion:'Motion',heart:'Heartbeat'}[ch];
+ const name={light:'Light',sound:'Sound level',motion:'Motion',heart:'Fingertip pulse'}[ch];
  if(!c||c.state==='off')return name+': off';
- if(c.state==='denied')return name+': permission denied, not used';
- if(c.state==='unavailable')return name+': no valid reading on this device, not used';
+ if(c.state==='denied')return name+': permission declined, not used';
+ if(c.state==='unavailable')return ch==='heart'?name+': no valid pulse, not used':name+': no valid reading on this device, not used';
  return ch==='heart'?name+': '+Math.round(c.bpm)+' bpm (measured snapshot)':name+': '+Math.round(c.level*100)+'% (measured)';
 }

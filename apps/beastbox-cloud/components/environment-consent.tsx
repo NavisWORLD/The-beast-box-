@@ -36,19 +36,20 @@ export default function EnvironmentConsent({onClose}:{onClose:()=>void}){
   return()=>{dead=true;stopRef.current?.();stopRef.current=null;};},[env.consent,want,sample]);
  useEffect(()=>()=>{stopRef.current?.();},[]);
  const revoke=async()=>{stopRef.current?.();stopRef.current=null;setWant(none);revokeEnvironmentLocal();setErr('');
-  try{const r=await fetch('/api/environment',{method:'DELETE'});setServer(r.status===200?'Consent revoked and your stored record erased.':r.status===401?'Consent revoked on this device. Nothing was stored.':'Consent revoked on this device; the stored record could not be erased right now.');}catch{setServer('Consent revoked on this device; could not reach the site to erase the stored record.');}};
+  try{const r=await fetch('/api/environment',{method:'DELETE'});setServer(r.status===200?'Stopped. Saved numbers deleted.':r.status===401?'Consent revoked on this device. Nothing was stored.':'Consent revoked on this device; the stored record could not be erased right now.');}catch{setServer('Consent revoked on this device; could not reach the site to erase the stored record.');}};
  const nums=env.numbers as any;
  const row=(k:keyof Want,label:string)=><label style={{display:'flex',gap:8,alignItems:'center',minHeight:40}}><input type="checkbox" checked={want[k]} disabled={!env.consent} onChange={e=>setWant({...want,[k]:e.target.checked})}/>{label}</label>;
  return <div role="dialog" aria-label="My surroundings and the pocket universe" data-environment-consent style={{position:'fixed',left:0,right:0,bottom:0,zIndex:9000,maxHeight:'80vh',overflowY:'auto',boxSizing:'border-box',padding:'14px 14px calc(14px + env(safe-area-inset-bottom))',background:'rgba(12,10,28,.96)',color:'#f2ecff',borderTop:'1px solid rgba(180,160,255,.4)',borderRadius:'16px 16px 0 0',fontSize:14,lineHeight:1.4,pointerEvents:'auto'}}>
-  <div style={{display:'flex',justifyContent:'space-between',gap:8,alignItems:'center'}}><strong>Give the pocket universe life from my surroundings</strong><button type="button" onClick={onClose} aria-label="Close" style={{minWidth:44,minHeight:44}}>✕</button></div>
-  <label style={{display:'flex',gap:8,alignItems:'center',minHeight:44,fontWeight:600}}><input type="checkbox" data-environment-consent-toggle checked={env.consent} onChange={e=>e.target.checked?grantEnvironment():void revoke()}/>I consent (off by default; you can revoke any time)</label>
-  <div style={{opacity:env.consent?1:.55}}>{row('light','Light (ambient light sensor, else a camera brightness number)')}{row('sound','Sound level (one loudness number, no recording)')}{row('motion','Motion (device movement level)')}
-   <div style={{minHeight:32}}>Heartbeat: {getHeartNumbers(Date.now())?'your last valid IBM BIO pulse, bpm and quality only':'no valid pulse, not used (take one in IBM BIO)'}</div></div>
-  {env.consent?<ul style={{margin:'6px 0',paddingLeft:18}}>{CHANNELS.map(c=><li key={c}>{describeChannel(c,nums?.[c])}</li>)}</ul>:null}
+  <div style={{display:'flex',justifyContent:'space-between',gap:8,alignItems:'center'}}><strong>Give your universe more life</strong><button type="button" onClick={onClose} aria-label="Close" style={{minWidth:44,minHeight:44}}>✕</button></div>
+  <label style={{display:'flex',gap:8,alignItems:'center',minHeight:44,fontWeight:600}}><input type="checkbox" data-environment-consent-toggle checked={env.consent} onChange={e=>e.target.checked?grantEnvironment():void revoke()}/>I consent to sharing my world&apos;s signals (off until you turn it on; stop any time)</label>
+  <div style={{opacity:env.consent?1:.55}}>{row('light','Light level: room brightness. Uses your phone\u2019s light sensor, or the camera if it has none.')}{row('sound','Sound level: uses the microphone. Loudness only, no recording.')}{row('motion','Device motion: how your phone moves.')}
+   <div style={{minHeight:32}}>Fingertip pulse (read on the IBM BIO page, not here): {getHeartNumbers(Date.now())?'your last valid pulse, beats per minute and quality only':'No valid pulse, not used (take one in IBM BIO)'}</div></div>
+  {env.consent?<ul style={{margin:'6px 0',paddingLeft:18}}>{CHANNELS.map(c=><li key={c}>{c!=='heart'&&want[c as keyof Want]&&(!nums?.[c]||nums[c].state==='off')?(c==='light'?'Light':c==='sound'?'Sound level':'Motion')+': waiting for permission':c==='heart'&&nums?.[c]?.state!=='MEASURED'?'Fingertip pulse: No valid pulse':describeChannel(c,nums?.[c])}</li>)}</ul>:null}
   {err?<p role="alert" style={{color:'#ffb3b3',margin:'4px 0'}}>{err}</p>:null}
   <p style={{margin:'6px 0',opacity:.9}}>{ENV_NOTE}</p>
   <p style={{margin:'6px 0'}}>{server}</p>
-  <p style={{margin:'6px 0',opacity:.8}}>Your numbers tilt the same four sand wells the Rigetti-simulated receipt already weights. The world is a simulation; your surroundings are not simulated, and nothing is invented when a sensor says no.</p>
-  <button type="button" data-environment-revoke onClick={()=>void revoke()} style={{minHeight:44,width:'100%'}}>Revoke and erase my stored numbers</button>
+  <p style={{margin:'6px 0',opacity:.8}}>Each signal has its own switch. Only numbers made from your readings are kept (a level or a beats-per-minute value), saved privately for you when you are signed in. Your numbers tilt the same four sand wells the Rigetti receipt (SIMULATED) already weights, on top of the IBM seed (RECORDED on IBM hardware). Nothing about your surroundings runs on quantum hardware, and nothing is invented when a sensor says no.</p>
+  <button type="button" data-environment-revoke onClick={()=>void revoke()} style={{minHeight:44,width:'100%'}}>Stop sharing</button>
+  <p style={{margin:'6px 0',opacity:.8}}>Stop sharing ends all reading right away and deletes the numbers saved for you.</p>
  </div>;
 }
