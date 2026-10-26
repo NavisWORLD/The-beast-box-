@@ -56,6 +56,7 @@ jobs:
           python tests/world_menu_browser.py http://127.0.0.1:3100
           python tests/phone_look_browser.py http://127.0.0.1:3100
           python tests/home_dock_browser.py http://127.0.0.1:3100
+          python tests/desktop_floaters_browser.py http://127.0.0.1:3100
         env:
           BEASTBOX_OWNER_PASSWORD: public-ci-visual-fixture-not-a-real-password
           BEASTBOX_CLOUD_AUTH_SECRET: public-ci-cosmic-preview-fixture-32-chars-long
