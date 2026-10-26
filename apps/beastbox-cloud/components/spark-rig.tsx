@@ -102,7 +102,7 @@ export default function SparkRig({gen,id,name,stats,state,reduced,channel='habit
  },[state]);
 
  return <svg ref={svgRef} className={className} viewBox="0 0 400 400" fill="none" data-beast-sprite="true" data-rig={zeref?'zeref':'genome'}
-   role="img" aria-label={`${name} · ${zeref?'Zeref Moonwraith rig':'creature rig tinted from its recorded genome'}`}>
+   role="img" aria-label={`${name} · ${zeref?'Zeref in 3D rig':'creature rig tinted from its recorded genome'}`}>
   <g ref={growRef}><ZerefFigure id={uid} skin={skin}/></g>
  </svg>;
 }
