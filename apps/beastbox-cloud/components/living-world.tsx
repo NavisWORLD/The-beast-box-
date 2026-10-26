@@ -7,6 +7,7 @@
  * (Cosmo's art pack) with a touch joystick + WASD and a third-person camera.
  */
 import {useEffect,useRef,useState} from 'react';
+import {useCageCreature} from './use-cage-creature';
 import {createPortal} from 'react-dom';
 import {grow} from '@/lib/universe/tiny-universe.mjs';
 import {worldThings,THING_LESSON,biomeParams,biomeAt,BIOME_PROPS,BIOME_FEEL,BIOME_NAMES,lwStream as lwS} from '@/lib/universe/living-world.mjs';
@@ -79,6 +80,7 @@ const TRAV_H=.5;      // traveler height
 type Traits={curiosity:number;sociality:number;calm:number;joy:number;experiences:number};
 export default function LivingWorld({genome,beastKey,beastName,onClose,embedded=false,onExpand,door=false,onOrbitOut,menuHost=null,infoHost=null}:{menuHost?:HTMLElement|null;infoHost?:HTMLElement|null;genome?:PlushGenome|null;beastKey?:string|null;beastName?:string|null;onClose?:()=>void;embedded?:boolean;onExpand?:()=>void;door?:boolean;onOrbitOut?:()=>void}){
  // door: mounted inside /universe as the pocket world's end of the one continuous zoom (orbit view, no storage, no full-screen takeover)
+ const [creatureOn]=useCageCreature();const creatureRef=useRef(creatureOn);creatureRef.current=creatureOn;
  const orbitOutRef=useRef(onOrbitOut);orbitOutRef.current=onOrbitOut;const [beachCam,setBeachCam]=useState(false);const seaJump=useRef(0);const beachCamRef=useRef(false);beachCamRef.current=beachCam;
  const host=useRef<HTMLDivElement>(null);const hudBiome=useRef<HTMLSpanElement>(null);const hudSea=useRef<HTMLSpanElement>(null);const hudVL=useRef<HTMLSpanElement>(null);const hudGN=useRef<HTMLSpanElement>(null);const hudHome=useRef<HTMLSpanElement>(null);const hudGNx=useRef<HTMLParagraphElement>(null);const canvasRef=useRef<HTMLCanvasElement>(null);
  const [spawned,setSpawned]=useState(()=>{if(embedded||door)return false;try{return sessionStorage.getItem('lw:spawned')==='1';}catch{return false;}});const [watch,setWatch]=useState(embedded);const watchRef=useRef(false);watchRef.current=watch;const spawnRef=useRef(false);
@@ -500,7 +502,7 @@ uniform vec3 uPlay[8];
     const tpd=(e:PointerEvent)=>{t0={x:e.clientX,y:e.clientY,t:performance.now()};};
     const tpu=(e:PointerEvent)=>{const d=t0;t0=null;if(!d||Math.hypot(e.clientX-d.x,e.clientY-d.y)>8||performance.now()-d.t>450)return;
      const rc=canvas.getBoundingClientRect();tapNdc.set((e.clientX-rc.left)/rc.width*2-1,-(e.clientY-rc.top)/rc.height*2+1);tapRay.setFromCamera(tapNdc,camera);
-     if(plush&&tapRay.intersectObject(beastNode,true).length){window.dispatchEvent(new CustomEvent('beastbox:look-closer',{detail:{id:'beast'}}));return;}
+     if(plush&&beastNode.visible&&tapRay.intersectObject(beastNode,true).length){window.dispatchEvent(new CustomEvent('beastbox:look-closer',{detail:{id:'beast'}}));return;}
      // a tap on an artist resident: its approved 'tap' voice line (seeded by world seed + tap count); no line, no change
      for(const r of residents as any[]){if(r.node&&tapRay.intersectObject(r.node,true).length){const vk=(RESIDENT_LIFE_KEY as any)[r.name];const vl=vk?creatureVoice(vk,'tap',String(u.seed),++voiceN):null;if(vl){r.hopT=0;lineRef.current(r.name+': '+vl);evCool=3;return;}}}
      // a tap on a landscape: its authored tap line (active beast + place name), view state only
@@ -618,7 +620,7 @@ uniform vec3 uPlay[8];
      }};
    })();
    let fpsT=0,fpsN=0,fps=0,last=performance.now(),t=0,hudT=0;let skyStarA=-1;const camTarget=new THREE.Vector3(),camPos=new THREE.Vector3(0,6,22);const cW=new THREE.Vector3(),cT=new THREE.Vector3(),cN=new THREE.Vector3(0,1,0),camLook=new THREE.Vector3();
-   const frame=()=>{raf=requestAnimationFrame(frame);const now=performance.now();const dt=Math.min(.05,(now-last)/1000);last=now;t+=dt;UG.uT.value=t;if(field)UG.uSeaT.value=(field.tick+field.clock.alpha)/4;
+   const frame=()=>{raf=requestAnimationFrame(frame);beastNode.visible=creatureRef.current;const now=performance.now();const dt=Math.min(.05,(now-last)/1000);last=now;t+=dt;UG.uT.value=t;if(field)UG.uSeaT.value=(field.tick+field.clock.alpha)/4;
     fpsT+=dt;fpsN++;if(fpsT>=3){fps=fpsN/fpsT;fpsT=0;fpsN=0;if(fps<48&&bladeCap>2000){bladeCap=Math.floor(bladeCap*.75);bladeGeo.instanceCount=bladeCap;}(window as any).__lwPerf={fps:+fps.toFixed(1),blades:bladeCap};}
     tickAcc+=dt;if(tickAcc>=TICK_S){tickAcc=0;applyTick();}
     {let a=(((Date.now()/1000+((window as any).__lwDayOffset||0))%DAY_S+DAY_S)%DAY_S)/DAY_S*Math.PI*2;if(HOLD){if(hz.a===null)hz.a=a;a=hz.a;}sunDir.set(Math.cos(a),.35*Math.sin(a*.5+1),Math.sin(a)).normalize();UG.uSun.value.copy(sunDir);{const sSrc=sunSource({field,override:HOLD||(window as any).__lwDayOffset!==undefined});if(sSrc.dir)sunDir.set(sSrc.dir[0],sSrc.dir[1],sSrc.dir[2]).normalize();(window as any).__lwSunSource=sSrc.source;UG.uSun.value.copy(sunDir);}

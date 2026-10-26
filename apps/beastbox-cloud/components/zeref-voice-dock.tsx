@@ -19,14 +19,17 @@ export default function ZerefVoiceDock(){
  const [music,setMusic]=useState<any>(null);const musicRef=useRef<any>(null);
  useEffect(()=>{fetch('/spark/zeref-music.json').then(r=>r.ok?r.json():null).then(m=>{if(m?.songs?.length){musicRef.current=m;setMusic(m);}}).catch(()=>{});},[]);
  const lastActivity=useRef(Date.now()),busy=useRef(false),prefsRef=useRef<Prefs|null>(null);
- const save=(p:Prefs)=>{prefsRef.current=p;setPrefs(p);writePrefs(localStorage,p);};
+ const save=(p:Prefs)=>{prefsRef.current=p;setPrefs(p);writePrefs(localStorage,p);try{window.dispatchEvent(new CustomEvent('beastbox:voice-prefs',{detail:{voice:!!p.voice,reachOut:!!p.reachOut}}));}catch{}};
  useEffect(()=>{const p=readPrefs(localStorage) as Prefs;prefsRef.current=p;setPrefs(p);
   const tap=()=>{const cur=prefsRef.current;if(cur&&!cur.armed)save(armOnFirstTap(cur) as Prefs);};
   const act=()=>{lastActivity.current=Date.now();};
   const speak=(e:Event)=>{const d=(e as CustomEvent).detail||{};const cur=prefsRef.current;if(cur?.voice&&cur.armed&&d.text)speakSeeded(d.text,voiceProfile(d.seed||ZEREF_VOICE_SEED,d.emotions||null));};
   window.addEventListener('pointerdown',tap,{once:false});window.addEventListener('keydown',act);window.addEventListener('pointerdown',act);window.addEventListener('zeref:speak',speak);
+  // The one quick-buttons dock (site-dock.tsx) flips these two switches through this event so there is a single source of truth.
+  const flip=(e:Event)=>{const k=(e as CustomEvent).detail?.key;const cur=prefsRef.current;if(!cur)return;if(k==='voice')save({...cur,armed:true,voice:!cur.voice,mutedByUser:cur.voice} as Prefs);else if(k==='reachOut')save({...cur,reachOut:!cur.reachOut} as Prefs);};
+  window.addEventListener('beastbox:voice-pref',flip);
   const timer=setInterval(()=>void tick(),autonomyTickMs(HEART_FALLBACK,12));
-  return ()=>{clearInterval(timer);window.removeEventListener('pointerdown',tap);window.removeEventListener('keydown',act);window.removeEventListener('pointerdown',act);window.removeEventListener('zeref:speak',speak);};
+  return ()=>{clearInterval(timer);window.removeEventListener('pointerdown',tap);window.removeEventListener('keydown',act);window.removeEventListener('pointerdown',act);window.removeEventListener('zeref:speak',speak);window.removeEventListener('beastbox:voice-pref',flip);};
  // eslint-disable-next-line react-hooks/exhaustive-deps
  },[]);
  async function tick(){
