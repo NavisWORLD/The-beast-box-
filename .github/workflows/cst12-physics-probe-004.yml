@@ -1,0 +1,315 @@
+name: CST12 Physics Probe 004
+
+on:
+  push:
+    branches: [cst12-physics-probe-004]
+    paths:
+      - 'beastbox/cst12_physics_probe_004.py'
+      - 'scripts/*cst12_physics_probe_004*'
+      - 'tests/test_cst12_physics_probe_004*'
+      - 'experiments/cst12-physics-probe-004/**'
+      - 'docs/superpowers/specs/2026-08-24-cst12-physics-probe-004*'
+      - 'docs/superpowers/plans/2026-08-24-cst12-physics-probe-004.md'
+      - '.github/workflows/cst12-physics-probe-004.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'beastbox/cst12_physics_probe_004.py'
+      - 'scripts/*cst12_physics_probe_004*'
+      - 'tests/test_cst12_physics_probe_004*'
+      - 'experiments/cst12-physics-probe-004/**'
+      - 'docs/superpowers/specs/2026-08-24-cst12-physics-probe-004*'
+      - 'docs/superpowers/plans/2026-08-24-cst12-physics-probe-004.md'
+      - '.github/workflows/cst12-physics-probe-004.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cst12-probe004-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  prehardware:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    permissions:
+      contents: read
+    outputs:
+      approved: ${{ steps.gate.outputs.approved }}
+      prereg_ready: ${{ steps.gate.outputs.prereg_ready }}
+      freeze_sha: ${{ steps.gate.outputs.freeze_sha }}
+      prereg_sha: ${{ steps.gate.outputs.prereg_sha }}
+    steps:
+      - name: Checkout exact Probe 004 head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install Probe 004 dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e '.[dev,quantum,ml]'
+      - name: Checkout pinned corrected CST source
+        uses: actions/checkout@v4
+        with:
+          repository: NavisWORLD/The-Cosmic-Davis-12D-Hebbian-Transformer-ver.4.2
+          ref: 0e2bca3895bd40243cc12a9d64ad119544759f95
+          path: _cst_source
+      - name: Verify corrected CST source commit
+        working-directory: _cst_source
+        run: test "$(git rev-parse HEAD)" = "0e2bca3895bd40243cc12a9d64ad119544759f95"
+      - name: Run every Probe 004 contract and Probe 003 regression contract
+        env:
+          CST12_CORRECTED_SOURCE_ROOT: ${{ github.workspace }}/_cst_source
+        run: |
+          pytest -q tests/test_cst12_physics_probe_004*.py
+          pytest -q tests/test_cst12_physics_probe_003*.py
+      - name: Resolve frozen preregistration and post-hash approval gate
+        id: gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          PREREG_DIR='experiments/cst12-physics-probe-004/preregistered-v1'
+          if [[ -s "$PREREG_DIR/preregistration.json" && -s "$PREREG_DIR/PREREGISTRATION_SHA256" ]]; then
+            prereg_ready=true
+            freeze_sha="$(python - <<'PY'
+          import json
+          from pathlib import Path
+          p=json.loads(Path('experiments/cst12-physics-probe-004/preregistered-v1/preregistration.json').read_text())
+          print(p['implementation_freeze_commit'])
+          PY
+          )"
+            prereg_sha="$(cat "$PREREG_DIR/PREREGISTRATION_SHA256")"
+          else
+            prereg_ready=false
+            freeze_sha="$(git rev-parse HEAD)"
+            prereg_sha=""
+          fi
+          approved=false
+          if [[ -f experiments/cst12-physics-probe-004/RUN_APPROVED_V1.json ]]; then
+            if [[ "$prereg_ready" != true ]]; then
+              echo 'RUN_APPROVED_V1.json exists without a frozen Probe 004 preregistration' >&2
+              exit 1
+            fi
+            python - <<'PY'
+          import json
+          from pathlib import Path
+          from scripts.run_cst12_physics_probe_004_ibm import validate_hardware_approval
+          root=Path('experiments/cst12-physics-probe-004')
+          p=json.loads((root/'preregistered-v1/preregistration.json').read_text())
+          sha=(root/'preregistered-v1/PREREGISTRATION_SHA256').read_text().strip()
+          approval=json.loads((root/'RUN_APPROVED_V1.json').read_text())
+          validate_hardware_approval(approval, prereg_sha=sha, freeze_sha=p['implementation_freeze_commit'])
+          PY
+            approved=true
+          fi
+          echo "prereg_ready=$prereg_ready" >> "$GITHUB_OUTPUT"
+          echo "freeze_sha=$freeze_sha" >> "$GITHUB_OUTPUT"
+          echo "prereg_sha=$prereg_sha" >> "$GITHUB_OUTPUT"
+          echo "approved=$approved" >> "$GITHUB_OUTPUT"
+      - name: Prove scientific implementation unchanged after Probe 004 freeze
+        if: steps.gate.outputs.prereg_ready == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          FREEZE='${{ steps.gate.outputs.freeze_sha }}'
+          git merge-base --is-ancestor "$FREEZE" HEAD
+          git diff --exit-code "$FREEZE"..HEAD -- \
+            beastbox/cst12_physics_probe_004.py \
+            scripts/build_cst12_physics_probe_003_state.py \
+            scripts/preflight_cst12_physics_probe_004.py \
+            scripts/make_cst12_physics_probe_004_preregistration.py \
+            scripts/run_cst12_physics_probe_004_ibm.py \
+            scripts/analyze_cst12_physics_probe_004.py \
+            tests/test_cst12_physics_probe_004*.py \
+            .github/workflows/cst12-physics-probe-004.yml \
+            docs/superpowers/specs/2026-08-24-cst12-physics-probe-004-trinity-reprojection-design.md \
+            docs/superpowers/plans/2026-08-24-cst12-physics-probe-004.md
+      - name: Rebuild exact sealed Probe 003 canonical 66-value state
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p _probe004_generated
+          SEED_ROOT="$(python - <<'PY'
+          import json
+          from pathlib import Path
+          p=json.loads(Path('experiments/cst12-physics-probe-003/preregistered-v2/state-packet.json').read_text())
+          print(p['seed_root'])
+          PY
+          )"
+          python scripts/build_cst12_physics_probe_003_state.py \
+            --source-root _cst_source \
+            --seed-root "$SEED_ROOT" \
+            --output _probe004_generated/state-packet.json
+          cmp _probe004_generated/state-packet.json experiments/cst12-physics-probe-003/preregistered-v2/state-packet.json
+          test "$(python - <<'PY'
+          import json
+          from pathlib import Path
+          p=json.loads(Path('_probe004_generated/state-packet.json').read_text())
+          print(p['bridge_packet_sha256'])
+          PY
+          )" = '31b7bc1b4afbf05db49360776d52eafeda69830f36694f789951293338c47e21'
+      - name: Run exact-QM and 10,000 noisy Trinity null experiments
+        run: |
+          python scripts/preflight_cst12_physics_probe_004.py \
+            --state _probe004_generated/state-packet.json \
+            --implementation-freeze '${{ steps.gate.outputs.freeze_sha }}' \
+            --datasets 10000 \
+            --randomizations 100000 \
+            --out _probe004_generated/preflight-receipt.json
+      - name: Build Probe 004 preregistration twice byte-identically
+        run: |
+          python scripts/make_cst12_physics_probe_004_preregistration.py \
+            --state _probe004_generated/state-packet.json \
+            --preflight _probe004_generated/preflight-receipt.json \
+            --implementation-freeze '${{ steps.gate.outputs.freeze_sha }}' \
+            --out _probe004_generated/preregistration.json \
+            --sha-out _probe004_generated/PREREGISTRATION_SHA256
+          mkdir -p _probe004_rebuild
+          python scripts/make_cst12_physics_probe_004_preregistration.py \
+            --state _probe004_generated/state-packet.json \
+            --preflight _probe004_generated/preflight-receipt.json \
+            --implementation-freeze '${{ steps.gate.outputs.freeze_sha }}' \
+            --out _probe004_rebuild/preregistration.json \
+            --sha-out _probe004_rebuild/PREREGISTRATION_SHA256
+          cmp _probe004_generated/preregistration.json _probe004_rebuild/preregistration.json
+          cmp _probe004_generated/PREREGISTRATION_SHA256 _probe004_rebuild/PREREGISTRATION_SHA256
+      - name: Verify committed Probe 004 preregistration bytes
+        if: steps.gate.outputs.prereg_ready == 'true'
+        run: |
+          cmp _probe004_generated/state-packet.json experiments/cst12-physics-probe-004/preregistered-v1/state-packet.json
+          cmp _probe004_generated/preflight-receipt.json experiments/cst12-physics-probe-004/preregistered-v1/preflight-receipt.json
+          cmp _probe004_generated/preregistration.json experiments/cst12-physics-probe-004/preregistered-v1/preregistration.json
+          cmp _probe004_generated/PREREGISTRATION_SHA256 experiments/cst12-physics-probe-004/preregistered-v1/PREREGISTRATION_SHA256
+      - name: Upload Probe 004 prehardware freeze bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: cst12-probe004-v1-prehardware-${{ steps.gate.outputs.freeze_sha }}
+          path: _probe004_generated/
+          if-no-files-found: error
+
+  freeze-preregistration:
+    needs: prehardware
+    if: github.event_name == 'push' && needs.prehardware.outputs.prereg_ready == 'false'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: cst12-physics-probe-004
+          fetch-depth: 0
+      - uses: actions/download-artifact@v4
+        with:
+          name: cst12-probe004-v1-prehardware-${{ needs.prehardware.outputs.freeze_sha }}
+          path: _probe004_generated
+      - name: Verify branch has not moved since implementation freeze
+        run: test "$(git rev-parse HEAD)" = '${{ needs.prehardware.outputs.freeze_sha }}'
+      - name: Commit exact Probe 004 preregistration bundle
+        run: |
+          mkdir -p experiments/cst12-physics-probe-004/preregistered-v1
+          cp _probe004_generated/state-packet.json experiments/cst12-physics-probe-004/preregistered-v1/state-packet.json
+          cp _probe004_generated/preflight-receipt.json experiments/cst12-physics-probe-004/preregistered-v1/preflight-receipt.json
+          cp _probe004_generated/preregistration.json experiments/cst12-physics-probe-004/preregistered-v1/preregistration.json
+          cp _probe004_generated/PREREGISTRATION_SHA256 experiments/cst12-physics-probe-004/preregistered-v1/PREREGISTRATION_SHA256
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add experiments/cst12-physics-probe-004/preregistered-v1
+          git commit -m 'experiment: freeze CST12 Physics Probe 004 v1 preregistration'
+          git push origin HEAD:cst12-physics-probe-004
+
+  hardware:
+    needs: prehardware
+    if: github.event_name == 'push' && needs.prehardware.outputs.approved == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 480
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install real-hardware dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e '.[dev,quantum]'
+      - name: Reverify exact post-preregistration approval and scientific freeze
+        run: |
+          set -euo pipefail
+          test -s experiments/cst12-physics-probe-004/RUN_APPROVED_V1.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from scripts.run_cst12_physics_probe_004_ibm import validate_hardware_approval
+          root=Path('experiments/cst12-physics-probe-004')
+          p=json.loads((root/'preregistered-v1/preregistration.json').read_text())
+          sha=(root/'preregistered-v1/PREREGISTRATION_SHA256').read_text().strip()
+          approval=json.loads((root/'RUN_APPROVED_V1.json').read_text())
+          validate_hardware_approval(approval, prereg_sha=sha, freeze_sha=p['implementation_freeze_commit'])
+          print(p['implementation_freeze_commit'])
+          PY
+          FREEZE="$(python - <<'PY'
+          import json
+          from pathlib import Path
+          p=json.loads(Path('experiments/cst12-physics-probe-004/preregistered-v1/preregistration.json').read_text())
+          print(p['implementation_freeze_commit'])
+          PY
+          )"
+          git diff --exit-code "$FREEZE"..HEAD -- \
+            beastbox/cst12_physics_probe_004.py \
+            scripts/build_cst12_physics_probe_003_state.py \
+            scripts/preflight_cst12_physics_probe_004.py \
+            scripts/make_cst12_physics_probe_004_preregistration.py \
+            scripts/run_cst12_physics_probe_004_ibm.py \
+            scripts/analyze_cst12_physics_probe_004.py \
+            tests/test_cst12_physics_probe_004*.py \
+            .github/workflows/cst12-physics-probe-004.yml \
+            docs/superpowers/specs/2026-08-24-cst12-physics-probe-004-trinity-reprojection-design.md \
+            docs/superpowers/plans/2026-08-24-cst12-physics-probe-004.md
+      - name: Run all 6,815,744 planned IBM hardware shots
+        env:
+          IBM_QUANTUM_TOKEN: ${{ secrets.IBM_QUANTUM_TOKEN }}
+          IBM_QUANTUM_INSTANCE: ${{ secrets.IBM_QUANTUM_INSTANCE }}
+        run: |
+          python scripts/run_cst12_physics_probe_004_ibm.py \
+            --prereg experiments/cst12-physics-probe-004/preregistered-v1/preregistration.json \
+            --prereg-sha-file experiments/cst12-physics-probe-004/preregistered-v1/PREREGISTRATION_SHA256 \
+            --state experiments/cst12-physics-probe-004/preregistered-v1/state-packet.json \
+            --approval experiments/cst12-physics-probe-004/RUN_APPROVED_V1.json \
+            --out experiments/cst12-physics-probe-004
+      - name: Analyze only after all IBM jobs are complete
+        run: |
+          python scripts/analyze_cst12_physics_probe_004.py \
+            --experiment-root experiments/cst12-physics-probe-004 \
+            --prereg experiments/cst12-physics-probe-004/preregistered-v1/preregistration.json \
+            --prereg-sha-file experiments/cst12-physics-probe-004/preregistered-v1/PREREGISTRATION_SHA256 \
+            --state experiments/cst12-physics-probe-004/preregistered-v1/state-packet.json \
+            --preflight experiments/cst12-physics-probe-004/preregistered-v1/preflight-receipt.json
+      - name: Verify sealed root evidence checksums
+        working-directory: experiments/cst12-physics-probe-004
+        run: sha256sum -c SHA256SUMS
+      - name: Upload complete sealed evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: cst12-physics-probe-004-v1-${{ github.run_id }}
+          path: experiments/cst12-physics-probe-004/
+          if-no-files-found: error
+      - name: Seal evidence back to branch without recursion
+        run: |
+          REMOTE_HEAD="$(git ls-remote origin refs/heads/cst12-physics-probe-004 | cut -f1)"
+          test "$REMOTE_HEAD" = "$(git rev-parse HEAD)"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add experiments/cst12-physics-probe-004
+          git commit -m "evidence: seal CST12 Physics Probe 004 v1 run ${{ github.run_id }} [skip ci]"
+          git push origin HEAD:cst12-physics-probe-004
