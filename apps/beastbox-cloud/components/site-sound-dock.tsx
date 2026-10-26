@@ -45,11 +45,11 @@ export default function SiteSoundDock(){
  }
  return <aside className={styles.dock+(pathname.startsWith("/workspace")?" "+styles.workspace:"")+(room==="game"?" "+styles.game:"")} data-sound-room={room} aria-label="Cosmic sound controls" data-site-sound={soundOn?'on':'off'}>
   <div className={styles.compact}>
-   <button type="button" className={styles.main} onClick={toggle} aria-pressed={soundOn}
+   <button type="button" className={styles.main} onClick={toggle} aria-pressed={soundOn} title={soundOn?'Sound on (tap to mute)':'Sound off (tap to turn on)'}
     aria-label={!soundOn?'Enable sound throughout Beast Box':!audible?'Activate Beast Box sound with a test chirp':'Mute the entire Beast Box site'}>
     {soundOn?<Volume2 size={19}/>:<VolumeX size={19}/>}<span>{!soundOn?'SOUND OFF':audible?'SOUND ON':'TAP FOR SOUND'}</span>
    </button>
-   <button type="button" className={styles.settings} onClick={()=>setOpen(value=>!value)}
+   <button type="button" className={styles.settings} onClick={()=>setOpen(value=>!value)} title="Music and volume"
     aria-label={open?'Close sound options':'Open sound options'} aria-expanded={open} aria-controls="cosmos-sound-options">
     {open?<X size={18}/>:<Music2 size={18}/>}
    </button>
