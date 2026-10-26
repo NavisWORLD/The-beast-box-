@@ -23,6 +23,10 @@ const PALETTE = {
   },
 };
 
+// Lilac membrane + deep-indigo bones (Studio's wing reference), per kind, so the sheet reads on both palettes.
+const WING_LILAC = {'moonwraith-artistic': 0x9a6be0, 'dragonling-artistic': 0x9a6be0};
+const WING_BONE = {'moonwraith-artistic': 0x3b2a8a, 'dragonling-artistic': 0x3b2a8a};
+
 export function dimensionalKind({id} = {}) {
   if (id === MOONWRAITH_DISPLAY_ID) return 'moonwraith-artistic';
   if (id === SAVED_ZEREF_ID) return 'dragonling-artistic';
@@ -75,15 +79,127 @@ function put(parent, mesh, name, x, y, z, scale) {
   return mesh;
 }
 
-function wingShape(THREE, span, lift) {
-  const shape = new THREE.Shape();
-  shape.moveTo(0, 0);
-  shape.bezierCurveTo(span * 0.25, lift, span * 0.7, lift * 1.15, span, lift * 0.35);
-  shape.lineTo(span * 0.82, -lift * 0.15);
-  shape.lineTo(span * 0.42, -lift * 0.45);
-  shape.lineTo(0.02, -0.06);
-  shape.closePath();
-  return new THREE.ExtrudeGeometry(shape, {depth: 0.055, bevelEnabled: true, bevelThickness: 0.012, bevelSize: 0.012, bevelSegments: 1});
+/**
+ * Wing = real membrane on a bone frame, never an extruded slab: a thick arm bone with a round shoulder joint, four round finger rods
+ * that taper to the tip (same fan as the artist's wing reference), and a thin, slightly cupped membrane with veins stretched between
+ * them. The rods sweep back in depth, so a side-on view still shows the arm, the rods and the bowed sheet. Pure geometry, no randomness.
+ * Wing frame: +x out from the shoulder, +y up, +z forward; the caller mirrors it for the other side.
+ */
+export function wingFrame(span, lift) {
+  const wrist = [span * 0.34, lift * 1.0, 0.06];
+  const tips = [[span, lift * 0.3, 0.0], [span * 0.82, -lift * 0.22, -0.11], [span * 0.54, -lift * 0.56, -0.24], [span * 0.12, -lift * 0.36, -0.38]];
+  return {shoulder: [0, 0, 0], wrist, tips, cup: Math.min(0.1, span * 0.15), sag: 0.2};
+}
+
+function wingPoint(frame, k, u, v) {
+  // k = panel index (0..3): panels 0-2 lie between finger rays k and k+1, panel 3 between the last finger and the shoulder edge.
+  const a = frame.tips[k];
+  const b = k < 3 ? frame.tips[k + 1] : frame.shoulder;
+  const w = frame.wrist;
+  const qx = a[0] + (b[0] - a[0]) * v, qy = a[1] + (b[1] - a[1]) * v, qz = a[2] + (b[2] - a[2]) * v;
+  const scallop = u >= 0.999 ? 1 - frame.sag * Math.sin(Math.PI * v) : 1 - frame.sag * Math.sin(Math.PI * v) * u * u;
+  const bow = -frame.cup * Math.sin(Math.PI * v) * u;
+  return [w[0] + (qx - w[0]) * u * scallop, w[1] + (qy - w[1]) * u * scallop, w[2] + (qz - w[2]) * u + bow];
+}
+
+function wingMembraneGeometry(THREE, frame, rows, cols) {
+  const pos = [];
+  const idx = [];
+  for (let k = 0; k < 4; k++) {
+    const base = pos.length / 3;
+    for (let r = 0; r <= rows; r++) {
+      for (let c = 0; c <= cols; c++) pos.push(...wingPoint(frame, k, r / rows, c / cols));
+    }
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const i = base + r * (cols + 1) + c;
+        idx.push(i, i + cols + 1, i + 1, i + 1, i + cols + 1, i + cols + 2);
+      }
+    }
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  geo.setIndex(idx);
+  geo.computeVertexNormals();
+  return geo;
+}
+
+function wingVeinGeometry(THREE, frame) {
+  const pos = [];
+  const lift = 0.004;
+  const seg = (p, q) => pos.push(p[0], p[1], p[2] + lift, q[0], q[1], q[2] + lift);
+  for (let k = 0; k < 4; k++) {
+    for (const v of [0.35, 0.65]) {
+      let prev = wingPoint(frame, k, 0.08, v);
+      for (let s = 2; s <= 8; s++) {
+        const cur = wingPoint(frame, k, s / 8, v);
+        seg(prev, cur);
+        prev = cur;
+      }
+    }
+    for (const u of [0.45, 0.72]) {
+      let prev = wingPoint(frame, k, u, 0.18);
+      for (let s = 1; s <= 5; s++) {
+        const cur = wingPoint(frame, k, u, 0.18 + (0.64 * s) / 5);
+        seg(prev, cur);
+        prev = cur;
+      }
+    }
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  return geo;
+}
+
+/** One round, tapered rod from a to b (radius r0 at a, r1 at b). */
+function wingRod(THREE, geometries, material, a, b, r0, r1, radial, name) {
+  const dir = new THREE.Vector3(b[0] - a[0], b[1] - a[1], b[2] - a[2]);
+  const len = dir.length();
+  const geo = new THREE.CylinderGeometry(r1, r0, len, radial, 1, false);
+  geometries.push(geo);
+  const mesh = new THREE.Mesh(geo, material);
+  mesh.name = name;
+  mesh.position.set((a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2);
+  mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.normalize());
+  mesh.userData.rod = {radiusRoot: r0, radiusTip: r1, length: len};
+  return mesh;
+}
+
+function buildWing(THREE, {span, lift, low, boneMat, membraneMat, veinMat, joinMat, geometries, side}) {
+  const frame = wingFrame(span, lift);
+  const group = new THREE.Group();
+  group.name = side < 0 ? 'WingMesh_L' : 'WingMesh_R';
+  group.userData.wingFrame = frame;
+  const radial = low ? 6 : 10;
+  const membrane = new THREE.Mesh(wingMembraneGeometry(THREE, frame, low ? 3 : 5, low ? 4 : 7), membraneMat);
+  geometries.push(membrane.geometry);
+  membrane.name = 'WingMembrane';
+  group.add(membrane);
+  const veins = new THREE.LineSegments(wingVeinGeometry(THREE, frame), veinMat);
+  geometries.push(veins.geometry);
+  veins.name = 'WingVeins';
+  group.add(veins);
+  // arm bone: thick at the shoulder, thinner at the wrist, bowed a little so it reads as an arm, not a stick
+  const elbow = [frame.wrist[0] * 0.5, frame.wrist[1] * 0.78, 0.1];
+  group.add(wingRod(THREE, geometries, boneMat, frame.shoulder, elbow, 0.052, 0.04, radial, 'WingArm_a'));
+  group.add(wingRod(THREE, geometries, boneMat, elbow, frame.wrist, 0.04, 0.032, radial, 'WingArm_b'));
+  frame.tips.forEach((tip, i) => {
+    const w = frame.wrist;
+    const mid = [w[0] + (tip[0] - w[0]) * 0.5, w[1] + (tip[1] - w[1]) * 0.5, w[2] + (tip[2] - w[2]) * 0.5 - frame.cup * 0.35];
+    const r0 = 0.03 - i * 0.002;
+    group.add(wingRod(THREE, geometries, boneMat, w, mid, r0, r0 * 0.7, radial, 'WingFinger_' + i + 'a'));
+    group.add(wingRod(THREE, geometries, boneMat, mid, tip, r0 * 0.7, 0.011, radial, 'WingFinger_' + i + 'b'));
+  });
+  const shoulder = new THREE.Mesh(new THREE.SphereGeometry(0.066, low ? 8 : 14, low ? 6 : 10), joinMat);
+  geometries.push(shoulder.geometry);
+  shoulder.name = 'WingShoulder';
+  group.add(shoulder);
+  const knuckle = new THREE.Mesh(new THREE.SphereGeometry(0.046, low ? 8 : 12, low ? 6 : 8), joinMat);
+  geometries.push(knuckle.geometry);
+  knuckle.name = 'WingWrist';
+  knuckle.position.set(...frame.wrist);
+  group.add(knuckle);
+  return group;
 }
 
 /**
@@ -107,14 +223,19 @@ export function buildDimensionalRig(THREE, kind, {quality = 'auto'} = {}) {
   const accent = trackMat(material(THREE, colors.accent, {emissive: colors.accent, emissiveIntensity: moon ? 0.35 : 0.22, roughness: 0.28}));
   const eyeWhite = trackMat(material(THREE, colors.eye, {emissive: colors.eye, emissiveIntensity: moon ? 0.85 : 0.45, roughness: 0.18}));
   const pupil = trackMat(material(THREE, colors.pupil, {roughness: 0.2}));
-  const wingMat = trackMat(material(THREE, colors.wing, {emissive: colors.accent, emissiveIntensity: 0.16, roughness: 0.4, transparent: true, opacity: 0.92}));
+  // thin lilac membrane: slightly see-through (veins and the far wing still read), lit from both sides
+  const wingMat = trackMat(material(THREE, WING_LILAC[kind], {emissive: colors.accent, emissiveIntensity: 0.22, roughness: 0.55}));
   wingMat.transparent = true;
-  wingMat.opacity = 0.92;
+  wingMat.opacity = 0.78;
+  wingMat.depthWrite = false;
   wingMat.side = THREE.DoubleSide;
+  const wingBone = trackMat(material(THREE, WING_BONE[kind], {emissive: colors.accent, emissiveIntensity: 0.1, roughness: 0.38}));
+  const wingVein = trackMat(new THREE.LineBasicMaterial({color: 0xe6ccff, transparent: true, opacity: 0.55}));
   const sphere = trackGeo(new THREE.SphereGeometry(1, seg[0], seg[1]));
   const cone = trackGeo(new THREE.ConeGeometry(0.12, moon ? 0.34 : 0.16, low ? 6 : 10));
   const star = trackGeo(new THREE.OctahedronGeometry(moon ? 0.045 : 0.02, 0));
-  const wingGeo = trackGeo(wingShape(THREE, moon ? 0.92 : 0.62, moon ? 0.42 : 0.28));
+  const wingSpan = moon ? 0.92 : 0.62;
+  const wingLift = moon ? 0.42 : 0.28;
   const crescent = moon ? trackGeo(new THREE.TorusGeometry(0.11, 0.028, low ? 6 : 8, low ? 12 : 18, Math.PI * 1.25)) : null;
   const root = new THREE.Group();
   root.name = 'DimensionalCreature';
@@ -161,7 +282,8 @@ export function buildDimensionalRig(THREE, kind, {quality = 'auto'} = {}) {
   const wings = {};
   for (const side of [-1, 1]) {
     const pivot = joint(THREE, spine, side < 0 ? 'Wing_L' : 'Wing_R', side * (moon ? 0.28 : 0.18), moon ? 0.12 : 0.1, moon ? -0.05 : 0.05);
-    const membrane = put(pivot, new THREE.Mesh(wingGeo, wingMat), side < 0 ? 'WingMesh_L' : 'WingMesh_R', 0, 0, 0);
+    const membrane = buildWing(THREE, {span: wingSpan, lift: wingLift, low, boneMat: wingBone, membraneMat: wingMat, veinMat: wingVein, joinMat: wingBone, geometries, side});
+    pivot.add(membrane);
     membrane.scale.x = side;
     membrane.rotation.y = side * (moon ? -0.35 : -0.2);
     wings[side < 0 ? 'L' : 'R'] = pivot;
