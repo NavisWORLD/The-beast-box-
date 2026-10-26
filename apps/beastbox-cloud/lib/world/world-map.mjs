@@ -19,7 +19,7 @@ const ROUTES=[
  ['/beast-cage/turntable','cage','3D model'],['/beast-cage/talk','cage','Talk'],['/beast-cage','cage',null],
  ['/universe','universe',null],['/sol-game','game',null],['/workspace','workshop',null],
  ['/brain-bay','workshop','Brain Bay'],['/research','workshop','Research Lab'],['/settings','workshop','Settings'],
- ['/account','workshop','Account'],['/connect','workshop','Connect'],['/privacy','workshop','Privacy'],['/next','workshop','Coming soon'],
+ ['/account','workshop','Account'],['/connect','workshop','Connect'],['/privacy','workshop','Privacy and info'],['/next','workshop','Coming soon'],
  ['/try','game','Guest model'],['/beach-two','tiny','Beach']
 ];
 export function pieceForPath(path){

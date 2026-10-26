@@ -14,7 +14,7 @@ export default function NextPage() {
       <div className="starscape" aria-hidden="true"><span /><span /><span /><span /><span /><span /></div>
       <header className="public-header">
         <Link className="brand" href="/" aria-label="Beast Box home"><BrandCrest className="brand-mark" size={42}/><span>BEAST BOX <small>COMING SOON</small></span></Link>
-        <JourneyLinks skip={["settings"]} extra={[{label:"Privacy",href:"/privacy"}]}/>
+        <JourneyLinks skip={["settings"]} extra={[{label:"Privacy and info",href:"/privacy"}]}/>
         <Link className="header-enter" href="/settings">Settings</Link>
       </header>
       <section className="hero" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,340px),1fr))', gap: 32, alignItems: 'start', minHeight: 'auto', paddingBottom: 80 }}>

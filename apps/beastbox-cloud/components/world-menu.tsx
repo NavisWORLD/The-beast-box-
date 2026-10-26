@@ -39,7 +39,7 @@ export default function WorldMenu({context,view,onView,hasBeast,beastName,onHost
      <a href={model.look.href} data-menu-look onClick={()=>close(false)}><span aria-hidden="true">🔍</span>{model.look.label}</a>
     </div></section>
    <section className={css.sec} data-menu-section="senses"><h3>Senses &amp; privacy</h3><p className={css.note}>{model.senses.note}</p>
-    <div className={css.links}><a href={model.senses.href} data-menu-senses onClick={()=>close(false)}><span aria-hidden="true">🎙️</span>{model.senses.label}</a><a href="/privacy" onClick={()=>close(false)}><span aria-hidden="true">🔒</span>Privacy</a></div></section>
+    <div className={css.links}><a href={model.senses.href} data-menu-senses onClick={()=>close(false)}><span aria-hidden="true">🎙️</span>{model.senses.label}</a><a href="/privacy" onClick={()=>close(false)}><span aria-hidden="true">🔒</span>Privacy and info</a></div></section>
    <section className={css.sec} data-menu-section="about"><h3>About this world</h3>
     <div ref={setAbout} data-menu-host="about" className={css.host}/>
     <button type="button" className={css.mapBtn} data-menu-open-map onClick={()=>{close(false);window.dispatchEvent(new Event('beastbox:open-site-nav'));}}><span aria-hidden="true">🧩</span>Where am I in the one world? Open the world map</button></section>
