@@ -83,7 +83,7 @@ export default function ZerefDiaryPanel({journalId,beastName,cosmosProfile=null,
   <div className={styles.head}>
    <p className={styles.tag}>✦ MAINFRAME MEMORY · DIMENSIONAL POCKET</p>
    <h2 id="zeref-diary-title">{who}&apos;s Diary</h2>
-   <Details><small data-diary-identity style={{display:"block",opacity:.7,fontSize:11}}>Moonwraith is the form Zeref shows here. <span data-advanced-only>Diary key bb-7f9c2a03; Zeref&apos;s model, chat and training identity is bb-deada969 (RAWRPHØS); the two are kept separate.</span></small></Details>
+   <Details><small data-diary-identity style={{display:"block",opacity:.7,fontSize:11}}>Zeref's Moonwraith form is the one shown here. <span data-advanced-only>Diary key bb-7f9c2a03; Zeref&apos;s model, chat and training identity is bb-deada969 (RAWRPHØS); the two are kept separate.</span></small></Details>
    <p className={styles.lede}>While the page is closed, a scheduled loop keeps exploring the pocket. {isZeref?'His':`${who}'s`} birth seed is RECORDED on IBM hardware (counts never re-run); about every 30 minutes, the loop (built on Zeref (RAWRPHØS)) nudges {pr} signals, mood and growth with a SIMULATED circuit and writes one entry.</p>
   </div>
   <div className={styles.grid}>
