@@ -48,7 +48,7 @@ export default function HomePocket(){
    stage={beast?(beast.nativeStage||1):1} behaviorPosition={beast?beast.behavior?.position||null:null}
    state={beast?visualStateFromBeast(beast):'idle'} reduced={reduced} onActiveChange={noop} qvmCounts={qvmCounts} autoOrbit chatLine={lastYou} menuHost={hosts.tools} ignorePixel/>}
   {world&&typeof document!=='undefined'?createPortal(<LivingWorld genome={own?.genome||null} beastKey={own?.qbeast?.profile?.id||null} beastName={own?(beastDisplayName(own)):null} onClose={()=>setWorld(false)}/>,document.body):null}
-  {envOpen&&typeof document!=='undefined'?createPortal(<EnvironmentConsent onClose={()=>setEnvOpen(false)}/>,document.body):null}
+  {envOpen&&typeof document!=='undefined'?createPortal(<EnvironmentConsent onClose={()=>setEnvOpen(false)} beastName={beastDisplayName(beast)}/>,document.body):null}
   {reduced?null:<FluidSwirlLayer storm={sc.storm} chaos={sc.chaos} count={60}/>}
  </div>
  {/* Oct 25: ONE menu replaces the three buttons that used to sit on the scene. It sits in its own layer above the 3D sprite so it is always tappable. */}

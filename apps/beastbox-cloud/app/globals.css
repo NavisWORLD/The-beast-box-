@@ -945,3 +945,11 @@ body:has([data-not-found]) :is(.site-dock,[data-beast-chat-launcher],[data-zeref
  body[data-one-dock][data-dock=open] aside[data-sound-room]>div:first-child>button{width:48px!important;min-width:48px!important;height:48px;min-height:48px;padding:0!important;border-radius:50%!important}
  body[data-one-dock][data-dock=open] aside[data-sound-room]>section{left:auto!important;right:0;bottom:calc(100% + 10px);width:min(305px,calc(100vw - 20px))}
 }
+
+/* Oct 26 2026: desktop (>=561px) — the TALK TO bubble no longer sits on the top edge of the minimized OPEN GAME card.
+   When that card is on screen the bubble steps left of it, bottoms aligned; otherwise nothing changes. Phones use the one-dock layout above. */
+@media(min-width:561px){
+ html body:has([data-spark-player][data-player-mode=minimized]:not([data-dismissed=true])) button[data-beast-chat-launcher][data-critical-control]{
+  right:calc(max(8px,env(safe-area-inset-right,0px)) + 220px + 12px)!important;
+  bottom:calc(max(8px,env(safe-area-inset-bottom,0px)) + 86px)!important}
+}

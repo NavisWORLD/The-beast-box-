@@ -130,13 +130,13 @@ export default function CosmicCompanionDock({model,connected,camera,speech,chatA
     state={stopped?'halted':paused?'sleeping':state} paused={paused||stopped||reduced}
     intensity={stopped?0:speech?audioLevel:chatActive?0.7:0} compact
     seedRunKey={DRAGON_RUN_KEY} seedTraits={DRAGON_TRAITS}
-    label="Pet dragon Spark Beast"/>
+    label="Pet dragon beast"/>
    <div className="companion-dock-plate"><span aria-hidden="true">✧</span><span>{status}. {claim}</span></div>
    <div className="companion-dock-actions">
     <button type="button" onClick={()=>setPaused(p=>!p)} aria-label={paused?'Resume companion animation':'Pause companion animation'}>{paused?<Play size={13}/>:<Pause size={13}/>}</button>
     <span title="Cosmetic game profile only; actual provider readiness must be checked in Brain Bay">{connected?<Activity size={13}/>:<ShieldCheck size={13}/>} {model==='NOT CONNECTED'?'Awaiting model':model.slice(0,26)}</span>
    </div>
-   <span className="sr-only" aria-live="polite">{status} · Checkpoint {checkpoint===null||checkpoint===undefined?'unavailable':'recorded in owner workstation'}.</span>
+   <span className="sr-only" aria-live="polite">{status} · Checkpoint {checkpoint===null||checkpoint===undefined?'unavailable':'saved in the owner Workshop'}.</span>
   </div>}
  </div>;
 }

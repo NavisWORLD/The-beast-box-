@@ -99,7 +99,7 @@ function driveFor(mood:string,intensity:number){
 
 export default function SparkBeastCompanion({
  profile,fallbackLook='nebula',state='idle',paused=false,intensity=0,
- compact=false,controls=false,audioChannel,className='',label='Spark Beast companion',
+ compact=false,controls=false,audioChannel,className='',label='Beast companion',
  seedRunKey='',seedTraits,onGenome,rig=false,rigDriver=null,preferSavedBeast=false
 }:Props){
  const fallback=useMemo(()=>generateCreature('beastbox-spark-'+fallbackLook,fallbackLook==='aurora'?'aurora':fallbackLook==='starlight'?'starlight':'nebula'),[fallbackLook]);

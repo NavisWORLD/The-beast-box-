@@ -40,7 +40,7 @@ export default function SparkWanderer({ profile, pulse = '', thinking = false }:
   const frame = wanderFrame(tick, reaction, thinking, reduced);
   return <div className={css.lane} data-spark-wander="true" data-wander-mode={frame.mode}>
     <div className={css.beast} style={{ transform: `translate3d(${frame.x}px, ${frame.y}px, 0)` }}>
-      <SparkBeastCompanion profile={profile} fallbackLook={profile?.baseLook ?? 'nebula'} compact state={frame.visual === 'thinking' ? 'thinking' : frame.visual === 'celebrating' ? 'celebrating' : frame.visual === 'observing' ? 'observing' : 'idle'} label="Spark Beast wandering the chat" />
+      <SparkBeastCompanion profile={profile} fallbackLook={profile?.baseLook ?? 'nebula'} compact state={frame.visual === 'thinking' ? 'thinking' : frame.visual === 'celebrating' ? 'celebrating' : frame.visual === 'observing' ? 'observing' : 'idle'} label="Beast wandering the chat" />
     </div>
   </div>;
 }

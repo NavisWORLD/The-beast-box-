@@ -1,0 +1,44 @@
+{
+ "audio": {
+  "centroid_norm": 0.0035,
+  "enabled": true,
+  "rms_mean": 0.0007,
+  "zcr": 0.0187
+ },
+ "bio_vector_12": [
+  0.3781,
+  0.2781,
+  0.9206,
+  0.308,
+  0.5789,
+  0.05,
+  0.0769,
+  0.05,
+  0.05,
+  0.05,
+  0.7564,
+  0.6886
+ ],
+ "heartbeat_label": "MEASURED",
+ "honesty": "Heartbeat MEASURED on this device by fingertip camera PPG (not a medical device). Only numbers leave the phone; raw video and audio are never stored or published. IBM spark RECORDED only after the run; Rigetti SIMULATED.",
+ "light": {
+  "blue_mean": 19.6162,
+  "green_mean": 1.0044,
+  "red_ac_dc": 0.0154,
+  "red_mean": 147.6271
+ },
+ "packet_sha256": "81057f3865329c6bd19885c65cee4f54948d02d3df1340ed763b10e377649a8a",
+ "pulse": {
+  "beats": 46,
+  "bpm": 100.4994,
+  "duration_s": 27.0333,
+  "fs_hz": 30,
+  "hrv_rmssd_ms": 41.7098,
+  "sqi": 0.9206
+ },
+ "raw_audio_published": false,
+ "raw_frames_in_packet": false,
+ "raw_video_published": false,
+ "schema": "beastbox-real-ibm-bio-connection-v1",
+ "source": "browser_ppg_fingertip"
+}

@@ -35,7 +35,7 @@ export default function SolSparkPlayer({active=true,stage=true}:{active?:boolean
  const [menuOpen,setMenuOpen]=useState(false);
  const [mode,setMode]=useState<Mode>('normal'),[note,setNote]=useState('Your Beast has a cartridge to explore.');
  const [paused,setPaused]=useState(false),[pausePending,setPausePending]=useState(false),[reloading,setReloading]=useState(false),[bridgeStatus,setBridgeStatus]=useState('No saved companion has been sent.');
- const [starting,setStarting]=useState(false),[returning,setReturning]=useState(false),[audio,setAudio]=useState({wanted:false,running:false});
+ const [stalled,setStalled]=useState(false),[frameKey,setFrameKey]=useState(0),[starting,setStarting]=useState(false),[returning,setReturning]=useState(false),[audio,setAudio]=useState({wanted:false,running:false});
  const sources=useRef(new Map<string,Set<string>>()),pressed=useRef(new Set<string>()),keyboardHeld=useRef(new Set<string>()),returnTimer=useRef<ReturnType<typeof setTimeout>|null>(null);
  const pendingReturn=useRef<{id:string;event:string}|null>(null),sent=useRef(false);
  const modelHeld=useRef<string|null>(null);
@@ -219,6 +219,10 @@ export default function SolSparkPlayer({active=true,stage=true}:{active?:boolean
  useEffect(()=>{
   if(!starting)return;const timer=setTimeout(()=>{setStarting(false);setNote('Lost COSMOS is taking longer to load. Keep the game open, or try START LOST COSMOS again.');},90000);return()=>clearTimeout(timer);
  },[starting]);
+ // If the cartridge page never answers (no 'admitted' message), say so after 20 s and offer a real retry instead of 'Loading the cartridge…' forever.
+ useEffect(()=>{if(!bound||admitted||running){setStalled(false);return;}const t=setTimeout(()=>setStalled(true),20000);return()=>clearTimeout(t);},[bound,admitted,running,frameKey]);
+ function startGame(){if(starting||!admitted||running)return;setStarting(true);setNote('Starting Lost COSMOS…');post({type:'sol-spark-start'});}
+ function retryLoad(){sent.current=false;setStalled(false);setAdmitted(false);setNote('Loading the cartridge again…');setFrameKey(k=>k+1);}
  useEffect(()=>{const id=importIdFromSearch(window.location.search);if(!id||id===session?.beast?.qbeast?.profile?.id)return;
   try{const beast=readImportedBeast(window.localStorage,id);setVisiting(beast);setNote(shownName(beast)+' is visiting from the bridge. Tap SEND BEAST to play. Journeys save only to your active Beast.');}
   catch(error){setNote(error instanceof Error?error.message:'That Beast could not be imported.');}
@@ -258,11 +262,11 @@ export default function SolSparkPlayer({active=true,stage=true}:{active?:boolean
   </header>
   <div className={css.status}><p role="status">{ready?note:'Finding your saved Beast…'}</p><details><summary>Companion connection</summary><p>{bridgeStatus}</p><code>{id||'No canonical saved identity selected'}</code><p>Saved identities, display personas and local snapshots remain separate. Native palette/body representations use the recorded seed; web sprite accents may differ.</p>{!bound||bridgeStatus.startsWith('No matching')?<a href="/spark/index.html">Choose or recover a compatible Spark Beast</a>:null}</details></div>
   <div className={css.screen} data-has-frame={!!bound}>
-   {bound&&!running&&!starting?<div className={css.preboot} data-preboot-poster aria-hidden={false} role="note"><span aria-hidden="true">🎮</span><strong>{admitted?'Tap START LOST COSMOS':'Loading the cartridge…'}</strong><small>{admitted?'The screen stays dark until the original cartridge boots.':'Same ROM, same save. This is the page, not the game.'}</small></div>:null}
-   {bound?<iframe ref={frame} title="Native LOST COSMOS cartridge" src={GAME} onLoad={send} allow="autoplay; fullscreen; gamepad; screen-wake-lock" allowFullScreen/>:<div className={css.poster}><span aria-hidden="true">🐉 🎮</span><p>Same Beast. New adventure.</p><button type="button" disabled={!ready||!(visiting||session?.beast)?.qbeast} onClick={bind} data-visiting={visiting?visiting.qbeast.profile.id:undefined}>SEND BEAST</button>{!session?.beast?.qbeast?<a href="/spark/index.html">Choose your Spark Beast</a>:null}</div>}
+   {bound&&!running&&!starting?<div className={css.preboot} data-preboot-poster aria-hidden={false} role={admitted?'button':'note'} tabIndex={admitted?0:undefined} aria-label={admitted?'Start Lost COSMOS':undefined} data-preboot-start={admitted?'':undefined} onClick={admitted?startGame:undefined} onKeyDown={admitted?(e)=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();startGame();}}:undefined} style={admitted?{cursor:'pointer',pointerEvents:'auto'}:stalled?{pointerEvents:'auto'}:undefined}><span aria-hidden="true">🎮</span><strong>{admitted?'Tap START LOST COSMOS':stalled?'The cartridge did not answer':'Loading the cartridge…'}</strong><small>{admitted?'The screen stays dark until the original cartridge boots.':stalled?'Nothing is lost. Try loading it again.':'Same ROM, same save. This is the page, not the game.'}</small>{!admitted&&stalled?<button type="button" data-rom-retry onClick={retryLoad} style={{minHeight:48,minWidth:120,marginTop:8}}>TRY AGAIN</button>:null}</div>:null}
+   {bound?<iframe key={frameKey} ref={frame} title="Native LOST COSMOS cartridge" src={GAME} onLoad={send} allow="autoplay; fullscreen; gamepad; screen-wake-lock" allowFullScreen/>:<div className={css.poster}><span aria-hidden="true">🐉 🎮</span><p>Same Beast. New adventure.</p><button type="button" disabled={!ready||!(visiting||session?.beast)?.qbeast} onClick={bind} data-visiting={visiting?visiting.qbeast.profile.id:undefined}>SEND BEAST</button>{!session?.beast?.qbeast?<a href="/spark/index.html">Choose your Spark Beast</a>:null}</div>}
   </div>
   {running&&!minimized&&!audio.running?<p className={css.gameAudioHint} role="status">🔊 If the game screen says TAP TO PLAY, tap it once: that tap wakes Safari sound inside the cartridge. Mute or unmute any time in ☰ MENU.</p>:null}
-  <div className={css.playAction}>{admitted&&!running?<button type="button" disabled={starting} onClick={()=>{setStarting(true);setNote('Starting Lost COSMOS…');post({type:'sol-spark-start'});}}>{starting?'STARTING…':'START LOST COSMOS'}</button>:null}</div>
+  <div className={css.playAction}>{admitted&&!running?<button type="button" disabled={starting} onClick={startGame}>{starting?'STARTING…':'START LOST COSMOS'}</button>:null}</div>
   <div className={css.controls}><GbaControls shoulders enabled={inputEnabled} onMenu={()=>setMenuOpen(v=>!v)}/></div>
   <nav className={css.toolbar} aria-label="Game actions">
    <button type="button" onClick={()=>expanded?void display.current?.normal():void display.current?.expand()}>{expanded?'RETURN':'FULL SCREEN'}</button>

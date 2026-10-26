@@ -1,0 +1,90 @@
+/**
+ * Zeref knowledge bank: deterministic keyword (BM25) retrieval over a small, versioned, open-license library
+ * (public/knowledge-bank/bank.json, built by scripts/build_knowledge_bank.py). No model, no embeddings, no network, no random.
+ * Passages are copied word for word and every one carries its source, license and version, so the chat can show where it came from.
+ * Opt-in: nothing here runs unless the visitor switches the bank on (default OFF).
+ */
+import { buildIndex, search } from '../library/bm25.mjs';
+import { clean, tokenize } from '../library/text.mjs';
+
+export const BANK_URL = '/knowledge-bank/bank.json';
+export const BANK_CONSENT_KEY = 'beastbox-zeref-knowledge-bank-v1';
+export const BANK_PASSAGES = 2;
+export const BANK_PASSAGE_CHARS = 300;
+/** Below this BM25 score a match is treated as "nothing relevant" (no weak guesses shown as knowledge). */
+export const BANK_MIN_SCORE = 2.2;
+export const BANK_LABEL = 'Knowledge bank (open-license, copied word for word, nothing invented)';
+
+/** @param {{entries:{id:string,domain:string,title:string,text:string,source:string,license:string,version:number}[]}} bank */
+export function buildBank(bank) {
+  const entries = Array.isArray(bank?.entries) ? bank.entries : [];
+  const byId = new Map(entries.map(e => [e.id, e]));
+  const index = buildIndex(entries.map(e => ({ id: e.id, title: e.title, chunks: [{ loc: e.domain, text: e.title + '. ' + e.text }] })));
+  return { index, byId, version: bank?.version ?? null, count: entries.length };
+}
+
+function cut(text, chars) {
+  const t = clean(text);
+  if (t.length <= chars) return t;
+  const head = t.slice(0, chars);
+  const stop = Math.max(head.lastIndexOf('. '), head.lastIndexOf('! '), head.lastIndexOf('? '));
+  return (stop > chars * 0.4 ? head.slice(0, stop + 1) : head.replace(/\s+\S*$/, '')).trim();
+}
+
+/** -> [{id,domain,title,excerpt,source,license,version,score}] best first; [] when nothing is relevant. */
+export function searchBank(bank, query, { k = BANK_PASSAGES, chars = BANK_PASSAGE_CHARS, minScore = BANK_MIN_SCORE } = {}) {
+  if (!bank?.count) return [];
+  const terms = [...new Set(tokenize(query))];
+  if (!terms.length) return [];
+  // A one-word question must hinge on a rare word, otherwise common words ("use", "first") pull in unrelated passages.
+  if (terms.length === 1 && (bank.index.df.get(terms[0]) || 0) > 6) return [];
+  const hits = search(bank.index, String(query ?? ''), { k: 10, minScore });
+  const out = [];
+  for (const h of hits) {
+    const e = bank.byId.get(h.docId);
+    const have = new Set(tokenize(e.title + ' ' + e.text));
+    // The passage must cover at least half of the question's content words, rare words counting more (idf-weighted).
+    const idf = t => { const n = bank.index.df.get(t) || 0; return Math.log(1 + (bank.index.n - n + 0.5) / (n + 0.5)); };
+    const covers = t => have.has(t) || (t.length >= 4 && [...have].some(w => w.length >= 4 && (w.startsWith(t) || t.startsWith(w))));
+    const total = terms.reduce((a, t) => a + idf(t), 0), got = terms.filter(covers).reduce((a, t) => a + idf(t), 0);
+    if (got / total < 0.5) continue;
+    out.push({ id: e.id, domain: e.domain, title: e.title, excerpt: cut(e.text, chars), source: e.source, license: e.license, version: e.version, score: h.score });
+    if (out.length >= k) break;
+  }
+  return out;
+}
+
+/** The verbatim notes block for the prompt, plus the provenance rows the UI shows. */
+export function bankContext(hits) {
+  const used = Array.isArray(hits) ? hits : [];
+  return { text: used.map(u => `[${u.title}, ${u.id}] ${u.excerpt}`).join(' | '), used };
+}
+
+export function provenanceLine(u) {
+  return `${u.title} · ${u.id} · ${u.source} · ${u.license} · bank v${u.version}`;
+}
+
+const RAWR = /^rawr[.!?]*$/i;
+/**
+ * True when the model's reply is not a usable sentence yet: empty, a single word, or a list of names.
+ * Zeref's own catchphrase "Rawr." is a legitimate reply and is never flagged.
+ */
+export function isStillLearningReply(reply) {
+  const text = clean(reply);
+  if (!text || RAWR.test(text)) return !text;
+  const words = text.match(/[\p{L}][\p{L}'’-]*/gu) || [];
+  if (words.length <= 1) return true;
+  const caps = words.filter(w => /^\p{Lu}/u.test(w)).length / words.length;
+  const ends = /[.!?]["')\]]?\s*$/.test(text);
+  const parts = text.split(/[,;\n]+/).map(s => s.trim()).filter(Boolean);
+  const shortParts = parts.length >= 3 && parts.every(p => (p.match(/[\p{L}][\p{L}'’-]*/gu) || []).length <= 3);
+  if (shortParts && caps >= 0.7) return true;
+  if (!ends && words.length >= 3 && caps >= 0.7) return true;
+  return false;
+}
+
+/** What the chat says under a reply that was not a real sentence. Never presented as Zeref's own words. */
+export function stillLearningNote(used) {
+  const base = "Zeref's model is still learning: this reply was not a full sentence.";
+  return used?.length ? base + ' Here is what the knowledge bank has on it, copied word for word:' : base + ' The knowledge bank had nothing on this question.';
+}

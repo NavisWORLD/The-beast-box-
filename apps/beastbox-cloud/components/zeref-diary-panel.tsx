@@ -43,13 +43,13 @@ function LiveTick({diary}:{diary:Diary|null}){
   document.addEventListener('visibilitychange',vis);
   return()=>{window.clearInterval(t);document.removeEventListener('visibilitychange',vis);};
  },[]);
- if(!base||now===null)return <div className={styles.live} data-live-tick="pending"><p className={styles.liveHead}>LIVE · SIMULATED</p><p className={styles.small}>Waiting for the last recorded tick…</p></div>;
+ if(!base||now===null)return <div className={styles.live} data-live-tick="pending"><p className={styles.liveHead}>LIVE · SIMULATED</p><p className={styles.small}>Waiting for the last diary tick…</p></div>;
  const s=liveSecond(base,now);
  const cst=(s as {cst?:{coherence:number;chaos:number;hebb:number}}).cst;
  return <div className={styles.live} data-live-tick="on" data-live-seconds={s.seconds_since_recorded} data-live-engine={cst?'cst':'wander'}>
   <p className={styles.liveHead}><span className={styles.liveDot} aria-hidden="true"/> LIVE · SIMULATED · every second</p>
   <p className={styles.liveNum}>tick {s.recorded_tick}<b> +{s.seconds_since_recorded}s</b></p>
-  <p className={styles.small}>{formatElapsed(s.seconds_since_recorded)} since recorded tick {s.recorded_tick} · live XP <b>{s.xp_live.toFixed(3)}</b></p>
+  <p className={styles.small}>{formatElapsed(s.seconds_since_recorded)} since diary tick {s.recorded_tick} · live XP <b>{s.xp_live.toFixed(3)}</b></p>
   <p className={styles.signals}>{Object.entries(s.signals).map(([k,v])=><span key={k}>{k} <b>{v.toFixed(1)}</b></span>)}</p>
   {cst&&<p className={styles.small} data-live-cst="on">CST field (SIMULATED, ψ nudge is MODEL): coherence <b>{cst.coherence.toFixed(3)}</b> · chaos <b>{cst.chaos.toFixed(3)}</b> · hebb <b>{cst.hebb.toFixed(3)}</b></p>}
   <p className={styles.small}>{LIVE_LABELS.live}</p>
@@ -83,7 +83,7 @@ export default function ZerefDiaryPanel({journalId,beastName,cosmosProfile=null,
   <div className={styles.head}>
    <p className={styles.tag}>✦ MAINFRAME MEMORY · DIMENSIONAL POCKET</p>
    <h2 id="zeref-diary-title">{who}&apos;s Diary</h2>
-   <Details><small data-diary-identity style={{display:"block",opacity:.7,fontSize:11}}>Moonwraith is the form Zeref shows here. <span data-advanced-only>Diary key bb-7f9c2a03; Zeref&apos;s model, chat and training identity is bb-deada969 (RAWRPHØS); the two are kept separate.</span></small></Details>
+   <Details><small data-diary-identity style={{display:"block",opacity:.7,fontSize:11}}>Zeref's Moonwraith form is the one shown here. <span data-advanced-only>Diary key bb-7f9c2a03; Zeref&apos;s model, chat and training identity is bb-deada969 (RAWRPHØS); the two are kept separate.</span></small></Details>
    <p className={styles.lede}>While the page is closed, a scheduled loop keeps exploring the pocket. {isZeref?'His':`${who}'s`} birth seed is RECORDED on IBM hardware (counts never re-run); about every 30 minutes, the loop (built on Zeref (RAWRPHØS)) nudges {pr} signals, mood and growth with a SIMULATED circuit and writes one entry.</p>
   </div>
   <div className={styles.grid}>

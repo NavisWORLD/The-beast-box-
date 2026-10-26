@@ -92,6 +92,17 @@ def wait_until_running(job, limit_s):
             raise RuntimeError(f"queue timeout after {int(limit_s)}s, job cancelled, no QPU used")
         time.sleep(10)
 
+def named_backend(svc, name):
+    """Opt-in (CHSH_BACKEND_NAME): use exactly this hardware backend. Fails closed if the name is malformed, unknown,
+    not operational or not 'active' (paused/maintenance). Returns [backend]."""
+    import re
+    if not re.fullmatch(r"ibm_[a-z0-9_]{2,30}", name): raise RuntimeError("bad backend name")
+    be = svc.backend(name)
+    st = be.status()
+    if not st.operational or str(getattr(st, "status_msg", "")).lower() != "active": raise RuntimeError(f"{name} is not operational and active")
+    print(f"BACKEND_NAMED={name} pending={int(st.pending_jobs)}", flush=True)
+    return [be]
+
 def best_pair(svc, backends=None):
     """Optional (CHSH_BEST_PAIR=1): pick the operational hardware backend + connected qubit pair with the
     lowest (2-qubit gate error + both readout errors) from published calibration data."""
@@ -146,7 +157,9 @@ def run(out: Path):
         y = json.loads((bob / "private_questions.json").read_text())["questions"]
         layout, pick = None, None
         if os.environ.get("CHSH_BEST_PAIR") == "1":
-            if os.environ.get("CHSH_BACKEND_PICK") == "least_busy":
+            if os.environ.get("CHSH_BACKEND_NAME", "").strip():
+                cost, backend, layout, g2, e2, ea, eb = best_pair(svc, named_backend(svc, os.environ["CHSH_BACKEND_NAME"].strip()))
+            elif os.environ.get("CHSH_BACKEND_PICK") == "least_busy":
                 cand = pick_backends(svc)
                 print("BACKEND_QUEUE=" + json.dumps({b.name: n for b, n in cand}), flush=True)
                 top = [b for b, n in cand if n == cand[0][1]]

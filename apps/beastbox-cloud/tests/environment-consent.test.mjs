@@ -1,5 +1,5 @@
 import test from 'node:test';import assert from 'node:assert/strict';import {readFileSync} from 'node:fs';
-import {validateEnvironment,wellMultipliers,environmentWeights,isFresh,seededPhase,describeChannel,ENV_NOTE,ENV_FRESH_MS} from '../lib/environment/environment-link.mjs';
+import {validateEnvironment,wellMultipliers,environmentWeights,isFresh,seededPhase,describeChannel,ENV_NOTE,ENV_CHIPS,ENV_FRESH_MS} from '../lib/environment/environment-link.mjs';
 import {saveEnvironment,readEnvironment,revokeEnvironment,ENV_PREFIX} from '../lib/environment/consent-store.mjs';
 import * as E from '../lib/environment/environment-store.mjs';
 import {createSandField,wellWeights} from '../lib/pocket-sand.mjs';
@@ -49,18 +49,36 @@ test('route: per-user identity, same-origin writes, size cap, DELETE revokes, no
  for(const fn of ['POST','DELETE'])assert.match(r.slice(r.indexOf('export async function '+fn)),/sameOrigin\(request\)/);
  assert.match(r,/415/);assert.match(r,/413/);assert.match(r,/401/);assert.match(r,/MAX_BODY=2000/);assert.doesNotMatch(r,/CONNECTION_STRING|SAS|api\/features|bridge/);});
 test('UI: one consent control, default off, labels visible, revoke present, numbers only, 44px targets',()=>{
- const c=src('components/environment-consent.tsx');assert.match(c,/I consent to sharing my world&apos;s signals \(off until you turn it on/);assert.match(c,/data-environment-revoke/);assert.match(c,/ENV_NOTE/);assert.match(c,/validateEnvironment/);assert.match(c,/minHeight:44/);
+ const c=src('components/environment-consent.tsx');assert.match(c,/Share my world&apos;s signals/);assert.match(c,/Off until you turn it on\. Stop any time\./);assert.match(c,/data-environment-revoke/);assert.match(c,/validateEnvironment/);assert.match(c,/minHeight:48/);
  assert.doesNotMatch(c,/MediaRecorder|toBlob|createObjectURL|toDataURL/);
  const sr=src('lib/environment/sensor-runtime.ts');assert.doesNotMatch(sr,/MediaRecorder|toBlob|toDataURL|createObjectURL/);assert.match(sr,/denied/);assert.match(sr,/unavailable/);assert.match(sr,/getTracks\(\)\.forEach\(t=>t\.stop\(\)\)/);
  for(const w of ['RECORDED','SIMULATED','MEASURED','SEEDED'])assert.match(ENV_NOTE,new RegExp(w));
  assert.match(describeChannel('sound',{state:'denied'}),/declined/);assert.match(describeChannel('heart',{state:'unavailable'}),/no valid pulse/);
  const hp=src('components/home-pocket.tsx');assert.match(hp,/EnvironmentConsent/);assert.match(hp,/data-open-environment/);
  const cp=src('components/cage-pocket-dimension.tsx');assert.match(cp,/environmentWeights\(sand\.field\.counts/);assert.match(cp,/isFresh\(/);});
-test('consent card copy says exactly what this card does (end-game wording)',()=>{
+test('consent card copy: five switches plus one camera switch, short card text, long text only on /privacy',()=>{
  const c=src('components/environment-consent.tsx');
- assert.match(c,/Give your universe more life/);assert.match(c,/Stop sharing/);assert.match(c,/Stopped\. Saved numbers deleted\./);assert.match(c,/No valid pulse/);assert.match(c,/waiting for permission/);
- assert.match(c,/RECORDED on IBM hardware/);assert.doesNotMatch(c,/Revoke and erase/);
- // three switches really exist: light, sound, motion; pulse is read on IBM BIO, not here (no pulse/time/camera switch is claimed)
- assert.equal((c.match(/\{row\('/g)||[]).length,3);assert.doesNotMatch(c,/row\('(pulse|time|camera)'/);
- assert.match(ENV_NOTE,/RECORDED on IBM hardware/);assert.doesNotMatch(ENV_NOTE+c,/live quantum|weather/i);
+ for(const t of ['Give your universe more life','Stop sharing','Stopped\\. Saved numbers deleted\\.','No valid pulse','Waiting for permission','Needs camera switch','Paused: reading pulse','Permission declined','Unavailable on this device','Turn on world signals\\?','Yes, give it life','Not now','Stop sharing deletes your saved numbers\\.'])assert.match(c,new RegExp(t),t);
+ for(const l of ['Time of day','Device motion','Light level','Sound level','Fingertip pulse','Uses your clock','Uses the camera\\.','Uses the microphone\\.'])assert.match(c,new RegExp(l),l);
+ // five switch rows are declared, a camera switch row is added, and nothing starts on its own
+ assert.equal((c.match(/\{k:'(time|motion|light|sound|pulse)'/g)||[]).length,5);assert.match(c,/row\('camera'/);assert.match(c,/const allOff:Sw=\{time:false,motion:false,light:false,sound:false,pulse:false,camera:false\}/);
+ assert.match(c,/href="\/privacy#labels-and-signals"/);assert.match(c,/width:120,height:44/);
+ // the long explanations moved to /privacy; the card carries only short chips
+ assert.doesNotMatch(c,/ENV_NOTE|RECORDED on IBM hardware|never leaves/);assert.doesNotMatch(c,/live quantum|weather/i);
+ // light waits for the camera switch and for a pulse read; the pulse flow says so explicitly
+ assert.match(c,/sw\.light&&sw\.camera&&!env\.pulseReading/);
+ const bio=src('components/real-ibm-bio.tsx');assert.match(bio,/signalPulse\('pulse_read_started'\)/);assert.match(bio,/finally\{signalPulse\('pulse_read_ended'\)/);
+ assert.match(src('components/home-pocket.tsx'),/beastName=\{beastDisplayName\(beast\)\}/);
+ assert.doesNotMatch(c,/\bconfirm\(/);assert.match(c,/onClick=\{\(\)=>void stop\(\)\}/);// Stop sharing is one tap: no confirm step
+ assert.match(ENV_NOTE,/RECORDED on IBM hardware/);assert.doesNotMatch(c,/ENV_CHIPS|data-env-chips/);// honesty chips are only on /privacy; assert.deepEqual([...ENV_CHIPS],['IBM seed RECORDED','Rigetti run SIMULATED','Your reading MEASURED','Effect on your world SEEDED']);
 });
+test('time of day and pulse signals: bounded lean, off by default, explicit start/end',()=>{
+ const t=validateEnvironment({time:{state:'MEASURED',level:0.5}});assert.ok(t.ok);assert.equal(validateEnvironment({}).numbers.time.state,'off');
+ assert.equal(validateEnvironment({time:{state:'MEASURED',level:1.5}}).ok,false);assert.equal(validateEnvironment({time:{state:'MEASURED'}}).ok,false);
+ for(const lv of [0,.13,.5,.77,1]){const m=wellMultipliers({...validateEnvironment(good).numbers,time:{state:'MEASURED',level:lv}});assert.ok(m.every(x=>x>=.6&&x<=1.4));}
+ assert.notDeepEqual(wellMultipliers({time:{state:'MEASURED',level:0}}),wellMultipliers({time:{state:'MEASURED',level:.5}}));assert.deepEqual(wellMultipliers({time:{state:'off'}}),[1,1,1,1]);
+ assert.equal(isFresh(t.numbers,1000,1000),true);assert.match(describeChannel('time',{state:'MEASURED',level:.5}),/your clock/);
+ assert.equal(E.isPulseReading(),false);E.signalPulse('pulse_read_ended');assert.equal(E.isPulseReading(),false);E.signalPulse('pulse_read_started');assert.equal(E.isPulseReading(),true);
+ E.grantEnvironment();E.revokeEnvironmentLocal();assert.equal(E.isPulseReading(),true);E.signalPulse('pulse_read_ended');assert.equal(E.isPulseReading(),false);
+});
+test('old three-channel posts still validate (additive)',()=>{const v=validateEnvironment(good);assert.ok(v.ok);assert.equal(v.numbers.time.state,'off');});

@@ -222,7 +222,7 @@ async function checkRooms(page){
   const publicPrivateRequests=privateCalls.length;
   assert.equal(rscTrace.filter(row=>row.event==='started'&&new URL(row.url).pathname==='/sol-game').length,0,'An unstarted Game Boy never speculatively loads its route while the visitor talks elsewhere');
   assert.equal(rscTrace.filter(row=>row.event==='started'&&['/beast-cage/talk','/workspace','/research'].includes(new URL(row.url).pathname)).length,0,'Optional footer destinations load on actual navigation, never speculative requests during conversation');
-  await page.getByRole('link',{name:'Open owner workstation',exact:true}).click();
+  await page.getByRole('link',{name:'Open the owner Workshop',exact:true}).click();
   await page.waitForURL(origin+'/workspace#brain-bay');
   await expect(page.getByLabel('OWNER PASSWORD')).toBeVisible();
   await expect(page.getByRole('button',{name:/Unlock workstation/})).toBeVisible();

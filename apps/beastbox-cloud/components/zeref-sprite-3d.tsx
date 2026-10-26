@@ -22,7 +22,7 @@ const TEX=512;
  * sides and back; double-sided membranes (wings, ears, tail) show from behind.
  */
 const FACE=['irisL','irisR','pupilL','pupilR','lidL','lidR','lowL','lowR','browL','browR','blushL','blushR','mouth-smile','mouth-grin','mouth-o','mouth-frown','mouth-sleepy','.zeref-eye'];
-export default function ZerefSprite3D({className='',embed=false,autoRotate=false,turntable=false,turntableAngle=null,greet=0,label='Zeref in 3D, built from the Moonwraith sprite'}:Props){
+export default function ZerefSprite3D({className='',embed=false,autoRotate=false,turntable=false,turntableAngle=null,greet=0,label='Zeref in 3D'}:Props){
  const id='zs'+useId().replace(/[^a-zA-Z0-9]/g,'');
  const svgRef=useRef<SVGSVGElement>(null),canvasRef=useRef<HTMLCanvasElement>(null),wrapRef=useRef<HTMLDivElement>(null);
  const yawRef=useRef(0),dragRef=useRef<{x:number;yaw:number}|null>(null),mindRef=useRef<any>(null);
