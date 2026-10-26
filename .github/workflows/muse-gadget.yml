@@ -1,0 +1,86 @@
+name: Muse Gadget (Beast Box)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'integrations/muse-gadget/**'
+      - 'apps/beastbox-cloud/lib/companion/**'
+      - '.github/workflows/muse-gadget.yml'
+  pull_request:
+    paths:
+      - 'integrations/muse-gadget/**'
+      - 'apps/beastbox-cloud/lib/companion/**'
+      - '.github/workflows/muse-gadget.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: muse-gadget-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  python:
+    name: Python ${{ matrix.python }} (gadget + patched Muse SDK)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.9', '3.12']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Fetch the Muse Gadget SDK at the pinned commit
+        run: |
+          commit="$(tr -d '[:space:]' < integrations/muse-gadget/sdk_patch/SDK_COMMIT)"
+          git init -q "$RUNNER_TEMP/sdk"
+          git -C "$RUNNER_TEMP/sdk" remote add origin https://github.com/facebookincubator/muse-gadget-sdk.git
+          git -C "$RUNNER_TEMP/sdk" fetch -q --depth 1 origin "$commit"
+          git -C "$RUNNER_TEMP/sdk" checkout -q FETCH_HEAD
+          cp -R "$RUNNER_TEMP/sdk/linux" "$RUNNER_TEMP/patched"
+          python integrations/muse-gadget/sdk_patch/apply.py "$RUNNER_TEMP/patched"
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pytest "$RUNNER_TEMP/patched" ./integrations/muse-gadget
+      - name: The SDK's own tests still pass with the Beast Box commands added
+        working-directory: ${{ runner.temp }}/patched
+        run: python -m pytest -q
+      - name: Beast Box gadget tests (fixture beast, bridge, SDK executor end to end)
+        env:
+          MUSE_SDK_DIR: ${{ runner.temp }}/sdk/linux
+        run: python -m pytest -q integrations/muse-gadget/tests
+
+  node:
+    name: Browser bridge client end to end
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Bridge client + real lib/companion functions + Python bridge; moves parity
+        env:
+          PYTHON: python
+        run: node --test integrations/muse-gadget/tests/
+
+  installer:
+    name: install.sh (ShellCheck and dry run)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: ShellCheck
+        run: shellcheck integrations/muse-gadget/install.sh
+      - name: Dry run (downloads and patches the pinned SDK; changes nothing)
+        env:
+          MUSE_GADGET_SDK_TOKEN: ''
+        run: bash integrations/muse-gadget/install.sh --dry-run --yes
