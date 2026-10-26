@@ -116,3 +116,15 @@ test('pure: no Math.random, no clock, no growth-nodes import',()=>{
  const src=readFileSync(new URL('../lib/universe/seeded-landscapes.mjs',import.meta.url),'utf8').split('\n').filter(l=>!l.trim().startsWith('//')).join('\n');
  assert.ok(!/Math\.random|Date\.|performance\./.test(src));assert.ok(!/seeded-growth-nodes/.test(src));
 });
+test('zoom lines: Emeth\'s short mode lines are wired, seeded, honest and keep the storm line exact',()=>{
+ const f=J('../lib/universe/data/living_world_lines.json').landscape_zoom;
+ assert.deepEqual(f.gather,["{place} is at play. Nobody is keeping score.","The ring at {place} is full of small feet."]);
+ assert.deepEqual(f.shelter,["{place} is sheltering from the storm."]);assert.deepEqual(f.empty,["{place} is built and waiting.","No one here yet. {place} is patient."]);
+ const l=seededLandscapes(real)[0];const pools={gather:f.gather,sleep:f.sleep,empty:f.empty};
+ for(const [m,pool] of Object.entries(pools)){const a=landscapeZoom(l,m,{beast:'Zeref',planet:'Home',seed:'s1'});
+  assert.ok(pool.map(t=>t.replace('{place}',l.name).replace('{planet}','Home')).includes(a.line),m);
+  assert.deepEqual(a,landscapeZoom(l,m,{beast:'Zeref',planet:'Home',seed:'s1'}));// seeded: same seed, same line
+  assert.ok(!/recorded|measured|hardware|quantum|aware|conscious|feels|thinks|live/i.test(a.line),m);}
+ assert.equal(landscapeZoom(l,'shelter',{seed:'x'}).line,l.name+' is sheltering from the storm.');
+ const seen=new Set();for(let i=0;i<40;i++)seen.add(landscapeZoom(l,'gather',{seed:'seed'+i}).line);assert.equal(seen.size,2);// both lines are reachable
+});
