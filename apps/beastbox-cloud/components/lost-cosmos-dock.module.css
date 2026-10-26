@@ -21,7 +21,7 @@
 .actions{display:flex;gap:5px;align-items:center}
 .bar button,.generate{border:0;border-radius:8px;padding:6px 7px;background:#243156;color:#e7fbff;font-weight:800;font-size:9px;line-height:1;text-decoration:none;cursor:pointer;white-space:nowrap}
 .generate{background:#172842;color:#aef6ff;border:1px solid rgba(104,229,238,.2)}
-.close{width:26px;min-width:26px;padding:6px 0!important;font-size:15px!important;background:#211b35!important;color:#f4dbff!important}
+.close{width:48px;min-width:48px;min-height:48px;padding:0!important;font-size:18px!important;border:0!important;background:radial-gradient(circle at center,#120c24e6 0 15px,#b48cff8c 15px 16px,transparent 16.5px)!important;color:#f5eeff!important}
 .screen{position:relative;min-height:128px;max-height:148px;background:#070b16;overflow:hidden}
 .wide .screen{flex:1;min-height:420px;max-height:none}
 .screen canvas,.screen iframe{max-width:100%}

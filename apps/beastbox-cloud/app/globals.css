@@ -459,7 +459,7 @@ em{font-style:normal;background:linear-gradient(115deg,#67d9fa 0%,#b598ff 49%,#f
 .support-shrine-topbar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-shrink:0;min-height:60px;padding:7px 10px 7px 20px;border-bottom:1px solid #d9b07838;background:linear-gradient(100deg,#35283b,#29283d);z-index:2}
 .support-room-plaque{font:700 10px 'Space Grotesk',sans-serif;letter-spacing:.1em;color:#efcea3}
 .support-panel-tools{display:flex;gap:5px}
-.support-close,.support-sound{display:grid;place-items:center;width:44px;height:44px;flex-shrink:0;border:1px solid #bfb6d342;border-radius:12px;background:#1b1e32;color:#eee8ff;cursor:pointer}
+.support-close,.support-sound{display:grid;place-items:center;width:48px;height:48px;flex-shrink:0;border:1px solid #bfb6d342;border-radius:12px;background:#1b1e32;color:#eee8ff;cursor:pointer}
 .support-sound[aria-pressed=true]{color:#95ebff;border-color:#84d5ed88}
 .support-shrine-scroll{min-height:0;overflow-y:auto;overscroll-behavior-y:contain;scrollbar-gutter:stable;padding:13px 20px 20px;scroll-padding-block:66px 12px;-webkit-overflow-scrolling:touch}
 .support-shrine-header{display:flex;align-items:center;gap:12px}
@@ -921,7 +921,7 @@ body:has([data-not-found]) :is(.site-dock,[data-beast-chat-launcher],[data-zeref
  body[data-one-dock][data-dock=open] :is([data-zeref-voice-dock],aside[data-sound-room],aside.cosmic-support:not(.is-open),[data-beast-chat-launcher],[data-dock-game],[data-lost-cosmos-dock][data-dock-state=mini]){transition:opacity .18s ease}
  body[data-one-dock][data-dock=open][data-dock-away] :is([data-zeref-voice-dock],aside[data-sound-room],aside.cosmic-support:not(.is-open),[data-beast-chat-launcher],[data-dock-game]){opacity:0;pointer-events:none}
  /* the mini game card and its pill/tab are replaced by the game button */
- body[data-one-dock][data-dock=open] :is([data-lost-cosmos-dock][data-dock-state=mini],[data-spark-player][data-player-mode=minimized][data-running=false]){display:none!important}
+ body[data-one-dock][data-dock=open] [data-lost-cosmos-dock][data-dock-state=mini]{display:none!important}
  /* game button */
  body[data-one-dock][data-dock=open] [data-dock-game]{display:inline-flex;position:fixed;z-index:61;right:var(--dk-r);bottom:calc(var(--dk-b) + 168px);width:48px;height:48px;align-items:center;justify-content:center;border-radius:50%;border:1px solid #8a6cff88;background:#120c2ee8;color:#efe6ff;font-size:22px;text-decoration:none;box-shadow:0 6px 18px #0008}
  /* talk */

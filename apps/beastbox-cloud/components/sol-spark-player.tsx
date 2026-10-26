@@ -41,6 +41,8 @@ export default function SolSparkPlayer({active=true,stage=true}:{active?:boolean
  const modelHeld=useRef<string|null>(null);
  const observationWait=useRef<{requestId:string;beastId:string;timer:ReturnType<typeof setTimeout>;resolve:(value:any)=>void}|null>(null);
  const minimized=mode==='minimized'||(!stage&&!bound&&mode==='normal');
+ // The minimized pill steps aside while the page scrolls, so it never sits on a row you are reading or tapping mid-scroll.
+ useEffect(()=>{if(!minimized)return;let timer=0;const el=shell.current;const on=()=>{if(!el)return;el.dataset.scrolling='true';window.clearTimeout(timer);timer=window.setTimeout(()=>{el.dataset.scrolling='false';},650);};window.addEventListener('scroll',on,{passive:true});return()=>{window.removeEventListener('scroll',on);window.clearTimeout(timer);if(el)el.dataset.scrolling='false';};},[minimized]);
  const expanded=mode==='fullscreen'||mode==='immersive';
  const inputEnabled=running&&!paused&&!pausePending&&!reloading&&!minimized&&active;
  const inputLive=useRef(inputEnabled);inputLive.current=inputEnabled;
