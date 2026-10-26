@@ -16,7 +16,7 @@ export default function CreatureDashboard({beast,cosmosProfile}:{beast:any;cosmo
   <h2 id="creature-dashboard-title">✦ {name}&apos;s home base</h2>
   <p className="creature-dashboard-lede">Made automatically for {name}. Lives on this device until you choose cloud growth.</p>
   <details open><summary>📁 Folder</summary>
-   <p>Saved on this device as <code>{id}</code>.</p>
+   <p>Saved on this device, for {name}.</p><p data-advanced-only>Saved as <code>{id}</code>.</p>
    <p data-advanced-only>Cloud folder (only after you opt in): <code>cosmos/beasts/{id}/</code></p>
   </details>
   <details><summary>🧠 Brain state</summary>

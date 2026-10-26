@@ -390,7 +390,7 @@ export default function BeastGo() {
         <div className={css.row}>
           <Link href="/beast-cage">Cage</Link>
           <Link href="/beast-cage/play">Adventure</Link>
-          <Link href="/workspace?owner=1">Workshop deck</Link>
+          <Link href="/workspace?owner=1">Workshop</Link>
         </div>
         <div className={css.row}>
           <button type="button" data-meta-muse-entry="settings" onClick={() => { sfx('confirm'); setSheet('metamuse'); }}>Pair with Meta Muse</button>

@@ -57,9 +57,12 @@ export default function CosmicCompanion3D({state='idle',look='nebula',intensity=
     const shadowTex=(()=>{const c=document.createElement('canvas');c.width=c.height=64;const g=c.getContext('2d');if(g){const r=g.createRadialGradient(32,32,2,32,32,32);r.addColorStop(0,'rgba(4,2,16,.62)');r.addColorStop(1,'rgba(4,2,16,0)');g.fillStyle=r;g.fillRect(0,0,64,64);}return new THREE.CanvasTexture(c);})();
     const shadow=new THREE.Mesh(new THREE.PlaneGeometry(2.6,1.1),new THREE.MeshBasicMaterial({map:shadowTex,transparent:true,depthWrite:false}));
     shadow.rotation.x=-Math.PI/2;shadow.position.y=Number.isFinite(bounds.min.y)?bounds.min.y-.04:-1.3;scene.add(shadow);
-    const backGlow=new THREE.Mesh(new THREE.CircleGeometry(1.9,48),new THREE.MeshBasicMaterial({color:0x6b4fd8,transparent:true,opacity:.16,depthWrite:false,blending:THREE.AdditiveBlending}));
+    const glowTex=(()=>{const c=document.createElement('canvas');c.width=c.height=128;const g=c.getContext('2d');if(g){const r=g.createRadialGradient(64,64,0,64,64,64);r.addColorStop(0,'rgba(107,79,216,1)');r.addColorStop(.55,'rgba(107,79,216,.45)');r.addColorStop(1,'rgba(107,79,216,0)');g.fillStyle=r;g.fillRect(0,0,128,128);}return new THREE.CanvasTexture(c);})();
+    const backGlow=new THREE.Mesh(new THREE.PlaneGeometry(3.8,3.8),new THREE.MeshBasicMaterial({map:glowTex,transparent:true,opacity:.34,depthWrite:false,blending:THREE.AdditiveBlending}));
     backGlow.position.set(0,.1,-1.6);scene.add(backGlow);
     if(!dimensional){camera.position.set(0,-.35,7.6);camera.lookAt(0,.05,0);}
+    // Look Closer (Cosmo's open-stage pack): 46 degree lens, pulled in so the creature keeps its size; the turntable starts three-quarter, never edge-on.
+    if(rotationRef.current.turntable||rotationRef.current.angle!==null){const tg=dimensional?new THREE.Vector3(0,.95,0):new THREE.Vector3(0,.05,0);camera.fov=46;camera.position.sub(tg).multiplyScalar(Math.tan(17.5*Math.PI/180)/Math.tan(23*Math.PI/180)).add(tg);camera.lookAt(tg);camera.updateProjectionMatrix();}
     const onLost=(event:Event)=>{event.preventDefault();cancelAnimationFrame(animation);setReady(false);setFallback(true);};
     element.addEventListener('webglcontextlost',onLost);
     const resize=()=>{
@@ -70,7 +73,7 @@ export default function CosmicCompanion3D({state='idle',look='nebula',intensity=
      renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();
     };
     const observer=new ResizeObserver(resize);observer.observe(element);resize();
-    let prev=performance.now(),lastPaint=0,velocity=0,energy=0,bodyHeight=0,rendered=false,turntablePhase=0,motionTime=0;
+    let prev=performance.now(),lastPaint=0,velocity=0,energy=0,bodyHeight=0,rendered=false,turntablePhase=rotationRef.current.turntable?35*Math.PI/180:0,motionTime=0;
     const animate=(now:number)=>{
      if(disposed||document.hidden)return;
      const dt=Math.min((now-prev)/1000,.07);prev=now;
@@ -127,7 +130,7 @@ export default function CosmicCompanion3D({state='idle',look='nebula',intensity=
      observer.disconnect();document.removeEventListener('visibilitychange',visibility);
      element.removeEventListener('webglcontextlost',onLost);
      rig.dispose();
-     shadow.geometry.dispose();(shadow.material as import('three').Material).dispose();shadowTex.dispose();backGlow.geometry.dispose();(backGlow.material as import('three').Material).dispose();
+     shadow.geometry.dispose();(shadow.material as import('three').Material).dispose();shadowTex.dispose();glowTex.dispose();backGlow.geometry.dispose();(backGlow.material as import('three').Material).dispose();
      renderer.dispose();
     };
    }catch{

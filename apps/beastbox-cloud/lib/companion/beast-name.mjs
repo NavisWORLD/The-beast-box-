@@ -5,7 +5,9 @@ export const SESSION_KEY='beastbox-companion-session-v1';
 export const COMPANION_KEY='beastbox-active-creature-v1';
 /** The name the Cage card is actually showing for this device's creature (its genome name), written by that card. */
 export const SHOWN_KEY='beastbox-shown-beast-name-v1';
-const clean=(v)=>typeof v==='string'&&v.trim()?v.trim().slice(0,32):null;
+/** One spelling everywhere: 'Zeref-Nightcat-Dragon' reads 'Zeref · Nightcat Dragon' (middle dot, then spaces). Two-part names stay as typed. */
+export function prettyBeastName(n){if(typeof n!=='string')return n;const m=n.match(/^([A-Za-z][A-Za-z0-9]*)-([A-Za-z][A-Za-z0-9]*(?:-[A-Za-z][A-Za-z0-9]*)+)$/);return m?m[1]+' \u00b7 '+m[2].split('-').join(' '):n;}
+const clean=(v)=>typeof v==='string'&&v.trim()?prettyBeastName(v.trim().slice(0,32)):null;
 export function beastDisplayName(beast){if(!beast)return null;const n=beast.genome?.names||{};
  return clean(beast.displayName)||clean(n[String(beast.stage)])||clean(n[beast.stage])||clean(beast.qbeast?.profile?.name)||clean(n['1'])||clean(n[1])||null;}
 function readJson(storage,key){try{const raw=storage?.getItem(key);return raw?JSON.parse(raw):null;}catch{return null;}}

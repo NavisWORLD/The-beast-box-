@@ -117,7 +117,8 @@ export function createCreatureRig(
   lobe.scale.set(.36,.42,.31);root.add(lobe);
   const pivot=new THREE.Group();pivot.name='Fin_'+i;
   pivot.position.set(Math.sin(angle)*.89,Math.cos(angle)*.8,-.11);
-  pivot.rotation.z=-angle;
+  // Fan the petals back into a crest cone (not one flat plate) so the side view has depth instead of a pale vertical slab.
+  pivot.rotation.order='ZXY';pivot.rotation.z=-angle;pivot.rotation.x=i%2?-.78:-.52;
   const petal=new THREE.Mesh(finGeometry,petalMaterial);
   petal.scale.set(1.06,g.finLength*(i%3===0?1.15:.94),1);
   pivot.add(petal);root.add(pivot);fins.push(pivot);
