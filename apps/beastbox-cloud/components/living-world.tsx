@@ -39,7 +39,11 @@ import {growthChip,growthNoteKey,growthDriveKey,growthNoteLine} from '@/lib/univ
 import {addMechanics,createAsciiPass,underwaterColor} from '@/lib/universe/mechanics-three';
 import {weatherFrom,createMover,stepMover,createWater,stepWater,waterTotal} from '@/lib/universe/world-mechanics.mjs';
 import {createFoamField,syncFoam,foamBytes,foamStats} from '@/lib/universe/foam-field.mjs';
-import {receiptChip} from '@/lib/universe/visual-life-labels.mjs';
+import {SEA_GLSL,seaFrom} from '@/lib/universe/sea-state.mjs';
+import {CAUSTIC_GLSL,CAUSTIC_TAP_GLSL,CAUSTIC_LITE_GLSL,CAUSTIC_GATE_GLSL,CAUSTIC,causticColour} from '@/lib/universe/caustics.mjs';
+import {atmoClass,limbRim,limbAt,hazeFor} from '@/lib/universe/atmosphere-look.mjs';
+import {VL_ATMOSPHERE,pairTableGLSL} from '@/lib/universe/vislife-look.mjs';
+import {receipt,VL_OUTPUT_LABELS} from '@/lib/universe/visual-life-labels.mjs';
 import {LW_LABELS,gatheringPoints,spreadAngle,initialTraits,driftTraits,lattice12D,lwStream,unitFrom} from '@/lib/universe/living-world.mjs';
 import {ARTIST_RESIDENTS} from '@/lib/companion/artist-residents.mjs';
 import {RESIDENT_LIFE_KEY,lifeTransform,hopSeconds} from '@/lib/universe/sprite-life.mjs';
@@ -136,14 +140,19 @@ export default function LivingWorld({genome,beastKey,beastName,onClose,embedded=
    const latPivot=new THREE.Group();latPivot.add(latObj);latObj.position.set(0,26,-30);scene.add(latPivot);
    // ---- planet ground: grass/soil tiles blended by a coverage field that spreads from gathering points
    const gpts=gatheringPoints(u,bKey).map(v=>new THREE.Vector3(...v));
-   const UG:any={uRamp:{value:(()=>{const t=L.load('/universe/livingworld/landforms/ocean/water_depth_ramp_256x16.png');t.colorSpace=THREE.SRGBColorSpace;return t;})()},uFoam:{value:(()=>{const t=L.load('/universe/livingworld/landforms/ocean/foam_512.png');t.wrapS=t.wrapT=THREE.RepeatWrapping;return t;})()},uFoamF:{value:null},uFoamOn:{value:0},uFoamDrift:{value:new THREE.Vector2(0,0)},uMap:{value:null},uUseMap:{value:0},uHeight:{value:null},uDisp:{value:0},uGlow:{value:null},uIdx:{value:null},uField:{value:0},uTiles:{value:null},uUseTiles:{value:0},uLeg:{value:Array.from({length:20},()=>new THREE.Vector3(9,9,9))},uMN:{value:(()=>{const t=L.load('/universe/livingworld/groundcover/textures/meadow_near_albedo_1024.png');t.colorSpace=THREE.SRGBColorSpace;t.wrapS=t.wrapT=THREE.RepeatWrapping;return t;})()},uMF:{value:(()=>{const t=L.load('/universe/livingworld/groundcover/textures/meadow_far_albedo_1024.png');t.colorSpace=THREE.SRGBColorSpace;t.wrapS=t.wrapT=THREE.RepeatWrapping;return t;})()},uGrass:{value:tex('ground_grass_tile_256.jpg',true)},uSoil:{value:tex('ground_soil_tile_256.jpg',true)},uMask:{value:tex('grass_edge_edge_mask.png',true)},
+   const UG:any={uRamp:{value:(()=>{const t=L.load('/universe/livingworld/landforms/ocean/water_depth_ramp_256x16.png');t.colorSpace=THREE.SRGBColorSpace;return t;})()},uFoam:{value:(()=>{const t=L.load('/universe/livingworld/landforms/ocean/foam_512.png');t.wrapS=t.wrapT=THREE.RepeatWrapping;return t;})()},uFoamF:{value:null},uFoamOn:{value:0},uCausOn:{value:0},uHazeOn:{value:0},uHazeCol:{value:new THREE.Vector3(.8,.85,.9)},uHazeD:{value:0},uHazeCap:{value:.92},uCausHeavy:{value:0},uSeaT:{value:0},uSeaDir:{value:0},uSeaAmp:{value:.012},uSeaChop:{value:.25},uCausC0:{value:new THREE.Vector3(...causticColour(.5))},uCausC1:{value:new THREE.Vector3(...causticColour(8))},uFoamDrift:{value:new THREE.Vector2(0,0)},uMap:{value:null},uUseMap:{value:0},uHeight:{value:null},uDisp:{value:0},uGlow:{value:null},uIdx:{value:null},uField:{value:0},uTiles:{value:null},uUseTiles:{value:0},uLeg:{value:Array.from({length:20},()=>new THREE.Vector3(9,9,9))},uMN:{value:(()=>{const t=L.load('/universe/livingworld/groundcover/textures/meadow_near_albedo_1024.png');t.colorSpace=THREE.SRGBColorSpace;t.wrapS=t.wrapT=THREE.RepeatWrapping;return t;})()},uMF:{value:(()=>{const t=L.load('/universe/livingworld/groundcover/textures/meadow_far_albedo_1024.png');t.colorSpace=THREE.SRGBColorSpace;t.wrapS=t.wrapT=THREE.RepeatWrapping;return t;})()},uGrass:{value:tex('ground_grass_tile_256.jpg',true)},uSoil:{value:tex('ground_soil_tile_256.jpg',true)},uMask:{value:tex('grass_edge_edge_mask.png',true)},
     uPts:{value:gpts},uLift:{value:0},uPlay:{value:Array.from({length:8},()=>new THREE.Vector3())},uSpread:{value:spreadAngle(u)},uT:{value:0},uShow:{value:0},uSun:{value:sun.position.clone().normalize()}};
    const COVER=`uniform sampler2D uHeight;uniform float uDisp;vec2 eqUV(vec3 n){return vec2(atan(n.z,n.x)/6.2832+.5,asin(clamp(n.y,-1.0,1.0))/3.1416+.5);}float disp(vec3 n){return uDisp>0.0?max(0.0,texture2D(uHeight,eqUV(n)).r-0.42)*uDisp:0.0;}uniform vec3 uPts[8];uniform float uSpread;float cover(vec3 n){float c=0.0;for(int i=0;i<8;i++){float a=acos(clamp(dot(n,uPts[i]),-1.0,1.0));c=max(c,smoothstep(uSpread,uSpread-0.35,a));}return c;}`;
    // beasts gather first on living land (plains/forest; tundra or pine near the poles), so pick the first seeded layout variant that puts the gathering point there
    const BP=VISIT?biomeParams(visitPl.id+':'+seed0,{water:visitPl.water,temp:visitPl.temperature_k}):(()=>{const g0=gpts[0];for(let i=0;i<64;i++){const bp=biomeParams(i?u.seed+':v'+i:u.seed);if(['plains','heartwood','pine','tundra'].includes(biomeAt(bp,[g0.x,g0.y,g0.z]) as string))return bp;}return biomeParams(u.seed);})();const BGL=biomeGLSL(BP);let biomeOf=(n:import('three').Vector3)=>biomeAt(BP,[n.x,n.y,n.z]) as string;
    const ground=new THREE.Mesh(new THREE.SphereGeometry(PR,phone?96:160,phone?64:110),new THREE.ShaderMaterial({uniforms:UG,
     vertexShader:`varying vec3 vN;varying vec2 vUv;varying vec3 vWp;${COVER}void main(){vN=normalize(position);vUv=uv*vec2(48.0,24.0);vec3 p=position+vN*disp(vN);vWp=p;gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.0);}`,
-    fragmentShader:`uniform sampler2D uGrass,uSoil,uMask,uMap,uGlow,uIdx,uTiles,uMN,uMF,uRamp,uFoam,uFoamF;uniform vec2 uFoamDrift;uniform float uFoamOn;uniform float uT,uShow;uniform float uUseMap,uUseTiles,uField;uniform vec3 uSun,uLeg[20];uniform float uLift;varying vec3 vN;varying vec2 vUv;varying vec3 vWp;${COVER}${BGL}
+    fragmentShader:`uniform sampler2D uGrass,uSoil,uMask,uMap,uGlow,uIdx,uTiles,uMN,uMF,uRamp,uFoam,uFoamF;uniform vec2 uFoamDrift;uniform float uHazeOn,uHazeD,uHazeCap;uniform vec3 uHazeCol;uniform float uFoamOn,uCausOn,uCausHeavy,uSeaT,uSeaDir,uSeaAmp,uSeaChop;uniform vec3 uCausC0,uCausC1;${SEA_GLSL}
+${CAUSTIC_GLSL}
+${CAUSTIC_TAP_GLSL}
+${CAUSTIC_LITE_GLSL}
+${CAUSTIC_GATE_GLSL}
+uniform float uT,uShow;uniform float uUseMap,uUseTiles,uField;uniform vec3 uSun,uLeg[20];uniform float uLift;varying vec3 vN;varying vec2 vUv;varying vec3 vWp;${COVER}${BGL}
      int legIdx(vec3 c){int bi=0;float bd=9.0;for(int i=0;i<20;i++){vec3 d=c-uLeg[i];float dd=dot(d,d);if(dd<bd){bd=dd;bi=i;}}return bi;}
      vec3 tri(sampler2D t,vec3 n){vec3 w=pow(abs(n),vec3(4.0));w/=w.x+w.y+w.z;vec3 p=n*${(PR/2).toFixed(1)};return texture2D(t,p.yz).rgb*w.x+texture2D(t,p.xz).rgb*w.y+texture2D(t,p.xy).rgb*w.z;}
      void main(){vec3 n=normalize(vN);int b=biome(n);float c=cover(n);float m=.5+.35*(tri(uMask,n*1.7).r-.5)+.25*(fract(sin(dot(floor(n*40.0),vec3(12.9,78.2,37.7)))*43758.5)-.5);float g=smoothstep(m-.2,m+.2,c*1.1);
@@ -163,6 +172,8 @@ export default function LivingWorld({genome,beastKey,beastName,onClose,embedded=
       // Cosmo's ocean: depth from the height map (sea level .42) -> depth ramp (shore turquoise -> abyss indigo), shoreline foam
       if(uUseMap>.5){float hh=texture2D(uHeight,eqUV(n)).r;if(hh<.42){float dm=(.42-hh)*160.0;float tw=1.0-exp(-dm/12.0);vec3 wc=texture2D(uRamp,vec2(tw,.5)).rgb;
        float fo=texture2D(uFoam,eqUV(n)*vec2(60.0,30.0)+uT*.02).r*smoothstep(1.5,0.0,dm);col=mix(col,wc,mix(.55,.95,tw))+fo*.7;
+       /* Visual Life Pass B2: caustics on the shallow floor from the ONE sea wave function, gated by the sun (per fragment) and the pack depth fall-off */
+       if(uCausOn>.5&&dm<${CAUSTIC.cutoffM.toFixed(1)}){float cs=dot(n,uSun);float cg=max(causticGate(cs),${CAUSTIC.nightMul.toFixed(3)}*(1.0-smoothstep(-.12,.35,cs)));float cI=uCausHeavy>.5?causticAt(n,uSeaT,uSeaDir,uSeaAmp,uSeaChop,dm):causticLite(seaWaveHeight(n.x,n.y,n.z,uSeaT,uSeaDir,uSeaAmp,uSeaChop),uSeaAmp)*exp(-dm/${CAUSTIC.decayM.toFixed(3)});col+=mix(uCausC0,uCausC1,tw)*cI*cg*(1.0-tw)*.55;}
        /* Visual Life Pass B1: the engine's FOAM FIELD (born at crests and the shore, carried by the engine wind, fading with age) drawn with the same foam detail, over the old foam */
        if(uFoamOn>.5){float ffa=texture2D(uFoamF,eqUV(n)).r;float ffd=texture2D(uFoam,(eqUV(n)+uFoamDrift)*vec2(60.0,30.0)).r;col+=vec3(.92,.97,1.0)*ffa*(.35+.65*ffd)*.85;}}}
       if(uUseMap>.5&&uUseTiles>.5){vec2 tq=eqUV(n);float th=texture2D(uHeight,tq).r;float tdc=distance(cameraPosition,vWp);float tnr=smoothstep(14.0,3.0,tdc);if(th>=.42&&tnr>0.0){
@@ -174,6 +185,8 @@ export default function LivingWorld({genome,beastKey,beastName,onClose,embedded=
       if(b==7)col+=vec3(.6,.2,.05)*pow(.5+.5*sin(bH(n)*50.0),8.0);if(b==10)col+=vec3(.2,.25,.4)*(1.0-dif);
       if(b==0)col+=vec3(.9,.95,1.0)*pow(max(0.0,dot(reflect(-uSun,n),v)),40.0)*.6;
       if(uUseMap>.5)col+=texture2D(uGlow,eqUV(n)).rgb*(1.0-smoothstep(-.1,.25,dot(n,uSun)))*1.1;
+      /* Visual Life Pass B3: haze toward the sky horizon (pack curve 1-exp(-(d*density)^2), capped; density x fog multiplier from engine moisture and storm); first person only */
+      if(uHazeOn>.5){float hd=distance(cameraPosition,vWp)*uHazeD;col=mix(col,uHazeCol,min(uHazeCap,1.0-exp(-hd*hd)));}
       float rim=pow(1.0-max(0.0,dot(n,v)),3.0);/* until Cosmo's maps (or the decision to use the seeded fallback) arrive, show a plain unlit planet: the procedural biome bands, ember stripes and white caps were flashing for several seconds on slow loads and read as stripes/seams */vec3 rimC=vec3(.35,.55,1.0)*rim*.45;gl_FragColor=vec4(mix(vec3(.05,.08,.15)*(.5+.9*dif)+rimC,col+rimC,uShow),1.0);}`}));
    scene.add(ground);
    {const sc=new THREE.Mesh(new THREE.SphereGeometry(PR+.012,phone?64:120,phone?40:80),new THREE.ShadowMaterial({opacity:.32,depthWrite:false}));sc.receiveShadow=true;sc.renderOrder=1; /* depthWrite off: this catcher sits at PR+.012, above the fish/birds/turtles (PR+.002..+.005), so with depth writes it hid them */scene.add(sc);}
@@ -192,7 +205,7 @@ export default function LivingWorld({genome,beastKey,beastName,onClose,embedded=
     legRGB=LEGEND.map((id:string)=>{const L=leg?.biomes?.find((b:any)=>b.id===id);const c=L?parseInt(L.rgb.slice(1),16):0;return [(c>>16)&255,(c>>8)&255,c&255];});
     fieldTex=new THREE.DataTexture(fieldRGBA(field,(i:number)=>legRGB[i]),field.W,field.H,THREE.RGBAFormat);fieldTex.magFilter=fieldTex.minFilter=THREE.NearestFilter;fieldTex.wrapS=THREE.RepeatWrapping;fieldTex.needsUpdate=true;
     if(leg){UG.uIdx.value=fieldTex;UG.uField.value=1;}
-    foamF=createFoamField(field);foamTex=new THREE.DataTexture(new Uint8Array(field.N*4),field.W,field.H,THREE.RGBAFormat);foamTex.magFilter=foamTex.minFilter=THREE.LinearFilter;foamTex.wrapS=THREE.RepeatWrapping;foamTex.needsUpdate=true;UG.uFoamF.value=foamTex;UG.uFoamOn.value=1;
+    foamF=createFoamField(field);foamTex=new THREE.DataTexture(new Uint8Array(field.N*4),field.W,field.H,THREE.RGBAFormat);foamTex.magFilter=foamTex.minFilter=THREE.LinearFilter;foamTex.wrapS=THREE.RepeatWrapping;foamTex.needsUpdate=true;UG.uFoamF.value=foamTex;UG.uFoamOn.value=1;UG.uCausOn.value=1;UG.uCausHeavy.value=heavyAllowed({phone,deviceMemory:(navigator as any).deviceMemory,cores:navigator.hardwareConcurrency})?1:0;
     biomeOf=(n)=>{const id=legendAt(field,[n.x,n.y,n.z]);return (COSMO_TO_LW[id]||'plains');};cosmoNameOf=(n)=>legendAt(field,[n.x,n.y,n.z]).replace(/_/g,' ').replace(/\b\w/g,(m:string)=>m.toUpperCase());
     (window as any).__lwField=()=>({tick:field.tick,changed:field.changed,tension:+field.storm.toFixed(3),lorenz:{...field.S.L},records:expLog.length,beast:beastLoop.S.ch,zeref:zerefLoop.S.ch});};
    // ---- the Cage surface everywhere: Cosmo's ground cover + trees, instanced, planted from the seed per biome (one renderer: lib/universe/surface-three)
@@ -232,13 +245,18 @@ export default function LivingWorld({genome,beastKey,beastName,onClose,embedded=
     // seeded ocean life (fish schools, rays, whales, plankton glow): only in water cells of the world field
     try{if(!(window as any).__lwNoOcean)ocean=addOceanLife(THREE,scene,{seed:u.seed,R:PR,mpu:TRAV_H/1.7,phone,life:Math.max(.4,Math.min(1.6,.6+((u.life||[]).length||0)*.15)),isWater:(d:number[])=>{const id=field?legendAt(field,d):(cosmoBiome(tv.set(d[0],d[1],d[2]))||'');return WATER_IDS.has(id)?id:null;}});cleanup.push(()=>ocean?.dispose());(window as any).__lwOcean=ocean.state();{const w0=ocean.data.schools.find((x:any)=>x.kind==='whale')||ocean.data.schools[0];if(w0)(window as any).__lwOceanN=new THREE.Vector3(w0.n[0],w0.n[1],w0.n[2]);}}catch(e){(window as any).__lwOceanErr=String(e);}
     (window as any).__lwGrowthInfo=()=>surface?.growthInfo?.();try{growthUi();}catch{}surface.ready.then((c:any)=>{if(disposed)return;blades.visible=false;(window as any).__lwSurface={counts:c,meshes:surface.meshes.length};}).catch((e:any)=>{(window as any).__lwSurfaceErr=String(e);});};
-   let fieldAcc=0;let foamF:any=null,foamTex:any=null,foamTick=-1;const vlHud=()=>{if(!foamF)return;const e=hudVL.current;const fs=foamStats(foamF,field);const c=receiptChip('foam','foam',{wind:fs.wind});if(e){e.style.display=c&&fs.waterCells>0?'':'none';if(c)e.textContent=c;}(window as any).__lwVisualLife={foam:{cover:+fs.cover.toFixed(4),peak:+fs.peak.toFixed(3),wind:+fs.wind.toFixed(3),tick:fs.tick,label:'SIMULATED'}};};
+   let fieldAcc=0;let foamF:any=null,foamTex:any=null,foamTick=-1;let vlAir:any=null;const vlHud=()=>{if(!foamF)return;const e=hudVL.current;const fs=foamStats(foamF,field);const sunDeg=Math.asin(Math.max(-1,Math.min(1,sunDir.dot(bN))))*180/Math.PI;
+    /* one chip; every line is authored text bound to a real engine number, all SIMULATED (stepped by the world loop); a line without its number is dropped */
+    const hz=vlAir;const lines=[receipt('foam',{wind:fs.wind}),sunDeg>0&&UG.uCausOn.value===1?receipt('caustics',{sun:sunDeg}):null,hz?receipt('haze',{density:hz.atmo}):null,hz&&hz.mul>1.05?receipt('fog',{moisture:hz.moisture,tension:hz.storm}):null].filter(Boolean);
+    if(e){e.style.display=lines.length&&fs.waterCells>0?'':'none';e.textContent=lines.join('; ')+' · '+VL_OUTPUT_LABELS.foam;}
+    (window as any).__lwVisualLife={...((window as any).__lwVisualLife||{}),caustics:{on:UG.uCausOn.value===1,heavy:UG.uCausHeavy.value===1,sunDeg:+sunDeg.toFixed(1),label:'SIMULATED'},foam:{cover:+fs.cover.toFixed(4),peak:+fs.peak.toFixed(3),wind:+fs.wind.toFixed(3),tick:fs.tick,label:'SIMULATED'},chip:lines};};
    const fieldStep=(dt:number,sunV:import('three').Vector3,activity:number)=>{if(!field)return;
     const heat=Math.min(1,Math.max(0,((homeStar?.temperature_k||5800)-3000)/6000));
     const ch=stepWorldField(field,dt,{sun:[sunV.x,sunV.y,sunV.z],starHeat:heat,activity,mood:{curiosity:traits.curiosity}});
     if(ch.length&&fieldTex){fieldTex.image.data.set(fieldRGBA(field,(i:number)=>legRGB[i]));fieldTex.needsUpdate=true;
      for(const ps of propSprites){const k=cellOf(field,[ps.n.x,ps.n.y,ps.n.z]);if(!ch.includes(k))continue;const id=LEGEND[field.idx[k]];ps.spr.visible=!!propSheets[id]&&ps.biome===id||!!propSheets[id];if(propSheets[id]&&ps.biome!==id){ps.biome=id;swapProp(ps,id);}}}
     if(foamF){syncFoam(foamF,field);if(foamF.tick!==foamTick){foamTick=foamF.tick;const q=foamTex.image.data;for(let k=0;k<foamF.N;k++){const v=Math.round(Math.min(1,foamF.foam[k])*255);q[k*4]=v;q[k*4+1]=v;q[k*4+2]=v;q[k*4+3]=255;}foamTex.needsUpdate=true;UG.uFoamDrift.value.set(foamF.drift[0],foamF.drift[1]);vlHud();}}
+    if(foamF){const sea=seaFrom(field);UG.uSeaDir.value=sea.dir;UG.uSeaAmp.value=sea.amp;UG.uSeaChop.value=sea.chop;}
     storming=Math.max(storming,field.storm);
     fieldAcc+=dt;if(fieldAcc<1)return;const W1=fieldAcc;fieldAcc=0;
     const res=stepCreature(beastLoop,field,[bN.x,bN.y,bN.z],W1,traits,{others:[zerefLoop]});const zN=gpts[1]||gpts[0];stepCreature(zerefLoop,field,zN,W1,null,{others:[beastLoop]});
@@ -274,9 +292,12 @@ export default function LivingWorld({genome,beastKey,beastName,onClose,embedded=
     return true;}).catch(e=>{startField();buildSurface();(window as any).__lwCosmoMapsErr=String(e);return false;});
    cosmoReady.then(()=>{UG.uShow.value=1;},()=>{UG.uShow.value=1;});
    // atmosphere rim, visible from orbit
-   {const atm=new THREE.Mesh(new THREE.SphereGeometry(PR*1.07,64,40),new THREE.ShaderMaterial({transparent:true,depthWrite:false,side:THREE.BackSide,blending:THREE.AdditiveBlending,
+   {const lr=limbRim(skyCfg.atmosphere);const rc=VL_ATMOSPHERE.limb_rim[lr.cls==='mid'?'mid':'thick'];
+    /* Visual Life Pass B3: the limb rim by atmosphere class (thickness = pack fraction of the radius from the engine atmosphere value; sunward limb brighter and golden at a low sun). Airless worlds have no rim. Old rim stays as the fallback when the pack class is missing. */
+    const packRim=lr.enabled;const atm=new THREE.Mesh(new THREE.SphereGeometry(PR*(packRim?1+lr.thicknessFrac:1.07),64,40),new THREE.ShaderMaterial({transparent:true,depthWrite:false,side:THREE.BackSide,blending:THREE.AdditiveBlending,
+     uniforms:{uSun:UG.uSun,uRimDay:{value:new THREE.Vector3(...rc.rim_colour.day.linear)},uRimGold:{value:new THREE.Vector3(...rc.golden_hour_rim_colour.linear)},uRimGain:{value:packRim?lr.gain:0},uRimPack:{value:packRim?1:0}},
      vertexShader:`varying vec3 vW;void main(){vW=(modelMatrix*vec4(position,1.0)).xyz;gl_Position=projectionMatrix*viewMatrix*vec4(vW,1.0);}`,
-     fragmentShader:`varying vec3 vW;void main(){vec3 n=normalize(vW);vec3 v=normalize(cameraPosition-vW);float f=pow(1.0-abs(dot(n,v)),2.0);gl_FragColor=vec4(vec3(.35,.6,1.0)*f*1.1,f);}`}));scene.add(atm);}
+     fragmentShader:`uniform vec3 uSun,uRimDay,uRimGold;uniform float uRimGain,uRimPack;varying vec3 vW;${pairTableGLSL('rimAlpha',rc.alpha_by_sun_limb_cos)}\n${pairTableGLSL('rimGold',rc.golden_hour_mix_by_sun_elev_sin)}\nvoid main(){vec3 n=normalize(vW);vec3 v=normalize(cameraPosition-vW);float f=pow(1.0-abs(dot(n,v)),2.0);if(uRimPack>.5){float cl=dot(n,uSun);vec3 rc=mix(uRimDay,uRimGold,rimGold(cl));float a=rimAlpha(cl)*uRimGain;gl_FragColor=vec4(rc*f*1.1*a,f*a);}else gl_FragColor=vec4(vec3(.35,.6,1.0)*f*1.1,f);}`}));atm.visible=packRim||atmoClass(skyCfg.atmosphere)!=='thin';scene.add(atm);}
    // other bodies: the first planets of the simulated universe, each with its own seeded biome look (water/temperature from its data)
    const COSMO_PLANETS=['crystal_moss','ember_world','glacier','jelly_geyser','paper_sea','sunflower_ring'];
    const bodies=(u.planets||[]).filter((pl:any)=>!VISIT||pl.id!==visitPl.id).slice(0,phone?4:6).map((pl:any,i:number)=>{const bp=biomeParams(pl.id+':'+u.seed,{water:pl.water,temp:pl.temperature_k});
@@ -563,7 +584,7 @@ uniform vec3 uPlay[8];
      }};
    })();
    let fpsT=0,fpsN=0,fps=0,last=performance.now(),t=0,hudT=0;let skyStarA=-1;const camTarget=new THREE.Vector3(),camPos=new THREE.Vector3(0,6,22);const cW=new THREE.Vector3(),cT=new THREE.Vector3(),cN=new THREE.Vector3(0,1,0),camLook=new THREE.Vector3();
-   const frame=()=>{raf=requestAnimationFrame(frame);const now=performance.now();const dt=Math.min(.05,(now-last)/1000);last=now;t+=dt;UG.uT.value=t;
+   const frame=()=>{raf=requestAnimationFrame(frame);const now=performance.now();const dt=Math.min(.05,(now-last)/1000);last=now;t+=dt;UG.uT.value=t;if(field)UG.uSeaT.value=(field.tick+field.clock.alpha)/4;
     fpsT+=dt;fpsN++;if(fpsT>=3){fps=fpsN/fpsT;fpsT=0;fpsN=0;if(fps<48&&bladeCap>2000){bladeCap=Math.floor(bladeCap*.75);bladeGeo.instanceCount=bladeCap;}(window as any).__lwPerf={fps:+fps.toFixed(1),blades:bladeCap};}
     tickAcc+=dt;if(tickAcc>=TICK_S){tickAcc=0;applyTick();}
     {let a=(((Date.now()/1000+((window as any).__lwDayOffset||0))%DAY_S+DAY_S)%DAY_S)/DAY_S*Math.PI*2;if(HOLD){if(hz.a===null)hz.a=a;a=hz.a;}sunDir.set(Math.cos(a),.35*Math.sin(a*.5+1),Math.sin(a)).normalize();UG.uSun.value.copy(sunDir);{const sSrc=sunSource({field,override:HOLD||(window as any).__lwDayOffset!==undefined});if(sSrc.dir)sunDir.set(sSrc.dir[0],sSrc.dir[1],sSrc.dir[2]).normalize();(window as any).__lwSunSource=sSrc.source;UG.uSun.value.copy(sunDir);}
@@ -572,11 +593,13 @@ uniform vec3 uPlay[8];
      sunDisc.position.copy(sunDir).multiplyScalar(160);starMesh.position.copy(sunDisc.position);moon.position.copy(sunDir).multiplyScalar(-70).add(new THREE.Vector3(0,12,0));
      const ground3=zC<.6;const day=ground3?THREE.MathUtils.smoothstep(h,-.12,.35):0;const dusk=ground3?Math.max(0,1-Math.abs(h)/.18)*.7:0;
      let skyNf=1-day*.97;
+     if(!ground3){UG.uHazeOn.value=0;vlAir=null;const vl0=(window as any).__lwVisualLife;if(vl0)delete vl0.haze;}
      if(ground3){const bf=(window as any).__lwBoomForce;const bTick=bf?bf.tick:((u as any).tick||0);const bList=bf?[{star:bf.star||homeStar,eventTick:bf.eventTick||0,distance:Math.max(SKY_VIEW.homeBoomMinAu,homePl?.orbit_au||1),dir:boomBearing(String(u.seed||'tiny'),(bf.star||homeStar)?.id||'s')}]:skyBoomList;
       const upA=[fN.x,fN.y,fN.z],sm=skyMoons(u.seed,homePl,upA,t);
       const sk=skyAt({sunDir:[sunDir.x,sunDir.y,sunDir.z],sunElev:h,up:upA,atmosphere:skyCfg.atmosphere,starTempK:skyCfg.starTempK,skyColor:skyCfg.skyColor||undefined,twilightColor:skyCfg.twilightColor||undefined,star:homeStar,channels:engineChannels(field||{}),tick:bTick,booms:bList,bodies:sm});
       const kz=SKY_VIEW.flatBackgroundMix;(scene.background as any).setRGB(sk.zenith[0]*(1-kz)+sk.horizon[0]*kz,sk.zenith[1]*(1-kz)+sk.horizon[1]*kz,sk.zenith[2]*(1-kz)+sk.horizon[2]*kz);
-      skyNf=Math.max(.03,sk.nightFactor);hemi.color.copy(hemiBase).lerp(new THREE.Color().setRGB(sk.zenith[0],sk.zenith[1],sk.zenith[2]),.35);hemi.intensity+=(sk.rig.ambient-.125)*3;
+      skyNf=Math.max(.03,sk.nightFactor);{const cI=field?cellOf(field,upA):-1;const hz2=hazeFor({atmo:skyCfg.atmosphere,sunElevSin:h,nightFactor:sk.nightFactor,moisture:cI>=0?field.moist[cI]:0,storm:field?field.storm:0});const srgb=(v:number)=>v<=.0031308?12.92*v:1.055*Math.pow(Math.max(0,v),1/2.4)-.055;UG.uHazeOn.value=hz2.enabled?1:0;if(!hz2.enabled)vlAir=null;if(hz2.enabled){const hz3=[0,1,2].map(i=>hz2.colour[i]*(1-.7)+sk.horizon[i]*.7);const sc=hz2.stormColour;UG.uHazeCol.value.set(...([0,1,2].map(i=>srgb(hz3[i]*(1-hz2.stormMix)+sc[i]*hz2.stormMix)) as [number,number,number]));UG.uHazeD.value=hz2.density/(TRAV_H/1.7);UG.uHazeCap.value=hz2.cap;vlAir={atmo:skyCfg.atmosphere,mul:hz2.mul,moisture:cI>=0?field.moist[cI]:0,storm:field?field.storm:0};(window as any).__lwVisualLife={...((window as any).__lwVisualLife||{}),haze:{cls:hz2.cls,mul:+hz2.mul.toFixed(3),density:+hz2.density.toFixed(5),stormMix:+hz2.stormMix.toFixed(3),moisture:cI>=0?+field.moist[cI].toFixed(3):null,label:'SIMULATED'}};}}
+      hemi.color.copy(hemiBase).lerp(new THREE.Color().setRGB(sk.zenith[0],sk.zenith[1],sk.zenith[2]),.35);hemi.intensity+=(sk.rig.ambient-.125)*3;
       sk.bodies.forEach((b:any,i:number)=>{let m=skyMoonMeshes[i];if(!m){m=moon.clone();m.material=(moon.material as any).clone();scene.add(m);skyMoonMeshes[i]=m;}const rr=Math.min(6,SKY_VIEW.moonDist*b.radius/b.distance);m.scale.setScalar(rr/2.2);m.position.set(fN.x*PR+b.dir[0]*SKY_VIEW.moonDist,fN.y*PR+b.dir[1]*SKY_VIEW.moonDist,fN.z*PR+b.dir[2]*SKY_VIEW.moonDist);m.visible=b.aboveHorizon;});
       if(sk.bodies.length)moon.userData.engineMoon=true;
       const bg=sk.booms[0];if(bg&&bg.dir&&bg.dir[0]*fN.x+bg.dir[1]*fN.y+bg.dir[2]*fN.z>-.05){boomGlow.visible=true;boomGlow.position.set(fN.x*PR+bg.dir[0]*SKY_VIEW.skyDist,fN.y*PR+bg.dir[1]*SKY_VIEW.skyDist,fN.z*PR+bg.dir[2]*SKY_VIEW.skyDist);boomGlow.material.color.setRGB(bg.color[0],bg.color[1],bg.color[2]);boomGlow.material.opacity=Math.min(1,bg.strength);boomGlow.scale.setScalar(boomSpriteScale(bg.radiusDeg));}else boomGlow.visible=false;
