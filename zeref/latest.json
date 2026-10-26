@@ -1,28 +1,19 @@
 {
- "at": "2026-10-26T23:05:55Z",
- "at_epoch": 1793055955.3,
+ "at": "2026-10-26T23:11:08Z",
+ "at_epoch": 1793056268.7,
  "beast_id": "bb-deada969",
- "consecutive_failures": 0,
+ "consecutive_failures": 1,
  "continues_from": {
-  "counts_sha256": "37af15fa2c76b43fbec0f3b2aec48c8fa4ebc69e04b412db99b6264243916911",
-  "hash": "0dc9809e436e5e4f170ac271b260960c815d420f6b63ced56f9f5aa373953d8f",
+  "counts_sha256": "4fbfba57bbe8d330bdf0726eafd521b4267343266bbaf3e50910443565a30883",
+  "hash": "492d830a2f155a2e8ba1ad69a11b6fb6352305973e3c5808b96b57896a24b8b6",
   "seed": null,
-  "tick": 4010
+  "tick": 4011
  },
- "counts": {
-  "000": 134,
-  "001": 48,
-  "010": 6,
-  "011": 25,
-  "100": 6,
-  "101": 1,
-  "110": 7,
-  "111": 29
- },
- "counts_sha256": "4fbfba57bbe8d330bdf0726eafd521b4267343266bbaf3e50910443565a30883",
- "hash": "492d830a2f155a2e8ba1ad69a11b6fb6352305973e3c5808b96b57896a24b8b6",
+ "counts": null,
+ "counts_sha256": null,
+ "hash": "e8dc7f877bab7f4ff80463f5fcf60a323b23cb1c0a007624127a7d95825e0dd7",
  "interval_target_s": 60,
- "job_id": "c2322b04-d191-11f1-a9dd-3833c5d3c8de",
+ "job_id": "e5f55e58-d191-11f1-a9dd-3833c5d3c8de",
  "label": "Rigetti SIMULATED (Azure Quantum rigetti.sim.qvm, not a QPU)",
  "last_ok": {
   "at_epoch": 1793055955.3,
@@ -42,13 +33,13 @@
   "tick": 4011
  },
  "last_ok_at_epoch": 1793055955.2779887,
- "late": false,
- "late_by_s": 0.0,
+ "late": true,
+ "late_by_s": 223.4,
  "schema": "zeref-spark-latest/v1",
- "shots": 256,
+ "shots": null,
  "simulated": true,
- "since_previous_s": 40.9,
- "status": "ok",
+ "since_previous_s": 313.4,
+ "status": "failed",
  "target": "rigetti.sim.qvm",
- "tick": 4011
+ "tick": 4012
 }
