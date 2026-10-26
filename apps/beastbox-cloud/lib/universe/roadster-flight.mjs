@@ -55,7 +55,7 @@ export function liftOff(p0,n,f,vGround=0,F=FLIGHT){
  return {p:[...p0],v:add(mul(fwd,Math.max(0,vGround)),mul(up,1.2)),fwd:fr.fwd,up:fr.up,t:0,landed:false,rolling:false,throttle:0};
 }
 /** Where the vehicle is relative to the planet: altitude over the hull-resting radius, speed, escape state. */
-export function flightInfo(S,groundR=FLIGHT.R,F=FLIGHT){
+export function flightInfo(S,groundR=/** @type {number} */(FLIGHT.R),F=FLIGHT){
  const r=len(S.p),alt=r-groundR-F.hullR,sp=len(S.v),n=norm(S.p);const vr=dot(S.v,n);
  const E=orbitEnergy(S.p,S.v,F);
  return {r,alt,speed:sp,climb:vr,tangential:Math.sqrt(Math.max(0,sp*sp-vr*vr)),density:airDensity(alt),inSpace:airDensity(alt)<.05,energy:E,escaping:E>=0&&vr>0,
@@ -66,7 +66,7 @@ export function flightInfo(S,groundR=FLIGHT.R,F=FLIGHT){
  * groundAt(unitDir) -> ground radius in u at that direction (terrain height); defaults to the bare sphere.
  * Semi-implicit (leapfrog) sub-steps so a vacuum orbit keeps its energy. Mutates and returns S.
  */
-export function stepFlight(S,input,dt,groundAt=()=>FLIGHT.R,F=FLIGHT){
+export function stepFlight(S,input,dt,groundAt=/** @type {(n:number[])=>number} */(()=>FLIGHT.R),F=FLIGHT){
  let left=Math.max(0,Math.min(dt,.25));
  while(left>1e-9){const h=Math.min(left,F.maxStep);left-=h;one(S,input,h,groundAt,F);}
  return S;
@@ -103,7 +103,7 @@ function one(S,I,h,groundAt,F){
  }
 }
 /** Autopilot for coming home ("Land"): returns an input for stepFlight. Burns retrograde to kill speed, then hovers down on a soft profile. */
-export function landingAssist(S,groundR=FLIGHT.R,F=FLIGHT){
+export function landingAssist(S,groundR=/** @type {number} */(FLIGHT.R),F=FLIGHT){
  const n=norm(S.p),sp=len(S.v),alt=Math.max(0,len(S.p)-groundR-F.hullR),vr=dot(S.v,n);
  const aNet=Math.max(1,F.thrust*.85-gravityAt(len(S.p),F));
  const vSafe=Math.sqrt(2*aNet*Math.max(0,alt-.05))*.55+.5; // fastest descent we can still stop in time with margin
@@ -136,7 +136,7 @@ export function orbitElements(S,F=FLIGHT){
  return {e,peri:E<0?a*(1-e):hh*hh/(mu*(1+e)),apo:E<0?a*(1+e):Infinity,bound:E<0};
 }
 /** Autopilot for "Exit to orbit": a gravity turn. Phase 1 climbs and bends the nose to the horizon as the air thins until the high point (apoapsis) clears the air; the engine then cuts and the craft coasts up. Phase 2 burns along the flight path at the high point until the low point (periapsis) is also clear of the air: a bound orbit. Returns {thrust,brake,pitch,yaw,roll,level,done}. */
-export function ascentAssist(S,groundR=FLIGHT.R,F=FLIGHT){
+export function ascentAssist(S,groundR=/** @type {number} */(FLIGHT.R),F=FLIGHT){
  const r=len(S.p),n=norm(S.p),alt=Math.max(0,r-groundR-F.hullR);
  const vr=dot(S.v,n),tang=sub(S.v,mul(n,vr)),tsp=len(tang);
  const fwdT=norm(sub(S.fwd,mul(n,dot(S.fwd,n))));
