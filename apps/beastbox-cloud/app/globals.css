@@ -921,7 +921,7 @@ body:has([data-not-found]) :is(.site-dock,[data-beast-chat-launcher],[data-zeref
  body[data-one-dock][data-dock=open] :is([data-zeref-voice-dock],aside[data-sound-room],aside.cosmic-support:not(.is-open),[data-beast-chat-launcher],[data-dock-game],[data-lost-cosmos-dock][data-dock-state=mini]){transition:opacity .18s ease}
  body[data-one-dock][data-dock=open][data-dock-away] :is([data-zeref-voice-dock],aside[data-sound-room],aside.cosmic-support:not(.is-open),[data-beast-chat-launcher],[data-dock-game]){opacity:0;pointer-events:none}
  /* the mini game card and its pill/tab are replaced by the game button */
- body[data-one-dock][data-dock=open] :is([data-lost-cosmos-dock][data-dock-state=mini],[data-spark-player][data-player-mode=minimized][data-running=false]){display:none!important}
+ body[data-one-dock][data-dock=open] [data-lost-cosmos-dock][data-dock-state=mini]{display:none!important}
  /* game button */
  body[data-one-dock][data-dock=open] [data-dock-game]{display:inline-flex;position:fixed;z-index:61;right:var(--dk-r);bottom:calc(var(--dk-b) + 168px);width:48px;height:48px;align-items:center;justify-content:center;border-radius:50%;border:1px solid #8a6cff88;background:#120c2ee8;color:#efe6ff;font-size:22px;text-decoration:none;box-shadow:0 6px 18px #0008}
  /* talk */
