@@ -54,6 +54,6 @@ export default function HomePocket(){
  {/* Oct 25: ONE menu replaces the three buttons that used to sit on the scene. It sits in its own layer above the 3D sprite so it is always tappable. */}
  <div className="home-menu-layer">
   <WorldMenu context="home" view={homeView} onView={chooseHomeView} hasBeast={!!own} beastName={beast?beastDisplayName(beast):null} onHosts={setHosts} hideViews={['classic']}
-   extra={[{label:'Enter the tiny world',icon:'🌍',onClick:()=>setWorld(true),attr:'data-open-living-world'},{label:'My surroundings give the pocket life',icon:'🌱',onClick:()=>setEnvOpen(true),attr:'data-open-environment'},{label:'Sound, game & help controls',icon:'🔊',onClick:()=>document.body.classList.toggle('lc-tools-open'),attr:'data-home-tools'}]}/>
+   extra={[{label:'Enter the tiny world',icon:'🌍',onClick:()=>setWorld(true),attr:'data-open-living-world'},{label:'Share my world\u2019s signals',icon:'🌱',onClick:()=>setEnvOpen(true),attr:'data-open-environment'},{label:'Sound, game & help controls',icon:'🔊',onClick:()=>document.body.classList.toggle('lc-tools-open'),attr:'data-home-tools'}]}/>
  </div></>;
 }

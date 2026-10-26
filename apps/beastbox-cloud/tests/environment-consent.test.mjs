@@ -49,10 +49,18 @@ test('route: per-user identity, same-origin writes, size cap, DELETE revokes, no
  for(const fn of ['POST','DELETE'])assert.match(r.slice(r.indexOf('export async function '+fn)),/sameOrigin\(request\)/);
  assert.match(r,/415/);assert.match(r,/413/);assert.match(r,/401/);assert.match(r,/MAX_BODY=2000/);assert.doesNotMatch(r,/CONNECTION_STRING|SAS|api\/features|bridge/);});
 test('UI: one consent control, default off, labels visible, revoke present, numbers only, 44px targets',()=>{
- const c=src('components/environment-consent.tsx');assert.match(c,/I consent \(off by default/);assert.match(c,/data-environment-revoke/);assert.match(c,/ENV_NOTE/);assert.match(c,/validateEnvironment/);assert.match(c,/minHeight:44/);
+ const c=src('components/environment-consent.tsx');assert.match(c,/I consent to sharing my world&apos;s signals \(off until you turn it on/);assert.match(c,/data-environment-revoke/);assert.match(c,/ENV_NOTE/);assert.match(c,/validateEnvironment/);assert.match(c,/minHeight:44/);
  assert.doesNotMatch(c,/MediaRecorder|toBlob|createObjectURL|toDataURL/);
  const sr=src('lib/environment/sensor-runtime.ts');assert.doesNotMatch(sr,/MediaRecorder|toBlob|toDataURL|createObjectURL/);assert.match(sr,/denied/);assert.match(sr,/unavailable/);assert.match(sr,/getTracks\(\)\.forEach\(t=>t\.stop\(\)\)/);
  for(const w of ['RECORDED','SIMULATED','MEASURED','SEEDED'])assert.match(ENV_NOTE,new RegExp(w));
- assert.match(describeChannel('sound',{state:'denied'}),/denied/);assert.match(describeChannel('heart',{state:'unavailable'}),/no valid reading/);
+ assert.match(describeChannel('sound',{state:'denied'}),/declined/);assert.match(describeChannel('heart',{state:'unavailable'}),/no valid pulse/);
  const hp=src('components/home-pocket.tsx');assert.match(hp,/EnvironmentConsent/);assert.match(hp,/data-open-environment/);
  const cp=src('components/cage-pocket-dimension.tsx');assert.match(cp,/environmentWeights\(sand\.field\.counts/);assert.match(cp,/isFresh\(/);});
+test('consent card copy says exactly what this card does (end-game wording)',()=>{
+ const c=src('components/environment-consent.tsx');
+ assert.match(c,/Give your universe more life/);assert.match(c,/Stop sharing/);assert.match(c,/Stopped\. Saved numbers deleted\./);assert.match(c,/No valid pulse/);assert.match(c,/waiting for permission/);
+ assert.match(c,/RECORDED on IBM hardware/);assert.doesNotMatch(c,/Revoke and erase/);
+ // three switches really exist: light, sound, motion; pulse is read on IBM BIO, not here (no pulse/time/camera switch is claimed)
+ assert.equal((c.match(/\{row\('/g)||[]).length,3);assert.doesNotMatch(c,/row\('(pulse|time|camera)'/);
+ assert.match(ENV_NOTE,/RECORDED on IBM hardware/);assert.doesNotMatch(ENV_NOTE+c,/live quantum|weather/i);
+});
