@@ -1,4 +1,4 @@
-// Browser sensors for the consent panel. Each channel is started only if the person ticked it; a refused or missing sensor
+// Browser sensors for the consent panel (sound level, device motion, camera light). Each channel is started only if the person ticked it; a refused or missing sensor
 // reports 'denied'/'unavailable' and never a value. Only a single number per channel leaves this file: no audio, no frames, no waveform.
 import type {EnvChannel} from './environment-link.mjs';
 export type Want={light:boolean;sound:boolean;motion:boolean};
@@ -25,16 +25,12 @@ export async function startSensors(want:Want,onSample:(s:Sample)=>void):Promise<
     window.addEventListener('devicemotion',on);const id=window.setInterval(()=>{cur.motion=level===null?{state:'unavailable'}:meas(level);},1000);cleanups.push(()=>{window.removeEventListener('devicemotion',on);clearInterval(id);});cur.motion={state:'unavailable'};}}
   catch(e){cur.motion=denied(e);}
  }
- if(want.light){
-  let done=false;
-  try{const AL:any=(window as any).AmbientLightSensor;if(AL){const s=new AL({frequency:1});s.addEventListener('reading',()=>{cur.light=meas(Math.log10(1+Math.max(0,s.illuminance||0))/4,'ambient-light-sensor');});s.addEventListener('error',(e:any)=>{if(!done)cur.light=denied(e.error);});s.start();cleanups.push(()=>s.stop());done=true;cur.light={state:'unavailable'};}}catch(e){cur.light=denied(e);done=cur.light.state==='denied';}
-  if(!done){// fallback: camera brightness, one number from a tiny canvas; frames are never kept
-   try{const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:64,height:48}});const v=document.createElement('video');v.muted=true;v.playsInline=true;v.srcObject=stream;await v.play();
-    const c=document.createElement('canvas');c.width=8;c.height=6;const g=c.getContext('2d',{willReadFrequently:true});
-    const id=window.setInterval(()=>{if(!g)return;g.drawImage(v,0,0,8,6);const d=g.getImageData(0,0,8,6).data;let t=0;for(let i=0;i<d.length;i+=4)t+=(d[i]+d[i+1]+d[i+2])/3;cur.light=meas(t/(d.length/4)/255,'camera-brightness');g.clearRect(0,0,8,6);},1000);
-    cleanups.push(()=>{clearInterval(id);stream.getTracks().forEach(t=>t.stop());v.srcObject=null;});cur.light={state:'unavailable'};}
-   catch(e){cur.light=denied(e);}
-  }
+ if(want.light){// Light is the camera's brightness: ONE number from a tiny canvas; frames are never kept. The caller only asks for it while the camera switch is on and no pulse is being read (the camera does one job at a time).
+  try{const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:64,height:48}});const v=document.createElement('video');v.muted=true;v.playsInline=true;v.srcObject=stream;await v.play();
+   const c=document.createElement('canvas');c.width=8;c.height=6;const g=c.getContext('2d',{willReadFrequently:true});
+   const id=window.setInterval(()=>{if(!g)return;g.drawImage(v,0,0,8,6);const d=g.getImageData(0,0,8,6).data;let t=0;for(let i=0;i<d.length;i+=4)t+=(d[i]+d[i+1]+d[i+2])/3;cur.light=meas(t/(d.length/4)/255,'camera-brightness');g.clearRect(0,0,8,6);},1000);
+   cleanups.push(()=>{clearInterval(id);stream.getTracks().forEach(t=>t.stop());v.srcObject=null;});cur.light={state:'unavailable'};}
+  catch(e){cur.light=denied(e);}
  }
  push();const tick=window.setInterval(push,1000);cleanups.push(()=>clearInterval(tick));
  return {initial:{...cur},stop:()=>{cleanups.forEach(f=>{try{f();}catch{}});}};

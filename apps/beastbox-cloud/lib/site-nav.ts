@@ -13,7 +13,7 @@ export const SITE_NAV:readonly NavGroup[]=[
  {key:'spark',label:'Spark Lab',items:[{label:'Spark Beasts',href:'/spark/index.html',icon:'🧪'},{label:'Guest model',href:'/try',icon:'✨'}]},
  {key:'brain',label:'Brain Bay',items:[{label:'Brain Bay',href:'/brain-bay',icon:'🧠'}]},
  {key:'research',label:'Research & evidence',items:[{label:'Research Lab',href:'/research',icon:'🔬'},{label:'Stage 015 receipts',href:'/research/stage015',icon:'🧾'},{label:'Coming Soon',href:'/next',icon:'🛰️'}]},
- {key:'account',label:'Account',items:[{label:'Account',href:'/account',icon:'👤'},{label:'Settings',href:'/settings',icon:'⚙️'},{label:'Muse headband',href:'/connect/meta-muse',icon:'🎧'},{label:'Privacy',href:'/privacy',icon:'🔒'}]},
+ {key:'account',label:'Account',items:[{label:'Account',href:'/account',icon:'👤'},{label:'Settings',href:'/settings',icon:'⚙️'},{label:'Muse headband',href:'/connect/meta-muse',icon:'🎧'},{label:'Privacy and info',href:'/privacy',icon:'🔒'}]},
  {key:'workshop',label:'Workshop',items:[{label:'Workshop (owner unlock)',href:'/workspace',icon:'🛠️',note:'owner only'}]},
 ];
 /** The active beast's real name from the companion save (no hardcoded names); null when none is saved. */

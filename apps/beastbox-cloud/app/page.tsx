@@ -81,7 +81,7 @@ export default function Home(){
  <footer className="public-footer">
   <span>© CORY DAVIS · BEAST BOX</span>
   <span>MODEL ≠ SYSTEM · CONTINUITY ≠ CONSCIOUSNESS</span>
-  <Link href="/privacy">Privacy ↗</Link>
+  <Link href="/privacy">Privacy and info ↗</Link>
   <Link href="/next">Gadget & watch ↗</Link>
   <Link href="/try">Guest model ↗</Link>
   <Link href="/research">Research ↗</Link>

@@ -24,6 +24,11 @@ on:
         required: false
         default: ''
         type: string
+      rounds:
+        description: optional number of CHSH rounds (integer 256-20000). Empty = current behaviour (20000). Use fewer rounds so the run fits the 20 s QPU cap.
+        required: false
+        default: ''
+        type: string
 permissions:
   contents: read
 concurrency:
@@ -52,7 +57,7 @@ jobs:
           IBM_QUANTUM_TOKEN: ${{ secrets.IBM_QUANTUM_TOKEN }}
           BEAST_CHSH_GAME_DAILY: YES_DAILY_SMALL_BATCH
           CHSH_QPU_CAP: '20'
-          CHSH_GAME_ROUNDS: '20000'
+          CHSH_GAME_ROUNDS: ${{ inputs.rounds != '' && inputs.rounds || '20000' }}
           CHSH_BEST_PAIR: '1'
           CHSH_RUN_TAG: ${{ steps.pkt.outputs.tag }}${{ inputs.tag_suffix }}
           CHSH_BACKEND_NAME: ${{ inputs.backend }}
