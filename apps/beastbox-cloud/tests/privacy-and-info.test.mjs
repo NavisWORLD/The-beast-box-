@@ -13,8 +13,8 @@ test('/privacy holds the long explanations under one heading, with honest label 
  const p=read('app/privacy/page.tsx');
  assert.match(p,/What the labels mean and how your signals are used/);
  for(const w of ['RECORDED','SIMULATED','SEEDED','MEASURED'])assert.match(p,new RegExp('<strong>'+w+'</strong>'));
- for(const t of ['Every creature has its own brain state','12D is a simulation','Audio, video and the pulse waveform never leave your phone',
+ for(const t of ['Your own beast has its own brain state','tilt the four sand wells in your pocket cage','the same seed gives the same weights','Stop sharing does not delete that packet','12D is a simulation','Audio, video and the pulse waveform never leave your phone',
   'The camera does one job at a time','one camera switch covers both','Stop sharing ends all reading right away and deletes the numbers saved for you','It is one tap, with no confirm step','Turning world signals on asks you to confirm first','Weather is not used','no page on this site shows them to other people','Nothing about your surroundings runs on quantum hardware'])assert.ok(p.includes(t),t);
- assert.doesNotMatch(p,/every object has a brain/i);
+ assert.doesNotMatch(p,/every object has a brain/i);assert.doesNotMatch(p,/Every creature has its own brain state|sky, light and creature moods|always gives the same result/);
  assert.ok(p.includes('RECORDED seeds are the real IBM run'));
 });

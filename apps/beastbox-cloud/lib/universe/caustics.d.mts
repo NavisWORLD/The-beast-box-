@@ -1,0 +1,10 @@
+export const CAUSTIC:any;export const CAUSTIC_GLSL:string;export const CAUSTIC_TAP_GLSL:string;
+export function tangents(d:number[]):number[][];
+export function causticFocus(h0:number,h1:number,h2:number,h3:number,h4:number,amp:number,chop:number):number;
+export function causticPattern(sea:any,d:number[],t:number):number;
+export function causticSun(sunElevSin:number,night?:number):number;
+export function causticDepth(depthM:number):number;
+export function causticColour(depthM:number,seaType?:string):number[];
+export function causticAt(sea:any,d:number[],t:number,depthM:number,sunElevSin:number,night?:number):number;
+export function causticLite(h:number,amp:number):number;export const CAUSTIC_LITE_GLSL:string;
+export const CAUSTIC_GATE_GLSL:string;
