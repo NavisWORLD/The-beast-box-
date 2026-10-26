@@ -12,6 +12,8 @@ from playwright.sync_api import sync_playwright, expect
 ROOT = sys.argv[1] if len(sys.argv) > 1 else "http://127.0.0.1:3100"
 OUT = Path("browser-evidence/zeref-library"); OUT.mkdir(parents=True, exist_ok=True)
 PASSWORD = os.environ.get("BEASTBOX_OWNER_PASSWORD", "")
+# the mocked guest must answer at the CURRENT public pin, or the app (correctly) refuses the reply; read it, never hard-code it
+PIN_STEP = json.loads((Path(__file__).resolve().parent.parent / "lib" / "rawrphos-public-pin.json").read_text())["training_steps"]
 SECRET_LINE = "The lantern keeper hides the brass key under the third stair."
 
 def make_epub():
@@ -127,7 +129,7 @@ with sync_playwright() as p:
         route.fulfill(status=200, content_type="application/json", body=json.dumps(fake.search(route.request.post_data_json["query"])))
     def guest_route(route):
         body = route.request.post_data_json; prompts.append(body["text"])
-        route.fulfill(status=200, content_type="application/json", body=json.dumps({"provider": "rawrphos-local", "model": "rawrphos-native", "step": 32304, "guest_stateless": True, "reply": "MOCK reply for the browser test.", "prompt_chars": len(body["text"])}))
+        route.fulfill(status=200, content_type="application/json", body=json.dumps({"provider": "rawrphos-local", "model": "rawrphos-native", "step": PIN_STEP, "guest_stateless": True, "reply": "MOCK reply for the browser test.", "prompt_chars": len(body["text"])}))
     page.route("**/api/zeref/library", lib_route); page.route("**/api/zeref/library/search", search_route); page.route("**/api/guest", guest_route)
     page.goto(ROOT + "/beast-cage/talk", wait_until="domcontentloaded", timeout=45000)
     page.locator('button[data-critical-control][aria-controls="beast-chat-overlay"]').click()
