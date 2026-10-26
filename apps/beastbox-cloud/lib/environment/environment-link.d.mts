@@ -1,6 +1,6 @@
 export type EnvChannel={state:'MEASURED'|'off'|'denied'|'unavailable';level?:number;source?:string;bpm?:number;sqi?:number};
-export type EnvNumbers={schema:string;light?:EnvChannel;sound?:EnvChannel;motion?:EnvChannel;heart?:EnvChannel};
-export const ENV_SCHEMA:string;export const ENV_FRESH_MS:number;export const ENV_NOTE:string;export const ENV_LABELS:Record<string,string>;
+export type EnvNumbers={schema:string;light?:EnvChannel;sound?:EnvChannel;motion?:EnvChannel;heart?:EnvChannel;time?:EnvChannel};
+export const ENV_SCHEMA:string;export const ENV_FRESH_MS:number;export const ENV_NOTE:string;export const ENV_CHIPS:readonly string[];export function timeLean(level:number,k:number):number;export const ENV_LABELS:Record<string,string>;
 export const CHANNELS:readonly string[];export const STATES:readonly string[];export const LIGHT_SOURCES:readonly string[];
 export function validateEnvironment(raw:unknown):{ok:boolean;numbers:EnvNumbers|null;errors:string[]};
 export function wellMultipliers(numbers:EnvNumbers|null|undefined):number[];
