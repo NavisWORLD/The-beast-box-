@@ -10,8 +10,8 @@
   "source_path": "/spark/ibm-moonwraith-cassette-kit-20261010.json",
   "source_class": "RECORDED_IBM_HARDWARE"
  },
- "tick": 186,
- "xp": 3419,
+ "tick": 187,
+ "xp": 3437,
  "stage": 3,
  "stage_name": "Eclipse Prowler",
  "signals": {
@@ -20,7 +20,7 @@
   "memory": 100,
   "resonance": 98
  },
- "bond": 46.5,
+ "bond": 46.75,
  "care_total": 0,
  "combos_known": [
   "idle|still|moon-pool|folded|sway|open|smile",
@@ -352,14 +352,16 @@
   "pounce|pounce|moon-pool|full-spread|flick|closed|grin",
   "walk|walk|moon-pool|folded|flick|half|sleepy",
   "idle|still|portal|folded|sway|half|grin",
-  "charge|still|portal|folded|flick|half|grin"
+  "charge|still|portal|folded|flick|half|grin",
+  "charge|still|portal|folded|sway|closed|grin",
+  "walk|still|crystal|folded|sway|closed|smile"
  ],
  "places": {
-  "Rift Gate": 172,
+  "Rift Gate": 173,
   "Lattice Arch": 52,
-  "Echo Prism": 240,
-  "Tidewell": 79,
-  "Quartz Choir": 56,
+  "Echo Prism": 241,
+  "Tidewell": 80,
+  "Quartz Choir": 58,
   "Violet Shard": 148,
   "Selene Pool": 26
  },
@@ -393,17 +395,17 @@
    24,
    191,
    267,
-   303,
+   304,
    92,
    0,
    36,
    12,
    36,
-   234,
-   299,
-   239,
-   234,
-   84,
+   235,
+   301,
+   242,
+   237,
+   86,
    30,
    10
   ],
@@ -413,35 +415,35 @@
    29
   ],
   "moves": {
-   "succeeded": 2749,
-   "blocked": 139
+   "succeeded": 2761,
+   "blocked": 140
   },
   "value": {
-   "portal-6": 0.6011,
+   "portal-6": 0.6036,
    "portal-5": 0.5142,
    "moon-pool-0": -0.1232,
-   "crystal-4": 0.6177,
-   "moon-pool-1": 0.3307,
-   "crystal-2": 0.6112,
-   "crystal-3": 0.5205
+   "crystal-4": 0.6415,
+   "moon-pool-1": 0.3072,
+   "crystal-2": 0.6567,
+   "crystal-3": 0.3368
   },
   "prefs": {
    "explore": 0.05,
-   "visit": 1,
+   "visit": 0.9865,
    "rest": 0.05,
-   "play": 0.8707
+   "play": 0.9525
   },
   "goals": {
    "explore": 109,
-   "visit": 865,
-   "rest": 82,
-   "play": 618,
+   "visit": 871,
+   "rest": 83,
+   "play": 620,
    "come": 0
   },
-  "goal": "explore",
-  "decisions": 1674
+  "goal": "visit",
+  "decisions": 1683
  },
- "last_tick_at": "2026-10-27T08:16:22.960Z",
- "last_entry_hash": "fd03540d599538aafa42d675b7b2d81cb7ff764eb41470e4d93c2054d7014f8d",
- "universe_growth": 86
+ "last_tick_at": "2026-10-27T08:56:33.371Z",
+ "last_entry_hash": "0ed44b9d879cdbd1cf918cfc22c27995fc7755a06b06072925832fe35bfc289f",
+ "universe_growth": 87
 }
