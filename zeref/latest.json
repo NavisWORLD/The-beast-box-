@@ -10,8 +10,8 @@
   "source_path": "/spark/ibm-moonwraith-cassette-kit-20261010.json",
   "source_class": "RECORDED_IBM_HARDWARE"
  },
- "tick": 190,
- "xp": 3473,
+ "tick": 191,
+ "xp": 3485,
  "stage": 3,
  "stage_name": "Eclipse Prowler",
  "signals": {
@@ -20,20 +20,20 @@
   "memory": 100,
   "resonance": 97
  },
- "bond": 47.5,
+ "bond": 47.75,
  "care_total": 0,
  "places": {
   "Rift Gate": 175,
-  "Lattice Arch": 54,
+  "Lattice Arch": 56,
   "Echo Prism": 245,
   "Tidewell": 81,
-  "Quartz Choir": 64,
+  "Quartz Choir": 65,
   "Violet Shard": 151,
   "Selene Pool": 26
  },
- "last_tick_at": "2026-10-27T10:57:03.962Z",
- "last_entry_hash": "830c83653f6a23502f216bc6ffe890098823edf0024e43816b98ee32acf5389c",
- "universe_growth": 90,
+ "last_tick_at": "2026-10-27T10:58:18.026Z",
+ "last_entry_hash": "1775a9e0ba5abf0ca7415f7ec5d9d78cae1696c44075949a83109bffdd15b5c9",
+ "universe_growth": 91,
  "combos_total": 332,
  "next_stage": {
   "stage": 4,
@@ -44,18 +44,18 @@
   "cells_visited": 37,
   "cells_total": 40,
   "known_rifts": 3,
-  "moves_succeeded": 2808,
-  "moves_blocked": 144,
+  "moves_succeeded": 2819,
+  "moves_blocked": 145,
   "blocked_rate": 0.049,
   "favorite_spot": "Quartz Choir",
-  "favorite_value": 0.722,
+  "favorite_value": 0.727,
   "prefs": {
    "explore": 0.05,
    "visit": 1,
    "rest": 0.05,
-   "play": 0.8707
+   "play": 1
   },
-  "decisions": 1714,
+  "decisions": 1729,
   "label": "learned behaviour from its own experience, not consciousness"
  },
  "labels": {
@@ -71,6 +71,91 @@
   "source": "recorded hardware counts (birth seed, never re-run)"
  },
  "recent": [
+  {
+   "schema": "zeref-diary/v1",
+   "beast_id": "bb-7f9c2a03",
+   "tick": 191,
+   "at": "2026-10-27T10:58:18.026Z",
+   "hour_local": 5,
+   "timezone": "America/Chicago",
+   "signals": {
+    "energy": 100,
+    "signal": 49,
+    "memory": 100,
+    "resonance": 97
+   },
+   "bond": 47.8,
+   "mood": "content",
+   "place": "Lattice Arch",
+   "places_visited": [
+    "Lattice Arch",
+    "Quartz Choir"
+   ],
+   "discovered_combos": [],
+   "new_combo_count": 0,
+   "combos_total": 332,
+   "xp_gain": 12,
+   "xp": 3485,
+   "stage": 3,
+   "stage_name": "Eclipse Prowler",
+   "grew": false,
+   "care": 0,
+   "birth_spark": {
+    "provider": "IBM Quantum",
+    "backend": "ibm_marrakesh",
+    "job_id": "db4te7slf4us73c3888g",
+    "source": "recorded hardware counts (birth seed, never re-run)"
+   },
+   "growth_source": {
+    "kind": "rigetti-qvm-simulated",
+    "simulated": true,
+    "provider": "azure-quantum/rigetti",
+    "target": "rigetti.sim.qvm",
+    "job_id": "458f6b66-d1f5-11f1-a9dd-7ced8d7c1536",
+    "job_name": "zeref-diary-tick-191-bb-7f9c2a03",
+    "shots": 256,
+    "counts": {
+     "101": 128,
+     "110": 128
+    },
+    "counts_sha256": "daeb50c9e68c4abce4ab14c94707b8aaa059dfdc33ddd167f3d61678e3c895f0",
+    "circuit_params": {
+     "energy": 3.141593,
+     "signal": 1.53938,
+     "resonance": 3.047345
+    },
+    "quil_sha256": "14a30d1884f1928e3ca56dfe2f9147641d89f50bca9a18e182124fca751328e5"
+   },
+   "learning": {
+    "new_cells": 0,
+    "moves_succeeded": 11,
+    "moves_blocked": 1,
+    "goals": {
+     "play": 9,
+     "rest": 1,
+     "visit": 5
+    },
+    "cells_visited": 37,
+    "cells_total": 40,
+    "known_rifts": 3,
+    "blocked_rate": 0.049,
+    "favorite_spot": "Quartz Choir",
+    "prefs": {
+     "explore": 0.05,
+     "visit": 1,
+     "rest": 0.05,
+     "play": 1
+    },
+    "label": "learned behaviour from its own experience, not consciousness"
+   },
+   "universe_growth": 91,
+   "thought": {
+    "text": "Lattor.",
+    "by": "rawrphos-native:step-32944 (raw model output, unedited)"
+   },
+   "prev_hash": "830c83653f6a23502f216bc6ffe890098823edf0024e43816b98ee32acf5389c",
+   "hash": "1775a9e0ba5abf0ca7415f7ec5d9d78cae1696c44075949a83109bffdd15b5c9"
+  },
   {
    "schema": "zeref-diary/v1",
    "beast_id": "bb-7f9c2a03",
@@ -1052,95 +1137,8 @@
    },
    "prev_hash": "1ce0f98120a73a1346b52f93c0f732676bbb361491623e4e264cda2f6cb44698",
    "hash": "355494e67dad90ee9838745f0507ed2a789a55254b74be12308142704d97919d"
-  },
-  {
-   "schema": "zeref-diary/v1",
-   "beast_id": "bb-7f9c2a03",
-   "tick": 179,
-   "at": "2026-10-27T03:44:54.437Z",
-   "hour_local": 22,
-   "timezone": "America/Chicago",
-   "signals": {
-    "energy": 34,
-    "signal": 47,
-    "memory": 100,
-    "resonance": 95
-   },
-   "bond": 44.8,
-   "mood": "sleepy",
-   "place": "Echo Prism",
-   "places_visited": [
-    "Echo Prism",
-    "Tidewell",
-    "Violet Shard"
-   ],
-   "discovered_combos": [],
-   "new_combo_count": 0,
-   "combos_total": 328,
-   "xp_gain": 13,
-   "xp": 3320,
-   "stage": 3,
-   "stage_name": "Eclipse Prowler",
-   "grew": false,
-   "care": 0,
-   "birth_spark": {
-    "provider": "IBM Quantum",
-    "backend": "ibm_marrakesh",
-    "job_id": "db4te7slf4us73c3888g",
-    "source": "recorded hardware counts (birth seed, never re-run)"
-   },
-   "growth_source": {
-    "kind": "rigetti-qvm-simulated",
-    "simulated": true,
-    "provider": "azure-quantum/rigetti",
-    "target": "rigetti.sim.qvm",
-    "job_id": "b836fb6c-d1b8-11f1-a9dd-7ced8d547979",
-    "job_name": "zeref-diary-tick-179-bb-7f9c2a03",
-    "shots": 256,
-    "counts": {
-     "101": 23,
-     "110": 17,
-     "001": 118,
-     "010": 98
-    },
-    "counts_sha256": "973bf30e9b9d8d3cbc6205e1075415f58d73939839a7636b8734e3df00a3ca46",
-    "circuit_params": {
-     "energy": 0.753982,
-     "signal": 1.476549,
-     "resonance": 2.953097
-    },
-    "quil_sha256": "b07d71d7d512bc920ef57cfb5bb5f04b8aa11b62bb6ce2df4c0c3713efadc1f0"
-   },
-   "learning": {
-    "new_cells": 0,
-    "moves_succeeded": 9,
-    "moves_blocked": 0,
-    "goals": {
-     "play": 1,
-     "visit": 3
-    },
-    "cells_visited": 37,
-    "cells_total": 40,
-    "known_rifts": 3,
-    "blocked_rate": 0.047,
-    "favorite_spot": "Echo Prism",
-    "prefs": {
-     "explore": 0.05,
-     "visit": 1,
-     "rest": 0.149,
-     "play": 0.8858
-    },
-    "label": "learned behaviour from its own experience, not consciousness"
-   },
-   "universe_growth": 79,
-   "thought": {
-    "text": "I'm not sure.",
-    "by": "rawrphos-native:step-32944 (raw model output, unedited)"
-   },
-   "prev_hash": "6aadb067af58ddafb94ae7519cab5fdeebe5a568498a591216dadaf44543820c",
-   "hash": "1ce0f98120a73a1346b52f93c0f732676bbb361491623e4e264cda2f6cb44698"
   }
  ],
- "generated_at": "2026-10-27T10:57:03.962Z",
+ "generated_at": "2026-10-27T10:58:18.026Z",
  "thought_source_note": "rawrphos-ok"
 }
