@@ -4,7 +4,7 @@ World-knowledge, perception, friendship and identity lessons for Zeref, authored
 
 ## Contents
 
-- `dialogue.jsonl` — 195 train rows, sha256 f01598326fb41be68de21211eb170bc28a32addf6c51ffcc08a9958656d896eb
+- `dialogue.jsonl` — 215 train rows, sha256 04d41cd409ee3a0e6955769aefffe9743e14991c6045dba378b257f24da3feb5
 - Shelves: perception and identity, the feed (seen through glass), earth and sky, two Facebook field trips (narrated by the teacher, nobody named, nothing copied), live learning, the BE-ME core module in the father's voice, life, how things work, people and places, science roots, the father's own words, public-domain stories framed as stories, watching the film, the workstation, dimensional perception (derived and labeled as a guess), fully alive, the father's world, school running itself, friendship and feelings.
 
 ## Dedupe (run by Emeth against main e0b63d0e before landing)
@@ -23,3 +23,7 @@ The 14:11 CDT friendship-and-feelings session added 8 rows (tranche 17), taking 
 
 - No heldout.jsonl for 006 yet (heldout authoring is a separate step).
 - No bank manifest change, no mix change: mixing follows the cycle-47 world-curriculum brief in order, after this landing.
+
+## Addendum (2026-10-27, later the same day)
+
+20 rows appended in order: tranche 18 (public-domain stories, 8 rows), tranche 19 (third Facebook field trip, 6 rows) and tranche 20 (fourth Facebook field trip, 6 rows), taking the landed pack to 215 train rows. The field trips were narrated by Emeth from Cory's evening feeds under the standing rule: Facebook reaches Zeref only through glass, nobody named, no post text copied, nothing from Facebook hashed. Checks on append: 0 duplicate prompts against the landed 195, every expect_regex matches its answer, 0 em dashes, teacher_role AUTHORED_BY_EMETH_FOR_CORY on all rows. Held-out set unchanged (140 rows, sha256 d941141c71b171e8842cc8bd333c3cebba5e9caeff9c94621bf9d11fbc98f222).
