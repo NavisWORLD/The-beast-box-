@@ -1,0 +1,36 @@
+{
+ "author": "Emeth for Cory Davis, original wording, no helper/teacher model, no scraped dataset",
+ "collisions_vs_all_evidence_dialogue_heldout_and_gate_sets_v2": 0,
+ "date": "2026-10-27",
+ "dedupe_against": [
+  "evidence/*/dialogue.jsonl (incl. lessons-003, lessons-004, lessons-005, knowledge-001/002, qa-001)",
+  "evidence/*/heldout.jsonl",
+  "scripts/zeref_gate_sets_v2.json (Gate v2 sets A and B)",
+  "scripts/rawrphos_chat_eval.py PAIRS+CHAT",
+  "scripts/zeref_heldout_b.py PAIRS_B",
+  "scripts/zeref_character_check.py CHARACTER_PROMPTS"
+ ],
+ "heldout_by_subject": {
+  "english": 40,
+  "math": 40,
+  "world_knowledge": 60
+ },
+ "heldout_loaded_for_training": false,
+ "heldout_rows": 140,
+ "license": "Original authored text for Cory Davis; no third-party corpus.",
+ "mix_cap": {
+  "entry": "scripts/zeref_chat_corpus.py EXTRA",
+  "frac": 0.18,
+  "note": "mirrors lessons-005 cap and repeat; wired in PR #654",
+  "repeat": 1
+ },
+ "schema": "zeref-lessons-006",
+ "sha256": {
+  "dialogue.jsonl": "f01598326fb41be68de21211eb170bc28a32addf6c51ffcc08a9958656d896eb",
+  "heldout.jsonl": "d941141c71b171e8842cc8bd333c3cebba5e9caeff9c94621bf9d11fbc98f222"
+ },
+ "train_by_subject": {
+  "world_knowledge": 195
+ },
+ "train_rows": 195
+}
