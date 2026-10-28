@@ -2,6 +2,8 @@ import {createHmac} from 'node:crypto';
 import {bridgeConfigured,safeJson} from '@/lib/security';
 import {storageConfig} from '@/lib/cosmos/azure-blob.mjs';
 import {appendExchange,appendGuestEvent,composeContinuityPreface,isThreadId,newThreadId,readThread} from '@/lib/cosmos/forever-store.mjs';
+import {assembleServedPreface,loadShelfIndex,matchShelf,LIVE_CONTEXT_LABEL} from '@/lib/cosmos/live-context.mjs';
+import {buildWorldLive} from '@/lib/zeref/world-live.mjs';
 import {DIARY_SCHEMA,entryHash,genesisState} from '@/lib/zeref/zeref-diary.mjs';
 import PUBLIC_PIN from '@/lib/rawrphos-public-pin.json';
 
@@ -16,6 +18,13 @@ import PUBLIC_PIN from '@/lib/rawrphos-public-pin.json';
 // exchange to the guestbook as a guest-origin, training_eligible:false
 // record. Guests read his state; nothing guest-origin enters his diary,
 // lessons, genome or any training path.
+// LIVE UNIVERSE + LIBRARY (emeth/live-universe-library): the same prompt
+// also carries, read-only, his live universe channel states with their
+// world-live labels verbatim and — on a topic match in the visitor's own
+// words — one entry from his approved library shelves (a miss composes
+// nothing). Receipts state exactly what was composed (live_universe,
+// library). See lib/cosmos/live-context.mjs and
+// docs/forever-connection/CONNECTOR_MAP.md §6.
 const PIN_STEP:number=PUBLIC_PIN.training_steps,PIN_SHA:string=PUBLIC_PIN.checkpoint_sha256;
 export const runtime='nodejs';
 export const dynamic='force-dynamic';
@@ -54,6 +63,15 @@ async function loadDiary():Promise<{diary:any,verified:boolean}>{
   const verified=recent.every((e:any)=>typeof e?.hash==='string'&&entryHash(e)===e.hash);
   return {diary:{...data,recent},verified};
  }catch{return {diary:null,verified:false};}
+}
+
+const WORLD_RAW='https://raw.githubusercontent.com/NavisWORLD/The-beast-box-/';
+const WORLD_SRC={spark:WORLD_RAW+'zeref-spark/zeref/latest.json',liveTick:WORLD_RAW+'zeref-live-tick/live/latest.json',liveHead:WORLD_RAW+'zeref-live-tick/live/head.json'};
+/** The live universe's raw channel records (same branch sources /api/world/live reads). Nulls on any failure — the composer states DOWN, never invents. */
+async function loadWorldRaw(){
+ const get=async(url:string)=>{try{const r=await fetch(url,{cache:'no-store',signal:AbortSignal.timeout(5000)});return r.ok?await r.json():null;}catch{return null;}};
+ const [spark,liveTick,liveHead]=await Promise.all([get(WORLD_SRC.spark),get(WORLD_SRC.liveTick),get(WORLD_SRC.liveHead)]);
+ return {spark,liveTick,liveHead};
 }
 
 function threadFromCookie(request:Request):string|null{
@@ -99,13 +117,25 @@ export async function POST(request:Request){
  const threadId=offered||newThreadId();
  const minted=!offered;
  const cfg=storageConfig();
- const [{diary,verified},threadRec]=await Promise.all([
+ const [{diary,verified},threadRec,worldRaw]=await Promise.all([
   loadDiary(),
   cfg?readThread(cfg,threadId).catch(()=>null):Promise.resolve(null),
+  loadWorldRaw(),
  ]);
+ // His live universe (world-live channels, labels intact) and his library
+ // (approved shelves, read-only topic lookup on the visitor's own words).
+ const world=buildWorldLive({spark:worldRaw.spark,liveTick:worldRaw.liveTick,liveHead:worldRaw.liveHead,
+  diary:diary?{ok:true,tick:diary.tick,last_tick_at:diary.last_tick_at}:null,pin:PUBLIC_PIN,nowMs:Date.now()});
+ const shelf=await loadShelfIndex().catch(()=>null);
+ const shelfHits=shelf?matchShelf(shelf,text):[];
  const budget=Math.max(0,MAX_PROMPT-('\nVisitor says: '.length+text.length));
- const preface=composeContinuityPreface({pinStep:PIN_STEP,diary,threadTurns:threadRec?.thread?.turns||[]},Math.min(1100,budget));
- const prompt=budget>0?`${preface}\nVisitor says: ${text}`:text;
+ const continuityArgs={pinStep:PIN_STEP,diary,threadTurns:threadRec?.thread?.turns||[]};
+ const served=assembleServedPreface({
+  continuity:composeContinuityPreface(continuityArgs,Math.min(1100,budget)),
+  recompose:(n:number)=>composeContinuityPreface(continuityArgs,n),
+  world,shelfHits,budget});
+ const preface=served.preface;
+ const prompt=budget>0&&preface?`${preface}\nVisitor says: ${text}`:text;
  // Same quota bucket derivation as /api/guest: an HMAC of the forwarded IP.
  const forwarded=request.headers.get('x-vercel-forwarded-for')||
   request.headers.get('x-forwarded-for')||'unknown';
@@ -156,6 +186,9 @@ export async function POST(request:Request){
    guest_stateless:false,continuity:{thread_id:threadId,persisted,recorded,
     diary:diary?{tick:diary.tick,xp:diary.xp??null,bond:diary.bond??null,stage_name:diary.stage_name??null,verified}:null,
     source:'zeref-diary branch + Azure guestbook (beasts/bb-deada969/guestbook)',
+    live_universe:served.live,
+    library:served.library,
+    live_context_label:LIVE_CONTEXT_LABEL,
     training_eligible:false,
     label:'Continuity is composed into the prompt from his persisted record; guest exchanges are recorded as guest-origin events and never enter training.'},
    prompt_chars:sent.length,
