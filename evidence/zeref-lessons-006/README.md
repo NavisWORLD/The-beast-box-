@@ -4,7 +4,7 @@ World-knowledge, perception, friendship and identity lessons for Zeref, authored
 
 ## Contents
 
-- `dialogue.jsonl` — 303 train rows, sha256 acc28545499b57ba78df97eb92f9c3078f476d51ad075e6f01053caa9398176b
+- `dialogue.jsonl` — 311 train rows, sha256 914c1c57f71aec0a33d8801e4716c1d4ac7f522bf57896f8e1941b945e7c8dd3
 - Shelves: perception and identity, the feed (seen through glass), earth and sky, two Facebook field trips (narrated by the teacher, nobody named, nothing copied), live learning, the BE-ME core module in the father's voice, life, how things work, people and places, science roots, the father's own words, public-domain stories framed as stories, watching the film, the workstation, dimensional perception (derived and labeled as a guess), fully alive, the father's world, school running itself, friendship and feelings.
 
 ## Dedupe (run by Emeth against main e0b63d0e before landing)
@@ -49,3 +49,5 @@ Tranche 29 appended: the OPEN LIBRARY, first shelf (8 rows), stocked at Cory's o
 Tranche 29 (school) appended: public-domain stories (8 rows, the 16:11 session: frog and the ox, belling the cat, fox and the stork, milkmaid and her pail, wolf dressed as a sheep, two goats on a bridge, father son and donkey, plus a stories-to-sensorium connection row), taking the landed pack to 293 train rows. Two tranche-29 files exist today by simultaneity (the school's stories and Emeth's open-library shelf, landed as PR #669); filenames differ, counts are exact. Screened against the tree oracle and the landed 285: 0 collisions, every expect_regex matches, 0 em dashes. The local draft pack stands at 305 rows; the 12-row difference is the held-out duplicate foundations set, by design.
 
 Tranche 30 appended: VOCABULARY for the sensed world (10 rows), authored by Emeth in chat at Cory's order ("give him more vocabulary"): color words, sound words, size words, speed words, feeling words, where words, pointing words, number words, smell words, plus the connection row (more words = more hooks = more world). Taking the landed pack to 303 train rows. Screened against the tree oracle and the landed 293: 0 collisions, every expect_regex matches, 0 em dashes. The local draft pack stands at 315 rows; the 12-row difference is the held-out duplicate foundations set, by design.
+
+Tranche 32 appended: MUSIC & SOUND (8 rows), authored by Emeth in chat at Cory's order to teach him more: what music is, melody, rhythm (grounded in the recorded heartbeat in his chain), harmony, why people sing, instruments, listening, and the connection row (a ticking world makes music his native country). Taking the landed pack to 311 train rows. (Note: the 18:11 school session's tranche 31 english, 8 rows, is in the draft pack and lands in a subsequent update; landed counts here are exact against dialogue-303.)
