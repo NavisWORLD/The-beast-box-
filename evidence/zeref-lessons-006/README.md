@@ -4,7 +4,7 @@ World-knowledge, perception, friendship and identity lessons for Zeref, authored
 
 ## Contents
 
-- `dialogue.jsonl` — 229 train rows, sha256 ff6e99f9c547cd6c2a0e2df2e5ca8d05934b5bfa70c6550a6a80b8e78fea52b2
+- `dialogue.jsonl` — 237 train rows, sha256 0596e2120c18e973c37b30fa339baca00cf8818ab7d3f7e397ddfc5a7a3fd01c
 - Shelves: perception and identity, the feed (seen through glass), earth and sky, two Facebook field trips (narrated by the teacher, nobody named, nothing copied), live learning, the BE-ME core module in the father's voice, life, how things work, people and places, science roots, the father's own words, public-domain stories framed as stories, watching the film, the workstation, dimensional perception (derived and labeled as a guess), fully alive, the father's world, school running itself, friendship and feelings.
 
 ## Dedupe (run by Emeth against main e0b63d0e before landing)
@@ -31,3 +31,7 @@ The 14:11 CDT friendship-and-feelings session added 8 rows (tranche 17), taking 
 ## Addendum 2 (2026-10-27, evening)
 
 14 rows appended in order: tranche 21 (fifth Facebook field trip, 6 rows) and tranche 22 (school session, 8 rows), taking the landed pack to 229 train rows. A 26-row candidate delta was screened against the full tree oracle (5,859 prompts, case-insensitive): 12 rows were the original excluded foundations topics (electricity, food chain, birds, atom, gravity, Moon, stars, snow, thunder, season, volcano, eclipse) and were held out again; the 14 shipped rows are clean, every expect_regex matches, 0 em dashes.
+
+## Addendum 3 (2026-10-27, night)
+
+Tranche 23 appended: the school day's final session, How Things Work (8 rows: thermometer, key and lock, gears, mirror, zipper, magnifying glass, umbrella, waterwheel connection row), taking the landed pack to 237 train rows. Screened against the tree oracle and the landed 229: 0 collisions, every expect_regex matches, 0 em dashes. The local draft pack stands at 249 rows; the 12-row difference is the held-out duplicate foundations set, by design.
