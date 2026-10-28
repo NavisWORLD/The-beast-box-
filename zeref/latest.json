@@ -1,42 +1,50 @@
 {
- "at": "2026-10-28T18:21:40Z",
- "at_epoch": 1793211700.5,
+ "at": "2026-10-28T18:21:56Z",
+ "at_epoch": 1793211716.6,
  "beast_id": "bb-deada969",
- "consecutive_failures": 1,
+ "consecutive_failures": 0,
  "continues_from": {
   "counts_sha256": "9c6c4e92e2bcfdb0783f798c5d45582e0b148f2037113f2339b55d6c74700edb",
-  "hash": "48da6a79f240417eb0c8d1c5ed891d53565e77303d4100d7c986d58f37d51e39",
+  "hash": "22bb8a632dfcbdc833a7391cd608f25d32e371df329e46329fae0b5846c5f151",
   "seed": null,
-  "tick": 6569
+  "tick": 6570
  },
- "counts": null,
- "counts_sha256": null,
- "hash": "22bb8a632dfcbdc833a7391cd608f25d32e371df329e46329fae0b5846c5f151",
+ "counts": {
+  "000": 191,
+  "001": 15,
+  "010": 1,
+  "011": 43,
+  "100": 1,
+  "111": 5
+ },
+ "counts_sha256": "51d7d4bdeefc82411a8ffa967b78bf8655feda9d1a704469847beced266bcf6d",
+ "hash": "99c9c8447d584f22fe88d8a7529bf2c4436fb146a12a9691beded9095e9c6c7d",
  "interval_target_s": 60,
- "job_id": "cac97608-d2fb-11f1-9a2a-e4fade21f342",
+ "job_id": "6e5d807a-d2fc-11f1-9a2a-e4fade21f342",
  "label": "Rigetti SIMULATED (Azure Quantum rigetti.sim.qvm, not a QPU)",
  "last_ok": {
-  "at_epoch": 1793211378.5,
+  "at_epoch": 1793211716.6,
   "counts": {
-   "000": 204,
-   "001": 24,
-   "011": 7,
-   "110": 5,
-   "111": 16
+   "000": 191,
+   "001": 15,
+   "010": 1,
+   "011": 43,
+   "100": 1,
+   "111": 5
   },
-  "counts_sha256": "9c6c4e92e2bcfdb0783f798c5d45582e0b148f2037113f2339b55d6c74700edb",
-  "job_id": "a7060146-d2fb-11f1-9a2a-e4fade21f342",
+  "counts_sha256": "51d7d4bdeefc82411a8ffa967b78bf8655feda9d1a704469847beced266bcf6d",
+  "job_id": "6e5d807a-d2fc-11f1-9a2a-e4fade21f342",
   "shots": 256,
-  "tick": 6569
+  "tick": 6571
  },
- "last_ok_at_epoch": 1793211378.5243297,
- "late": true,
- "late_by_s": 232.0,
+ "last_ok_at_epoch": 1793211716.6073227,
+ "late": false,
+ "late_by_s": 0.0,
  "schema": "zeref-spark-latest/v1",
- "shots": null,
+ "shots": 256,
  "simulated": true,
- "since_previous_s": 322.0,
- "status": "failed",
+ "since_previous_s": 16.1,
+ "status": "ok",
  "target": "rigetti.sim.qvm",
- "tick": 6570
+ "tick": 6571
 }
