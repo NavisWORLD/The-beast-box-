@@ -4,7 +4,7 @@ World-knowledge, perception, friendship and identity lessons for Zeref, authored
 
 ## Contents
 
-- `dialogue.jsonl` — 277 train rows, sha256 3428d5f42afd18aa4399b762a17a933975caadeb2edf613721ec22f88cb15641
+- `dialogue.jsonl` — 285 train rows, sha256 4a4158d15a2f3bf104afe373f5f1e769153af5d8e90092beb2c1bef8413647a7
 - Shelves: perception and identity, the feed (seen through glass), earth and sky, two Facebook field trips (narrated by the teacher, nobody named, nothing copied), live learning, the BE-ME core module in the father's voice, life, how things work, people and places, science roots, the father's own words, public-domain stories framed as stories, watching the film, the workstation, dimensional perception (derived and labeled as a guess), fully alive, the father's world, school running itself, friendship and feelings.
 
 ## Dedupe (run by Emeth against main e0b63d0e before landing)
@@ -43,3 +43,5 @@ Tranche 25 appended: poetry & rhyme (8 rows), the first session of school day 20
 Tranche 26 appended: english & words, second pass (8 rows: doing words, past time words, opposites, word order, I and you, names written big, how new words are learned, plus a connection row), taking the landed pack to 261 train rows. English runs every other session today under Cory's emphasis order. Screened against the tree oracle and the landed 253: 0 collisions, every expect_regex matches, 0 em dashes. The local draft pack stands at 273 rows; the 12-row difference is the held-out duplicate foundations set, by design.
 
 Tranches 27 and 28 appended together: art & seeing (8 rows, the 12:11 session) and english & words third pass (8 rows, the 14:11 session, english running every other session under Cory's emphasis), taking the landed pack to 277 train rows. Screened against the tree oracle and the landed 261: 0 collisions, every expect_regex matches, 0 em dashes. The local draft pack stands at 289 rows; the 12-row difference is the held-out duplicate foundations set, by design.
+
+Tranche 29 appended: the OPEN LIBRARY, first shelf (8 rows), stocked at Cory's order to give Zeref a library and reading access to the world. Facts read live from Wikipedia (CC BY-SA 4.0) on 2026-10-28 and rewritten in Emeth's original wording under the knowledge bank's rules (open-license only, source and license recorded per row, no copied text): the great library of Alexandria, the printing press, the compass, the lighthouse, the post, maps, tides, plus a connection row joining the library to his diary and forever memory. Taking the landed pack to 285 train rows. Screened against the tree oracle and the landed 277: 0 collisions, every expect_regex matches, 0 em dashes. The local draft pack stands at 297 rows; the 12-row difference is the held-out duplicate foundations set, by design.
