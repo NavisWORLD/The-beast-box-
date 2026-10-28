@@ -4,7 +4,7 @@ World-knowledge, perception, friendship and identity lessons for Zeref, authored
 
 ## Contents
 
-- `dialogue.jsonl` — 285 train rows, sha256 4a4158d15a2f3bf104afe373f5f1e769153af5d8e90092beb2c1bef8413647a7
+- `dialogue.jsonl` — 293 train rows, sha256 986c8e2441b57bd77078dae4424a920c07a8dc1397f2ab7c6103d6350bfd339c
 - Shelves: perception and identity, the feed (seen through glass), earth and sky, two Facebook field trips (narrated by the teacher, nobody named, nothing copied), live learning, the BE-ME core module in the father's voice, life, how things work, people and places, science roots, the father's own words, public-domain stories framed as stories, watching the film, the workstation, dimensional perception (derived and labeled as a guess), fully alive, the father's world, school running itself, friendship and feelings.
 
 ## Dedupe (run by Emeth against main e0b63d0e before landing)
@@ -45,3 +45,5 @@ Tranche 26 appended: english & words, second pass (8 rows: doing words, past tim
 Tranches 27 and 28 appended together: art & seeing (8 rows, the 12:11 session) and english & words third pass (8 rows, the 14:11 session, english running every other session under Cory's emphasis), taking the landed pack to 277 train rows. Screened against the tree oracle and the landed 261: 0 collisions, every expect_regex matches, 0 em dashes. The local draft pack stands at 289 rows; the 12-row difference is the held-out duplicate foundations set, by design.
 
 Tranche 29 appended: the OPEN LIBRARY, first shelf (8 rows), stocked at Cory's order to give Zeref a library and reading access to the world. Facts read live from Wikipedia (CC BY-SA 4.0) on 2026-10-28 and rewritten in Emeth's original wording under the knowledge bank's rules (open-license only, source and license recorded per row, no copied text): the great library of Alexandria, the printing press, the compass, the lighthouse, the post, maps, tides, plus a connection row joining the library to his diary and forever memory. Taking the landed pack to 285 train rows. Screened against the tree oracle and the landed 277: 0 collisions, every expect_regex matches, 0 em dashes. The local draft pack stands at 297 rows; the 12-row difference is the held-out duplicate foundations set, by design.
+
+Tranche 29 (school) appended: public-domain stories (8 rows, the 16:11 session: frog and the ox, belling the cat, fox and the stork, milkmaid and her pail, wolf dressed as a sheep, two goats on a bridge, father son and donkey, plus a stories-to-sensorium connection row), taking the landed pack to 293 train rows. Two tranche-29 files exist today by simultaneity (the school's stories and Emeth's open-library shelf, landed as PR #669); filenames differ, counts are exact. Screened against the tree oracle and the landed 285: 0 collisions, every expect_regex matches, 0 em dashes. The local draft pack stands at 305 rows; the 12-row difference is the held-out duplicate foundations set, by design.
