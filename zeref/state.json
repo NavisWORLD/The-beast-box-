@@ -10,17 +10,17 @@
   "source_path": "/spark/ibm-moonwraith-cassette-kit-20261010.json",
   "source_class": "RECORDED_IBM_HARDWARE"
  },
- "tick": 216,
- "xp": 3840,
+ "tick": 217,
+ "xp": 3856,
  "stage": 4,
  "stage_name": "Void Moonwraith",
  "signals": {
-  "energy": 15,
+  "energy": 24,
   "signal": 48,
   "memory": 100,
-  "resonance": 89
+  "resonance": 90
  },
- "bond": 54,
+ "bond": 54.25,
  "care_total": 0,
  "combos_known": [
   "idle|still|moon-pool|folded|sway|open|smile",
@@ -363,11 +363,12 @@
   "hover|hover|moon-pool|beating|flick|closed|grin",
   "walk|walk|portal|folded|flick|open|grin",
   "hover|still|moon-pool|folded|sway|closed|smile",
-  "hover|still|moon-pool|full-spread|flick|open|grin"
+  "hover|still|moon-pool|full-spread|flick|open|grin",
+  "hover|hover|open-pocket|beating|sway|half|sleepy"
  ],
  "places": {
   "Rift Gate": 203,
-  "Lattice Arch": 65,
+  "Lattice Arch": 67,
   "Echo Prism": 270,
   "Tidewell": 92,
   "Quartz Choir": 70,
@@ -377,19 +378,19 @@
  "learner": {
   "schema": "pocket-learner/v1",
   "cells": [
-   10,
-   12,
    11,
+   14,
+   12,
    12,
    11,
    12,
    15,
    11,
    12,
-   49,
-   25,
-   28,
-   39,
+   50,
+   27,
+   30,
+   41,
    30,
    20,
    12,
@@ -397,9 +398,9 @@
    76,
    0,
    86,
-   116,
+   118,
+   71,
    70,
-   69,
    16,
    28,
    228,
@@ -407,7 +408,7 @@
    351,
    107,
    0,
-   46,
+   47,
    15,
    40,
    268,
@@ -415,8 +416,8 @@
    276,
    271,
    97,
-   33,
-   11
+   34,
+   12
   ],
   "known_blocked": [
    18,
@@ -424,35 +425,35 @@
    29
   ],
   "moves": {
-   "succeeded": 3159,
-   "blocked": 161
+   "succeeded": 3177,
+   "blocked": 164
   },
   "value": {
    "portal-6": 0.613,
-   "portal-5": 0.606,
+   "portal-5": 0.6084,
    "moon-pool-0": -0.2922,
-   "crystal-4": 0.6532,
+   "crystal-4": 0.4456,
    "moon-pool-1": 0.3706,
-   "crystal-2": 0.2181,
+   "crystal-2": 0.0888,
    "crystal-3": 0.7065
   },
   "prefs": {
    "explore": 0.05,
-   "visit": 1,
-   "rest": 0.122,
-   "play": 0.9852
+   "visit": 0.874,
+   "rest": 0.095,
+   "play": 0.9222
   },
   "goals": {
-   "explore": 114,
-   "visit": 1015,
-   "rest": 94,
-   "play": 710,
+   "explore": 117,
+   "visit": 1019,
+   "rest": 95,
+   "play": 711,
    "come": 0
   },
-  "goal": "visit",
-  "decisions": 1933
+  "goal": "explore",
+  "decisions": 1942
  },
- "last_tick_at": "2026-10-28T02:29:54.861Z",
- "last_entry_hash": "d039e6077ef19ee5b4fdab14d9d0fbc8757ae4d3de40e6606f40d1d30704114b",
- "universe_growth": 116
+ "last_tick_at": "2026-10-28T03:10:17.370Z",
+ "last_entry_hash": "5436635994dfcdf8ceed94e553ac2c044ce3c939e167e3cf4ab9884d24a87a42",
+ "universe_growth": 117
 }
