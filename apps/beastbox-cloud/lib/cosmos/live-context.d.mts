@@ -1,0 +1,11 @@
+export const LIVE_CONTEXT_LABEL:string;
+export const SHELF_SOURCES:ReadonlyArray<{id:string,path:string}>;
+export function composeLiveUniverseLines(world:any,maxChars?:number):string;
+export function liveUniverseReceipt(world:any):any;
+export function parseShelfDialogue(text:string,shelfId:string):any[];
+export function buildShelfIndex(rows:any[]):any;
+export function matchShelf(shelf:any,query:string,o?:{k?:number}):any[];
+export function composeShelfLines(hits:any[],maxChars?:number):string;
+export function shelfReceipt(hits:any[]):any;
+export function loadShelfIndex():Promise<any>;
+export function assembleServedPreface(o:{continuity?:string,recompose?:((n:number)=>string)|null,world?:any,shelfHits?:any[],budget?:number}):{preface:string,live:any,library:any};
