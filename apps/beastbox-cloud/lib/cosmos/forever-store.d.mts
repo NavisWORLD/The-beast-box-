@@ -1,0 +1,16 @@
+import type {StorageConfig} from './azure-blob.mjs';
+export const GUESTBOOK_DIR:string;
+export const THREAD_ID_RE:RegExp;
+export const MAX_THREAD_TURNS:number;
+export const MAX_GUEST_EVENTS:number;
+export const GUESTBOOK_LABEL:string;
+export function newThreadId():string;
+export function isThreadId(v:unknown):boolean;
+export function readThread(cfg:StorageConfig,id:string):Promise<{thread:any,etag:string|null}|null>;
+export function appendExchange(cfg:StorageConfig,id:string,o:{guestText:string,reply:string,step:number|null,at:string}):Promise<{persisted:boolean,turns:number}>;
+export function appendGuestEvent(cfg:StorageConfig,event:any):Promise<boolean>;
+export function readZerefModel(cfg:StorageConfig):Promise<any|null>;
+export function countZerefCloud(cfg:StorageConfig):Promise<{lessons:number,experiences:number}>;
+export function diaryEventLine(e:any):string|null;
+export function composeContinuityPreface(o:{pinStep:number,diary?:any,threadTurns?:any[]},maxChars?:number):string;
+export function shapeLiveness(o:any):any;
