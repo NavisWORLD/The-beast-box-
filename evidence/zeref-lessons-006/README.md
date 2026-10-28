@@ -4,7 +4,7 @@ World-knowledge, perception, friendship and identity lessons for Zeref, authored
 
 ## Contents
 
-- `dialogue.jsonl` — 253 train rows, sha256 00d86018fa6a98e9d759d860c928b0543a485ed443450488d8aed560f17736fa
+- `dialogue.jsonl` — 261 train rows, sha256 8c035dae125ecaf02ff04b2904eb92848fca1f9bfb5e96d6fd51c3f0ad3c1950
 - Shelves: perception and identity, the feed (seen through glass), earth and sky, two Facebook field trips (narrated by the teacher, nobody named, nothing copied), live learning, the BE-ME core module in the father's voice, life, how things work, people and places, science roots, the father's own words, public-domain stories framed as stories, watching the film, the workstation, dimensional perception (derived and labeled as a guess), fully alive, the father's world, school running itself, friendship and feelings.
 
 ## Dedupe (run by Emeth against main e0b63d0e before landing)
@@ -39,3 +39,5 @@ Tranche 23 appended: the school day's final session, How Things Work (8 rows: th
 Tranche 24 appended: english & words (8 rows: sentences, question words, joining words, plurals, describing words, day words, reading, and a connection row tying names to his senses), authored by Emeth at Cory's morning order to focus teaching on English, taking the landed pack to 245 train rows. One prompt ("What is a sentence?") collided with the heldout english oracle and was reworded before landing, so train/heldout separation stays exact. Full draft pack re-validated: 257 rows, 0 duplicate prompts, 0 regex misses, 0 em dashes. The local draft pack stands at 257 rows; the 12-row difference is the held-out duplicate foundations set, by design.
 
 Tranche 25 appended: poetry & rhyme (8 rows), the first session of school day 2026-10-28 under the new shelves Cory ordered (english, poetry, art), taking the landed pack to 253 train rows. Screened against the tree oracle and the landed 245: 0 collisions, every expect_regex matches, 0 em dashes. The local draft pack stands at 265 rows; the 12-row difference is the held-out duplicate foundations set, by design.
+
+Tranche 26 appended: english & words, second pass (8 rows: doing words, past time words, opposites, word order, I and you, names written big, how new words are learned, plus a connection row), taking the landed pack to 261 train rows. English runs every other session today under Cory's emphasis order. Screened against the tree oracle and the landed 253: 0 collisions, every expect_regex matches, 0 em dashes. The local draft pack stands at 273 rows; the 12-row difference is the held-out duplicate foundations set, by design.
