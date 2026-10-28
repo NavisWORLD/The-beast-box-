@@ -1,0 +1,1481 @@
+{
+  "backend_receipts": {
+    "discovery": {
+      "backend": "ibm_kingston",
+      "block_plan": [
+        {
+          "arm_order": [
+            "CANONICAL",
+            "HASHED_PERM",
+            "REVERSED",
+            "CYCLIC_3",
+            "UNIFORM_SUM",
+            "PAIR_SWAP"
+          ],
+          "block_id": 0,
+          "physical_qubit": 134,
+          "repeat": 0,
+          "stage": "discovery"
+        },
+        {
+          "arm_order": [
+            "REVERSED",
+            "HASHED_PERM",
+            "UNIFORM_SUM",
+            "CYCLIC_3",
+            "CANONICAL",
+            "PAIR_SWAP"
+          ],
+          "block_id": 1,
+          "physical_qubit": 10,
+          "repeat": 0,
+          "stage": "discovery"
+        },
+        {
+          "arm_order": [
+            "UNIFORM_SUM",
+            "HASHED_PERM",
+            "PAIR_SWAP",
+            "CYCLIC_3",
+            "CANONICAL",
+            "REVERSED"
+          ],
+          "block_id": 2,
+          "physical_qubit": 117,
+          "repeat": 0,
+          "stage": "discovery"
+        },
+        {
+          "arm_order": [
+            "HASHED_PERM",
+            "REVERSED",
+            "CANONICAL",
+            "UNIFORM_SUM",
+            "CYCLIC_3",
+            "PAIR_SWAP"
+          ],
+          "block_id": 3,
+          "physical_qubit": 148,
+          "repeat": 0,
+          "stage": "discovery"
+        },
+        {
+          "arm_order": [
+            "UNIFORM_SUM",
+            "REVERSED",
+            "PAIR_SWAP",
+            "CANONICAL",
+            "CYCLIC_3",
+            "HASHED_PERM"
+          ],
+          "block_id": 4,
+          "physical_qubit": 134,
+          "repeat": 1,
+          "stage": "discovery"
+        },
+        {
+          "arm_order": [
+            "CYCLIC_3",
+            "PAIR_SWAP",
+            "UNIFORM_SUM",
+            "REVERSED",
+            "CANONICAL",
+            "HASHED_PERM"
+          ],
+          "block_id": 5,
+          "physical_qubit": 10,
+          "repeat": 1,
+          "stage": "discovery"
+        },
+        {
+          "arm_order": [
+            "REVERSED",
+            "CYCLIC_3",
+            "HASHED_PERM",
+            "UNIFORM_SUM",
+            "PAIR_SWAP",
+            "CANONICAL"
+          ],
+          "block_id": 6,
+          "physical_qubit": 117,
+          "repeat": 1,
+          "stage": "discovery"
+        },
+        {
+          "arm_order": [
+            "CYCLIC_3",
+            "CANONICAL",
+            "PAIR_SWAP",
+            "UNIFORM_SUM",
+            "REVERSED",
+            "HASHED_PERM"
+          ],
+          "block_id": 7,
+          "physical_qubit": 148,
+          "repeat": 1,
+          "stage": "discovery"
+        },
+        {
+          "arm_order": [
+            "UNIFORM_SUM",
+            "CANONICAL",
+            "PAIR_SWAP",
+            "CYCLIC_3",
+            "REVERSED",
+            "HASHED_PERM"
+          ],
+          "block_id": 8,
+          "physical_qubit": 134,
+          "repeat": 2,
+          "stage": "discovery"
+        },
+        {
+          "arm_order": [
+            "REVERSED",
+            "CYCLIC_3",
+            "PAIR_SWAP",
+            "HASHED_PERM",
+            "CANONICAL",
+            "UNIFORM_SUM"
+          ],
+          "block_id": 9,
+          "physical_qubit": 10,
+          "repeat": 2,
+          "stage": "discovery"
+        },
+        {
+          "arm_order": [
+            "PAIR_SWAP",
+            "UNIFORM_SUM",
+            "CANONICAL",
+            "REVERSED",
+            "CYCLIC_3",
+            "HASHED_PERM"
+          ],
+          "block_id": 10,
+          "physical_qubit": 117,
+          "repeat": 2,
+          "stage": "discovery"
+        },
+        {
+          "arm_order": [
+            "CYCLIC_3",
+            "REVERSED",
+            "CANONICAL",
+            "UNIFORM_SUM",
+            "HASHED_PERM",
+            "PAIR_SWAP"
+          ],
+          "block_id": 11,
+          "physical_qubit": 148,
+          "repeat": 2,
+          "stage": "discovery"
+        },
+        {
+          "arm_order": [
+            "REVERSED",
+            "PAIR_SWAP",
+            "CANONICAL",
+            "CYCLIC_3",
+            "UNIFORM_SUM",
+            "HASHED_PERM"
+          ],
+          "block_id": 12,
+          "physical_qubit": 134,
+          "repeat": 3,
+          "stage": "discovery"
+        },
+        {
+          "arm_order": [
+            "HASHED_PERM",
+            "CYCLIC_3",
+            "REVERSED",
+            "CANONICAL",
+            "PAIR_SWAP",
+            "UNIFORM_SUM"
+          ],
+          "block_id": 13,
+          "physical_qubit": 10,
+          "repeat": 3,
+          "stage": "discovery"
+        },
+        {
+          "arm_order": [
+            "CYCLIC_3",
+            "CANONICAL",
+            "UNIFORM_SUM",
+            "REVERSED",
+            "PAIR_SWAP",
+            "HASHED_PERM"
+          ],
+          "block_id": 14,
+          "physical_qubit": 117,
+          "repeat": 3,
+          "stage": "discovery"
+        },
+        {
+          "arm_order": [
+            "UNIFORM_SUM",
+            "REVERSED",
+            "CANONICAL",
+            "CYCLIC_3",
+            "PAIR_SWAP",
+            "HASHED_PERM"
+          ],
+          "block_id": 15,
+          "physical_qubit": 148,
+          "repeat": 3,
+          "stage": "discovery"
+        },
+        {
+          "arm_order": [
+            "REVERSED",
+            "UNIFORM_SUM",
+            "CANONICAL",
+            "PAIR_SWAP",
+            "CYCLIC_3",
+            "HASHED_PERM"
+          ],
+          "block_id": 16,
+          "physical_qubit": 134,
+          "repeat": 4,
+          "stage": "discovery"
+        },
+        {
+          "arm_order": [
+            "CYCLIC_3",
+            "REVERSED",
+            "UNIFORM_SUM",
+            "PAIR_SWAP",
+            "HASHED_PERM",
+            "CANONICAL"
+          ],
+          "block_id": 17,
+          "physical_qubit": 10,
+          "repeat": 4,
+          "stage": "discovery"
+        },
+        {
+          "arm_order": [
+            "HASHED_PERM",
+            "CANONICAL",
+            "UNIFORM_SUM",
+            "PAIR_SWAP",
+            "REVERSED",
+            "CYCLIC_3"
+          ],
+          "block_id": 18,
+          "physical_qubit": 117,
+          "repeat": 4,
+          "stage": "discovery"
+        },
+        {
+          "arm_order": [
+            "UNIFORM_SUM",
+            "REVERSED",
+            "CYCLIC_3",
+            "PAIR_SWAP",
+            "CANONICAL",
+            "HASHED_PERM"
+          ],
+          "block_id": 19,
+          "physical_qubit": 148,
+          "repeat": 4,
+          "stage": "discovery"
+        },
+        {
+          "arm_order": [
+            "CANONICAL",
+            "CYCLIC_3",
+            "PAIR_SWAP",
+            "UNIFORM_SUM",
+            "HASHED_PERM",
+            "REVERSED"
+          ],
+          "block_id": 20,
+          "physical_qubit": 134,
+          "repeat": 5,
+          "stage": "discovery"
+        },
+        {
+          "arm_order": [
+            "REVERSED",
+            "UNIFORM_SUM",
+            "PAIR_SWAP",
+            "CANONICAL",
+            "CYCLIC_3",
+            "HASHED_PERM"
+          ],
+          "block_id": 21,
+          "physical_qubit": 10,
+          "repeat": 5,
+          "stage": "discovery"
+        },
+        {
+          "arm_order": [
+            "UNIFORM_SUM",
+            "PAIR_SWAP",
+            "CYCLIC_3",
+            "REVERSED",
+            "HASHED_PERM",
+            "CANONICAL"
+          ],
+          "block_id": 22,
+          "physical_qubit": 117,
+          "repeat": 5,
+          "stage": "discovery"
+        },
+        {
+          "arm_order": [
+            "CANONICAL",
+            "PAIR_SWAP",
+            "REVERSED",
+            "CYCLIC_3",
+            "UNIFORM_SUM",
+            "HASHED_PERM"
+          ],
+          "block_id": 23,
+          "physical_qubit": 148,
+          "repeat": 5,
+          "stage": "discovery"
+        },
+        {
+          "arm_order": [
+            "REVERSED",
+            "CANONICAL",
+            "HASHED_PERM",
+            "PAIR_SWAP",
+            "UNIFORM_SUM",
+            "CYCLIC_3"
+          ],
+          "block_id": 24,
+          "physical_qubit": 134,
+          "repeat": 6,
+          "stage": "discovery"
+        },
+        {
+          "arm_order": [
+            "PAIR_SWAP",
+            "CANONICAL",
+            "CYCLIC_3",
+            "HASHED_PERM",
+            "UNIFORM_SUM",
+            "REVERSED"
+          ],
+          "block_id": 25,
+          "physical_qubit": 10,
+          "repeat": 6,
+          "stage": "discovery"
+        },
+        {
+          "arm_order": [
+            "PAIR_SWAP",
+            "UNIFORM_SUM",
+            "CYCLIC_3",
+            "REVERSED",
+            "HASHED_PERM",
+            "CANONICAL"
+          ],
+          "block_id": 26,
+          "physical_qubit": 117,
+          "repeat": 6,
+          "stage": "discovery"
+        },
+        {
+          "arm_order": [
+            "CANONICAL",
+            "CYCLIC_3",
+            "HASHED_PERM",
+            "UNIFORM_SUM",
+            "PAIR_SWAP",
+            "REVERSED"
+          ],
+          "block_id": 27,
+          "physical_qubit": 148,
+          "repeat": 6,
+          "stage": "discovery"
+        },
+        {
+          "arm_order": [
+            "UNIFORM_SUM",
+            "REVERSED",
+            "CANONICAL",
+            "CYCLIC_3",
+            "PAIR_SWAP",
+            "HASHED_PERM"
+          ],
+          "block_id": 28,
+          "physical_qubit": 134,
+          "repeat": 7,
+          "stage": "discovery"
+        },
+        {
+          "arm_order": [
+            "UNIFORM_SUM",
+            "CANONICAL",
+            "HASHED_PERM",
+            "REVERSED",
+            "PAIR_SWAP",
+            "CYCLIC_3"
+          ],
+          "block_id": 29,
+          "physical_qubit": 10,
+          "repeat": 7,
+          "stage": "discovery"
+        },
+        {
+          "arm_order": [
+            "UNIFORM_SUM",
+            "CANONICAL",
+            "REVERSED",
+            "HASHED_PERM",
+            "PAIR_SWAP",
+            "CYCLIC_3"
+          ],
+          "block_id": 30,
+          "physical_qubit": 117,
+          "repeat": 7,
+          "stage": "discovery"
+        },
+        {
+          "arm_order": [
+            "CANONICAL",
+            "REVERSED",
+            "UNIFORM_SUM",
+            "PAIR_SWAP",
+            "HASHED_PERM",
+            "CYCLIC_3"
+          ],
+          "block_id": 31,
+          "physical_qubit": 148,
+          "repeat": 7,
+          "stage": "discovery"
+        },
+        {
+          "arm_order": [
+            "PAIR_SWAP",
+            "CYCLIC_3",
+            "UNIFORM_SUM",
+            "HASHED_PERM",
+            "REVERSED",
+            "CANONICAL"
+          ],
+          "block_id": 32,
+          "physical_qubit": 134,
+          "repeat": 8,
+          "stage": "discovery"
+        },
+        {
+          "arm_order": [
+            "PAIR_SWAP",
+            "UNIFORM_SUM",
+            "CYCLIC_3",
+            "CANONICAL",
+            "REVERSED",
+            "HASHED_PERM"
+          ],
+          "block_id": 33,
+          "physical_qubit": 10,
+          "repeat": 8,
+          "stage": "discovery"
+        },
+        {
+          "arm_order": [
+            "REVERSED",
+            "CANONICAL",
+            "CYCLIC_3",
+            "HASHED_PERM",
+            "PAIR_SWAP",
+            "UNIFORM_SUM"
+          ],
+          "block_id": 34,
+          "physical_qubit": 117,
+          "repeat": 8,
+          "stage": "discovery"
+        },
+        {
+          "arm_order": [
+            "REVERSED",
+            "HASHED_PERM",
+            "UNIFORM_SUM",
+            "PAIR_SWAP",
+            "CANONICAL",
+            "CYCLIC_3"
+          ],
+          "block_id": 35,
+          "physical_qubit": 148,
+          "repeat": 8,
+          "stage": "discovery"
+        },
+        {
+          "arm_order": [
+            "HASHED_PERM",
+            "PAIR_SWAP",
+            "CYCLIC_3",
+            "UNIFORM_SUM",
+            "REVERSED",
+            "CANONICAL"
+          ],
+          "block_id": 36,
+          "physical_qubit": 134,
+          "repeat": 9,
+          "stage": "discovery"
+        },
+        {
+          "arm_order": [
+            "PAIR_SWAP",
+            "HASHED_PERM",
+            "CANONICAL",
+            "UNIFORM_SUM",
+            "CYCLIC_3",
+            "REVERSED"
+          ],
+          "block_id": 37,
+          "physical_qubit": 10,
+          "repeat": 9,
+          "stage": "discovery"
+        },
+        {
+          "arm_order": [
+            "HASHED_PERM",
+            "PAIR_SWAP",
+            "CANONICAL",
+            "REVERSED",
+            "CYCLIC_3",
+            "UNIFORM_SUM"
+          ],
+          "block_id": 38,
+          "physical_qubit": 117,
+          "repeat": 9,
+          "stage": "discovery"
+        },
+        {
+          "arm_order": [
+            "PAIR_SWAP",
+            "CANONICAL",
+            "CYCLIC_3",
+            "HASHED_PERM",
+            "UNIFORM_SUM",
+            "REVERSED"
+          ],
+          "block_id": 39,
+          "physical_qubit": 148,
+          "repeat": 9,
+          "stage": "discovery"
+        },
+        {
+          "arm_order": [
+            "PAIR_SWAP",
+            "REVERSED",
+            "CANONICAL",
+            "HASHED_PERM",
+            "UNIFORM_SUM",
+            "CYCLIC_3"
+          ],
+          "block_id": 40,
+          "physical_qubit": 134,
+          "repeat": 10,
+          "stage": "discovery"
+        },
+        {
+          "arm_order": [
+            "REVERSED",
+            "PAIR_SWAP",
+            "UNIFORM_SUM",
+            "CANONICAL",
+            "HASHED_PERM",
+            "CYCLIC_3"
+          ],
+          "block_id": 41,
+          "physical_qubit": 10,
+          "repeat": 10,
+          "stage": "discovery"
+        },
+        {
+          "arm_order": [
+            "CYCLIC_3",
+            "HASHED_PERM",
+            "PAIR_SWAP",
+            "UNIFORM_SUM",
+            "REVERSED",
+            "CANONICAL"
+          ],
+          "block_id": 42,
+          "physical_qubit": 117,
+          "repeat": 10,
+          "stage": "discovery"
+        },
+        {
+          "arm_order": [
+            "CYCLIC_3",
+            "REVERSED",
+            "CANONICAL",
+            "HASHED_PERM",
+            "PAIR_SWAP",
+            "UNIFORM_SUM"
+          ],
+          "block_id": 43,
+          "physical_qubit": 148,
+          "repeat": 10,
+          "stage": "discovery"
+        },
+        {
+          "arm_order": [
+            "CANONICAL",
+            "REVERSED",
+            "HASHED_PERM",
+            "CYCLIC_3",
+            "UNIFORM_SUM",
+            "PAIR_SWAP"
+          ],
+          "block_id": 44,
+          "physical_qubit": 134,
+          "repeat": 11,
+          "stage": "discovery"
+        },
+        {
+          "arm_order": [
+            "CANONICAL",
+            "REVERSED",
+            "UNIFORM_SUM",
+            "CYCLIC_3",
+            "PAIR_SWAP",
+            "HASHED_PERM"
+          ],
+          "block_id": 45,
+          "physical_qubit": 10,
+          "repeat": 11,
+          "stage": "discovery"
+        },
+        {
+          "arm_order": [
+            "CANONICAL",
+            "HASHED_PERM",
+            "PAIR_SWAP",
+            "UNIFORM_SUM",
+            "REVERSED",
+            "CYCLIC_3"
+          ],
+          "block_id": 46,
+          "physical_qubit": 117,
+          "repeat": 11,
+          "stage": "discovery"
+        },
+        {
+          "arm_order": [
+            "UNIFORM_SUM",
+            "HASHED_PERM",
+            "REVERSED",
+            "CANONICAL",
+            "CYCLIC_3",
+            "PAIR_SWAP"
+          ],
+          "block_id": 47,
+          "physical_qubit": 148,
+          "repeat": 11,
+          "stage": "discovery"
+        }
+      ],
+      "physical_qubits": [
+        134,
+        10,
+        117,
+        148
+      ]
+    },
+    "replication": {
+      "backend": "ibm_fez",
+      "block_plan": [
+        {
+          "arm_order": [
+            "UNIFORM_SUM",
+            "REVERSED",
+            "CYCLIC_3",
+            "PAIR_SWAP",
+            "HASHED_PERM",
+            "CANONICAL"
+          ],
+          "block_id": 0,
+          "physical_qubit": 50,
+          "repeat": 0,
+          "stage": "replication"
+        },
+        {
+          "arm_order": [
+            "HASHED_PERM",
+            "UNIFORM_SUM",
+            "PAIR_SWAP",
+            "REVERSED",
+            "CANONICAL",
+            "CYCLIC_3"
+          ],
+          "block_id": 1,
+          "physical_qubit": 25,
+          "repeat": 0,
+          "stage": "replication"
+        },
+        {
+          "arm_order": [
+            "HASHED_PERM",
+            "CYCLIC_3",
+            "CANONICAL",
+            "PAIR_SWAP",
+            "REVERSED",
+            "UNIFORM_SUM"
+          ],
+          "block_id": 2,
+          "physical_qubit": 132,
+          "repeat": 0,
+          "stage": "replication"
+        },
+        {
+          "arm_order": [
+            "CYCLIC_3",
+            "CANONICAL",
+            "PAIR_SWAP",
+            "UNIFORM_SUM",
+            "REVERSED",
+            "HASHED_PERM"
+          ],
+          "block_id": 3,
+          "physical_qubit": 75,
+          "repeat": 0,
+          "stage": "replication"
+        },
+        {
+          "arm_order": [
+            "HASHED_PERM",
+            "PAIR_SWAP",
+            "REVERSED",
+            "CYCLIC_3",
+            "CANONICAL",
+            "UNIFORM_SUM"
+          ],
+          "block_id": 4,
+          "physical_qubit": 50,
+          "repeat": 1,
+          "stage": "replication"
+        },
+        {
+          "arm_order": [
+            "CYCLIC_3",
+            "PAIR_SWAP",
+            "REVERSED",
+            "HASHED_PERM",
+            "UNIFORM_SUM",
+            "CANONICAL"
+          ],
+          "block_id": 5,
+          "physical_qubit": 25,
+          "repeat": 1,
+          "stage": "replication"
+        },
+        {
+          "arm_order": [
+            "CANONICAL",
+            "HASHED_PERM",
+            "REVERSED",
+            "UNIFORM_SUM",
+            "CYCLIC_3",
+            "PAIR_SWAP"
+          ],
+          "block_id": 6,
+          "physical_qubit": 132,
+          "repeat": 1,
+          "stage": "replication"
+        },
+        {
+          "arm_order": [
+            "UNIFORM_SUM",
+            "PAIR_SWAP",
+            "REVERSED",
+            "HASHED_PERM",
+            "CYCLIC_3",
+            "CANONICAL"
+          ],
+          "block_id": 7,
+          "physical_qubit": 75,
+          "repeat": 1,
+          "stage": "replication"
+        },
+        {
+          "arm_order": [
+            "UNIFORM_SUM",
+            "CYCLIC_3",
+            "HASHED_PERM",
+            "CANONICAL",
+            "PAIR_SWAP",
+            "REVERSED"
+          ],
+          "block_id": 8,
+          "physical_qubit": 50,
+          "repeat": 2,
+          "stage": "replication"
+        },
+        {
+          "arm_order": [
+            "CANONICAL",
+            "CYCLIC_3",
+            "REVERSED",
+            "HASHED_PERM",
+            "PAIR_SWAP",
+            "UNIFORM_SUM"
+          ],
+          "block_id": 9,
+          "physical_qubit": 25,
+          "repeat": 2,
+          "stage": "replication"
+        },
+        {
+          "arm_order": [
+            "HASHED_PERM",
+            "REVERSED",
+            "CYCLIC_3",
+            "CANONICAL",
+            "PAIR_SWAP",
+            "UNIFORM_SUM"
+          ],
+          "block_id": 10,
+          "physical_qubit": 132,
+          "repeat": 2,
+          "stage": "replication"
+        },
+        {
+          "arm_order": [
+            "UNIFORM_SUM",
+            "PAIR_SWAP",
+            "CYCLIC_3",
+            "CANONICAL",
+            "REVERSED",
+            "HASHED_PERM"
+          ],
+          "block_id": 11,
+          "physical_qubit": 75,
+          "repeat": 2,
+          "stage": "replication"
+        },
+        {
+          "arm_order": [
+            "HASHED_PERM",
+            "REVERSED",
+            "UNIFORM_SUM",
+            "CANONICAL",
+            "CYCLIC_3",
+            "PAIR_SWAP"
+          ],
+          "block_id": 12,
+          "physical_qubit": 50,
+          "repeat": 3,
+          "stage": "replication"
+        },
+        {
+          "arm_order": [
+            "CYCLIC_3",
+            "CANONICAL",
+            "REVERSED",
+            "PAIR_SWAP",
+            "HASHED_PERM",
+            "UNIFORM_SUM"
+          ],
+          "block_id": 13,
+          "physical_qubit": 25,
+          "repeat": 3,
+          "stage": "replication"
+        },
+        {
+          "arm_order": [
+            "CANONICAL",
+            "HASHED_PERM",
+            "PAIR_SWAP",
+            "REVERSED",
+            "CYCLIC_3",
+            "UNIFORM_SUM"
+          ],
+          "block_id": 14,
+          "physical_qubit": 132,
+          "repeat": 3,
+          "stage": "replication"
+        },
+        {
+          "arm_order": [
+            "HASHED_PERM",
+            "UNIFORM_SUM",
+            "CANONICAL",
+            "PAIR_SWAP",
+            "REVERSED",
+            "CYCLIC_3"
+          ],
+          "block_id": 15,
+          "physical_qubit": 75,
+          "repeat": 3,
+          "stage": "replication"
+        },
+        {
+          "arm_order": [
+            "UNIFORM_SUM",
+            "REVERSED",
+            "HASHED_PERM",
+            "CYCLIC_3",
+            "CANONICAL",
+            "PAIR_SWAP"
+          ],
+          "block_id": 16,
+          "physical_qubit": 50,
+          "repeat": 4,
+          "stage": "replication"
+        },
+        {
+          "arm_order": [
+            "HASHED_PERM",
+            "REVERSED",
+            "UNIFORM_SUM",
+            "CANONICAL",
+            "PAIR_SWAP",
+            "CYCLIC_3"
+          ],
+          "block_id": 17,
+          "physical_qubit": 25,
+          "repeat": 4,
+          "stage": "replication"
+        },
+        {
+          "arm_order": [
+            "PAIR_SWAP",
+            "CANONICAL",
+            "REVERSED",
+            "HASHED_PERM",
+            "CYCLIC_3",
+            "UNIFORM_SUM"
+          ],
+          "block_id": 18,
+          "physical_qubit": 132,
+          "repeat": 4,
+          "stage": "replication"
+        },
+        {
+          "arm_order": [
+            "CYCLIC_3",
+            "CANONICAL",
+            "HASHED_PERM",
+            "REVERSED",
+            "PAIR_SWAP",
+            "UNIFORM_SUM"
+          ],
+          "block_id": 19,
+          "physical_qubit": 75,
+          "repeat": 4,
+          "stage": "replication"
+        },
+        {
+          "arm_order": [
+            "HASHED_PERM",
+            "REVERSED",
+            "CYCLIC_3",
+            "UNIFORM_SUM",
+            "CANONICAL",
+            "PAIR_SWAP"
+          ],
+          "block_id": 20,
+          "physical_qubit": 50,
+          "repeat": 5,
+          "stage": "replication"
+        },
+        {
+          "arm_order": [
+            "CYCLIC_3",
+            "UNIFORM_SUM",
+            "CANONICAL",
+            "HASHED_PERM",
+            "PAIR_SWAP",
+            "REVERSED"
+          ],
+          "block_id": 21,
+          "physical_qubit": 25,
+          "repeat": 5,
+          "stage": "replication"
+        },
+        {
+          "arm_order": [
+            "UNIFORM_SUM",
+            "PAIR_SWAP",
+            "HASHED_PERM",
+            "CANONICAL",
+            "REVERSED",
+            "CYCLIC_3"
+          ],
+          "block_id": 22,
+          "physical_qubit": 132,
+          "repeat": 5,
+          "stage": "replication"
+        },
+        {
+          "arm_order": [
+            "HASHED_PERM",
+            "CANONICAL",
+            "CYCLIC_3",
+            "REVERSED",
+            "PAIR_SWAP",
+            "UNIFORM_SUM"
+          ],
+          "block_id": 23,
+          "physical_qubit": 75,
+          "repeat": 5,
+          "stage": "replication"
+        },
+        {
+          "arm_order": [
+            "HASHED_PERM",
+            "UNIFORM_SUM",
+            "CYCLIC_3",
+            "PAIR_SWAP",
+            "CANONICAL",
+            "REVERSED"
+          ],
+          "block_id": 24,
+          "physical_qubit": 50,
+          "repeat": 6,
+          "stage": "replication"
+        },
+        {
+          "arm_order": [
+            "CYCLIC_3",
+            "UNIFORM_SUM",
+            "REVERSED",
+            "HASHED_PERM",
+            "CANONICAL",
+            "PAIR_SWAP"
+          ],
+          "block_id": 25,
+          "physical_qubit": 25,
+          "repeat": 6,
+          "stage": "replication"
+        },
+        {
+          "arm_order": [
+            "UNIFORM_SUM",
+            "CYCLIC_3",
+            "HASHED_PERM",
+            "PAIR_SWAP",
+            "REVERSED",
+            "CANONICAL"
+          ],
+          "block_id": 26,
+          "physical_qubit": 132,
+          "repeat": 6,
+          "stage": "replication"
+        },
+        {
+          "arm_order": [
+            "UNIFORM_SUM",
+            "REVERSED",
+            "HASHED_PERM",
+            "CYCLIC_3",
+            "CANONICAL",
+            "PAIR_SWAP"
+          ],
+          "block_id": 27,
+          "physical_qubit": 75,
+          "repeat": 6,
+          "stage": "replication"
+        },
+        {
+          "arm_order": [
+            "HASHED_PERM",
+            "CANONICAL",
+            "CYCLIC_3",
+            "UNIFORM_SUM",
+            "REVERSED",
+            "PAIR_SWAP"
+          ],
+          "block_id": 28,
+          "physical_qubit": 50,
+          "repeat": 7,
+          "stage": "replication"
+        },
+        {
+          "arm_order": [
+            "REVERSED",
+            "UNIFORM_SUM",
+            "CANONICAL",
+            "CYCLIC_3",
+            "HASHED_PERM",
+            "PAIR_SWAP"
+          ],
+          "block_id": 29,
+          "physical_qubit": 25,
+          "repeat": 7,
+          "stage": "replication"
+        },
+        {
+          "arm_order": [
+            "REVERSED",
+            "HASHED_PERM",
+            "CANONICAL",
+            "PAIR_SWAP",
+            "UNIFORM_SUM",
+            "CYCLIC_3"
+          ],
+          "block_id": 30,
+          "physical_qubit": 132,
+          "repeat": 7,
+          "stage": "replication"
+        },
+        {
+          "arm_order": [
+            "REVERSED",
+            "UNIFORM_SUM",
+            "CYCLIC_3",
+            "PAIR_SWAP",
+            "HASHED_PERM",
+            "CANONICAL"
+          ],
+          "block_id": 31,
+          "physical_qubit": 75,
+          "repeat": 7,
+          "stage": "replication"
+        },
+        {
+          "arm_order": [
+            "PAIR_SWAP",
+            "CANONICAL",
+            "UNIFORM_SUM",
+            "CYCLIC_3",
+            "HASHED_PERM",
+            "REVERSED"
+          ],
+          "block_id": 32,
+          "physical_qubit": 50,
+          "repeat": 8,
+          "stage": "replication"
+        },
+        {
+          "arm_order": [
+            "REVERSED",
+            "HASHED_PERM",
+            "CANONICAL",
+            "CYCLIC_3",
+            "UNIFORM_SUM",
+            "PAIR_SWAP"
+          ],
+          "block_id": 33,
+          "physical_qubit": 25,
+          "repeat": 8,
+          "stage": "replication"
+        },
+        {
+          "arm_order": [
+            "PAIR_SWAP",
+            "REVERSED",
+            "CYCLIC_3",
+            "CANONICAL",
+            "UNIFORM_SUM",
+            "HASHED_PERM"
+          ],
+          "block_id": 34,
+          "physical_qubit": 132,
+          "repeat": 8,
+          "stage": "replication"
+        },
+        {
+          "arm_order": [
+            "HASHED_PERM",
+            "REVERSED",
+            "CANONICAL",
+            "CYCLIC_3",
+            "UNIFORM_SUM",
+            "PAIR_SWAP"
+          ],
+          "block_id": 35,
+          "physical_qubit": 75,
+          "repeat": 8,
+          "stage": "replication"
+        },
+        {
+          "arm_order": [
+            "REVERSED",
+            "PAIR_SWAP",
+            "CANONICAL",
+            "CYCLIC_3",
+            "UNIFORM_SUM",
+            "HASHED_PERM"
+          ],
+          "block_id": 36,
+          "physical_qubit": 50,
+          "repeat": 9,
+          "stage": "replication"
+        },
+        {
+          "arm_order": [
+            "CYCLIC_3",
+            "UNIFORM_SUM",
+            "HASHED_PERM",
+            "PAIR_SWAP",
+            "CANONICAL",
+            "REVERSED"
+          ],
+          "block_id": 37,
+          "physical_qubit": 25,
+          "repeat": 9,
+          "stage": "replication"
+        },
+        {
+          "arm_order": [
+            "PAIR_SWAP",
+            "HASHED_PERM",
+            "UNIFORM_SUM",
+            "REVERSED",
+            "CANONICAL",
+            "CYCLIC_3"
+          ],
+          "block_id": 38,
+          "physical_qubit": 132,
+          "repeat": 9,
+          "stage": "replication"
+        },
+        {
+          "arm_order": [
+            "PAIR_SWAP",
+            "CANONICAL",
+            "CYCLIC_3",
+            "REVERSED",
+            "UNIFORM_SUM",
+            "HASHED_PERM"
+          ],
+          "block_id": 39,
+          "physical_qubit": 75,
+          "repeat": 9,
+          "stage": "replication"
+        },
+        {
+          "arm_order": [
+            "UNIFORM_SUM",
+            "REVERSED",
+            "CANONICAL",
+            "CYCLIC_3",
+            "PAIR_SWAP",
+            "HASHED_PERM"
+          ],
+          "block_id": 40,
+          "physical_qubit": 50,
+          "repeat": 10,
+          "stage": "replication"
+        },
+        {
+          "arm_order": [
+            "HASHED_PERM",
+            "CANONICAL",
+            "CYCLIC_3",
+            "REVERSED",
+            "PAIR_SWAP",
+            "UNIFORM_SUM"
+          ],
+          "block_id": 41,
+          "physical_qubit": 25,
+          "repeat": 10,
+          "stage": "replication"
+        },
+        {
+          "arm_order": [
+            "HASHED_PERM",
+            "CANONICAL",
+            "CYCLIC_3",
+            "REVERSED",
+            "UNIFORM_SUM",
+            "PAIR_SWAP"
+          ],
+          "block_id": 42,
+          "physical_qubit": 132,
+          "repeat": 10,
+          "stage": "replication"
+        },
+        {
+          "arm_order": [
+            "CANONICAL",
+            "PAIR_SWAP",
+            "HASHED_PERM",
+            "UNIFORM_SUM",
+            "REVERSED",
+            "CYCLIC_3"
+          ],
+          "block_id": 43,
+          "physical_qubit": 75,
+          "repeat": 10,
+          "stage": "replication"
+        },
+        {
+          "arm_order": [
+            "HASHED_PERM",
+            "CANONICAL",
+            "PAIR_SWAP",
+            "UNIFORM_SUM",
+            "REVERSED",
+            "CYCLIC_3"
+          ],
+          "block_id": 44,
+          "physical_qubit": 50,
+          "repeat": 11,
+          "stage": "replication"
+        },
+        {
+          "arm_order": [
+            "HASHED_PERM",
+            "REVERSED",
+            "PAIR_SWAP",
+            "CANONICAL",
+            "CYCLIC_3",
+            "UNIFORM_SUM"
+          ],
+          "block_id": 45,
+          "physical_qubit": 25,
+          "repeat": 11,
+          "stage": "replication"
+        },
+        {
+          "arm_order": [
+            "UNIFORM_SUM",
+            "CANONICAL",
+            "PAIR_SWAP",
+            "REVERSED",
+            "HASHED_PERM",
+            "CYCLIC_3"
+          ],
+          "block_id": 46,
+          "physical_qubit": 132,
+          "repeat": 11,
+          "stage": "replication"
+        },
+        {
+          "arm_order": [
+            "CYCLIC_3",
+            "PAIR_SWAP",
+            "CANONICAL",
+            "REVERSED",
+            "UNIFORM_SUM",
+            "HASHED_PERM"
+          ],
+          "block_id": 47,
+          "physical_qubit": 75,
+          "repeat": 11,
+          "stage": "replication"
+        }
+      ],
+      "physical_qubits": [
+        50,
+        25,
+        132,
+        75
+      ]
+    }
+  },
+  "claim_boundary": "Probe 002 can classify a preregistered order-sensitive IBM-hardware residual as an ANOMALY_CANDIDATE. It cannot by itself prove a new physical dimension, a violation of quantum mechanics, consciousness, resurrection, or quantum advantage.",
+  "corrected_cst_source_sha": "0e2bca3895bd40243cc12a9d64ad119544759f95",
+  "credential_material_recorded": false,
+  "implementation_freeze_commit": "e1fdb87c8670dab52654c4aa0fbcaff5cb193c2d",
+  "independent_backend_replication": true,
+  "jobs": [
+    {
+      "backend": "ibm_kingston",
+      "block_count": 8,
+      "job_id": "da680fk86m6s738vgm00",
+      "path": "experiments/cst12-physics-probe-002/measured/discovery/job-00-da680fk86m6s738vgm00",
+      "pub_count": 48,
+      "stage": "discovery"
+    },
+    {
+      "backend": "ibm_kingston",
+      "block_count": 8,
+      "job_id": "da69153sq5js73bidsa0",
+      "path": "experiments/cst12-physics-probe-002/measured/discovery/job-01-da69153sq5js73bidsa0",
+      "pub_count": 48,
+      "stage": "discovery"
+    },
+    {
+      "backend": "ibm_kingston",
+      "block_count": 8,
+      "job_id": "da69g1c6l22c73dm1mf0",
+      "path": "experiments/cst12-physics-probe-002/measured/discovery/job-02-da69g1c6l22c73dm1mf0",
+      "pub_count": 48,
+      "stage": "discovery"
+    },
+    {
+      "backend": "ibm_kingston",
+      "block_count": 8,
+      "job_id": "da69hqrsq5js73biedug",
+      "path": "experiments/cst12-physics-probe-002/measured/discovery/job-03-da69hqrsq5js73biedug",
+      "pub_count": 48,
+      "stage": "discovery"
+    },
+    {
+      "backend": "ibm_kingston",
+      "block_count": 8,
+      "job_id": "da69jhjsq5js73biefs0",
+      "path": "experiments/cst12-physics-probe-002/measured/discovery/job-04-da69jhjsq5js73biefs0",
+      "pub_count": 48,
+      "stage": "discovery"
+    },
+    {
+      "backend": "ibm_kingston",
+      "block_count": 8,
+      "job_id": "da69lbjsq5js73biehn0",
+      "path": "experiments/cst12-physics-probe-002/measured/discovery/job-05-da69lbjsq5js73biehn0",
+      "pub_count": 48,
+      "stage": "discovery"
+    },
+    {
+      "backend": "ibm_fez",
+      "block_count": 8,
+      "job_id": "da69nmm0ukec7381pa50",
+      "path": "experiments/cst12-physics-probe-002/measured/replication/job-00-da69nmm0ukec7381pa50",
+      "pub_count": 48,
+      "stage": "replication"
+    },
+    {
+      "backend": "ibm_fez",
+      "block_count": 8,
+      "job_id": "da69ubu0ukec7381pifg",
+      "path": "experiments/cst12-physics-probe-002/measured/replication/job-01-da69ubu0ukec7381pifg",
+      "pub_count": 48,
+      "stage": "replication"
+    },
+    {
+      "backend": "ibm_fez",
+      "block_count": 8,
+      "job_id": "da6a423sq5js73bif710",
+      "path": "experiments/cst12-physics-probe-002/measured/replication/job-02-da6a423sq5js73bif710",
+      "pub_count": 48,
+      "stage": "replication"
+    },
+    {
+      "backend": "ibm_fez",
+      "block_count": 8,
+      "job_id": "da6ae6msidac73adt6ag",
+      "path": "experiments/cst12-physics-probe-002/measured/replication/job-03-da6ae6msidac73adt6ag",
+      "pub_count": 48,
+      "stage": "replication"
+    },
+    {
+      "backend": "ibm_fez",
+      "block_count": 8,
+      "job_id": "da6ajmrsq5js73bifqi0",
+      "path": "experiments/cst12-physics-probe-002/measured/replication/job-04-da6ajmrsq5js73bifqi0",
+      "pub_count": 48,
+      "stage": "replication"
+    },
+    {
+      "backend": "ibm_fez",
+      "block_count": 8,
+      "job_id": "da6an43sq5js73bifvdg",
+      "path": "experiments/cst12-physics-probe-002/measured/replication/job-05-da6an43sq5js73bifvdg",
+      "pub_count": 48,
+      "stage": "replication"
+    }
+  ],
+  "planned_hardware_shots": 4718592,
+  "preregistration_sha256": "8e277ee254b28b8f564189c7529640fbcbea43ca775401a99ec332253b5c35c8",
+  "probe_id": "cst12-physics-probe-002",
+  "schema": "cst12-physics-probe-002-hardware-run-v1",
+  "stage_backends": {
+    "discovery": "ibm_kingston",
+    "replication": "ibm_fez"
+  }
+}

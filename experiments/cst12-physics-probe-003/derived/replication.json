@@ -1,0 +1,108 @@
+{
+  "backend": "ibm_kingston",
+  "block_count": 32,
+  "complete": true,
+  "effect": 0.04800990616544573,
+  "effect_floor_abs": 0.014365704724149757,
+  "effect_gate": true,
+  "integrity_passed": true,
+  "job_count": 8,
+  "layout_count": 4,
+  "leave_one_job_out": {
+    "key": "job_id",
+    "passed": true,
+    "rows": [
+      {
+        "effect": 0.07260909303481153,
+        "omitted": "da6gfle0ukec73821pig",
+        "passes": true
+      },
+      {
+        "effect": 0.045949825508167716,
+        "omitted": "da6gfls6l22c73dmacig",
+        "passes": true
+      },
+      {
+        "effect": 0.03327031509366362,
+        "omitted": "da6gfmesidac73ae4ou0",
+        "passes": true
+      },
+      {
+        "effect": 0.03327031509366362,
+        "omitted": "da6gfn6sidac73ae4p00",
+        "passes": true
+      },
+      {
+        "effect": 0.04800990616544573,
+        "omitted": "da6gfnk6l22c73dmacmg",
+        "passes": true
+      },
+      {
+        "effect": 0.04800990616544573,
+        "omitted": "da6gfoe0ukec73821pmg",
+        "passes": true
+      },
+      {
+        "effect": 0.0614277854637017,
+        "omitted": "da6gfousidac73ae4p30",
+        "passes": true
+      },
+      {
+        "effect": 0.04800990616544573,
+        "omitted": "da6gfpbsq5js73bin260",
+        "passes": true
+      }
+    ]
+  },
+  "leave_one_layout_out": {
+    "key": "layout_key",
+    "passed": true,
+    "rows": [
+      {
+        "effect": 0.03327031509366362,
+        "omitted": "0,1,2,3,16,23,22",
+        "passes": true
+      },
+      {
+        "effect": 0.03327031509366362,
+        "omitted": "0,1,2,3,16,23,24",
+        "passes": true
+      },
+      {
+        "effect": 0.09681725204610928,
+        "omitted": "53,54,55,59,75,74,73",
+        "passes": true
+      },
+      {
+        "effect": 0.0733474619185634,
+        "omitted": "81,82,83,96,103,102,101",
+        "passes": true
+      }
+    ]
+  },
+  "mirror_gate": false,
+  "mirror_stage_median_abs_epsilon": 0.29721393305417326,
+  "mirror_tolerance": 0.018064441039747733,
+  "p_gate": false,
+  "p_value_max": 0.001,
+  "passed": false,
+  "pseudo_target_effects": {
+    "CHAOS_SHUFFLE": -0.03998337083459361,
+    "DYNAMIC_FREEZE": -0.037335420448888074,
+    "FULL_CST": 0.04800990616544573,
+    "HEBBIAN_SHUFFLE": -0.06729075902084636,
+    "PAIR_PERMUTE": -0.0073692120233570385,
+    "PAIR_SWAP": 0.07583178532020368,
+    "PHI_ABLATE": 0.013046232618869669
+  },
+  "randomization": {
+    "extreme_count": 31696,
+    "p_value": 0.3169668303316967,
+    "randomizations": 100000,
+    "seed": 9669990312621845424,
+    "two_sided": true
+  },
+  "schema": "cst12-physics-probe-003-stage-v1",
+  "specificity_gate": false,
+  "stage": "replication"
+}

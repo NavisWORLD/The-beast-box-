@@ -1,0 +1,43 @@
+{
+  "cst12_vector": [
+    0.42073549240394825,
+    0.2701511529340699,
+    0.10689033302764948,
+    0.4884408425850956,
+    0.023199611732365642,
+    0.4994614880203152,
+    0.004999916667083332,
+    0.49997500020833263,
+    0.0010772165116828022,
+    0.49999883960324043,
+    0.0002320794333473056,
+    0.49999994613913373
+  ],
+  "ideal_equivalence": {
+    "passed": true,
+    "probability_one": {
+      "CANONICAL": 0.4999999999999999,
+      "CYCLIC_3": 0.5000000000000001,
+      "HASHED_PERM": 0.4999999999999996,
+      "PAIR_SWAP": 0.49999999999999944,
+      "REVERSED": 0.4999999999999999,
+      "UNIFORM_SUM": 0.4999999999999991
+    },
+    "spread": 9.992007221626409e-16,
+    "target_error": 8.881784197001252e-16,
+    "tolerance": 1e-12
+  },
+  "passed": true,
+  "preregistration_sha256": "8e277ee254b28b8f564189c7529640fbcbea43ca775401a99ec332253b5c35c8",
+  "schema": "cst12-physics-probe-002-preflight-v1",
+  "synthetic_null": {
+    "datasets": 1000,
+    "effect_floor_abs": 0.005,
+    "floor_exceedances": 0,
+    "max_abs_effect": 0.0026156107584635415,
+    "mean_effect": -2.1998087565104163e-05,
+    "passed": true,
+    "shots_per_pub": 8192,
+    "std_effect": 0.0009118800557123719
+  }
+}
