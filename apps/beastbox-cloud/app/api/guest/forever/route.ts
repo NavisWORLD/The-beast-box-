@@ -2,7 +2,7 @@ import {createHmac} from 'node:crypto';
 import {bridgeConfigured,safeJson} from '@/lib/security';
 import {storageConfig} from '@/lib/cosmos/azure-blob.mjs';
 import {appendExchange,appendGuestEvent,composeContinuityPreface,isThreadId,newThreadId,readThread} from '@/lib/cosmos/forever-store.mjs';
-import {assembleServedPreface,loadShelfIndex,matchShelf,LIVE_CONTEXT_LABEL} from '@/lib/cosmos/live-context.mjs';
+import {assembleBridgeContext,loadShelfIndex,matchShelf,LIVE_CONTEXT_LABEL} from '@/lib/cosmos/live-context.mjs';
 import {buildWorldLive} from '@/lib/zeref/world-live.mjs';
 import {DIARY_SCHEMA,entryHash,genesisState} from '@/lib/zeref/zeref-diary.mjs';
 import PUBLIC_PIN from '@/lib/rawrphos-public-pin.json';
@@ -12,24 +12,35 @@ import PUBLIC_PIN from '@/lib/rawrphos-public-pin.json';
 // on the same bridge and the same reply verification, with one difference:
 // before asking, it loads Zeref's persisted continuity (his recorded diary
 // summary from the zeref-diary branch + this visitor's own guestbook thread
-// from his Azure folder) and composes it into the prompt text — the only
-// context channel the bridge contract accepts ({text, guest_identity},
-// beastbox/guest_local.py). After a VERIFIED reply, the server appends the
+// from his Azure folder). After a VERIFIED reply, the server appends the
 // exchange to the guestbook as a guest-origin, training_eligible:false
 // record. Guests read his state; nothing guest-origin enters his diary,
 // lessons, genome or any training path.
-// LIVE UNIVERSE + LIBRARY (emeth/live-universe-library): the same prompt
+// LIVE UNIVERSE + LIBRARY (emeth/live-universe-library): the same request
 // also carries, read-only, his live universe channel states with their
 // world-live labels verbatim and — on a topic match in the visitor's own
 // words — one entry from his approved library shelves (a miss composes
 // nothing). Receipts state exactly what was composed (live_universe,
 // library). See lib/cosmos/live-context.mjs and
 // docs/forever-connection/CONNECTOR_MAP.md §6.
+// BRIDGE CONTEXT (PR #675 follow-up, docs/forever-connection/
+// BRIDGE-PERSISTENCE.md): those three pieces no longer ride inside the
+// prompt text. They go through the bridge's bounded context contract —
+// {text, guest_identity, context:{continuity, universe, library}} within
+// its byte caps (assembleBridgeContext) — which is also the only door to
+// the bridge's persisted per-guest Hebbian thread: a truthful
+// memory_used:true is accepted exactly when hebbian_mode is 'persisted',
+// and both receipts are surfaced below. A visitor message over the
+// contract's 1200-byte text cap cannot carry context, so it goes through
+// the plain contract instead (no context, memory must report unused).
+// There is no 400-truncation retry here: a 400 in context mode means the
+// composed pieces exceeded the caps — composing within them is the fix.
 const PIN_STEP:number=PUBLIC_PIN.training_steps,PIN_SHA:string=PUBLIC_PIN.checkpoint_sha256;
 export const runtime='nodejs';
 export const dynamic='force-dynamic';
 const MAX_PROMPT=1800;
-const LEGACY_BRIDGE_PROMPT=700;
+// The bridge context contract caps the visitor text it carries at 1200 UTF-8 bytes (guest_hebbian.MAX_TEXT_WITH_CONTEXT).
+const MAX_TEXT_WITH_CONTEXT=1200;
 const MAX_BODY=8000;
 const COOKIE='beastbox_guest_thread';
 const DIARY_SOURCE='https://raw.githubusercontent.com/NavisWORLD/The-beast-box-/zeref-diary/zeref/latest.json';
@@ -128,30 +139,31 @@ export async function POST(request:Request){
   diary:diary?{ok:true,tick:diary.tick,last_tick_at:diary.last_tick_at}:null,pin:PUBLIC_PIN,nowMs:Date.now()});
  const shelf=await loadShelfIndex().catch(()=>null);
  const shelfHits=shelf?matchShelf(shelf,text):[];
- const budget=Math.max(0,MAX_PROMPT-('\nVisitor says: '.length+text.length));
  const continuityArgs={pinStep:PIN_STEP,diary,threadTurns:threadRec?.thread?.turns||[]};
- const served=assembleServedPreface({
-  continuity:composeContinuityPreface(continuityArgs,Math.min(1100,budget)),
+ // The three context pieces, each within the bridge's byte caps and the
+ // total cap (continuity first, then live universe, then library).
+ const bridgeContext=assembleBridgeContext({
+  continuity:composeContinuityPreface(continuityArgs,600),
   recompose:(n:number)=>composeContinuityPreface(continuityArgs,n),
-  world,shelfHits,budget});
- const preface=served.preface;
- const prompt=budget>0&&preface?`${preface}\nVisitor says: ${text}`:text;
+  world,shelfHits});
+ // Context rides only when the visitor text itself fits the contract cap.
+ const contextSent=Buffer.byteLength(text,'utf8')<=MAX_TEXT_WITH_CONTEXT;
+ const liveReceipt=contextSent?bridgeContext.live:{...bridgeContext.live,composed:false};
+ const libraryReceipt=contextSent?bridgeContext.library:{...bridgeContext.library,composed:false};
+ const sentContextBytes=contextSent?bridgeContext.bytes:{continuity:0,universe:0,library:0,total:0};
  // Same quota bucket derivation as /api/guest: an HMAC of the forwarded IP.
  const forwarded=request.headers.get('x-vercel-forwarded-for')||
   request.headers.get('x-forwarded-for')||'unknown';
  const identity=createHmac('sha256',secret).update(forwarded.slice(0,256)).digest('hex');
  const host=new URL('/api/guest-local',process.env.BEASTBOX_CLOUD_BRIDGE_URL!);
  try{
-  const send=(p:string)=>fetch(host,{method:'POST',redirect:'error',cache:'no-store',
+  const send=()=>fetch(host,{method:'POST',redirect:'error',cache:'no-store',
    headers:{Authorization:'Bearer '+process.env.BEASTBOX_CLOUD_BRIDGE_TOKEN!,
      'Content-Type':'application/json'},
-   body:JSON.stringify({text:p,guest_identity:identity}),signal:AbortSignal.timeout(55_000)});
-  let sent=prompt;
-  let res=await send(sent);
-  if(res.status===400&&sent.length>LEGACY_BRIDGE_PROMPT){
-   sent=sent.slice(-LEGACY_BRIDGE_PROMPT).trim();
-   res=await send(sent);
-  }
+   body:JSON.stringify(contextSent?{text,guest_identity:identity,context:bridgeContext.context}:{text,guest_identity:identity}),
+   signal:AbortSignal.timeout(55_000)});
+  // One send, no truncation retry (see the header note on the context contract).
+  const res=await send();
   const parsed=await boundedJson(res,16000);
   if(!parsed||typeof parsed!=='object'||Array.isArray(parsed))
    return safeJson(502,{error:'Invalid guest host response'});
@@ -159,11 +171,21 @@ export async function POST(request:Request){
   if(!res.ok)
    return safeJson([400,403,429,503].includes(res.status)?res.status:502,
      {error:typeof result.error==='string'&&result.error.length<128?result.error:'Local guest inference unavailable'});
+  // memory_used may be true ONLY on the bridge's persisted Hebbian mode
+  // (PR #675); any other memory claim is still an unverified response.
   if(result.schema!=='beastbox-guest-local-v1'||result.model!=='rawrphos-native'||
-     result.step!==PIN_STEP||result.checkpoint_sha256!==PIN_SHA||result.memory_used!==false||result.owner_tools_used!==false||
+     result.step!==PIN_STEP||result.checkpoint_sha256!==PIN_SHA||(result.memory_used!==false&&result.hebbian_mode!=='persisted')||result.owner_tools_used!==false||
      result.provider_key_shared!==false||typeof result.reply!=='string'||result.reply.length>6000)
    return safeJson(502,{error:'Unverified guest model response'});
   const reply=result.reply as string;
+  // The bridge's persistence receipts, surfaced as reported (null when the
+  // bridge predates them). Sanitised to the documented fields only.
+  const hebbianMode=result.hebbian_mode==='persisted'||result.hebbian_mode==='in-context'?result.hebbian_mode:null;
+  const rawThread=(result.guest_thread&&typeof result.guest_thread==='object'&&!Array.isArray(result.guest_thread))?
+   result.guest_thread as Record<string,unknown>:null;
+  const guestThread=rawThread?{loaded_turns:Number.isInteger(rawThread.loaded_turns)?rawThread.loaded_turns:null,
+   stored_turns:Number.isInteger(rawThread.stored_turns)?rawThread.stored_turns:null,
+   training_eligible:rawThread.training_eligible===true}:null;
   // System-written record of the exchange, AFTER verification. Best-effort:
   // a storage failure never eats a verified reply, it only marks the receipt.
   let persisted=false,recorded=false;
@@ -182,16 +204,19 @@ export async function POST(request:Request){
   if(minted)headers['Set-Cookie']=`${COOKIE}=${threadId}; Path=/; HttpOnly; SameSite=Lax; Max-Age=31536000${request.url.startsWith('https:')?'; Secure':''}`;
   return Response.json({provider:'rawrphos-local',model:'rawrphos-native',
    step:PIN_STEP,checkpoint_sha256:PIN_SHA,reply,
-   hebbian:result.hebbian===true,state_mode:result.state_mode==='tri'||result.state_mode==='dyn12'?result.state_mode:null,
+   hebbian:result.hebbian===true,hebbian_mode:hebbianMode,guest_thread:guestThread,
+   state_mode:result.state_mode==='tri'||result.state_mode==='dyn12'?result.state_mode:null,
    guest_stateless:false,continuity:{thread_id:threadId,persisted,recorded,
     diary:diary?{tick:diary.tick,xp:diary.xp??null,bond:diary.bond??null,stage_name:diary.stage_name??null,verified}:null,
     source:'zeref-diary branch + Azure guestbook (beasts/bb-deada969/guestbook)',
-    live_universe:served.live,
-    library:served.library,
+    live_universe:liveReceipt,
+    library:libraryReceipt,
+    bridge_context:{sent:contextSent,bytes:sentContextBytes,
+     label:'Composed pieces sent through the bridge context contract (continuity, universe, library), not inside the prompt text; sent:false means the visitor text exceeded the contract text cap and the plain contract served the reply.'},
     live_context_label:LIVE_CONTEXT_LABEL,
     training_eligible:false,
-    label:'Continuity is composed into the prompt from his persisted record; guest exchanges are recorded as guest-origin events and never enter training.'},
-   prompt_chars:sent.length,
+    label:'Continuity, the live universe and the library are composed from his persisted record into the bridge context object; guest exchanges are recorded as guest-origin events and never enter training.'},
+   prompt_chars:text.length,
    ...(result.routing&&typeof result.routing==='object'&&!Array.isArray(result.routing)?{routing:result.routing}:{})},
    {status:200,headers});
  }catch{return safeJson(502,{error:'Local guest inference unavailable or timed out'});}
