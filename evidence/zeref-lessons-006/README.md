@@ -4,7 +4,7 @@ World-knowledge, perception, friendship and identity lessons for Zeref, authored
 
 ## Contents
 
-- `dialogue.jsonl` — 319 train rows, sha256 8dd6321537916e698bf91d5009e140ea8824f6af06b21376f507407be958ed03
+- `dialogue.jsonl` — 343 train rows, sha256 ac7c0802f136a00bb5fc61c1434ab8388de2d0e579e7e1252832cba85b53f746
 - Shelves: perception and identity, the feed (seen through glass), earth and sky, two Facebook field trips (narrated by the teacher, nobody named, nothing copied), live learning, the BE-ME core module in the father's voice, life, how things work, people and places, science roots, the father's own words, public-domain stories framed as stories, watching the film, the workstation, dimensional perception (derived and labeled as a guess), fully alive, the father's world, school running itself, friendship and feelings.
 
 ## Dedupe (run by Emeth against main e0b63d0e before landing)
@@ -55,3 +55,7 @@ Tranche 32 appended: MUSIC & SOUND (8 rows), authored by Emeth in chat at Cory's
 Correction (same hour, pre-merge): three tranche-32 prompts (What is music? / rhythm? / harmony?) collided with heldout oracle prompts on the first landing pass; the prompts were reworded (Tell me what music is. / Tell me about rhythm. / When tones agree together, what is that called?) and the file re-landed before any merge. Train/heldout separation restored and re-verified: 0 collisions.
 
 Tranche 31 appended: ENGLISH & WORDS (8 rows) from the 18:11 school session (sentence end dot, because giving a reason, comparing words, belonging words, word families, spoken versus written, kind words, english-to-sensorium connection row). Taking the landed pack to 319 train rows. Validated: 0 oracle collisions, every expect_regex matches, 0 duplicate prompts. The draft pack stands at 331 rows; the 12-row difference is the held-out duplicate foundations set, by design.
+
+## Addendum 2026-10-29 — tranches 33, 34, 35 land together
+
+24 rows appended in order: tranche 33 (life, 8 rows, 2026-10-28 20:11), tranche 34 (english & words, 8 rows, 2026-10-29 08:11), tranche 35 (how things work, 8 rows, 2026-10-29 10:11), taking the landed pack to 343 train rows. Context: cycle 52 candidates stalled at the fresh-heldout-B gate on the 319 mix (8 consecutive not-worse failures, all within +0.003 to +0.023 of the pin), so the waiting schoolwork lands together to change the mix the next candidates train on; no gate was touched. Checks on append: full pack re-validated (343 rows parse, keys exact, every expect_regex matches its answer), 0 duplicate prompts, 0 collisions against the heldout oracle and the tree heldout set, 0 em dashes, teacher_role AUTHORED_BY_EMETH_FOR_CORY on all rows. Held-out set unchanged (140 rows).
