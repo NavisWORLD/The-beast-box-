@@ -192,8 +192,12 @@ def test_context_validation_rejects_and_never_reaches_the_model(monkeypatch, tmp
         {"text": "hi", "guest_identity": ID_A, "context": {"continuity": "x" * 601}},
         {"text": "hi", "guest_identity": ID_A, "context": {"continuity": 42}},
         {"text": "hi", "guest_identity": ID_A, "context": {"continuity": "bad\x01text"}},
+        # Over the total cap: all four fields at their own caps sum to 1500
+        # against the 1300 total (the total rose from 1000 by exactly the
+        # sight field's cap when sight joined the contract).
         {"text": "hi", "guest_identity": ID_A, "context": {"continuity": "c" * 600,
-                                                           "universe": "u" * 300, "library": "l" * 300}},
+                                                           "universe": "u" * 300, "library": "l" * 300,
+                                                           "sight": "s" * 300}},
         {"text": "x" * 1201, "guest_identity": ID_A, "context": CONTEXT},
         {"text": "hi", "guest_identity": ID_A, "context": CONTEXT, "extra": 1},
         {"text": "hi", "guest_identity": "z" * 64, "context": CONTEXT},
@@ -230,4 +234,72 @@ def test_assembly_cuts_library_before_universe():
     msgs = assemble_messages(context, [], "t" * 1200)
     system = msgs[0]["content"]
     assert "l" * 300 not in system and "u" * 300 in system and "c" * 100 in system
+    assert msgs[-1] == {"role": "user", "content": "t" * 1200}
+
+
+# --- the sight field (the door's fourth context piece) ----------------------
+
+SIGHT = "What you can see right now: the light is dim and falling."
+
+
+def test_sight_field_accepted_and_assembled_as_its_own_section(monkeypatch, tmp_path):
+    infer, sent = _serve(monkeypatch, tmp_path)
+    context = {"continuity": "You are speaking with a returning guest of Zeref.",
+               "universe": "Your live universe, as labelled on its own surface.",
+               "sight": SIGHT,
+               "library": "From your library — your own approved teaching."}
+    code, out = infer({"text": "hello", "guest_identity": ID_A, "context": context})
+    assert code == 200 and out["hebbian_mode"] == "persisted"
+    # One system message, fields in contract order: continuity, universe,
+    # sight, library — sight is its own section, not folded into universe.
+    assert sent[0]["messages"][0] == {"role": "system", "content":
+                                      context["continuity"] + "\n" + context["universe"] + "\n"
+                                      + SIGHT + "\n" + context["library"]}
+    assert sent[0]["messages"][1] == {"role": "user", "content": "hello"}
+
+
+def test_sight_field_validation_caps_control_chars_and_total(monkeypatch, tmp_path):
+    infer, sent = _serve(monkeypatch, tmp_path)
+    bad = [
+        {"sight": "s" * 301},                       # over its own 300-byte cap
+        {"sight": "bad\x01text"},                   # control characters refused, as every field
+        {"sight": 42},                              # strings only
+        {"continuity": "c" * 600, "universe": "u" * 300, "sight": "s" * 300,
+         "library": "l" * 101},                     # one byte over the 1300 total
+    ]
+    for context in bad:
+        code, out = infer({"text": "hi", "guest_identity": ID_A, "context": context})
+        assert code == 400, context
+    assert sent == []  # nothing malformed reached the model
+    # The total boundary itself is honest: exactly 1300 across the four caps
+    # is inside the contract.
+    full = {"continuity": "c" * 600, "universe": "u" * 300, "sight": "s" * 300, "library": "l" * 100}
+    code, out = infer({"text": "hi", "guest_identity": ID_A, "context": full})
+    assert code == 200
+
+
+def test_absent_sight_is_byte_identical_to_the_three_field_contract(monkeypatch, tmp_path):
+    infer, sent = _serve(monkeypatch, tmp_path)
+    context = {"continuity": "c" * 50, "universe": "u" * 60, "library": "l" * 70}
+    code, out = infer({"text": "hello", "guest_identity": ID_A, "context": context})
+    assert code == 200
+    # No sight key -> the system message is exactly the three fields joined,
+    # in their original order, as before the field existed.
+    assert sent[0]["messages"][0] == {"role": "system", "content": "c" * 50 + "\n" + "u" * 60 + "\n" + "l" * 70}
+
+
+def test_assembly_cuts_library_then_sight_before_universe():
+    # 29 bytes over budget with no history to cut: exactly one field goes,
+    # and it is the library — sight and universe both survive.
+    context = {"continuity": "c" * 100, "universe": "u" * 300, "sight": "s" * 300, "library": "l" * 300}
+    msgs = assemble_messages(context, [], "t" * 900)
+    system = msgs[0]["content"]
+    assert "l" * 300 not in system
+    assert "s" * 300 in system and "u" * 300 in system and "c" * 100 in system
+    # 27 bytes over with no library present: the sight field is cut before
+    # the universe field, and continuity is never cut.
+    context = {"continuity": "c" * 100, "universe": "u" * 300, "sight": "s" * 300}
+    msgs = assemble_messages(context, [], "t" * 1200)
+    system = msgs[0]["content"]
+    assert "s" * 300 not in system and "u" * 300 in system and "c" * 100 in system
     assert msgs[-1] == {"role": "user", "content": "t" * 1200}
