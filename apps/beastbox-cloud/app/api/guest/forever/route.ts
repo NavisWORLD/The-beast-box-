@@ -1,7 +1,6 @@
-import {createHmac} from 'node:crypto';
 import {bridgeConfigured,safeJson} from '@/lib/security';
 import {storageConfig} from '@/lib/cosmos/azure-blob.mjs';
-import {appendExchange,appendGuestEvent,composeContinuityPreface,isThreadId,newThreadId,readThread} from '@/lib/cosmos/forever-store.mjs';
+import {appendExchange,appendGuestEvent,bridgeIdentityForThread,composeContinuityPreface,isThreadId,newThreadId,readThread} from '@/lib/cosmos/forever-store.mjs';
 import {assembleBridgeContext,loadShelfIndex,matchShelf,LIVE_CONTEXT_LABEL} from '@/lib/cosmos/live-context.mjs';
 import {buildWorldLive} from '@/lib/zeref/world-live.mjs';
 import {DIARY_SCHEMA,entryHash,genesisState} from '@/lib/zeref/zeref-diary.mjs';
@@ -151,10 +150,20 @@ export async function POST(request:Request){
  const liveReceipt=contextSent?bridgeContext.live:{...bridgeContext.live,composed:false};
  const libraryReceipt=contextSent?bridgeContext.library:{...bridgeContext.library,composed:false};
  const sentContextBytes=contextSent?bridgeContext.bytes:{continuity:0,universe:0,library:0,total:0};
- // Same quota bucket derivation as /api/guest: an HMAC of the forwarded IP.
- const forwarded=request.headers.get('x-vercel-forwarded-for')||
-  request.headers.get('x-forwarded-for')||'unknown';
- const identity=createHmac('sha256',secret).update(forwarded.slice(0,256)).digest('hex');
+ // The identity handed to the bridge keys its persisted per-guest Hebbian
+ // thread (bridge store: sha256(guest_identity)), so it must follow the
+ // VISITOR, not their network: it is derived from the stable guestbook
+ // thread id resolved above — the id minted at request start when the
+ // visitor arrived without one, so a first visit stores its bridge thread
+ // under the same identity the cookie presents on every later visit.
+ // HMAC'd with the site secret; the raw thread id never leaves the site.
+ // (The IP-hash derivation this replaced restarted the bridge thread on
+ // every IP rotation while the guestbook thread continued. It survives
+ // only in /api/guest, whose quota bucket it keys; this route has no
+ // other use of the forwarded IP.) threadId is valid by construction
+ // (an isThreadId-checked offer, or freshly minted above) and the secret
+ // was length-checked earlier, so the derivation cannot be null here.
+ const identity=bridgeIdentityForThread(secret,threadId)!;
  const host=new URL('/api/guest-local',process.env.BEASTBOX_CLOUD_BRIDGE_URL!);
  try{
   const send=()=>fetch(host,{method:'POST',redirect:'error',cache:'no-store',
@@ -206,7 +215,7 @@ export async function POST(request:Request){
    step:PIN_STEP,checkpoint_sha256:PIN_SHA,reply,
    hebbian:result.hebbian===true,hebbian_mode:hebbianMode,guest_thread:guestThread,
    state_mode:result.state_mode==='tri'||result.state_mode==='dyn12'?result.state_mode:null,
-   guest_stateless:false,continuity:{thread_id:threadId,persisted,recorded,
+   guest_stateless:false,continuity:{thread_id:threadId,identity_source:'thread',persisted,recorded,
     diary:diary?{tick:diary.tick,xp:diary.xp??null,bond:diary.bond??null,stage_name:diary.stage_name??null,verified}:null,
     source:'zeref-diary branch + Azure guestbook (beasts/bb-deada969/guestbook)',
     live_universe:liveReceipt,

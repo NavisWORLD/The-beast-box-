@@ -1,8 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
+import {createHmac} from 'node:crypto';
 import {storageConfig,putBlob} from '../lib/cosmos/azure-blob.mjs';
-import {appendExchange,appendGuestEvent,composeContinuityPreface,countZerefCloud,diaryEventLine,
+import {appendExchange,appendGuestEvent,bridgeIdentityForThread,composeContinuityPreface,countZerefCloud,diaryEventLine,
  isThreadId,newThreadId,readThread,readZerefModel,shapeLiveness,GUESTBOOK_DIR} from '../lib/cosmos/forever-store.mjs';
 const read=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8');
 
@@ -165,4 +166,68 @@ test('the stateless door is untouched by the forever layer',()=>{
  // The plain door never sends context and carries no persistence wiring.
  assert.doesNotMatch(src,/hebbian_mode|guest_thread|assembleBridgeContext|context:bridgeContext/);
  assert.match(src,/body:JSON\.stringify\(\{text:prompt,guest_identity:identity\}\)/,'its bridge body stays exactly {text, guest_identity}');
+});
+
+test('bridge identity: derived from the thread id, stable per cookie, blind to the network',()=>{
+ const secret='s'.repeat(40);
+ const idA=newThreadId(),idB=newThreadId();
+ const a=bridgeIdentityForThread(secret,idA);
+ // The exact derivation, recomputed independently: HMAC over 'thread:' + id.
+ assert.equal(a,createHmac('sha256',secret).update(`thread:${idA}`).digest('hex'));
+ assert.match(a,/^[a-f0-9]{64}$/,'the same 64-hex shape the bridge has always received');
+ // Two simulated requests sharing a cookie resolve the same thread id and
+ // therefore present the same bridge identity — that is what lets the
+ // bridge load the thread it stored on the previous visit.
+ assert.equal(bridgeIdentityForThread(secret,idA),a);
+ // A different visitor (different cookie) is a different bridge guest.
+ assert.notEqual(bridgeIdentityForThread(secret,idB),a);
+ // Never the raw thread id, and domain-separated from a bare-id HMAC.
+ assert.notEqual(a,idA);
+ assert.notEqual(a,createHmac('sha256',secret).update(idA).digest('hex'));
+ // Not the retired IP derivation, for any address the visitor arrives from:
+ // an IP rotation between visits can no longer restart the bridge thread.
+ for(const ip of ['203.0.113.7','198.51.100.23','2001:db8::1','unknown'])
+  assert.notEqual(a,createHmac('sha256',secret).update(ip).digest('hex'));
+ // Hostile or unusable inputs derive nothing (the route only ever passes
+ // an isThreadId-checked or freshly minted id, so this is defence in depth).
+ for(const bad of ['../profile','..%2f..%2fprofile','zzzz','',null,undefined,42])
+  assert.equal(bridgeIdentityForThread(secret,bad),null);
+ assert.equal(bridgeIdentityForThread('short',idA),null);
+ assert.equal(bridgeIdentityForThread(undefined,idA),null);
+});
+
+test('forever door route: one thread id feeds the bridge identity, the guestbook and the cookie',()=>{
+ const src=read('app/api/guest/forever/route.ts');
+ // The id is resolved (cookie/body offer) or minted exactly once, at
+ // request start, before anything downstream consumes it.
+ assert.equal((src.match(/const threadId=offered\|\|newThreadId\(\);/g)||[]).length,1);
+ assert.match(src,/const minted=!offered;/);
+ const iThread=src.indexOf('const threadId=offered||newThreadId();');
+ const iIdentity=src.indexOf('bridgeIdentityForThread(secret,threadId)');
+ const iAppend=src.indexOf('appendExchange(cfg,threadId,');
+ assert.ok(iThread>=0&&iIdentity>iThread,'the bridge identity derives from the resolved thread id');
+ assert.ok(iAppend>iThread,'the guestbook append keys off the same id');
+ // The cookie the response carries out is that same id, so a first visit
+ // (minted at start) stores its bridge thread under the identity the
+ // cookied second visit presents.
+ assert.match(src,/\$\{COOKIE\}=\$\{threadId\}/);
+ assert.match(src,/continuity:\{thread_id:threadId,identity_source:'thread'/);
+ // The bridge body still sends that one identity in both contract shapes.
+ assert.match(src,/\{text,guest_identity:identity,context:bridgeContext\.context\}/);
+ assert.match(src,/\{text,guest_identity:identity\}/);
+ // No IP-derived identity remains in this route: the forwarded-IP headers
+ // are not read here any more, and the HMAC lives in the store helper.
+ assert.doesNotMatch(src,/x-vercel-forwarded-for|x-forwarded-for/);
+ assert.doesNotMatch(src,/createHmac/);
+});
+
+test('the IP quota-bucket derivation survives only in /api/guest, with no thread wiring',()=>{
+ const src=read('app/api/guest/route.ts');
+ // The plain door's quota-bucket derivation is byte-identical to before:
+ // an HMAC of the forwarded IP, sent to the bridge as guest_identity.
+ assert.match(src,/x-vercel-forwarded-for/);
+ assert.match(src,/createHmac\('sha256',secret\)\.update\(forwarded\.slice\(0,256\)\)\.digest\('hex'\)/);
+ // And the forever fix did not leak into it: no thread identity, no
+ // 'thread:' derivation, no store helper — no thread concept at all.
+ assert.doesNotMatch(src,/bridgeIdentityForThread|thread/);
 });

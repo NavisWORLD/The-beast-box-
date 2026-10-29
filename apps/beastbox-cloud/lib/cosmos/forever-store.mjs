@@ -23,7 +23,7 @@
  * composed into the prompt text (the renderContextPrompt pattern), sourced
  * from the persisted store instead of a browser session.
  */
-import {randomBytes} from 'node:crypto';
+import {createHmac,randomBytes} from 'node:crypto';
 import {getBlob,putBlob,listBlobs} from './azure-blob.mjs';
 import {ZEREF_DIR} from './zeref-cloud.mjs';
 
@@ -37,6 +37,21 @@ const clip=(s,n)=>{s=String(s??'');return s.length>n?s.slice(0,n):s;};
 
 export function newThreadId(){return randomBytes(16).toString('hex');}
 export const isThreadId=v=>typeof v==='string'&&THREAD_ID_RE.test(v);
+/**
+ * The bridge-side guest identity for a forever-door thread: HMAC(secret,
+ * 'thread:' + threadId), hex — the same 64-hex shape the bridge has always
+ * received, but keyed to the visitor's stable thread instead of their IP.
+ * The bridge keys its persisted per-guest Hebbian thread by
+ * sha256(guest_identity), and IPs rotate (mobile carriers, VPNs, proxies),
+ * so an IP-keyed identity restarted the bridge thread on every network
+ * change while the guestbook thread keyed by this id continued. The raw
+ * thread id never leaves the site. Null for a non-thread id or an
+ * unusable secret — callers must treat null as "no identity derivable".
+ */
+export function bridgeIdentityForThread(secret,threadId){
+ if(!isThreadId(threadId)||typeof secret!=='string'||secret.length<32)return null;
+ return createHmac('sha256',secret).update(`thread:${threadId}`).digest('hex');
+}
 const threadName=id=>`${GUESTBOOK_DIR}/threads/${id}.json`;
 const eventsName=()=>`${GUESTBOOK_DIR}/events.jsonl`;
 
