@@ -154,15 +154,26 @@ test('bridge context: composed from all three sources, every field within its by
  assert.equal(heavy.library.composed,false);
 });
 
-test('bridge context: under total pressure the library yields first — continuity and universe keep their caps',()=>{
+test('bridge context: under total pressure the library yields first — continuity, universe and sight keep their fields',()=>{
  const shelfHits=[{shelf:'zeref-lessons-006',topic:'senses-light',user:'Zeref, what do your eyes measure?',
   assistant:'My eyes measure brightness and colour, and whether things are moving.',source:'zeref-lessons-006',license:null,score:9}];
+ // Deliberate update for the sight field (Option C): the total rose by
+ // exactly sight's cap (1000 -> 1300), so this scenario now carries a full
+ // sight block too — the pressure arithmetic is the old one (this fixture's
+ // universe leaves <200 of a 1000 total once continuity is full), and the
+ // rule is unchanged: the library is still the field that yields.
+ const sightMeta={world_light:{composed:true,label:'DERIVED',brightness_band:'dim',trend:'falling',feeling:'fear',reason:''},
+  visitor_light:{composed:false,label:'absent',source:null}};
  const out=assembleBridgeContext({continuity:'C'.repeat(BRIDGE_CONTEXT_CAPS.continuity),
-  recompose:n=>'C'.repeat(n),world:worldFixture(),shelfHits});
+  recompose:n=>'C'.repeat(n),world:worldFixture(),shelfHits,
+  sight:'S'.repeat(BRIDGE_CONTEXT_CAPS.sight),sightMeta});
  assert.equal(out.bytes.continuity,BRIDGE_CONTEXT_CAPS.continuity,'continuity is never traded away');
  assert.ok(out.bytes.universe>0&&out.bytes.universe<=BRIDGE_CONTEXT_CAPS.universe);
+ assert.equal(out.bytes.sight,BRIDGE_CONTEXT_CAPS.sight,'sight holds its own field under pressure');
+ assert.equal(out.sight.world_light.composed,true);
  assert.equal(out.context.library,undefined,'no honest room left -> the library composes nothing');
  assert.equal(out.library.composed,false);
+ assert.equal(out.bytes.total,out.bytes.continuity+out.bytes.universe+out.bytes.sight);
  assert.ok(out.bytes.total<=BRIDGE_CONTEXT_CAPS.total);
 });
 
