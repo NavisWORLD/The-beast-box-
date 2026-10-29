@@ -6,6 +6,7 @@ export const MAX_GUEST_EVENTS:number;
 export const GUESTBOOK_LABEL:string;
 export function newThreadId():string;
 export function isThreadId(v:unknown):boolean;
+export function bridgeIdentityForThread(secret:unknown,threadId:unknown):string|null;
 export function readThread(cfg:StorageConfig,id:string):Promise<{thread:any,etag:string|null}|null>;
 export function appendExchange(cfg:StorageConfig,id:string,o:{guestText:string,reply:string,step:number|null,at:string}):Promise<{persisted:boolean,turns:number}>;
 export function appendGuestEvent(cfg:StorageConfig,event:any):Promise<boolean>;
