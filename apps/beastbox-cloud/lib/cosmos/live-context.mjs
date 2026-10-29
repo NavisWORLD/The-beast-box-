@@ -18,6 +18,12 @@
  * (lib/library/bm25.mjs) and the knowledge bank's coverage discipline
  * (lib/knowledge/bank.mjs): a passage must cover at least half the
  * question's content words, rare words counting more.
+ *
+ * BRIDGE CONTEXT (PR #675 follow-up, docs/forever-connection/
+ * BRIDGE-PERSISTENCE.md): the bridge now accepts a bounded `context` object
+ * beside {text, guest_identity}, so the forever door sends these pieces
+ * through that contract (assembleBridgeContext, byte caps below) instead of
+ * riding them inside the prompt text.
  */
 import {readFile} from 'node:fs/promises';
 import {buildIndex,search} from '../library/bm25.mjs';
@@ -219,4 +225,86 @@ export function assembleServedPreface({continuity='',recompose=null,world=null,s
  return {preface:out,
   live:{...liveMeta,composed:Boolean(live)},
   library:{...libMeta,composed:Boolean(shelf)}};
+}
+
+/* ---------------- bridge context (the #675 contract, byte caps) ---------------- */
+
+/** The bridge's context caps, in UTF-8 bytes (guest_hebbian.CONTEXT_CAPS + total). */
+export const BRIDGE_CONTEXT_CAPS=Object.freeze({continuity:600,universe:300,library:300,total:1000});
+const BYTE_ENCODER=new TextEncoder();
+const byteLen=s=>BYTE_ENCODER.encode(String(s??'')).length;
+/** Byte-safe clip: never splits a UTF-8 sequence (backs off to a clean boundary). */
+function clipBytes(s,maxBytes){
+ const bytes=BYTE_ENCODER.encode(String(s??''));
+ if(bytes.length<=maxBytes)return String(s??'');
+ let end=maxBytes;
+ while(end>0){
+  try{return new TextDecoder('utf-8',{fatal:true}).decode(bytes.slice(0,end));}
+  catch{end--;}
+ }
+ return '';
+}
+/** Continuity fitted to its byte cap: re-rendered smaller first, byte-clipped only as a last resort. */
+function fitContinuity(text,recompose,capBytes){
+ let out=String(text??'');
+ if(byteLen(out)<=capBytes)return out;
+ if(typeof recompose==='function'){
+  let cap=Math.min(capBytes,out.length);
+  while(cap>0){
+   out=String(recompose(cap)??'');
+   if(byteLen(out)<=capBytes)return out;
+   cap=Math.floor(cap*0.8);
+  }
+ }
+ return clipBytes(out,capBytes);
+}
+/** Live universe fitted to its byte cap by re-rendering smaller — a channel label stays whole or the block goes. */
+function fitUniverse(world,capBytes){
+ let max=capBytes;
+ let out=composeLiveUniverseLines(world,max);
+ while(out&&byteLen(out)>capBytes&&max>0){max=Math.floor(max*0.8);out=composeLiveUniverseLines(world,max);}
+ return out&&byteLen(out)<=capBytes?out:'';
+}
+/** Library fitted to its byte cap. Below 200 bytes only a mid-sentence
+ * fragment of an entry would fit (the block header and shelf line alone run
+ * ~105 chars), and a fragment is worse than no book, so it composes nothing. */
+function fitShelf(hits,capBytes){
+ if(capBytes<200)return '';
+ let max=capBytes;
+ let out=composeShelfLines(hits,max);
+ while(out&&byteLen(out)>capBytes&&max>0){max=Math.floor(max*0.8);out=composeShelfLines(hits,max);}
+ if(out&&byteLen(out)>capBytes)out=clipBytes(out,capBytes);
+ return out||'';
+}
+
+/**
+ * Compose the bridge `context` object for the forever door:
+ * {continuity, universe, library}, each field within its byte cap and the
+ * three within the total cap. Priority follows the bridge's own assembly
+ * order: continuity is fitted first and never traded away, then the live
+ * universe, then the library gets what total budget remains (a miss or a
+ * squeezed-out library composes nothing — never a fake book). Empty fields
+ * are omitted. Returns the context plus per-field byte counts and the same
+ * honest receipt metadata assembleServedPreface reports.
+ */
+export function assembleBridgeContext({continuity='',recompose=null,world=null,shelfHits=[]}={}){
+ const liveMeta=liveUniverseReceipt(world);
+ const libMeta=shelfReceipt(shelfHits);
+ // The bridge's validator refuses control characters (other than \n and
+ // \t) in context fields — a stored guest turn could carry e.g. \r — so the
+ // composed fields are cleaned before they are measured and sent.
+ const clean=s=>String(s??'').replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g,'');
+ const cont=clean(fitContinuity(continuity,recompose,BRIDGE_CONTEXT_CAPS.continuity));
+ const univ=clean(fitUniverse(world,BRIDGE_CONTEXT_CAPS.universe));
+ const remaining=BRIDGE_CONTEXT_CAPS.total-byteLen(cont)-byteLen(univ);
+ const lib=remaining>0?clean(fitShelf(shelfHits,Math.min(BRIDGE_CONTEXT_CAPS.library,remaining))):'';
+ const context={};
+ if(cont)context.continuity=cont;
+ if(univ)context.universe=univ;
+ if(lib)context.library=lib;
+ const bytes={continuity:byteLen(cont),universe:byteLen(univ),library:byteLen(lib)};
+ bytes.total=bytes.continuity+bytes.universe+bytes.library;
+ return {context,bytes,
+  live:{...liveMeta,composed:Boolean(univ)},
+  library:{...libMeta,composed:Boolean(lib)}};
 }
