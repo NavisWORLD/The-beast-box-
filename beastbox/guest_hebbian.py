@@ -28,9 +28,12 @@ import time
 SCHEMA = "beastbox-guest-hebbian-v1"
 # Context contract caps, in UTF-8 bytes: the served tokenizer is byte-BPE
 # (worst case one token per byte), so bytes are the honest budget unit.
-CONTEXT_CAPS = {"continuity": 600, "universe": 300, "library": 300}
-CONTEXT_ORDER = ("continuity", "universe", "library")
-MAX_CONTEXT_TOTAL = 1000
+# The sight field (the door's fourth piece: his world's light DERIVED, a
+# visitor's light MEASURED, each labelled) carries its own cap, and the
+# total rose by exactly that cap; no other field's cap changed.
+CONTEXT_CAPS = {"continuity": 600, "universe": 300, "library": 300, "sight": 300}
+CONTEXT_ORDER = ("continuity", "universe", "sight", "library")
+MAX_CONTEXT_TOTAL = 1300
 MAX_TEXT_WITH_CONTEXT = 1200
 # Assembled prompt ceiling: 1900 bytes + BOS + the 64-token reply budget stays
 # under the served model's 2048-token context even at one token per byte.
@@ -101,8 +104,8 @@ def assemble_messages(context: dict, history: list[dict], text: str) -> list[dic
     Order: the caller's context as one system message, the guest's restored
     thread, the guest's current text. The assembled prompt never exceeds
     MAX_ASSEMBLED_BYTES. Cut order under pressure: oldest history first, then
-    the library field, then the universe field. The continuity field and the
-    guest's current text are never cut.
+    the library field, then the sight field, then the universe field. The
+    continuity field and the guest's current text are never cut.
     """
     fields = [context[name] for name in CONTEXT_ORDER if context.get(name)]
     hist = list(history)
@@ -122,7 +125,7 @@ def assemble_messages(context: dict, history: list[dict], text: str) -> list[dic
             hist = hist[1:]
         msgs = build()
     while _formatted_bytes(msgs) > MAX_ASSEMBLED_BYTES and len(fields) > 1:
-        fields = fields[:-1]  # library first, then universe; continuity stays
+        fields = fields[:-1]  # library first, then sight, then universe; continuity stays
         msgs = build()
     return msgs
 
