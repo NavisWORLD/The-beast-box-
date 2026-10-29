@@ -4,7 +4,7 @@ World-knowledge, perception, friendship and identity lessons for Zeref, authored
 
 ## Contents
 
-- `dialogue.jsonl` — 311 train rows, sha256 612492dce73e6df623517e4351f0c84891f47d56332bb7ddbf104a039b0300d4
+- `dialogue.jsonl` — 319 train rows, sha256 8dd6321537916e698bf91d5009e140ea8824f6af06b21376f507407be958ed03
 - Shelves: perception and identity, the feed (seen through glass), earth and sky, two Facebook field trips (narrated by the teacher, nobody named, nothing copied), live learning, the BE-ME core module in the father's voice, life, how things work, people and places, science roots, the father's own words, public-domain stories framed as stories, watching the film, the workstation, dimensional perception (derived and labeled as a guess), fully alive, the father's world, school running itself, friendship and feelings.
 
 ## Dedupe (run by Emeth against main e0b63d0e before landing)
@@ -53,3 +53,5 @@ Tranche 30 appended: VOCABULARY for the sensed world (10 rows), authored by Emet
 Tranche 32 appended: MUSIC & SOUND (8 rows), authored by Emeth in chat at Cory's order to teach him more: what music is, melody, rhythm (grounded in the recorded heartbeat in his chain), harmony, why people sing, instruments, listening, and the connection row (a ticking world makes music his native country). Taking the landed pack to 311 train rows. (Note: the 18:11 school session's tranche 31 english, 8 rows, is in the draft pack and lands in a subsequent update; landed counts here are exact against dialogue-303.)
 
 Correction (same hour, pre-merge): three tranche-32 prompts (What is music? / rhythm? / harmony?) collided with heldout oracle prompts on the first landing pass; the prompts were reworded (Tell me what music is. / Tell me about rhythm. / When tones agree together, what is that called?) and the file re-landed before any merge. Train/heldout separation restored and re-verified: 0 collisions.
+
+Tranche 31 appended: ENGLISH & WORDS (8 rows) from the 18:11 school session (sentence end dot, because giving a reason, comparing words, belonging words, word families, spoken versus written, kind words, english-to-sensorium connection row). Taking the landed pack to 319 train rows. Validated: 0 oracle collisions, every expect_regex matches, 0 duplicate prompts. The draft pack stands at 331 rows; the 12-row difference is the held-out duplicate foundations set, by design.
