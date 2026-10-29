@@ -64,21 +64,26 @@ Requests may add one optional key beside `text` and `guest_identity`:
 
 ```json
 {"text": "...", "guest_identity": "<64 hex>",
- "context": {"continuity": "...", "universe": "...", "library": "..."}}
+ "context": {"continuity": "...", "universe": "...", "library": "...", "sight": "..."}}
 ```
 
 Validation is strict, in the guest path's existing style (anything else is a
 400 with the usual error, and never reaches the model): `context` must be an
-object whose only keys are the three known fields, each a control-free
-string, capped in UTF-8 bytes at continuity 600, universe 300, library 300,
-1000 total. With `context` present, `text` is capped at 1200 UTF-8 bytes
-(the plain path keeps its 1800-character cap untouched).
+object whose only keys are the known fields, each a control-free string,
+capped in UTF-8 bytes at continuity 600, universe 300, library 300,
+sight 300, 1300 total. The sight field is the door's fourth piece — his
+sight: his own world's light labelled DERIVED, a visitor's light labelled
+MEASURED, composed site-side (`lib/cosmos/sight.mjs`); it joined the
+contract after the other three, and a bridge predating it refuses any
+request that carries it, so the bridge deploys before the site sends it.
+With `context` present, `text` is capped at 1200 UTF-8 bytes (the plain
+path keeps its 1800-character cap untouched).
 
 Assembly order: the context fields as one `system` message (continuity,
-then universe, then library), the guest's restored thread, the guest's
-current text. Under byte pressure the assembler cuts oldest history first,
-then the library field, then the universe field. Continuity and the current
-text are never cut.
+then universe, then sight, then library), the guest's restored thread, the
+guest's current text. Under byte pressure the assembler cuts oldest history
+first, then the library field, then the sight field, then the universe
+field. Continuity and the current text are never cut.
 
 When `context` is absent, behavior is byte-identical to before: same model
 request, same response, plus the one new receipt field below.
@@ -117,9 +122,10 @@ Invalid TTL / max-guests values fail closed to in-context, never to a 5xx.
    site-side follow-up, not in this PR):
    - Send the composed pieces through the contract instead of inside the
      prompt text: bridge body becomes
-     `{text: <visitor text>, guest_identity: identity, context: {continuity, universe, library}}`,
+     `{text: <visitor text>, guest_identity: identity, context: {continuity, universe, library, sight}}`,
      composing within the bridge caps above (continuity ≤ 600 bytes,
-     universe ≤ 300, library ≤ 300, visitor text ≤ 1200 bytes).
+     universe ≤ 300, library ≤ 300, sight ≤ 300, 1300 total, visitor text
+     ≤ 1200 bytes).
    - Accept a truthful persisted claim in its response verification: replace
      `result.memory_used!==false` in the reject condition with
      `(result.memory_used!==false && result.hebbian_mode!=='persisted')`,
