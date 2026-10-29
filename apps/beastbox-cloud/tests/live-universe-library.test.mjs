@@ -2,10 +2,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {buildWorldLive,WORLD_LIVE_LABELS} from '../lib/zeref/world-live.mjs';
-import {assembleServedPreface,buildShelfIndex,composeLiveUniverseLines,composeShelfLines,
+import {assembleBridgeContext,assembleServedPreface,BRIDGE_CONTEXT_CAPS,buildShelfIndex,composeLiveUniverseLines,composeShelfLines,
  loadShelfIndex,matchShelf,parseShelfDialogue} from '../lib/cosmos/live-context.mjs';
 const read=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8');
 const readRepo=p=>readFileSync(new URL('../../../'+p,import.meta.url),'utf8');
+const utf8Bytes=s=>new TextEncoder().encode(s).length;
 
 const NOW=Date.now();
 const PIN={training_steps:33904,checkpoint_sha256:'f'.repeat(64)};
@@ -121,14 +122,59 @@ test('assembly: priority is continuity, then live universe, then library',()=>{
  assert.equal(blind.live.reason,'world-live unreachable');
 });
 
+test('bridge context: composed from all three sources, every field within its byte cap, total within cap',()=>{
+ const world=worldFixture();
+ const shelfHits=[{shelf:'zeref-lessons-006',topic:'senses-light',user:'Zeref, what do your eyes measure?',
+  assistant:'My eyes measure brightness and colour, and whether things are moving.',source:'zeref-lessons-006',license:null,score:9}];
+ const out=assembleBridgeContext({continuity:'You are Zeref. Your recorded life: stage Duskwing, diary tick 32.\r\nReply as yourself.',
+  recompose:n=>'C'.repeat(n),world,shelfHits});
+ assert.deepEqual(Object.keys(out.context),['continuity','universe','library']);
+ assert.equal(out.bytes.continuity,utf8Bytes(out.context.continuity));
+ assert.equal(out.bytes.universe,utf8Bytes(out.context.universe));
+ assert.equal(out.bytes.library,utf8Bytes(out.context.library));
+ assert.equal(out.bytes.total,out.bytes.continuity+out.bytes.universe+out.bytes.library);
+ assert.ok(out.bytes.continuity<=BRIDGE_CONTEXT_CAPS.continuity);
+ assert.ok(out.bytes.universe<=BRIDGE_CONTEXT_CAPS.universe);
+ assert.ok(out.bytes.library<=BRIDGE_CONTEXT_CAPS.library);
+ assert.ok(out.bytes.total<=BRIDGE_CONTEXT_CAPS.total);
+ // the pieces are the same pieces the door already built, labels verbatim
+ assert.ok(out.context.universe.includes(WORLD_LIVE_LABELS.spark),'spark label copied verbatim into the universe field');
+ assert.ok(out.context.library.includes('brightness'),'the shelf entry\'s own teaching rides in the library field');
+ assert.ok(out.context.library.includes('zeref-lessons-006'));
+ assert.equal(out.live.composed,true);
+ assert.equal(out.library.composed,true);
+ // control characters the bridge validator refuses (\r) never reach the contract
+ assert.ok(!/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/.test(out.context.continuity));
+ // an over-cap continuity is re-rendered down to its byte cap (multibyte-safe)
+ const heavy=assembleBridgeContext({continuity:'é'.repeat(400),recompose:n=>'é'.repeat(n),world:null,shelfHits:[]});
+ assert.ok(utf8Bytes(heavy.context.continuity)<=BRIDGE_CONTEXT_CAPS.continuity);
+ assert.equal(heavy.context.universe,undefined,'no world -> no universe field, never invented');
+ assert.equal(heavy.context.library,undefined,'no hits -> no library field, never a fake book');
+ assert.equal(heavy.live.composed,false);
+ assert.equal(heavy.library.composed,false);
+});
+
+test('bridge context: under total pressure the library yields first — continuity and universe keep their caps',()=>{
+ const shelfHits=[{shelf:'zeref-lessons-006',topic:'senses-light',user:'Zeref, what do your eyes measure?',
+  assistant:'My eyes measure brightness and colour, and whether things are moving.',source:'zeref-lessons-006',license:null,score:9}];
+ const out=assembleBridgeContext({continuity:'C'.repeat(BRIDGE_CONTEXT_CAPS.continuity),
+  recompose:n=>'C'.repeat(n),world:worldFixture(),shelfHits});
+ assert.equal(out.bytes.continuity,BRIDGE_CONTEXT_CAPS.continuity,'continuity is never traded away');
+ assert.ok(out.bytes.universe>0&&out.bytes.universe<=BRIDGE_CONTEXT_CAPS.universe);
+ assert.equal(out.context.library,undefined,'no honest room left -> the library composes nothing');
+ assert.equal(out.library.composed,false);
+ assert.ok(out.bytes.total<=BRIDGE_CONTEXT_CAPS.total);
+});
+
 test('forever door route: composes live universe + library, receipts state them, writes stay guestbook-only',()=>{
  const src=read('app/api/guest/forever/route.ts');
  assert.match(src,/live-context\.mjs/);
- assert.match(src,/assembleServedPreface/);
+ assert.match(src,/assembleBridgeContext/);
+ assert.doesNotMatch(src,/assembleServedPreface/,'the pieces no longer ride inside a prompt preface');
  assert.match(src,/loadShelfIndex/);
  assert.match(src,/matchShelf\(shelf,text\)/,'the lookup key is the visitor\'s own words');
- assert.match(src,/live_universe:served\.live/);
- assert.match(src,/library:served\.library/);
+ assert.match(src,/live_universe:liveReceipt/);
+ assert.match(src,/library:libraryReceipt/);
  assert.match(src,/appendExchange/,'the only writes remain the #668 guestbook writes');
  assert.doesNotMatch(src,/putBlob|storeLesson|stepDiary/);
 });
@@ -136,5 +182,6 @@ test('forever door route: composes live universe + library, receipts state them,
 test('the stateless door stays untouched by the live layer',()=>{
  const src=read('app/api/guest/route.ts');
  assert.match(src,/guest_stateless:true/);
- assert.doesNotMatch(src,/live-context|loadShelfIndex|assembleServedPreface|guestbook|forever-store/);
+ assert.doesNotMatch(src,/live-context|loadShelfIndex|assembleServedPreface|assembleBridgeContext|guestbook|forever-store/);
+ assert.doesNotMatch(src,/hebbian_mode|guest_thread/,'the plain door never sends context and surfaces no persistence receipts');
 });
