@@ -123,13 +123,31 @@ test('liveness shaping: missing sources are DOWN, never invented; pin cross-chec
 
 test('forever door route: same bridge verification as /api/guest, guestbook writes only via the store',()=>{
  const src=read('app/api/guest/forever/route.ts');
- assert.match(src,/result\.memory_used!==false\|\|result\.owner_tools_used!==false/);
+ // A memory claim is accepted ONLY on the bridge's persisted mode (PR #675);
+ // the exact relaxed conjunct replaces the old memory_used!==false check.
+ assert.match(src,/\(result\.memory_used!==false&&result\.hebbian_mode!=='persisted'\)\|\|result\.owner_tools_used!==false/);
+ assert.doesNotMatch(src,/result\.memory_used!==false\|\|/,'the old unconditional memory rejection is gone');
  assert.match(src,/result\.step!==PIN_STEP\|\|result\.checkpoint_sha256!==PIN_SHA/);
  assert.match(src,/guest_stateless:false/);
  assert.match(src,/training_eligible:false/);
  assert.match(src,/HttpOnly/);
  assert.match(src,/appendExchange/);assert.match(src,/composeContinuityPreface/);
  assert.doesNotMatch(src,/putBlob|storeLesson|stepDiary|diary\.jsonl/);
+});
+
+test('forever door route: context contract to the bridge, persistence receipts surfaced, no truncation retry',()=>{
+ const src=read('app/api/guest/forever/route.ts');
+ // The composed pieces go through the context object, not the prompt text.
+ assert.match(src,/assembleBridgeContext/);
+ assert.match(src,/\{text,guest_identity:identity,context:bridgeContext\.context\}/);
+ assert.match(src,/\{text,guest_identity:identity\}/,'over-cap visitor text falls back to the plain contract');
+ assert.match(src,/MAX_TEXT_WITH_CONTEXT=1200/);
+ // The bridge's persistence receipts are surfaced in the door's own response.
+ assert.match(src,/hebbian_mode:hebbianMode,guest_thread:guestThread/);
+ assert.match(src,/bridge_context:\{sent:contextSent,bytes:sentContextBytes/);
+ // No 400-truncation retry for context requests (BRIDGE-PERSISTENCE.md step 1).
+ assert.doesNotMatch(src,/LEGACY_BRIDGE_PROMPT|slice\(-/);
+ assert.equal((src.match(/await send\(\)/g)||[]).length,1,'exactly one bridge send');
 });
 
 test('liveness route: read-only, per-request, shaped from the shared store helpers',()=>{
@@ -144,4 +162,7 @@ test('the stateless door is untouched by the forever layer',()=>{
  const src=read('app/api/guest/route.ts');
  assert.match(src,/guest_stateless:true/);
  assert.doesNotMatch(src,/forever-store|guestbook|Set-Cookie/);
+ // The plain door never sends context and carries no persistence wiring.
+ assert.doesNotMatch(src,/hebbian_mode|guest_thread|assembleBridgeContext|context:bridgeContext/);
+ assert.match(src,/body:JSON\.stringify\(\{text:prompt,guest_identity:identity\}\)/,'its bridge body stays exactly {text, guest_identity}');
 });
