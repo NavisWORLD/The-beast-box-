@@ -973,3 +973,5 @@ html[data-cage-creature=off] :is(.beast-landing-creature,.beast-landing-art [dat
 /* Home bubble: keep '≡ Universe' inside the round window so it is never clipped by the curve (additive). */
 .home-menu-layer [data-world-menu=home]{top:16%;right:20%}
 @media(max-width:600px){.home-menu-layer [data-world-menu=home]{top:14%;right:18%}}
+/* Home bubble at phone width: the RECORDED/SIMULATED label stops before '≡ Universe' so the button never covers it (additive). */
+@media(max-width:600px){.home-pocket-layer [data-sand-source]{max-width:33%!important;font-size:6.5px!important}}
