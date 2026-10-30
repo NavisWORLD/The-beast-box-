@@ -1,3 +1,4 @@
+import {ONE_SUN} from '@/lib/universe/one-sun.mjs';
 import {seededStream} from '../seeded-stream.mjs';
 // "The user's heaven": warm divine light inside the cage pocket, endless depth, serene flow (Cory, Oct 18).
 // Additive only: the cage geometry, palette and fog stay; this layers warmth and depth on top.
@@ -7,7 +8,7 @@ export function addHeaven(THREE:T,scene:import('three').Object3D,{low,rand,far}:
   const R=rand||seededStream('lib/worlds/heaven.ts');// the living world passes its seeded stream; the Cage passes its key's seeded stream too
   const root=new THREE.Group();root.name='heaven';scene.add(root);
   // 1) warm divine light from above (gold-white key + soft warm fill)
-  const sun=new THREE.DirectionalLight(HEAVEN.sun,1.7);sun.position.set(1.5,12,2);root.add(sun);root.add(sun.target);
+  const sun=new THREE.DirectionalLight(HEAVEN.sun,1.7);sun.position.set(1.5,12,2);sun.color.set(ONE_SUN.hex);sun.position.set(ONE_SUN.dir[0]*12,ONE_SUN.dir[1]*12,ONE_SUN.dir[2]*12);root.add(sun);root.add(sun.target);
   const fill=new THREE.HemisphereLight(0xffe6c4,0x2a1a30,.7);root.add(fill);
   const radial=(inner:string,outer:string)=>{const c=document.createElement('canvas');c.width=c.height=128;const x=c.getContext('2d')!;const g=x.createRadialGradient(64,64,0,64,64,64);g.addColorStop(0,inner);g.addColorStop(.35,outer);g.addColorStop(1,'rgba(0,0,0,0)');x.fillStyle=g;x.fillRect(0,0,128,128);const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return t;};
   const halo=new THREE.Sprite(new THREE.SpriteMaterial({map:radial('rgba(255,245,225,1)','rgba(255,205,150,.35)'),transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,fog:false,opacity:.85}));halo.scale.set(5,5,1);halo.position.set(0,3.4,0);// v3: low over the pocket centre, in frame at the default camera from any orbit angle
