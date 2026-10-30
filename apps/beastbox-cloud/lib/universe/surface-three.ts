@@ -19,8 +19,10 @@ export const ALIVE_ART=SURFACE_ART+'aliveprops/models/';
 export type GrowthOpts={nodes:any[];tick:number;cellRad:number;treeRM?:number};
 export type SurfaceOpts={growth?:GrowthOpts;seed:string;R:number;mpu:number;biomeAt:(d:number[])=>string;lift:(d:V3)=>number;tint:(biome:string)=>[number,number,number]|null;budget:number;size?:number};
 type Slot={u:Record<string,{value:any}>};
+/** First person (target 36): trees within this many metres of the eye shrink away so no canopy fills the phone frame (SEEDED look value, like #709's resident clear). */
+export const FP_TREE_CLEAR_M=16;
 function patch(THREE:T,mat:any,cfg:{h:number;near:number;far:number;inner:number;thin:number;wind:number;alive?:Alive;gl?:boolean},shared:any){
- const m=mat.clone();const al=cfg.alive;const U:any={uPeriod:{value:al?.period||1},uCreaturePos:shared.uCreaturePos,uCreatureCount:shared.uCreatureCount,uRadius:shared.uRadius,uMPU:shared.uMPU,uTime:shared.uTime,uH:{value:cfg.h},uNear:{value:cfg.near},uFar:{value:cfg.far},uIn:{value:cfg.inner},uThin:{value:cfg.thin},uWind:{value:cfg.wind},uGT:{value:cfg.gl?TINT_STRENGTH(mat.name||''):0}};const fpG=cfg.thin===1||/blade|tip/i.test(mat.name||'');if(fpG)U.uFp36=shared.uFp36; /* target 36: near grass layer only */
+ const m=mat.clone();const al=cfg.alive;const U:any={uPeriod:{value:al?.period||1},uCreaturePos:shared.uCreaturePos,uCreatureCount:shared.uCreatureCount,uRadius:shared.uRadius,uMPU:shared.uMPU,uTime:shared.uTime,uH:{value:cfg.h},uNear:{value:cfg.near},uFar:{value:cfg.far},uIn:{value:cfg.inner},uThin:{value:cfg.thin},uWind:{value:cfg.wind},uGT:{value:cfg.gl?TINT_STRENGTH(mat.name||''):0}};const fpG=cfg.thin===1||/blade|tip/i.test(mat.name||'');if(fpG)U.uFp36=shared.uFp36; /* target 36: near grass layer only */const fpT=(cfg as any).fpc>0;if(fpT&&!fpG){U.uFp36=shared.uFp36;U.uFpC={value:(cfg as any).fpc};} /* target 36: trees step out of the near first-person frame (SEEDED clear radius, metres) */
  const gl=!!cfg.gl;if(gl)for(const k of ['uGBeast','uGWind','uGTurb','uGShiver','uGMotion','uGStorm','uGPulseC','uGPulseA','uGGlow','uGLean','uGEm'])U[k]=shared[k];
  const live=!!al&&al.part==='live',head=live&&al!.kind==='head',k=al?.kind;
  const aliveHead=!al?'':`uniform float uPeriod;uniform vec3 uCreaturePos[${MAXC}];uniform int uCreatureCount;uniform float uRadius;attribute float aPhase;attribute float aLife;varying float vGlow;\n`+(head?'attribute vec3 aFacing;attribute vec3 aPivot;\n'+ROT_UP+'\n':'');
@@ -50,13 +52,14 @@ function patch(THREE:T,mat:any,cfg:{h:number;near:number;far:number;inner:number
    else{float lim=mix(uNear,uFar,aHash);fs=clamp((lim-dM)/(lim*.2),0.,1.);}
    if(uIn>0.)fs*=clamp((dM-uIn*.8)/(uIn*.2),0.,1.);
    float hh=clamp(position.y/uH,0.,1.);float w=hh*hh*uWind*(sin(uTime*1.3+wp0.x*.21/uMPU+wp0.z*.17/uMPU)*.08+sin(uTime*3.1+wp0.x/uMPU)*.02);
-   transformed.x+=w*uH*.15;transformed.z+=w*uH*.1;${gl?GV:'float gS=1.;'}transformed*=fs*gS;`);
+   transformed.x+=w*uH*.15;transformed.z+=w*uH*.1;${gl?GV:'float gS=1.;'}transformed*=fs*gS;`+(fpT&&!fpG?`transformed*=mix(1.,smoothstep(uFpC*.75,uFpC,dM),uFp36);`:''));
+  if(fpT&&!fpG)s.vertexShader='uniform float uFp36,uFpC;\n'+s.vertexShader;
   if(head)s.vertexShader=s.vertexShader.replace('#include <beginnormal_vertex>','#include <beginnormal_vertex>\n objectNormal=rotUp(normalize(aFacing))*objectNormal;');
   if(fpG)s.fragmentShader='uniform float uFp36;\n'+s.fragmentShader.replace('#include <color_fragment>','#include <color_fragment>\n {float lu=clamp(dot(diffuseColor.rgb,vec3(.2126,.7152,.0722))*1.6,0.,1.);vec3 m36=mix(vec3(.026,.105,.011),mix(vec3(.073,.262,.023),vec3(.262,.527,.069),smoothstep(.45,1.,lu)),smoothstep(0.,.5,lu));diffuseColor.rgb=mix(diffuseColor.rgb,m36,uFp36);}').replace('#include <emissivemap_fragment>','#include <emissivemap_fragment>\n totalEmissiveRadiance=mix(totalEmissiveRadiance,vec3(.012,.035,.006)*dot(totalEmissiveRadiance,vec3(.333)),uFp36);'); /* first person (target 36): the tip glow (teal #89FFED / lilac #CBA0FF emissive) fades to a faint green, so the lit colour comes from the one sun, not the glow */ /* first person (target 36): near grass goes lush green (MEADOW36 #2C5A1C/#4C8C2A/#8CC04A in linear), no lilac/teal; shading stays the one sun's light. Off (0) in the Cage and orbit. */
   if(al)s.fragmentShader='varying float vGlow;\n'+s.fragmentShader.replace('#include <emissivemap_fragment>','#include <emissivemap_fragment>\n totalEmissiveRadiance*=vGlow;');
   // growth tint: blend the base colour toward the stage tint in LINEAR light (never multiply), then desaturate, then add the small emissive boost
   if(gl)s.fragmentShader='varying vec3 vGc,vGe;varying float vGm,vGd;\n'+s.fragmentShader.replace('#include <color_fragment>','#include <color_fragment>\n diffuseColor.rgb=mix(diffuseColor.rgb,vGc,clamp(vGm,0.,1.));{float lu=dot(diffuseColor.rgb,vec3(.2126,.7152,.0722));diffuseColor.rgb=mix(diffuseColor.rgb,vec3(lu),vGd);}').replace('#include <emissivemap_fragment>','#include <emissivemap_fragment>\n totalEmissiveRadiance+=vGe;');};
- m.customProgramCacheKey=()=>'surf'+(fpG?'F':'')+(gl?'G':'')+cfg.thin+(cfg.inner>0?'i':'')+(al?':'+al.kind+':'+al.part:'');return m;}
+ m.customProgramCacheKey=()=>'surf'+(fpG?'F':'')+(fpT&&!fpG?'T':'')+(gl?'G':'')+cfg.thin+(cfg.inner>0?'i':'')+(al?':'+al.kind+':'+al.part:'');return m;}
 async function loadParts(url:string){const {GLTFLoader}=await import('three/examples/jsm/loaders/GLTFLoader.js');const g:any=await new GLTFLoader().loadAsync(url);g.scene.updateMatrixWorld(true);
  const parts:any[]=[];g.scene.traverse((o:any)=>{if(o.isMesh){const geo=o.geometry.clone();geo.morphAttributes={};geo.morphTargetsRelative=false;geo.applyMatrix4(o.matrixWorld);/* breathing is done in the shader; instanced meshes carry no morph targets */
   let n:any=o;while(n&&!/^(head(_\d+)?|crack_glow|crystal_body|mushroom_body)$/.test(n.name||''))n=n.parent;
@@ -122,7 +125,7 @@ export function addCageSurface(THREE:T,parent:import('three').Object3D,o:Surface
   const trees=plantTrees({seed:o.seed,R:Rm,biomeAt:o.biomeAt,budget:Math.max(.5,o.budget)}) as Record<string,any[]>;
   await Promise.all(TREE_KINDS.map(async(k:string)=>{counts['tree:'+k]=trees[k].length;if(!trees[k].length)return;const giant=k==='giant_heartwood';const far=giant?LOD.giantFar:LOD.treeFar;
    const [nearP,farP]=await Promise.all([loadParts(SURFACE_ART+'trees/models/'+k+'_near.glb'),loadParts(SURFACE_ART+'trees/models/'+k+'_far.glb')]);const h=(TREE_MODELS as any)[k+'_near']?.h||3;const w=giant?.3:1;const rec=mkRec('tree:'+k,trees[k],h);
-   build(nearP,trees[k],{h,near:LOD.treeNear,far:LOD.treeNear,inner:0,thin:0,wind:w},k==='teal_round',rec);build(farP,trees[k],{h,near:far,far:far,inner:LOD.treeNear,thin:0,wind:w},k==='teal_round',rec);}));
+   build(nearP,trees[k],{h,near:LOD.treeNear,far:LOD.treeNear,inner:0,thin:0,wind:w,fpc:FP_TREE_CLEAR_M},k==='teal_round',rec);build(farP,trees[k],{h,near:far,far:far,inner:LOD.treeNear,thin:0,wind:w,fpc:FP_TREE_CLEAR_M},k==='teal_round',rec);}));
   return counts;})();
  let tPrev=-1,tFlower=0,flowerAcc=0;const tmp=new THREE.Vector3();
  /** Optional ctx (sun dir world, creature directions on this planet, camera pos). Returns the REAL alive events seen this frame. */
