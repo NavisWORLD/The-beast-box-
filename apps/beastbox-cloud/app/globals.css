@@ -973,3 +973,14 @@ html[data-cage-creature=off] :is(.beast-landing-creature,.beast-landing-art [dat
 /* Home bubble: keep '≡ Universe' inside the round window so it is never clipped by the curve (additive). */
 .home-menu-layer [data-world-menu=home]{top:16%;right:20%}
 @media(max-width:600px){.home-menu-layer [data-world-menu=home]{top:14%;right:18%}}
+/* Oct 30 home cleanup (additive): Quick buttons + 'How this look is made' disclosures; the home bubble's LIVE · CST chip folds into the panel. */
+.home-quick{margin:14px 0 4px;font:600 13px/1.4 'Space Grotesk',sans-serif;color:#cfd6ff}
+.home-quick>summary,.home-look-made>summary{cursor:pointer;min-height:44px;display:inline-flex;align-items:center;gap:6px;padding:0 14px;border:1px solid #ffffff2e;border-radius:22px;background:#ffffff0d;list-style:none}
+.home-quick>summary::-webkit-details-marker,.home-look-made>summary::-webkit-details-marker{display:none}
+.home-quick-groups{display:flex;flex-wrap:wrap;gap:10px 22px;margin-top:10px}
+.home-quick-groups>div{display:flex;flex-direction:column;gap:4px}
+.home-quick-group{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#9aa3d6}
+.home-look-made{font:500 12px/1.5 'Space Grotesk',sans-serif;color:#cfd6ff;text-align:left}
+.home-look-made[open]{max-width:340px}
+.home-look-made p{margin:8px 0 4px}.home-look-made ul{margin:0;padding-left:18px}
+.home-pocket-layer [class*=cage-pocket-dimension][class*=__live]{display:none!important}

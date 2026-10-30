@@ -51,16 +51,25 @@ export default function Home(){
    <p>Dreamer, idler with time to wander, player, builder, researcher, artist, or just curious: start with a little Beast and go only as deep as you want. The creature comes first. The machinery is there when you are ready for it.</p>
    <div className="hero-cta">
     <a href="/spark/index.html" className="primary-link">Meet My Beast <ArrowUpRight size={19}/></a>
-    <Link href="/beast-cage/talk" prefetch={false} className="secondary-link" data-talk-entry><TalkBeastLabel/> 💬</Link>
     <Link href="/beast-cage" className="secondary-link">Enter the Beast Cage <ArrowUpRight size={17}/></Link>
     <Link href="/sol-game" className="secondary-link">Play LOST COSMOS <ArrowUpRight size={17}/></Link>
    </div>
+   {/* Oct 30 cleanup (Cosmo's layout sheet D5/D7/D18): the one visible Talk control is the bottom launcher; the hero Talk link folds here, still one tap away. */}
+   <details className="home-quick" data-home-quick><summary>Quick buttons</summary><div className="home-quick-groups">
+    <div role="group" aria-label="Sound and talk"><span className="home-quick-group">Sound and talk</span><Link href="/beast-cage/talk" prefetch={false} className="secondary-link" data-talk-entry><TalkBeastLabel/> 💬</Link></div>
+    <div role="group" aria-label="World"><span className="home-quick-group">World</span><Link href="/beast-cage/world" prefetch={false} className="secondary-link" data-home-open-world>Open the world <ArrowUpRight size={15}/></Link></div>
+   </div></details>
    <div className="hero-foot"><span>✹ NO LOGIN TO MEET YOUR BEAST</span><span>◇ LOCAL-FIRST</span><span>◌ DEEP TOOLS WHEN YOU WANT THEM</span></div>
   </div>
-  <div className="beast-landing-art" aria-label="Original cosmic habitat artwork with the galaxy companion"><div className="beast-landing-habitat"/><HomePocket/><div className="beast-landing-creature"><HomepageCreature/></div><span className="beast-landing-caption">YOUR OWN LITTLE UNIVERSE · VISUAL PREVIEW</span></div>
+  <div className="beast-landing-art" aria-label="Original cosmic habitat artwork with the galaxy companion"><div className="beast-landing-habitat"/><HomePocket/><div className="beast-landing-creature"><HomepageCreature/></div></div>
  </section>
 
  <div className="cage-details-row"><CageCreatureSwitch context="home"/>
+ {/* Oct 30 cleanup (D11, D14, N2): the caption and the LIVE · CST chip fold into one honesty panel, one tap away (labels: Emeth's front_page_layout_labels). */}
+ <details className="home-look-made" data-home-look-made><summary>How this look is made</summary>
+  <p>Every label says where a thing comes from.</p>
+  <ul><li>IBM seed RECORDED · growth SIMULATED</li><li>Clock: CST · SEEDED sun</li><li>Water, wind and motion · SIMULATED</li><li>Your own little universe · visual preview</li></ul>
+ </details>
  <Details style={{textAlign:'center'}}><section className="value-strip"><span>MODEL ≠ MEMORY</span><span>MODEL ≠ STATE</span><span>MODEL ≠ AUTHORITY</span></section></Details></div>
  <section className="feature-section">
   <div><p className="eyebrow">START SIMPLE · GO DEEP WHEN YOU WANT</p><h2>There is a door<br/><em>for however you think.</em></h2></div>
