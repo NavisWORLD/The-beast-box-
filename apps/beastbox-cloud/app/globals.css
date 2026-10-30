@@ -973,3 +973,6 @@ html[data-cage-creature=off] :is(.beast-landing-creature,.beast-landing-art [dat
 /* Home bubble: keep '≡ Universe' inside the round window so it is never clipped by the curve (additive). */
 .home-menu-layer [data-world-menu=home]{top:16%;right:20%}
 @media(max-width:600px){.home-menu-layer [data-world-menu=home]{top:14%;right:18%}}
+/* Home bubble with the embedded living world: its View/Quality chips sit top right, so '≡ Universe' moves to the top left (additive). */
+.beast-landing-art:has([data-lw-view]) .home-menu-layer [data-world-menu=home]{right:auto!important;left:16%!important}
+@media(min-width:601px){.beast-landing-art [data-lw-view-chips]{right:17%!important;top:13%!important}}

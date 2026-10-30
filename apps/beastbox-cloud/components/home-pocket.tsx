@@ -18,6 +18,7 @@ import dynamic from 'next/dynamic';
 import {isSoftwareGL} from '../lib/three/soft-gl';
 import WorldMenu,{type MenuHosts} from './world-menu';
 import useWorldView from './use-world-view';
+import {VIEW_STORAGE,VIEW_EVENT} from '../lib/world/world-options.mjs';
 const LivingWorld=dynamic(()=>import('./living-world'),{ssr:false});
 /** Guest default: Zeref bb-deada969's own recorded session record (display only; never adopted, never merged with the Moonwraith display guide). */
 export const ZEREF_HOME_DEFAULT={id:'bb-deada969',src:'/spark/zeref-live-20261010/unsigned-session.json'};
@@ -30,6 +31,10 @@ export default function HomePocket(){
  const [zeref,setZeref]=useState<any>(null);
  // The same shared view state as the Cage (Living world / Pocket explorer). Home has no pixel overlay, so a saved Classic choice shows as the pocket here.
  const {view:sharedView,setView:chooseHomeView}=useWorldView(!!own,{pixelSync:false});const homeView:'world'|'pocket'=sharedView==='world'?'world':'pocket';
+ // Oct 30 (Cory: the home tiny universe is the same place as the world): a guest also sees the embedded living world, the same land,
+ // one sun (lib/universe/one-sun.mjs) and residents as /beast-cage/world, unless they picked the pocket explorer on this device.
+ const [guestPick,setGuestPick]=useState<string|null>(null);useEffect(()=>{const read=()=>{try{setGuestPick(localStorage.getItem(VIEW_STORAGE));}catch{}};read();window.addEventListener(VIEW_EVENT,read);return()=>window.removeEventListener(VIEW_EVENT,read);},[]);
+ const guestWorld=!own&&guestPick!=='pocket'&&guestPick!=='classic';
  const [hosts,setHosts]=useState<MenuHosts>({place:null,tools:null,about:null});
  useEffect(()=>{if(own||zeref)return;let live=true;fetch(ZEREF_HOME_DEFAULT.src).then(r=>r.ok?r.json():null).then(d=>{const b=d?.beast;if(live&&b?.qbeast?.profile?.id===ZEREF_HOME_DEFAULT.id)setZeref(b);}).catch(()=>{});return()=>{live=false;};},[own,zeref]);
  const beast=own||zeref;const [world,setWorld]=useState(false);const [envOpen,setEnvOpen]=useState(false);
@@ -44,7 +49,7 @@ export default function HomePocket(){
  const chat=Array.isArray(session?.chat)?session.chat:[];const lastYou=[...chat].reverse().find((m:any)=>m?.role==='you')?.text||null;
  // Oct 16: the same cage look Cory loves; living-core Zeref + life layer live inside it. The ⋯ button tucks sound/game/help on phones.
  return <><div className="home-pocket-layer is-roamer" data-home-pocket={own?'saved-beast':zeref?'zeref-bb-deada969':'guide'}>
-  {own&&homeView==='world'&&!world&&!softHome?<LivingWorld embedded menuHost={hosts.place} infoHost={hosts.about} genome={own.genome||null} beastKey={own.qbeast?.profile?.id||null} beastName={beastDisplayName(own)} onExpand={()=>setWorld(true)}/>:<CagePocketDimension seed={beast?beast.genome?.seed||beast.seed:null} qbeastId={beast?beast.qbeast.profile.id:null}
+  {((own&&homeView==='world')||guestWorld)&&!world&&!softHome?<LivingWorld embedded menuHost={hosts.place} infoHost={hosts.about} genome={own?.genome||null} beastKey={own?.qbeast?.profile?.id||null} beastName={own?beastDisplayName(own):null} onExpand={()=>setWorld(true)}/>:<CagePocketDimension seed={beast?beast.genome?.seed||beast.seed:null} qbeastId={beast?beast.qbeast.profile.id:null}
    stage={beast?(beast.nativeStage||1):1} behaviorPosition={beast?beast.behavior?.position||null:null}
    state={beast?visualStateFromBeast(beast):'idle'} reduced={reduced} onActiveChange={noop} qvmCounts={qvmCounts} autoOrbit chatLine={lastYou} menuHost={hosts.tools} ignorePixel/>}
   {world&&typeof document!=='undefined'?createPortal(<LivingWorld genome={own?.genome||null} beastKey={own?.qbeast?.profile?.id||null} beastName={own?(beastDisplayName(own)):null} onClose={()=>setWorld(false)}/>,document.body):null}
