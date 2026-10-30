@@ -9,6 +9,7 @@ import {useActiveBeastName} from './use-active-beast-name';;
 import s from './tiny-universe-view.module.css';
 import Universe3D from './universe-3d';
 import dynamic from 'next/dynamic';
+import SeededLand2D from './seeded-land-2d';
 const DoorWorld=dynamic(()=>import('./living-world'),{ssr:false});
 import {MOONS_LABEL} from '@/lib/universe/moons.mjs';
 import {createAliveGate} from '@/lib/universe/alive-props.mjs';
@@ -74,6 +75,7 @@ export default function TinyUniverseView(){
  return <main className={s.wrap} data-tiny-universe>
   <canvas ref={cv} className={s.canvas} onPointerDown={tap} aria-label="Tiny Universe map" style={three?{visibility:'hidden'}:undefined}/>
   {three&&u?<Universe3D u={u} beast={beastName} doorOn={doorOk} onDoor={(v,pre)=>{setDoorV(v);setDoorMount(pre);}} onSelect={setSel} onAlive={k=>{const f=aliveGate.current.fire(k,String(u.seed||'tiny'),performance.now()/1000);if(f)setLine(f.line);}}/>:null}
+  {u&&!doorOk?<SeededLand2D seed={String(u.seed||'tiny')}/>:null}
   {three&&u&&doorOk&&doorMount?<div data-door data-door-v={doorV.toFixed(2)} style={{position:'absolute',inset:0,zIndex:1,opacity:doorV,visibility:doorV>0.001?'visible':'hidden',pointerEvents:doorV>0.5?'auto':'none'}}><DoorWorld door onOrbitOut={leaveDoor} onClose={leaveDoor}/></div>:null}
   <div className={s.hud} style={doorV>0?{opacity:1-doorV}:undefined}><div className={s.title}>✦ TINY UNIVERSE{three?<span className={`${s.tag} ${s.sim}`} data-moons-label title={MOONS_LABEL} style={{marginLeft:8,fontSize:10,verticalAlign:'middle'}}>Moons: SEEDED</span>:null}</div><span className={s.tag} data-genesis-label>{GENESIS_LABEL}</span><span className={`${s.tag} ${s.sim}`} data-growth-label>{GROWTH_LABEL}</span></div>
   <div className={s.bottom} style={doorV>0?{opacity:1-doorV,pointerEvents:doorV>0.5?'none':undefined}:undefined}>

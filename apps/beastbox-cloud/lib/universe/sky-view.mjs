@@ -11,7 +11,8 @@ export const SKY_VIEW=Object.freeze({
   moonDist:70,               // existing moon distance
   auPerMapUnit:10,           // SEEDED view mapping: star x,y sit in a unit square; one unit = 10 AU for the boom's 1/d^2 term
   homeBoomMinAu:0.2,
-  flatBackgroundMix:0.5,     // scene.background is one colour: halfway between zenith and horizon
+  flatBackgroundMix:0.5,     // fallback only: the ground view draws a gradient dome (one-world-look addSkyDome)
+      // scene.background is one colour: halfway between zenith and horizon
 });
 /** What the home planet's sky is made of, from the same shading data the orbit globe uses (so the terminator width is identical). */
 export function skyConfigFor(planet,star){

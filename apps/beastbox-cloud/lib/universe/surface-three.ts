@@ -90,10 +90,10 @@ export function addCageSurface(THREE:T,parent:import('three').Object3D,o:Surface
  const growAttrs=(geo:any,r:any)=>{const mk=(arr:Float32Array,k:number,dyn=false)=>{const a=new THREE.InstancedBufferAttribute(arr,k);if(dyn)a.setUsage(THREE.DynamicDrawUsage);r.attrs.push(a);return a;};
   geo.setAttribute('aGa',mk(r.A,4,true));geo.setAttribute('aGc',mk(r.C,4,true));};
  const build=(parts:any[],list:any[],cfg0:any,brighten=false,rec:any=null)=>{if(!list.length)return;const cfg=rec?{...cfg0,gl:true}:cfg0;for(const p of parts){const geo=p.geo.clone();if(rec)growAttrs(geo,rec);const hs=new Float32Array(list.length);list.forEach((it:any,i:number)=>hs[i]=it.h);geo.setAttribute('aHash',new THREE.InstancedBufferAttribute(hs,1));
-   let mat=p.mat;if(brighten&&/leaf/i.test(mat.name||'')){mat=mat.clone();mat.emissive=mat.color.clone().multiplyScalar(.45);mat.emissiveIntensity=1;mat.color.multiplyScalar(1.25);}
+   let mat=p.mat;if(brighten&&/leaf/i.test(mat.name||'')){mat=mat.clone();mat.emissive=mat.color.clone().multiplyScalar(.12);mat.emissiveIntensity=1; /* FIX_NOTES 43c74d3: the .45 emissive + x1.25 boost clipped leaf tips to white in daylight */}
    const im=new THREE.InstancedMesh(geo,patch(THREE,mat,cfg,shared),list.length);im.frustumCulled=false;im.castShadow=false;im.receiveShadow=false;
    list.forEach((it:any,i:number)=>{v.set(it.dir[0],it.dir[1],it.dir[2]);q.setFromUnitVectors(up,v);qy.setFromAxisAngle(up,it.yaw);q.multiply(qy);const s=o.mpu*K*it.scale;
-    m4.compose(v.clone().multiplyScalar(o.R+o.lift(v)),q,sc.set(s,s,s));im.setMatrixAt(i,m4);const t=o.tint(it.biome);col.setRGB(1,1,1);if(t)col.setRGB(.6+.4*t[0],.6+.4*t[1],.6+.4*t[2]);im.setColorAt(i,col);});
+    m4.compose(v.clone().multiplyScalar(o.R+o.lift(v)),q,sc.set(s,s,s));im.setMatrixAt(i,m4);const t=o.tint(it.biome);col.setRGB(1,1,1);if(t)col.setRGB(t[0],t[1],t[2]); /* pack grass tint, no lift toward white (it read as frost) */im.setColorAt(i,col);});
    im.instanceMatrix.needsUpdate=true;if(im.instanceColor)im.instanceColor.needsUpdate=true;group.add(im);meshes.push(im);}};
   const buildAlive=async(asset:string,parts:any[],list:any[],cfg0:any,rec:any=null)=>{const cfg=rec?{...cfg0,gl:true}:cfg0;const info=aliveInstances(o.seed,asset,list.length)!;const kind=(info.kind==='flower'?'head':info.kind) as Alive['kind'];
    const P=list.map((it:any)=>{const d=new THREE.Vector3(it.dir[0],it.dir[1],it.dir[2]);const qq=new THREE.Quaternion().setFromUnitVectors(up,d).multiply(new THREE.Quaternion().setFromAxisAngle(up,it.yaw));
@@ -105,7 +105,7 @@ export function addCageSurface(THREE:T,parent:import('three').Object3D,o:Surface
      const fa=new THREE.InstancedBufferAttribute(set.facing,3);fa.setUsage(THREE.DynamicDrawUsage);geo.setAttribute('aFacing',fa);}
     const mats=Array.isArray(mat)?mat.map((m:any)=>patch(THREE,m,{...cfg,alive:al},shared)):patch(THREE,mat,{...cfg,alive:al},shared);
     const im=new THREE.InstancedMesh(geo,mats,list.length);im.frustumCulled=false;im.castShadow=false;im.receiveShadow=false;
-    P.forEach((p:any,i:number)=>{m4.compose(p.pos,p.quat,sc.set(p.s,p.s,p.s));im.setMatrixAt(i,m4);const t=o.tint(list[i].biome);col.setRGB(1,1,1);if(t)col.setRGB(.6+.4*t[0],.6+.4*t[1],.6+.4*t[2]);im.setColorAt(i,col);});
+    P.forEach((p:any,i:number)=>{m4.compose(p.pos,p.quat,sc.set(p.s,p.s,p.s));im.setMatrixAt(i,m4);const t=o.tint(list[i].biome);col.setRGB(1,1,1);if(t)col.setRGB(t[0],t[1],t[2]);im.setColorAt(i,col);});
     im.instanceMatrix.needsUpdate=true;if(im.instanceColor)im.instanceColor.needsUpdate=true;group.add(im);meshes.push(im);set.meshes.push(im);};
    const heads=parts.filter((p:any)=>/^head/.test(p.node||''));
    for(const p of parts){if(heads.includes(p))continue;attach(p.geo.clone(),p.mat,{kind,part:p.node?'live':'body',period:info.period});}
