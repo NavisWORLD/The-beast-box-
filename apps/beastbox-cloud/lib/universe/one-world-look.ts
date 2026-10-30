@@ -6,25 +6,27 @@ type T=typeof import('three');
 export const LOOK2=Object.freeze({label:'SEEDED',teal:'#437E9E',skyMid:'#88C9BB',horizonHaze:'#E4E4BD',hillsFar:'#8CA192',aerialTint:'#8CB3D6',warm:'#F2B27A',
  volcano:{azimuthDeg:191.785,elevationDeg:30.4477,angularDeg:9.292,body:'#B5532E',lava:'#FF7A2E',lavaIntensity:.35}});
 const TO_SRGB='vec3 toS(vec3 c){c=max(c,0.0);return mix(c*12.92,1.055*pow(c,vec3(1.0/2.4))-.055,step(.0031308,c));}';
+/** P2 ground fix (art target 36, Oct 30): a lush green meadow to the horizon instead of the pale olive plain. sRGB hexes (three converts to linear). SEEDED palette, DERIVED blends. */
+export const MEADOW36=Object.freeze({label:'SEEDED',dark:'#2C5A1C',base:'#4C8C2A',tip:'#8CC04A',soil:'#6E5A36',blade:'#B8E070',haze:'#A9C9DE',belowHorizon:'#3E6E2A'});
 /** Scene units per metre: TRAV_H .5 = 1.7 m. */
 export const M=.5/1.7;
 /** P1 fix-up (art target 36): in first person the neighbour world sits smaller and higher so it reads as a far planet, not a wall. SEEDED placement. */
 export const NEIGHBOUR_FP=Object.freeze({label:'SEEDED',elevationDeg:44,angularDeg:5.4});
 const NOISE='float h21(vec2 p){p=fract(p*vec2(123.34,456.21));p+=dot(p,p+45.32);return fract(p.x*p.y);}float vn(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(h21(i),h21(i+vec2(1,0)),f.x),mix(h21(i+vec2(0,1)),h21(i+vec2(1,1)),f.x),f.y);}float fbm(vec2 p){return .5*vn(p)+.25*vn(p*2.03+7.1)+.125*vn(p*4.01+3.7)+.0625*vn(p*8.07+1.3);}';
 /** Far ridges from Cosmo's FIX_NOTES_43c74d3 (aerial perspective k .000267/m, tint #8CB3D6). SEEDED shapes. */
-export const RIDGES=Object.freeze([{d:300,crestDeg:1.99,fade:.077,hex:'#6A7864'},{d:1200,crestDeg:2.07,fade:.274,hex:'#819393'},{d:2000,crestDeg:2.24,fade:.414,hex:'#8FA1A7'},{d:4500,crestDeg:2.27,fade:.7,hex:'#A7B6C1'}]);
+export const RIDGES=Object.freeze([{d:300,crestDeg:1.99,fade:.077,hex:'#4F7A45'},{d:1200,crestDeg:2.07,fade:.274,hex:'#6E9283'},{d:2000,crestDeg:2.24,fade:.414,hex:'#8FA1A7'},{d:4500,crestDeg:2.27,fade:.7,hex:'#A7B6C1'}]);
 /** Sky dome: c = mix(horizon, zenith, pow(up,.45)); zenith = mix(pack zenith, teal mood target, .5) by day; warm only near the sun. Colours in linear, converted once. */
 export function addSkyDome(THREE:T,scene:import('three').Object3D){
  const U={uUp:{value:new THREE.Vector3(0,1,0)},uSun:{value:new THREE.Vector3(0,1,0)},uZen:{value:new THREE.Color()},uHor:{value:new THREE.Color()},uDay:{value:0},
-  uTeal:{value:new THREE.Color(LOOK2.teal)},uWarm:{value:new THREE.Color().setRGB(1,.875,.7055)}};
+  uTeal:{value:new THREE.Color(LOOK2.teal)},uWarm:{value:new THREE.Color().setRGB(1,.875,.7055)},uBelow:{value:new THREE.Color(MEADOW36.belowHorizon)}};
  const m=new THREE.ShaderMaterial({uniforms:U,side:THREE.BackSide,depthWrite:false,depthTest:false,fog:false,toneMapped:false,
   vertexShader:'varying vec3 vD;void main(){vD=normalize(position);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
-  fragmentShader:`uniform vec3 uUp,uSun,uZen,uHor,uTeal,uWarm;uniform float uDay;varying vec3 vD;${TO_SRGB}
+  fragmentShader:`uniform vec3 uUp,uSun,uZen,uHor,uTeal,uWarm,uBelow;uniform float uDay;varying vec3 vD;${TO_SRGB}
   void main(){vec3 d=normalize(vD);float e=dot(d,normalize(uUp));float s=max(0.0,dot(d,normalize(uSun)));
    vec3 zen=mix(uZen,mix(uZen,uTeal,.5),uDay);
    vec3 c=mix(uHor,zen,pow(clamp(e,0.0,1.0),.45));
    c=mix(c,uWarm*.9,.35*pow(s,24.0)*uDay);
-   if(e<0.0)c=mix(uHor,vec3(.115,.147,.051)*mix(.15,1.0,uDay),smoothstep(0.0,-.04,e)); /* below the horizon: ground, not sky */
+   if(e<0.0)c=mix(uHor,uBelow*mix(.15,1.0,uDay),smoothstep(0.0,-.04,e)); /* below the horizon: ground, not sky */
    gl_FragColor=vec4(toS(c),1.0);}`});
  const dome=new THREE.Mesh(new THREE.SphereGeometry(300,48,24),m);dome.renderOrder=-20;dome.frustumCulled=false;dome.visible=false;scene.add(dome);
  return {dome,update(on:boolean,cam:import('three').Vector3,up:import('three').Vector3,sun:import('three').Vector3,zen:number[],hor:number[],day:number){
@@ -33,15 +35,16 @@ export function addSkyDome(THREE:T,scene:import('three').Object3D){
 /** First person: a flat local ground patch (2.5 km radius) with aerial haze, plus four full 360 deg ridge rings. The 27 m sphere stays for orbit. */
 export function addFlatGround(THREE:T,scene:import('three').Object3D,rand:()=>number){
  const g=new THREE.Group();g.visible=false;scene.add(g);const R=2500*M;const mats:any[]=[];
- const GU={uSunL:{value:1},uDay:{value:1},uHaze:{value:new THREE.Color(LOOK2.horizonHaze)},uTint:{value:new THREE.Color(LOOK2.aerialTint)},uBase:{value:new THREE.Color('#5F6B40')},uK:{value:.000267/M}};
+ const GU={uSunL:{value:1},uDay:{value:1},uHaze:{value:new THREE.Color(LOOK2.horizonHaze)},uTint:{value:new THREE.Color(LOOK2.aerialTint)},uBase:{value:new THREE.Color(MEADOW36.base)},uDark:{value:new THREE.Color(MEADOW36.dark)},uTip:{value:new THREE.Color(MEADOW36.tip)},uSoil:{value:new THREE.Color(MEADOW36.soil)},uBlade:{value:new THREE.Color(MEADOW36.blade)},uAir:{value:new THREE.Color(MEADOW36.haze)},uK:{value:.000267/M}};
  const gm=new THREE.ShaderMaterial({uniforms:GU,fog:false,toneMapped:false,
   vertexShader:'varying float vD;varying vec2 vXZ;void main(){vD=length(position.xz);vXZ=position.xz;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
-  fragmentShader:`uniform float uSunL,uDay,uK;uniform vec3 uHaze,uTint,uBase;varying float vD;varying vec2 vXZ;${TO_SRGB}${NOISE}
+  fragmentShader:`uniform float uSunL,uDay,uK;uniform vec3 uHaze,uTint,uBase,uDark,uTip,uSoil,uBlade,uAir;varying float vD;varying vec2 vXZ;${TO_SRGB}${NOISE}
   void main(){vec2 q=vXZ*.012;float m=fbm(q),d=fbm(q*3.1+11.0),r=fbm(q*.23+5.0);
-   vec3 tip=vec3(.545,.608,.333),dark=vec3(.243,.29,.173),soil=vec3(.42,.353,.235);
+   vec3 tip=uTip,dark=uDark,soil=uSoil;
    vec3 land=mix(dark,uBase,smoothstep(.25,.6,m));land=mix(land,tip,smoothstep(.55,.85,d)*.55);land=mix(land,soil,smoothstep(.62,.8,r)*.5);
    land*=mix(.7,1.2,fbm(q*.4+2.0))*mix(.85,1.1,vn(q*9.0)); /* meadow patches, darker hollows, bare soil: seeded noise, no tiling */
-   vec3 c=land*(.12+.88*uSunL)*mix(.15,1.0,uDay);float f=1.0-exp(-uK*vD);c=mix(c,mix(uHaze,uTint,.5)*mix(.08,1.0,uDay),f);gl_FragColor=vec4(toS(c),1.0);}`});
+   float nb=1.0-smoothstep(4.0,90.0,vD);float bl=vn(vec2(vXZ.x*7.0,vXZ.y*1.3))*vn(vec2(vXZ.x*1.1,vXZ.y*6.5));land=mix(land,uBlade*.55,smoothstep(.35,.8,bl)*.35*nb);land*=mix(1.0,.78+.44*vn(vXZ*3.0),nb); /* target 36: near grass streaks and light/dark tufts, fading out with distance */
+   vec3 c=land*(.12+.88*uSunL)*mix(.15,1.0,uDay);float f=1.0-exp(-uK*vD);c=mix(c,mix(mix(uHaze,uTint,.5),uAir,.6)*mix(.08,1.0,uDay),min(f,.85)); /* cooler blue-green air (target 36), and the far meadow never fully washes out */gl_FragColor=vec4(toS(c),1.0);}`});
  const ground=new THREE.Mesh(new THREE.RingGeometry(14,R,96,4).rotateX(-Math.PI/2),gm);ground.renderOrder=-12;ground.frustumCulled=false;g.add(ground);mats.push(gm);
  for(const r of RIDGES){const rad=r.d*M,top=Math.tan(r.crestDeg*Math.PI/180)*rad;const ph=[rand()*6.28,rand()*6.28,rand()*6.28];const lobes=Math.max(6,Math.round(2*Math.PI*r.d/(3*r.d/40)/6));
   const U={uC:{value:new THREE.Color(r.hex)},uHz:{value:new THREE.Color(LOOK2.horizonHaze).lerp(new THREE.Color(LOOK2.aerialTint),.5)},uF:{value:r.fade},uDay:{value:1},uP:{value:new THREE.Vector3(...ph)},uL:{value:lobes}};
