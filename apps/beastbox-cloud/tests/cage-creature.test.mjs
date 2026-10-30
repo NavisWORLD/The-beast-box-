@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {CAGE_CREATURE_KEY,CAGE_CREATURE_EVENT,readCageCreature,writeCageCreature,cageCreatureWords} from '../lib/world/cage-creature.mjs';
+import {insideCreatureVisible,CAGE_CREATURE_KEY,CAGE_CREATURE_EVENT,readCageCreature,writeCageCreature,cageCreatureWords} from '../lib/world/cage-creature.mjs';
 const mem=()=>{const m=new Map();return {getItem:k=>m.has(k)?m.get(k):null,setItem:(k,v)=>m.set(k,String(v)),removeItem:k=>m.delete(k)};};
 
 test('creature switch is ON by default and survives a broken or missing store',()=>{
@@ -22,8 +22,8 @@ test('the dock row and the cage switch use the same words, every line is 44 char
  }
  const w=cageCreatureWords('Duskscale');
  assert.equal(w.switchLabel,'Creature');assert.equal(w.dockLabel,'Show Duskscale');
- assert.equal(w.stateOn,'Duskscale is out front');assert.equal(w.stateOff,'Duskscale is resting out of view');
- assert.equal(w.ariaOn,'Hide Duskscale from the front of the cage');assert.equal(w.ariaOff,'Show Duskscale at the front of the cage');
+ assert.equal(w.stateOn,'Duskscale is out front');assert.equal(w.stateOff,'Duskscale is back inside the cage');
+ assert.equal(w.ariaOn,'Show Duskscale at the front of the screen');assert.equal(w.ariaOff,'Hide Duskscale from the front of the screen');
  assert.match(cageCreatureWords('').stateOn,/^Your beast is out front$/);
 });
 const src=f=>fs.readFileSync(new URL('../'+f,import.meta.url),'utf8');
@@ -31,8 +31,8 @@ test('the switch is wired into the home page, the Beast Cage page, the dock, the
  assert.match(src('app/page.tsx'),/CageCreatureSwitch context="home"/);
  assert.match(src('components/beast-cage-portal.tsx'),/CageCreatureSwitch context="cage"/);
  assert.match(src('components/site-dock.tsx'),/useCageCreature/);
- assert.match(src('components/cage-pocket-dimension.tsx'),/beastNode\.visible=creatureRef\.current/);
- assert.match(src('components/living-world.tsx'),/beastNode\.visible=creatureRef\.current/);
+ assert.match(src('components/cage-pocket-dimension.tsx'),/beastNode\.visible=insideCreatureVisible\(creatureRef\.current\)/);
+ assert.match(src('components/living-world.tsx'),/beastNode\.visible=insideCreatureVisible\(creatureRef\.current\)/);
  assert.match(src('app/globals.css'),/html\[data-cage-creature=off\]/);
 });
 test('the saved choice never uses Math.random and the default beast path is untouched when ON',()=>{
@@ -46,4 +46,9 @@ test('the phone dock keeps one close, the group order, and 44px+ rows',()=>{
  assert.deepEqual([...order].sort((a,b)=>a-b),order,'rows keep View, Talk, Care, Play, Sound, Go order');
  assert.equal((d.match(/data-quick-toggle/g)||[]).length,1,'exactly one toggle/close');
  assert.match(c,/\.qd-row\{[^}]*min-height:4[48]px/);
+});
+test('turning the front model off never removes the creature from inside the cage or pocket world',()=>{
+ assert.equal(insideCreatureVisible(false),true);assert.equal(insideCreatureVisible(true),true);
+ for(const f of ['components/cage-pocket-dimension.tsx','components/living-world.tsx'])assert.doesNotMatch(src(f),/beastNode\.visible=creatureRef\.current/);
+ assert.doesNotMatch(src('app/globals.css'),/data-cage-creature=off\][^{]*cage-pocket/);
 });

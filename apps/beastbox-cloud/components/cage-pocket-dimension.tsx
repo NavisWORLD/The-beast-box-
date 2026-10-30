@@ -47,6 +47,7 @@ import {loadBeastGlb,GLB_PLANS} from './creature-glb-beast';
 import {addPocketWorld} from './pocket-world';
 import {createLife,stepLife,pokeLife} from '../lib/creatures3d/life-brain.mjs';
 import {useCageCreature} from './use-cage-creature';
+import {insideCreatureVisible} from '../lib/world/cage-creature.mjs';
 type God={weather:(w:Weather)=>void;time:(t:number|null)=>void;treat:()=>void;flower:()=>void;poke:()=>void};
 const WEATHERS:Weather[]=['auto','sun','rain','storm'];const WEATHER_ICON:Record<Weather,string>={auto:'✦',sun:'☀',rain:'☂',storm:'⚡'};
 const TIMES:(number|null)[]=[null,0,.3,.5];const TIME_ICON=['◐','☀','🌇','☾'];
@@ -438,7 +439,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     pickRef.current=(cx,cy)=>{
      const rect=canvas.getBoundingClientRect();if(cx<rect.left||cx>rect.right||cy<rect.top||cy>rect.bottom){focused=null;(window as any).__pocketFocus={id:null};return;}
      ndc.set((cx-rect.left)/rect.width*2-1,-((cy-rect.top)/rect.height*2-1));ray.setFromCamera(ndc,camera);
-     const list:{id:string;obj:import('three').Object3D}[]=[...pickables()];if(plush&&beastNode.visible)list.push({id:'beast',obj:plush.root});const ze=(window as any).__zerefEmbed;if(creatureRef.current&&ze?.claimed&&ze.root)list.push({id:'zeref',obj:ze.root});
+     const list:{id:string;obj:import('three').Object3D}[]=[...pickables()];if(plush&&beastNode.visible)list.push({id:'beast',obj:plush.root});const ze=(window as any).__zerefEmbed;if(insideCreatureVisible(creatureRef.current)&&ze?.claimed&&ze.root)list.push({id:'zeref',obj:ze.root});
      let best:{id:string;obj:import('three').Object3D}|null=null,bestD=Infinity;
      for(const c of list){if(!c.obj.visible&&c.id!=='zeref')continue;const h=ray.intersectObject(c.obj,true)[0];if(h&&h.distance<bestD){bestD=h.distance;best=c;}}
      if(!best){
@@ -458,7 +459,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
      frame=requestAnimationFrame(animate);
      const dt=clamp((now-last)/1000,0,.06);last=now;
      if(document.hidden||(!visible&&rendered)||now-lastPaint<(soft?120:low?66:33))return;
-     lastPaint=now;beastNode.visible=creatureRef.current;
+     lastPaint=now;beastNode.visible=insideCreatureVisible(creatureRef.current);
      if(!reduced)elapsed+=dt;
      nebulaMat.uniforms.time.value=elapsed;poolMat.uniforms.time.value=elapsed;
      if(!reduced){for(let i=0;i<dustN;i++){let y=dust[i*3+1]+dt*(.12+(i%5)*.03);if(y>4.8)y=0;dust[i*3+1]=y;dust[i*3]+=Math.sin(elapsed*.4+i)*dt*.05;}dustGeom.attributes.position.needsUpdate=true;}

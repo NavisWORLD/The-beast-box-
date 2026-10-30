@@ -19,9 +19,12 @@ export function cageCreatureWords(name) {
     switchLabel: 'Creature',
     dockLabel: `Show ${n}`,
     stateOn: `${N} is out front`,
-    stateOff: `${N} is resting out of view`,
-    ariaOn: `Hide ${n} from the front of the cage`,
-    ariaOff: `Show ${n} at the front of the cage`,
+    stateOff: `${N} is back inside the cage`,
+    ariaOn: `Show ${n} at the front of the screen`,
+    ariaOff: `Hide ${n} from the front of the screen`,
     note: `Turn this off to see the whole cage with nothing in front. ${N} is still there and still alive.`,
   };
 }
+/** The switch only hides the front model on the page. Inside the cage, the pocket world and the living world the beast always stays
+ * (Cory, Oct 29 2026: "the option to remove the front model on the screen should not remove the creature from inside the cage"). */
+export function insideCreatureVisible(_switchOn) { return true; }
