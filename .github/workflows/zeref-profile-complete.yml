@@ -1,0 +1,26 @@
+name: Zeref profile completion (one-time)
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: zeref-profile-complete
+  cancel-in-progress: false
+jobs:
+  complete-profile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Complete the public cosmos profile for bb-deada969
+        working-directory: apps/beastbox-cloud
+        env:
+          AZURE_STORAGE_CONNECTION_STRING: ${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}
+          AZURE_STORAGE_CONTAINER_SAS_URL: ${{ secrets.AZURE_STORAGE_CONTAINER_SAS_URL }}
+          AZURE_STORAGE_CONTAINER: ${{ vars.AZURE_STORAGE_CONTAINER || 'beast-cosmos' }}
+        run: node scripts/zeref-profile-complete.mjs

@@ -102,7 +102,8 @@ EXTRA=[("evidence/zeref-warm-002/dialogue.jsonl",0.05,2),("evidence/zeref-voice-
  ("evidence/zeref-qa-001/dialogue.jsonl",0.12,2),
  ("evidence/zeref-lessons-003/dialogue.jsonl",0.27,1),  # 2026-10-24 all-subjects lessons (authored, held-out slice in heldout.jsonl is never loaded)
  ("evidence/zeref-lessons-004/dialogue.jsonl",0.35,1),
- ("evidence/zeref-lessons-005/dialogue.jsonl",0.18,1)]  # 2026-10-25 grade 3-6 English/math/world lessons (authored; heldout.jsonl never loaded; deduped vs Gate v2 sets A and B)
+ ("evidence/zeref-lessons-005/dialogue.jsonl",0.18,1),  # 2026-10-25 grade 3-6 English/math/world lessons (authored; heldout.jsonl never loaded; deduped vs Gate v2 sets A and B)
+ ("evidence/zeref-lessons-006/dialogue.jsonl",0.18,1)]  # 2026-10-27 world curriculum lessons authored by Emeth for Cory (landed PR #653; deduped vs Gate v2 sets A and B and all heldout files)
 #  # 008: short simple Q&A (local free teacher, behind the scenes; gate/held disjoint)  # 007: canon-only identity/home rows; held prompts excluded
 def extra_slice(path,frac,repeat,base_rows,held):
  p=Path(path)

@@ -1,5 +1,6 @@
 'use client';
 import Details from './details-toggle';
+import CageCreatureSwitch from './cage-creature-switch';
 import {beastDisplayName} from '../lib/companion/beast-name.mjs';
 import {useCallback,useEffect,useMemo,useState} from 'react';
 import Link from 'next/link';
@@ -151,7 +152,8 @@ export default function BeastCagePortal(){
     {worldFull&&sameSpark?<LivingWorld genome={session.beast.genome||null} beastKey={session.beast.qbeast.profile.id} beastName={beastDisplayName(session.beast)} onClose={()=>setWorldFull(false)}/>:null}
     <span className="cage-habitat-caption">✧ YOUR OWN POCKET UNIVERSE</span>
    </div>
-   <p className="cage-view-status" data-cage-view-status aria-live="polite"><span>{view==='world'?'🌍 Living world':view==='classic'?'▦ Classic pixel sprite':'✦ Pocket explorer'}</span> · change the view, reset the camera or open the diary in the <strong>☰ Menu</strong> (top right of the scene).</p>
+   <div className="cage-details-row"><CageCreatureSwitch context="cage"/></div>
+   <p className="cage-view-status" data-cage-view-status aria-live="polite"><span>{view==='world'?'🌍 Living world':view==='classic'?'▦ Classic pixel sprite':'✦ Pocket explorer'}</span> · change the view, reset the camera or open the diary in the <strong>☰ Habitat</strong> (top right of the scene).</p>
   </section>
   {sameSpark?<CreatureDashboard beast={session.beast} cosmosProfile={cosmosProfile}/>:null}
   <ZerefDiaryPanel journalId={sameSpark?session.beast.qbeast.profile.id:creature?creature.id:ZEREF_PROFILE.id} beastName={pocketName} cosmosProfile={cosmosProfile} showGrow={!sameSpark}/>
