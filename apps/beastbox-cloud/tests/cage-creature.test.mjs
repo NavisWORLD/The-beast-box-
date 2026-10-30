@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {midSentenceName,insideCreatureVisible,CAGE_CREATURE_KEY,CAGE_CREATURE_EVENT,readCageCreature,writeCageCreature,cageCreatureWords} from '../lib/world/cage-creature.mjs';
+import {lineStartName,midSentenceName,insideCreatureVisible,CAGE_CREATURE_KEY,CAGE_CREATURE_EVENT,readCageCreature,writeCageCreature,cageCreatureWords} from '../lib/world/cage-creature.mjs';
 const mem=()=>{const m=new Map();return {getItem:k=>m.has(k)?m.get(k):null,setItem:(k,v)=>m.set(k,String(v)),removeItem:k=>m.delete(k)};};
 
 test('creature switch is ON by default and survives a broken or missing store',()=>{
@@ -57,4 +57,10 @@ test('the fallback name is lowercased mid-sentence only, real names untouched',(
  const w=cageCreatureWords('');
  assert.equal(w.ariaOn,'Hide your beast from the front of the screen');assert.equal(w.ariaOff,'Show your beast at the front of the screen');
  assert.equal(w.stateOff,'Your beast is back inside the cage');assert.equal(w.stateOn,'Your beast is out front');assert.equal(w.dockLabel,'Show your beast');assert.equal(cageCreatureWords('Duskscale').dockLabel,'Show Duskscale');
+});
+test('the dock Care lines start with a capital for the fallback, named beasts unchanged',()=>{
+ assert.equal(lineStartName('your beast'),'Your beast');assert.equal(lineStartName('Duskscale'),'Duskscale');assert.equal(lineStartName('zeref64'),'zeref64');
+ const d=src('components/site-dock.tsx');
+ assert.match(d,/\{lineStartName\(short\)\}&rsquo;s voice and reach-out switches/);
+ assert.match(d,/label=\{`\$\{lineStartName\(short\)\}’s voice on\/off`\}/);
 });
