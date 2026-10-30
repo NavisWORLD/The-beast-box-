@@ -58,7 +58,7 @@ test('UI: one consent control, default off, labels visible, revoke present, numb
  const cp=src('components/cage-pocket-dimension.tsx');assert.match(cp,/environmentWeights\(sand\.field\.counts/);assert.match(cp,/isFresh\(/);});
 test('consent card copy: five switches plus one camera switch, short card text, long text only on /privacy',()=>{
  const c=src('components/environment-consent.tsx');
- for(const t of ['Give your universe more life','Stop sharing','Stopped\\. Saved numbers deleted\\.','No valid pulse','Waiting for permission','Needs camera switch','Paused: reading pulse','Permission declined','Unavailable on this device','Turn on world signals\\?','Yes, give it life','Not now','Stop sharing deletes your saved numbers\\.'])assert.match(c,new RegExp(t),t);
+ for(const t of ['Give your universe more life','Stop sharing','Stopped\\. Saved numbers deleted\\.','No valid pulse','Waiting for permission','Needs camera switch','Paused: reading pulse','Permission declined','Unavailable here','Turn on world signals\\?','Yes, give it life','Not now','Stop sharing deletes your saved numbers\\.'])assert.match(c,new RegExp(t),t);
  for(const l of ['Time of day','Device motion','Light level','Sound level','Fingertip pulse','Uses your clock','Uses the camera\\.','Uses the microphone\\.'])assert.match(c,new RegExp(l),l);
  // five switch rows are declared, a camera switch row is added, and nothing starts on its own
  assert.equal((c.match(/\{k:'(time|motion|light|sound|pulse)'/g)||[]).length,5);assert.match(c,/row\('camera'/);assert.match(c,/const allOff:Sw=\{time:false,motion:false,light:false,sound:false,pulse:false,camera:false\}/);

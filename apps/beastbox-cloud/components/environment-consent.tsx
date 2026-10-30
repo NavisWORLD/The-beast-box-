@@ -78,7 +78,7 @@ export default function EnvironmentConsent({onClose,beastName}:{onClose:()=>void
   const c=nums?.[k];
   if(c?.state==='MEASURED')return Math.round(c.level*100)+'%';
   if(c?.state==='denied')return 'Permission declined';
-  if(c?.state==='unavailable'&&ticks>=3)return 'Unavailable on this device';
+  if(c?.state==='unavailable'&&ticks>=3)return 'Unavailable here';
   return 'Waiting for permission';
  };
  const row=(k:keyof Sw,label:string,hint:string)=>{const id='env-sw-'+k;const locked=k==='pulse'&&!isOwnerView;
