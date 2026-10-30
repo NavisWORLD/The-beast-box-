@@ -1,0 +1,12 @@
+import type {StorageConfig} from './azure-blob.mjs';
+export const CLASSROOM_DIR:string;
+export const SOURCE_KINDS:readonly string[];
+export const MAX_CLASS_TURNS:number;
+export const MAX_CLASS_RECORDS:number;
+export const CLASSROOM_LABEL:string;
+export function isClassName(v:unknown):boolean;
+export function classThreadId(name:unknown):string|null;
+export function classroomBridgeIdentity(secret:unknown,threadId:unknown):string|null;
+export function readClassThread(cfg:StorageConfig,id:string):Promise<{thread:any,etag:string|null}|null>;
+export function classroomRecord(o:any):any;
+export function appendClassExchange(cfg:StorageConfig,id:string,name:string,args:{at:string,teacherText:string,reply:string,topic?:string|null,target?:string|null,drill?:'hit'|'miss'|null,confused?:any,step:number,checkpoint_sha256:string}):Promise<{persisted:boolean,recorded:boolean,duplicate:boolean,record:any}>;

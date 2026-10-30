@@ -23,7 +23,7 @@
  * composed into the prompt text (the renderContextPrompt pattern), sourced
  * from the persisted store instead of a browser session.
  */
-import {createHmac,randomBytes} from 'node:crypto';
+import {createHash,createHmac,randomBytes} from 'node:crypto';
 import {getBlob,putBlob,listBlobs} from './azure-blob.mjs';
 import {ZEREF_DIR} from './zeref-cloud.mjs';
 
@@ -35,6 +35,8 @@ export const GUESTBOOK_LABEL='Guest-origin record, written by the server after a
 const J=o=>JSON.stringify(o,null,1)+'\n';
 const clip=(s,n)=>{s=String(s??'');return s.length>n?s.slice(0,n):s;};
 
+/** Stable id for one exchange (kind|thread|at|texts) so a record is never counted twice. */
+export function exchangeId(kind,thread,at,a,b){return createHash('sha256').update([kind,thread,at,a,b].map(String).join('\u0000')).digest('hex');}
 export function newThreadId(){return randomBytes(16).toString('hex');}
 export const isThreadId=v=>typeof v==='string'&&THREAD_ID_RE.test(v);
 /**
@@ -85,7 +87,7 @@ export async function appendExchange(cfg,id,{guestText,reply,step,at}){
  ];
  for(let attempt=0;attempt<2;attempt++){
   const cur=await readThread(cfg,id);
-  const thread=cur?.thread||{schema:'beastbook-guest-thread/v1',id,beast_id:'bb-deada969',origin:'guest',
+  const thread=cur?.thread||{schema:'beastbook-guest-thread/v1',id,beast_id:'bb-deada969',origin:'guest',source_kind:'public',
    training_eligible:false,label:GUESTBOOK_LABEL,created_at:at,turns:[]};
   thread.turns=[...thread.turns,...turns].slice(-MAX_THREAD_TURNS);
   thread.updated_at=at;
@@ -97,12 +99,15 @@ export async function appendExchange(cfg,id,{guestText,reply,step,at}){
 
 /** Append one guest-origin event (counts only, never guest text). Best-effort by contract: callers treat false as "not recorded". */
 export async function appendGuestEvent(cfg,event){
- const line=JSON.stringify({schema:'beastbook-guest-event/v1',kind:'guest_exchange',origin:'guest',
+ const line=JSON.stringify({schema:'beastbook-guest-event/v1',kind:'guest_exchange',origin:'guest',source_kind:'public',
+  ...(typeof event.exchange_id==='string'&&/^[a-f0-9]{64}$/.test(event.exchange_id)?{exchange_id:event.exchange_id}:{}),
   training_eligible:false,at:event.at,thread:event.thread,step:event.step??null,
   checkpoint_sha256:event.checkpoint_sha256??null,guest_chars:event.guest_chars??0,reply_chars:event.reply_chars??0});
  for(let attempt=0;attempt<2;attempt++){
   const cur=await getBlob(cfg,eventsName());
   const lines=(cur?.text||'').split('\n').filter(Boolean);
+  // Never count one exchange twice: a retried append with the same exchange_id is a no-op.
+  if(event.exchange_id&&lines.some(l=>l.includes(`"exchange_id":"${event.exchange_id}"`)))return true;
   lines.push(line);
   const body=lines.slice(-MAX_GUEST_EVENTS).join('\n')+'\n';
   try{

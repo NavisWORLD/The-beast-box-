@@ -56,3 +56,27 @@ export function diaryEntry(before,after,event){
  const changed=EMOTIONS.filter(k=>before&&before[k]!==after[k]).map(k=>`${k} ${before[k]}→${after[k]}`);
  return {event:String(event).slice(0,40),dominant:after.dominant,choice:after.choice.motion,changed,why:after.topWhy.map(w=>w.reason)};
 }
+/* ---------------- opt-in feeling rule: confused (owner-named, 2026-10-29) ----------------
+ * PROVISIONAL until Cory's full_system.py definition arrives (emotional_api/full_system.py is not in
+ * phera-ra/QC67_cosmo yet; no "confused" definition exists there). Replace the trigger with his when it lands.
+ * Cory defined "confused" as one of Zeref's feeling states. Like the other new CST rules it is
+ * OPT-IN: deriveEmotions() and EMOTIONS are unchanged, and confusedState() returns null unless
+ * the caller passes {confused:true}. Deterministic: no clock, no randomness.
+ * Trigger: a drill marked 'miss', OR a target word that does not appear (whole word,
+ * case-insensitive) in his reply. Label DERIVED: computed from his own sensor rules, not measured. */
+export const OPT_IN_FEELINGS=Object.freeze(['confused']);
+const wordIn=(word,text)=>{
+ const w=String(word||'').trim().toLowerCase();if(!w)return null;
+ const esc=w.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+ return new RegExp(`(^|[^\\p{L}\\p{N}])${esc}($|[^\\p{L}\\p{N}])`,'u').test(String(text||'').toLowerCase());
+};
+/** @param {{reply?:string,target?:string|null,drill?:string|null}} [input] @param {{confused?:boolean}|null} [opts] */
+export function confusedState({reply='',target=null,drill=null}={},opts=null){
+ if(!opts||opts.confused!==true)return null;
+ const why=[];
+ if(drill==='miss')why.push('drill marked a miss');
+ const has=wordIn(target,reply);
+ if(has===false)why.push(`target word "${String(target).trim().toLowerCase()}" not in his reply`);
+ return {feeling:'confused',active:why.length>0,why,label:'DERIVED',
+  source:'Zeref\'s own feeling rules (lib/companion/emotion.mjs confusedState)'};
+}
