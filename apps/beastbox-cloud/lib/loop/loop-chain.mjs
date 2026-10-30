@@ -31,13 +31,13 @@ export const LOOP_LABELS=Object.freeze({
  theory:'12D model simulation'
 });
 export const MOMENT_KINDS=Object.freeze([
- {kind:'spin-ripple',text:c=>`${c} spun twice and left a ripple in the sand.`},
- {kind:'odd-hum',text:c=>`${c} stopped, tilted toward the pocket wall and hummed a note nobody asked for.`},
- {kind:'sand-spiral',text:c=>`A drift of sand gathered into a small spiral near ${c}.`},
- {kind:'pebble-carry',text:c=>`${c} carried a pebble to the far side of the pocket and set it down.`},
- {kind:'color-flicker',text:c=>`A new color flickered through ${c}'s trail and faded.`},
- {kind:'stranger-shadow',text:c=>`A stranger-shaped shadow crossed the pocket near ${c} and was gone.`},
- {kind:'sudden-leap',text:c=>`${c} leapt for no reason anyone could name, then looked around.`}
+ {kind:'spin-ripple',text:c=>`${c} spun twice; the sand rippled`},
+ {kind:'odd-hum',text:c=>`${c} hummed toward the pocket wall`},
+ {kind:'sand-spiral',text:c=>`Sand curled into a spiral near ${c}`},
+ {kind:'pebble-carry',text:c=>`${c} carried a pebble across the pocket`},
+ {kind:'color-flicker',text:c=>`A new color flickered in ${c}'s trail`},
+ {kind:'stranger-shadow',text:c=>`A shadow crossed the pocket near ${c}`},
+ {kind:'sudden-leap',text:c=>`${c} leapt, then looked around`}
 ]);
 const r9=x=>Math.round(x*1e9)/1e9;
 const clamp=(x,lo,hi)=>Math.min(hi,Math.max(lo,x));

@@ -27,7 +27,7 @@ export default function ClassroomPanel(){
   <div aria-live="polite" style={{border:'1px solid #444',borderRadius:8,padding:12,minHeight:160,maxHeight:420,overflowY:'auto'}}>
    {turns.length===0?<p style={{opacity:.6}}>No lessons in this thread yet.</p>:turns.map((t,i)=><p key={i}><b>{t.from==='zeref'?'Zeref':'Teacher'}:</b> {t.text}</p>)}
   </div>
-  <p data-testid="confused-line">Zeref&apos;s confused state: {confused?(confused.active?'on ('+confused.why.join('; ')+')':'off'):'not yet derived'} · <b>DERIVED</b> (from his own sensor rules)</p>
+  <p data-testid="confused-line" title={confused&&confused.active?'Why: '+confused.why.join('; ')+' (a missed drill or a missing target word)':undefined}><b data-testid="confused-chip">{confused?(confused.active?'Confused · DERIVED':'Not confused · DERIVED'):'Not derived yet'}</b>{confused&&confused.active?<> · Zeref feels confused. That&apos;s okay.</>:null}</p>
   <form onSubmit={send} style={{display:'grid',gap:8}}>
    <textarea value={text} onChange={e=>setText(e.target.value)} maxLength={1200} rows={3} placeholder="Teacher line" required/>
    <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>

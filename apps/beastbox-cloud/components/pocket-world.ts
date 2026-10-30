@@ -7,6 +7,7 @@
  *  - sun + moon on the day/night cycle with matching key light and fog colour
  * All driven by the shared CST state (night/rain/chaos/coherence) and seed-deterministic; mobile tiers via `low`.
  */
+import {oneSunAt} from '@/lib/universe/one-sun.mjs';
 import {seededRng} from '../lib/physics/cst-integrator.mjs';
 type Three=typeof import('three');
 const NOISE=`float h31(vec3 p){p=fract(p*.3183099+.1);p*=17.0;return fract(p.x*p.y*p.z*(p.x+p.y+p.z));}
@@ -104,7 +105,7 @@ export function addPocketWorld(THREE:Three,scene:import('three').Scene,{seed='po
   U.uT.value+=dt;U.uNight.value=env.night;U.uRain.value=env.rain;U.uChaos.value=ch.chaos;U.uCoh.value=ch.coherence;if(cam)U.uCam.value.copy(cam);
   // the cycle angle follows the CST-driven night value (night=1 → sun below horizon, moon up)
   const ang=Math.acos(Math.max(-1,Math.min(1,1-2*env.night)));dayPhase+=dt*.01;
-  U.uSun.value.set(Math.cos(dayPhase)*Math.sin(ang)*.0+Math.cos(dayPhase)*.6,Math.cos(ang),Math.sin(dayPhase)*.6).normalize();U.uMoon.value.copy(U.uSun.value).multiplyScalar(-1).add(new THREE.Vector3(.2,0,.1)).normalize();
+  {const os=oneSunAt(Date.now()/1000);U.uSun.value.set(os.dir[0],os.dir[1],os.dir[2]).normalize();void ang;} /* ONE SUN: same day clock as the living world (SEEDED) */U.uMoon.value.copy(U.uSun.value).multiplyScalar(-1).add(new THREE.Vector3(.2,0,.1)).normalize();
   sunL.position.copy(U.uSun.value).multiplyScalar(10);moonL.position.copy(U.uMoon.value).multiplyScalar(10);
   sunL.intensity=Math.max(0,U.uSun.value.y)*2.2*(1-env.rain*.6);moonL.intensity=Math.max(0,U.uMoon.value.y)*.7*env.night;
   const fog=scene.fog as any;if(fog){fog.color.setRGB(.05+(1-env.night)*.18,.04+(1-env.night)*.16,.12+(1-env.night)*.3);fog.color.lerp(new THREE.Color(.3,.32,.4),env.rain*.4);

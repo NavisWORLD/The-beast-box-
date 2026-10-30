@@ -33,7 +33,7 @@ test('classroom: owner gate on GET and POST before any work, polite page note fo
  assert.match(panel,/fetch\('\/api\/session'/);
  assert.match(panel,/owner and his teachers only/);
  assert.ok(!/conscious|sentient|soul/i.test(panel),'no consciousness claims in UI copy');
- assert.match(panel,/Zeref&apos;s confused state/);assert.match(panel,/DERIVED/);
+ assert.match(panel,/Confused · DERIVED/);assert.match(panel,/Not confused · DERIVED/);assert.match(panel,/feels confused. That&apos;s okay./);assert.ok(!panel.includes('sensor rules'));assert.match(panel,/DERIVED/);
 });
 
 test('classroom: separate thread and bridge identity from the public door, same bridge path',()=>{

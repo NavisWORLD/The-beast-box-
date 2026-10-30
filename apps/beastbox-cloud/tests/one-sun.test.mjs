@@ -1,0 +1,10 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {readFileSync} from 'node:fs';
+import {ONE_SUN,COMPANION_DISC,SKY_STOPS,oneSunAt,skyAtElevation,localSunDir,sunElevationDeg,SKY_LINES} from '../lib/universe/one-sun.mjs';
+test('one sun from Cosmo pack, SEEDED',()=>{assert.equal(ONE_SUN.label,'SEEDED');assert.equal(ONE_SUN.hex,'#FFF0DB');assert.equal(ONE_SUN.intensity,3.0283);assert.equal(SKY_STOPS.length,7);});
+test('second sun is a disc with no light',()=>{assert.equal(COMPANION_DISC.lights,false);assert.equal(COMPANION_DISC.hex,'#FFB37A');});
+test('stars are off whenever the sun is up',()=>{for(let e=1;e<=90;e+=3)assert.equal(skyAtElevation(e).starAlpha,0);assert.ok(skyAtElevation(-30).starAlpha>.9);});
+test('daylight sky is bright, night sky is dark',()=>{const d=skyAtElevation(15),n=skyAtElevation(-30);assert.ok(d.horizon[2]>.5);assert.ok(n.horizon[2]<.05);});
+test('local sun height equals the day-clock elevation at any place',()=>{for(const up of [[0,1,0],[1,0,0],[.6,0,.8],[0,-1,0]]){for(const e of [-20,5,15,40]){const v=localSunDir(up,e);const h=v[0]*up[0]+v[1]*up[1]+v[2]*up[2];assert.ok(Math.abs(Math.asin(h)*180/Math.PI-e)<1e-6);}}});
+test('deterministic, mostly daylight',()=>{assert.deepEqual(oneSunAt(1000,[0,1,0]),oneSunAt(1000,[0,1,0]));let day=0;for(let i=0;i<240;i++)if(sunElevationDeg(i/240)>0)day++;assert.ok(day/240>.55);});
+test('sky lines are 44 chars or fewer',()=>{for(const v of Object.values(SKY_LINES))assert.ok(v.replace('{beast}','Zeref').length<=44);});
+test('living world reads the one sun, no Math.random',()=>{const s=readFileSync(new URL('../components/living-world.tsx',import.meta.url),'utf8');assert.ok(s.includes('oneSunAt('));assert.ok(!readFileSync(new URL('../lib/universe/one-sun.mjs',import.meta.url),'utf8').includes('Math.random'));});

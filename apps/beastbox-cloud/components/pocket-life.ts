@@ -9,6 +9,7 @@
  *  - Ripples: poke/talk/treat send a visible ring through the field and nudge the CST emotion.
  * Deterministic from the seed (weather/time can be overridden by the play-god toolbar). Mobile tiers via `low`.
  */
+import {oneSunAt,ONE_SUN} from '@/lib/universe/one-sun.mjs';
 import {createCSTState,stepCSTState,createCSTClock,motionParams,seededRng,clamp} from '../lib/physics/cst-integrator.mjs';
 type Three=typeof import('three');
 export type Weather='auto'|'sun'|'rain'|'storm';
@@ -178,7 +179,7 @@ export function addPocketLife(THREE:Three,scene:import('three').Scene,opts:{seed
   // time of day: seeded slow cycle (12 min) unless pinned
   const cyc=tod??((phase0+t/720)%1);const want=.5-.5*Math.cos((cyc-.0)*Math.PI*2);// 0 = noon-ish, 1 = midnight
   night+=(want-night)*Math.min(1,dt*(tod===null?1:1.5));U.uNight.value=night;
-  sun.intensity=(1-night)*(1-rainAmt*.7)*1.6;if(opts.hemi)opts.hemi.intensity=1.1+(1-night)*1.4-rainAmt*.4;
+  {const os=oneSunAt(Date.now()/1000);sun.position.set(os.dir[0]*7,os.dir[1]*7,os.dir[2]*7);sun.color.set(ONE_SUN.hex);}sun.intensity=(1-night)*(1-rainAmt*.7)*1.6;if(opts.hemi)opts.hemi.intensity=1.1+(1-night)*1.4-rainAmt*.4;
   const bg=scene.background as import('three').Color|null;if(bg&&(bg as any).isColor)bg.setRGB(.02+(1-night)*.16,.016+(1-night)*.16,.06+(1-night)*.34);
   const fog=scene.fog as import('three').FogExp2|null;if(fog)fog.color.setRGB(.05+(1-night)*.2,.04+(1-night)*.2,.15+(1-night)*.35);
   // lightning (deterministic stream)
