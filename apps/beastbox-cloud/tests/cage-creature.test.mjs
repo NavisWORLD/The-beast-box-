@@ -23,7 +23,7 @@ test('the dock row and the cage switch use the same words, every line is 44 char
  const w=cageCreatureWords('Duskscale');
  assert.equal(w.switchLabel,'Creature');assert.equal(w.dockLabel,'Show Duskscale');
  assert.equal(w.stateOn,'Duskscale is out front');assert.equal(w.stateOff,'Duskscale is back inside the cage');
- assert.equal(w.ariaOn,'Show Duskscale at the front of the screen');assert.equal(w.ariaOff,'Hide Duskscale from the front of the screen');
+ assert.equal(w.ariaOn,'Hide Duskscale from the front of the screen');assert.equal(w.ariaOff,'Show Duskscale at the front of the screen');
  assert.match(cageCreatureWords('').stateOn,/^Your beast is out front$/);
 });
 const src=f=>fs.readFileSync(new URL('../'+f,import.meta.url),'utf8');
