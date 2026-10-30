@@ -11,6 +11,8 @@ export function writeCageCreature(storage, on) {
   try { storage?.setItem(CAGE_CREATURE_KEY, on ? 'on' : 'off'); } catch { /* private mode: the switch still works for this visit */ }
   return Boolean(on);
 }
+/** Mid-sentence form of the name: only the fallback "Your beast" is lowercased; a real name is never changed. */
+export function midSentenceName(name) { return name === 'Your beast' ? 'your beast' : name; }
 /** The words shared by every place the switch appears (Emeth's labels, 44 characters or fewer). */
 export function cageCreatureWords(name) {
   const n = String(name || '').trim() || 'Your beast';
@@ -20,8 +22,8 @@ export function cageCreatureWords(name) {
     dockLabel: `Show ${n}`,
     stateOn: `${N} is out front`,
     stateOff: `${N} is back inside the cage`,
-    ariaOn: `Hide ${n} from the front of the screen`,
-    ariaOff: `Show ${n} at the front of the screen`,
+    ariaOn: `Hide ${midSentenceName(n)} from the front of the screen`,
+    ariaOff: `Show ${midSentenceName(n)} at the front of the screen`,
     note: `Turn this off to see the whole cage with nothing in front. ${N} is still there and still alive.`,
   };
 }

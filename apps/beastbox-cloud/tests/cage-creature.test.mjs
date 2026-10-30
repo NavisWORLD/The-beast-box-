@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {insideCreatureVisible,CAGE_CREATURE_KEY,CAGE_CREATURE_EVENT,readCageCreature,writeCageCreature,cageCreatureWords} from '../lib/world/cage-creature.mjs';
+import {midSentenceName,insideCreatureVisible,CAGE_CREATURE_KEY,CAGE_CREATURE_EVENT,readCageCreature,writeCageCreature,cageCreatureWords} from '../lib/world/cage-creature.mjs';
 const mem=()=>{const m=new Map();return {getItem:k=>m.has(k)?m.get(k):null,setItem:(k,v)=>m.set(k,String(v)),removeItem:k=>m.delete(k)};};
 
 test('creature switch is ON by default and survives a broken or missing store',()=>{
@@ -51,4 +51,10 @@ test('turning the front model off never removes the creature from inside the cag
  assert.equal(insideCreatureVisible(false),true);assert.equal(insideCreatureVisible(true),true);
  for(const f of ['components/cage-pocket-dimension.tsx','components/living-world.tsx'])assert.doesNotMatch(src(f),/beastNode\.visible=creatureRef\.current/);
  assert.doesNotMatch(src('app/globals.css'),/data-cage-creature=off\][^{]*cage-pocket/);
+});
+test('the fallback name is lowercased mid-sentence only, real names untouched',()=>{
+ assert.equal(midSentenceName('Your beast'),'your beast');assert.equal(midSentenceName('Duskscale'),'Duskscale');
+ const w=cageCreatureWords('');
+ assert.equal(w.ariaOn,'Hide your beast from the front of the screen');assert.equal(w.ariaOff,'Show your beast at the front of the screen');
+ assert.equal(w.stateOff,'Your beast is back inside the cage');assert.equal(w.stateOn,'Your beast is out front');assert.equal(w.dockLabel,'Show Your beast');
 });
