@@ -13,6 +13,8 @@ export function writeCageCreature(storage, on) {
 }
 /** Mid-sentence form of the name: only the fallback "Your beast" is lowercased; a real name is never changed. */
 export function midSentenceName(name) { return name === 'Your beast' ? 'your beast' : name; }
+/** Line-start form of the name: only the lowercase fallback "your beast" gets its capital; a real name is never changed. */
+export function lineStartName(name) { return name === 'your beast' ? 'Your beast' : name; }
 /** The words shared by every place the switch appears (Emeth's labels, 44 characters or fewer). */
 export function cageCreatureWords(name) {
   const n = String(name || '').trim() || 'Your beast';

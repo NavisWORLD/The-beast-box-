@@ -11,7 +11,7 @@ import {usePathname} from 'next/navigation';
 import {useActiveBeastName} from './use-active-beast-name';
 import {useBeastAudio} from './use-beast-audio';
 import {useCageCreature} from './use-cage-creature';
-import {cageCreatureWords} from '../lib/world/cage-creature.mjs';
+import {cageCreatureWords,lineStartName} from '../lib/world/cage-creature.mjs';
 import {readPrefs} from '../lib/companion/seeded-voice.mjs';
 const KEY='beastbox.dock.open.v1';
 const nameOf=(n:string|null)=>((n||'').split(/\s+·\s+/)[0]||'').trim();
@@ -82,9 +82,9 @@ export default function SiteDock(){
    <h3 className="qd-h">Talk</h3>
    <button type="button" className="qd-row" data-quick-talk onClick={openChat}><span className="qd-ico" aria-hidden="true">💬</span><span className="qd-label">Talk to {short}</span></button>
    <h3 className="qd-h">Care</h3>
-   <div className="qd-sub" role="group" aria-label={`${short}'s voice and reach-out switches`}>
-    <span className="qd-cap"><span aria-hidden="true">💜</span> {short}&rsquo;s voice and reach-out switches</span>
-    <Switch on={voice.voice} attr="data-quick-voice" label={`${short}’s voice on/off`} state={voice.voice?'On':'Off'} onToggle={()=>flip('voice')}/>
+   <div className="qd-sub" role="group" aria-label={`${lineStartName(short)}'s voice and reach-out switches`}>
+    <span className="qd-cap"><span aria-hidden="true">💜</span> {lineStartName(short)}&rsquo;s voice and reach-out switches</span>
+    <Switch on={voice.voice} attr="data-quick-voice" label={`${lineStartName(short)}’s voice on/off`} state={voice.voice?'On':'Off'} onToggle={()=>flip('voice')}/>
     <Switch on={voice.reachOut} attr="data-quick-reachout" label={`Let ${short} reach out`} state={voice.reachOut?'On':'Off'} onToggle={()=>flip('reachOut')}/>
     {note?<p className="qd-note" role="status" data-quick-reach-note><small>{note.by||'a message'}</small> {note.text}<button type="button" onClick={()=>setNote(null)} aria-label="Dismiss message">Dismiss</button></p>:null}
    </div>
