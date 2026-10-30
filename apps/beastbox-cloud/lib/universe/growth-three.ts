@@ -9,10 +9,10 @@ attribute vec4 aS;varying vec3 vCol;varying float vA;
 void main(){float vis=step(aS.w,uShed)*step(.5,uMotion);float life=uLife*(.7+.6*aS.z);float ph=fract(uT/life+aS.z*7.31);
  vec3 d=normalize(uC+(uE1*(aS.x*2.-1.)+uE2*(aS.y*2.-1.))*uRad);float hs=uH*(.5+.5*aS.y);float y=max(0.,hs-ph*uFall*life);
  float dr=sin(ph*6.2831+aS.z*9.)*uDrift;vec3 p=d*(uR+uLift+y)+uE1*dr+uE2*dr*.6;vec4 mv=viewMatrix*modelMatrix*vec4(p,1.);
- gl_Position=projectionMatrix*mv;gl_PointSize=vis*max(1.5,uSize*uPx/max(.05,-mv.z));int ci=int(floor(fract(aS.z*4.7+aS.x)*3.99));vCol=uCol[ci];vA=vis*(1.-smoothstep(1.-uFade,1.,ph));}`;
+ gl_Position=projectionMatrix*mv;gl_PointSize=vis*clamp(uSize*uPx/max(.05,-mv.z),1.5,12.0);int ci=int(floor(fract(aS.z*4.7+aS.x)*3.99));vCol=uCol[ci];vA=vis*(1.-smoothstep(1.-uFade,1.,ph));}`;
 const BVS=`uniform float uAge,uR,uPx,uRad,uSize,uLift;uniform vec3 uC,uE1,uE2;uniform vec3 uCol[4];attribute vec4 aS;varying vec3 vCol;varying float vA;
 void main(){float a=aS.x*6.2831;float rr=uAge*uRad*(.6+.5*aS.y);vec3 d=normalize(uC+(uE1*cos(a)+uE2*sin(a))*rr);float y=sin(min(1.,uAge/1.4)*3.14159)*uRad*.12*aS.z;
- vec4 mv=viewMatrix*modelMatrix*vec4(d*(uR+uLift+y),1.);gl_Position=projectionMatrix*mv;float vis=step(0.,uAge)*step(uAge,1.4);gl_PointSize=vis*max(1.5,uSize*uPx/max(.05,-mv.z));
+ vec4 mv=viewMatrix*modelMatrix*vec4(d*(uR+uLift+y),1.);gl_Position=projectionMatrix*mv;float vis=step(0.,uAge)*step(uAge,1.4);gl_PointSize=vis*clamp(uSize*uPx/max(.05,-mv.z),1.5,12.0);
  int ci=int(floor(aS.w*3.99));vCol=uCol[ci];vA=vis*(1.-smoothstep(.6,1.4,uAge));}`;
 const FS=`varying vec3 vCol;varying float vA;uniform float uEm;void main(){vec2 q=gl_PointCoord-.5;float r=length(q);if(r>.5||vA<.01)discard;gl_FragColor=vec4(vCol*(1.+uEm),vA*(1.-r*1.2));
  #include <colorspace_fragment>

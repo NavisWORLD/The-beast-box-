@@ -57,6 +57,7 @@ function Login({configured,onLogin}:{configured:boolean;onLogin:()=>void}){
 }
 export default function Studio({initialOwner,configured,initialBridge}:{initialOwner:boolean;configured:boolean;initialBridge:boolean}){
  const [owner,setOwner]=useState(initialOwner),[bridge,setBridge]=useState(initialBridge),[backendStatus,setBackendStatus]=useState('CHECKING'),[page,setPage]=useState<Page>('COSMOS WORLD');
+ useEffect(()=>{try{const q=new URLSearchParams(location.search).get('tab');if(location.hash==='#senses'||q==='senses'){setPage('SETTINGS');setTimeout(()=>document.querySelector('.senses-lead')?.scrollIntoView({block:'start'}),300);}}catch{}},[]); // deep link: /workspace#senses opens the Senses panel (world menu)
  const [menu,setMenu]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState('');
  const [chatActive,setChatActive]=useState(false);
  const [turns,setTurns]=useState<Turn[]>([]),[prompt,setPrompt]=useState(''),[model,setModel]=useState('NOT CONNECTED');

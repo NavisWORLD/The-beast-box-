@@ -40,5 +40,5 @@ export const MENU_SECTIONS=Object.freeze(['view','place','tools','diary','senses
 export function menuModel(ctxKey,{hasBeast,beastName}){
  const ctx=CONTEXTS[ctxKey]||CONTEXTS.cage;
  return {ctx,views:viewOptionsFor({hasBeast}),reset:{label:SHARED_LABELS.reset,aria:SHARED_LABELS.resetAria},
-  diary:{label:SHARED_LABELS.diary(beastName),href:ctx.diaryHref},senses:{label:SHARED_LABELS.senses,note:SHARED_LABELS.sensesNote,href:'/workspace'},look:{label:SHARED_LABELS.look,href:hasBeast?'/beast-cage/look':'/beast-cage/look?with=zeref'},sections:MENU_SECTIONS};
+  diary:{label:SHARED_LABELS.diary(beastName),href:ctx.diaryHref},senses:{label:SHARED_LABELS.senses,note:SHARED_LABELS.sensesNote,href:'/workspace#senses'},look:{label:SHARED_LABELS.look,href:hasBeast?'/beast-cage/look':'/beast-cage/look?with=zeref'},sections:MENU_SECTIONS};
 }
