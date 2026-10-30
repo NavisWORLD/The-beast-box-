@@ -56,5 +56,5 @@ test('the fallback name is lowercased mid-sentence only, real names untouched',(
  assert.equal(midSentenceName('Your beast'),'your beast');assert.equal(midSentenceName('Duskscale'),'Duskscale');
  const w=cageCreatureWords('');
  assert.equal(w.ariaOn,'Hide your beast from the front of the screen');assert.equal(w.ariaOff,'Show your beast at the front of the screen');
- assert.equal(w.stateOff,'Your beast is back inside the cage');assert.equal(w.stateOn,'Your beast is out front');assert.equal(w.dockLabel,'Show Your beast');
+ assert.equal(w.stateOff,'Your beast is back inside the cage');assert.equal(w.stateOn,'Your beast is out front');assert.equal(w.dockLabel,'Show your beast');assert.equal(cageCreatureWords('Duskscale').dockLabel,'Show Duskscale');
 });
