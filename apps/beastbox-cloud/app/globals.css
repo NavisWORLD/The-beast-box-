@@ -997,18 +997,8 @@ html[data-cage-creature=off] :is(.beast-landing-creature,.beast-landing-art [dat
 body[data-one-dock][data-dock-home] :is(.dock-home-sound,.dock-home-talk){display:inline-flex;align-items:center;gap:6px;cursor:pointer}
 @media(min-width:561px){body[data-one-dock][data-dock-home] .qd-panel :is([data-quick-talk],[data-quick-sound],[data-quick-talk-h]){display:none!important}}
 body[data-one-dock][data-dock-home] .qd-home-row{display:none}
-@media(max-width:560px){
- body[data-one-dock][data-dock-home] .qd-home-row{display:flex;float:left;gap:6px;margin-right:6px}
- body[data-one-dock][data-dock-home] .quick-dock[data-quick-dock=closed] .qd-toggle{clear:none}
- /* Open on a phone: the panel's own Talk and Sound rows take over, so the two chips step aside (still one of each). */
- body[data-one-dock][data-dock-home] .quick-dock[data-quick-dock=open] .qd-home-row{display:none}
- body[data-one-dock][data-dock-home] .qd-home-row>button{min-height:48px;padding:0 12px;border-radius:999px;border:1px solid #8a6cffaa;background:#120c2eee;color:#efe6ff;font:700 12px system-ui,sans-serif;box-shadow:0 8px 24px #000a;white-space:nowrap}
- body[data-one-dock][data-dock-home] .qd-home-row>button[aria-pressed=true]{border-color:#8ff0cf}
- body[data-one-dock][data-dock-home] .qd-home-row>.dock-home-sound{width:48px;padding:0;justify-content:center}
- body[data-one-dock][data-dock-home] .qd-home-row>.dock-home-sound>span{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
- body[data-one-dock][data-dock-home] .qd-home-row>.dock-home-talk{padding:0 10px;font-size:11.5px}
- body[data-one-dock][data-dock-home] .quick-dock[data-quick-dock=closed] .qd-toggle{padding:0 12px}
-}
+/* Phones keep the ONE 48 px Quick buttons pill (home_dock_browser.py): its Talk row and Sound rows are the one talk and one sound control there,
+   and nothing floats over the hero CTAs. The chips above stay desktop-only (in the pill nav). */
 @media(min-width:561px){
  body[data-one-dock][data-dock-home] :is([data-zeref-voice-dock],aside[data-sound-room],[data-beast-chat-launcher],aside.cosmic-support:not(.is-open),[data-spark-player][data-player-mode=minimized]){display:none!important}
  body[data-one-dock][data-dock-home] .quick-dock{display:block!important;position:fixed;z-index:62;right:12px;bottom:72px;pointer-events:none;font:600 14px/1.25 system-ui,sans-serif;color:#efe6ff}

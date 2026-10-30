@@ -73,7 +73,6 @@ export default function SiteDock(){
  // Honest: 'Sound on' only once the browser is really playing; before the first tap it says so.
  const soundWord=!soundOn?'Sound off':audible?'Sound on':'Tap for sound';
  const homeSound=<button type="button" className="dock-home-sound" data-home-sound aria-pressed={soundOn} onClick={()=>{if(soundOn&&!audible){audio.unlock();audio.sfx('confirm',{element:'starlight',seedKey:'cosmos-workshop'});}else toggleSound();}} aria-label={soundOn&&!audible?'Tap for sound (plays a test chirp)':`${soundWord}. Tap to turn ${soundOn?'off':'on'}`} title={soundWord}>{soundOn?'🔊':'🔇'}<span>{soundWord}</span></button>;
- const homeTalk=<button type="button" className="dock-home-talk" data-home-talk onClick={openChat} aria-label={`Talk to ${short}`}>💬<span>Talk to {short}</span></button>;
  return <>
  {/* Desktop and tablets keep the original compact pill; phones use the column below. */}
  <nav className="site-dock" aria-label="Quick dock" data-site-dock={open?'open':'closed'}>
@@ -84,7 +83,6 @@ export default function SiteDock(){
   <button type="button" aria-pressed={open} onClick={toggle} aria-label={open?'Close quick buttons':'Open quick buttons'} title={open?'Close':'Open quick buttons'}>{open?'✕':'⋯'}<span>{open?'Less':'More'}</span></button>
  </nav>
  <aside className="quick-dock" data-quick-dock={open?'open':'closed'} aria-label="Quick buttons">
-  {onHome?<div className="qd-home-row" data-home-one-controls>{homeTalk}{homeSound}</div>:null}
   {open?<div ref={panel} id="quick-dock-panel" className="qd-panel" role="group" aria-label="Quick buttons">
    <h3 className="qd-h">View</h3>
    {inCage
