@@ -37,6 +37,9 @@ vec3 nightSky(vec3 d,float e,vec3 ax,float t){vec3 b1=normalize(abs(ax.y)<.9?cro
  vec3 st=vec3(0.0);float bo=band*(1.0-dust);
  st+=starLayer(d,300.0,.55,.32,.55,t,bo);st+=starLayer(d,120.0,.72,.16,1.0,t,bo);st+=starLayer(d,42.0,.93,.05,1.9,t,bo*.5);
  return (neb+st)*smoothstep(-.02,.14,e);}`;
+/** GENESIS X terrain: two nearer hill layers so the land steps back in more bands to the horizon (SEEDED shapes and colours). cutBay: they stop at the bay. */
+export const RIDGES_NEAR=Object.freeze([{d:130,crestDeg:2.9,fade:.02,hex:'#3B6A31',lobes:9,cutBay:true},{d:650,crestDeg:2.35,fade:.16,hex:'#5A8355',lobes:14}]);
+const NOISE3='float h31(vec3 p){p=fract(p*.3183099+.1);p*=17.0;return fract(p.x*p.y*p.z*(p.x+p.y+p.z));}float vn3(vec3 x){vec3 i=floor(x),f=fract(x);f=f*f*(3.0-2.0*f);return mix(mix(mix(h31(i),h31(i+vec3(1,0,0)),f.x),mix(h31(i+vec3(0,1,0)),h31(i+vec3(1,1,0)),f.x),f.y),mix(mix(h31(i+vec3(0,0,1)),h31(i+vec3(1,0,1)),f.x),mix(h31(i+vec3(0,1,1)),h31(i+vec3(1,1,1)),f.x),f.y),f.z);}';
 /** Sky dome: c = mix(horizon, zenith, pow(up,.45)); zenith = mix(pack zenith, teal mood target, .5) by day; warm only near the sun. Colours in linear, converted once. */
 export function addSkyDome(THREE:T,scene:import('three').Object3D){
  const U={uUp:{value:new THREE.Vector3(0,1,0)},uSun:{value:new THREE.Vector3(0,1,0)},uZen:{value:new THREE.Color()},uHor:{value:new THREE.Color()},uDay:{value:0},
@@ -72,21 +75,26 @@ export function addFlatGround(THREE:T,scene:import('three').Object3D,rand:()=>nu
    float nb=1.0-smoothstep(4.0,90.0,vD);float bl=vn(vec2(vXZ.x*7.0,vXZ.y*1.3))*vn(vec2(vXZ.x*1.1,vXZ.y*6.5));land=mix(land,uBlade*.55,smoothstep(.35,.8,bl)*.35*nb);land*=mix(1.0,.78+.44*vn(vXZ*3.0),nb); /* target 36: near grass streaks and light/dark tufts, fading out with distance */
    vec3 c=land*(.12+.88*uSunL)*mix(.15,1.0,uDay);float f=1.0-exp(-uK*vD);c=mix(c,mix(mix(uHaze,uTint,.5),uAir,.6)*mix(.08,1.0,uDay),min(f,.85)); /* cooler blue-green air (target 36), and the far meadow never fully washes out */gl_FragColor=vec4(dith(toS(c)),1.0);}`});
  const ground=new THREE.Mesh(new THREE.RingGeometry(FLAT_INNER,R,96,8).rotateX(-Math.PI/2).translate(0,-.02,0),gm); /* inner edge meets the 8-unit planet's horizon seen from the 1.6 m eye, so no below-horizon band, hard seam or bright rim (the planet's far edge) shows between the near grass and the far meadow */ground.renderOrder=-12;ground.frustumCulled=false;g.add(ground);mats.push(gm);
- for(const r of RIDGES){const rad=r.d*M,top=Math.tan(r.crestDeg*Math.PI/180)*rad;const ph=[rand()*6.28,rand()*6.28,rand()*6.28];const lobes=Math.max(6,Math.round(2*Math.PI*r.d/(3*r.d/40)/6));
-  const U={uC:{value:new THREE.Color(r.hex)},uHz:{value:new THREE.Color(LOOK2.horizonHaze).lerp(new THREE.Color(LOOK2.aerialTint),.5)},uF:{value:r.fade},uDay:{value:1},uP:{value:new THREE.Vector3(...ph)},uL:{value:lobes}};
+ const RU:any[]=[];const mkRidge=(r:{d:number;crestDeg:number;fade:number;hex:string;cutBay?:boolean},ph:number[],lobes:number)=>{const rad=r.d*M,top=Math.tan(r.crestDeg*Math.PI/180)*rad;
+  const U={uC:{value:new THREE.Color(r.hex)},uHz:{value:new THREE.Color(LOOK2.horizonHaze).lerp(new THREE.Color(LOOK2.aerialTint),.5)},uHz0:{value:new THREE.Color(LOOK2.horizonHaze).lerp(new THREE.Color(LOOK2.aerialTint),.5)},uF:{value:r.fade},uDay:{value:1},uP:{value:new THREE.Vector3(...ph)},uL:{value:lobes},uBay:{value:new THREE.Vector3(0,0,0)},uCut:{value:r.cutBay?1:0}};RU.push(U);
   const m=new THREE.ShaderMaterial({uniforms:U,side:THREE.DoubleSide,fog:false,toneMapped:false,
-   vertexShader:'varying vec2 vUv;varying vec3 vP;void main(){vUv=uv;vP=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
-   fragmentShader:`uniform vec3 uC,uP,uHz;uniform float uDay,uL,uF;varying vec2 vUv;varying vec3 vP;${TO_SRGB}${DITHER_GLSL}
-   void main(){float a=atan(vP.z,vP.x);float h=.55+.25*sin(uL*a+uP.x)+.12*sin(uL*2.3*a+uP.y)+.08*sin(uL*.37*a+uP.z);
-    if(vUv.y>h)discard;float k=clamp(.25+uF*.7+.35*(1.0-vUv.y/h),0.0,.92);vec3 c=mix(uC,uHz,k); /* hazy far ridges: aerial haze rises toward the base (valley mist) and with distance */
+   vertexShader:'varying vec2 vUv;varying vec3 vP;varying vec3 vW;void main(){vUv=uv;vP=position;vW=(modelMatrix*vec4(position,1.0)).xyz;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
+   fragmentShader:`uniform vec3 uC,uP,uHz,uBay;uniform float uDay,uL,uF,uCut;varying vec2 vUv;varying vec3 vP;varying vec3 vW;${TO_SRGB}${DITHER_GLSL}${NOISE3}
+   void main(){vec3 dw=normalize(vW);float F=uL*.55; /* GENESIS X terrain: the skyline is a function of WORLD direction, so as you walk near ridges slide past far ones (parallax ~ 1/distance) and coming back shows the same hills */
+    float n1=vn3(dw*F+uP),n2=vn3(dw*F*2.7+uP.yzx*1.3),n3=vn3(dw*F*7.1+uP.zxy);float rg=1.0-abs(2.0*n2-1.0);
+    float h=clamp(.14+.6*n1+.26*rg*rg+.04*n3,0.0,1.0);
+    if(uCut>.5){float a=atan(vP.z,vP.x)-uBay.x;a=mod(a+3.14159265,6.2831853)-3.14159265;h*=smoothstep(uBay.y*1.05,uBay.y*1.35,abs(a));} /* near hills stop at the bay, they do not stand in the sea */
+    if(vUv.y>h)discard;float k=clamp(.12+uF*.8+.3*(1.0-vUv.y/max(h,.001)),0.0,.9);vec3 c=mix(uC*(.85+.3*vUv.y/max(h,.001)),uHz,k)*(.92+.16*n3); /* hazy layers: aerial haze grows with distance and toward the base (valley mist); haze colour follows the live sky horizon */
     gl_FragColor=vec4(dith(toS(c*mix(.1,1.0,uDay))),1.0);}`});
-  const geo=new THREE.CylinderGeometry(rad,rad,top,192,1,true);geo.translate(0,top*.5,0);const mesh=new THREE.Mesh(geo,m);mesh.renderOrder=-11;mesh.frustumCulled=false;g.add(mesh);mats.push(m);}
+  const geo=new THREE.CylinderGeometry(rad,rad,top,192,1,true);geo.translate(0,top*.5,0);const mesh=new THREE.Mesh(geo,m);mesh.renderOrder=-11;mesh.frustumCulled=false;g.add(mesh);mats.push(m);};
+ for(const r of RIDGES){const ph=[rand()*6.28,rand()*6.28,rand()*6.28];const lobes=Math.max(6,Math.round(2*Math.PI*r.d/(3*r.d/40)/6));mkRidge(r,ph,lobes);}
+ for(const r of RIDGES_NEAR){const ph=[rand()*6.28,rand()*6.28,rand()*6.28];mkRidge(r,ph,r.lobes);} /* after the old layers, so their seeded shapes keep their stream draws */
  const life:{sp:any;r:number;a:number;w:number}[]=[];
  /** far creatures: resident sprites walking slow seeded circles on the patch at 25-120 m (mid; target 36: nothing crowds the near frame) and 200-600 m (far); motion follows the clock t. */
  const addLife=(maps:any[])=>{maps.forEach((map,i)=>{for(const band of [0,1]){const sp=new THREE.Sprite(new THREE.SpriteMaterial({map,transparent:true,depthWrite:false,fog:false}));sp.center.set(.5,.02);
    const r=(band?200+rand()*400:25+rand()*95)*M;sp.scale.setScalar(.75);g.add(sp);life.push({sp,r,a:rand()*6.283,w:(rand()<.5?-1:1)*(.02+rand()*.04)/Math.max(1,r*.05)});}});};
  const step=(t:number,bay?:{bearing:number;halfWidth:number;innerM:number}|null)=>{for(const L of life){const a0=L.a+L.w*t;const a=bay?landArcAngle(bay,L.r/M,a0):a0; /* GENESIS X: walkers turn back at the P3 bay shore, so none walks on the drawn sea */L.sp.position.set(Math.cos(a)*L.r,0,Math.sin(a)*L.r);}};
- return {group:g,addLife,step,count:()=>life.length,farUnits:4600*M,update(on:boolean,groundPt:import('three').Vector3,up:import('three').Vector3,day:number,sunL:number,face?:{fwd:import('three').Vector3;bearing:number}|null){g.visible=on;if(!on)return;
+ return {group:g,addLife,step,count:()=>life.length,farUnits:4600*M,update(on:boolean,groundPt:import('three').Vector3,up:import('three').Vector3,day:number,sunL:number,face?:{fwd:import('three').Vector3;bearing:number}|null,look?:{hor?:number[];bay?:{bearing:number;halfWidth:number}}|null){g.visible=on;if(!on)return;for(const U of RU){if(look?.hor)U.uHz.value.setRGB(look.hor[0],look.hor[1],look.hor[2]).lerp(U.uHz0.value,.5);if(look?.bay)U.uBay.value.set(look.bay.bearing,look.bay.halfWidth,1);} /* GENESIS X terrain: haze takes the live sky horizon colour (dusk, night, storm) */
   g.position.copy(groundPt);g.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),up);if(face)g.quaternion.premultiply(yawToward(THREE,g.quaternion,up,face.fwd,face.bearing)); /* GENESIS X step 0: optional yaw so a SEEDED local bearing (the P3 bay) lies along a given world heading */for(const m of mats)m.uniforms.uDay.value=day;GU.uSunL.value=sunL;}};
 }
 /** Yaw (about up) that turns the local bearing b (local dir (cos b,0,sin b) under q) onto fwd projected into the tangent plane. Pure maths, no random calls. */
