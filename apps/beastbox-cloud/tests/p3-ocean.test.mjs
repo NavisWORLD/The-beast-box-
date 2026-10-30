@@ -15,3 +15,4 @@ test('bay is seeded and repeatable',()=>{const a=bayFrom(lwStream('s1:p3-bay')),
  assert.ok(a.halfWidth>=OCEAN3.halfWidthDeg[0]*Math.PI/180-1e-6&&a.halfWidth<=OCEAN3.halfWidthDeg[1]*Math.PI/180+1e-6);});
 test('waves use the SEA layers with deep-water speeds',()=>{const L=waveLayers();assert.equal(L.length,4);for(const l of L)assert.ok(Math.abs(l[2]-Math.sqrt(9.81*l[0]/(2*Math.PI)))<1e-3);});
 test('wired to the engine clock and the one sun in first person',()=>{assert.match(lw,/p3\.update\(field\?\(field\.tick\+field\.clock\.alpha\)\/4:t,o3,sunDir/);assert.match(lw,/addP3Ocean\(THREE,lk2Ground\.group/);});
+test('fragment shader uses only varyings for the frame (modelMatrix is vertex-only in WebGL1)',()=>{const frag=three.split('fragmentShader')[1].split('vertexShader')[0];assert.doesNotMatch(frag,/modelMatrix/);});

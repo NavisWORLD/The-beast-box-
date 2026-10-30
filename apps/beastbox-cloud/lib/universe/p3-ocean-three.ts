@@ -14,22 +14,22 @@ export function addP3Ocean(THREE:T,parent:import('three').Object3D,bay:{bearing:
   uBear:{value:bay.bearing},uHW:{value:bay.halfWidth},uIn:{value:bay.innerM},uShore:{value:OCEAN3.shoreM},uMPU:{value:mpu},uK:{value:.000267},
   uL:{value:Ls.map(l=>new THREE.Vector4(l[0],l[1],l[2],l[3]))},uPh:{value:new THREE.Vector4(...Ls.map(l=>l[4]))}};
  const m=new THREE.ShaderMaterial({uniforms:U,transparent:true,depthWrite:false,fog:false,toneMapped:false,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2,
-  vertexShader:'varying vec2 vXZ;varying vec3 vW;void main(){vXZ=position.xz;vec4 w=modelMatrix*vec4(position,1.0);vW=w.xyz;gl_Position=projectionMatrix*viewMatrix*w;}',
+  vertexShader:'varying vec2 vXZ;varying vec3 vW,vUp,vTx,vTz;void main(){vXZ=position.xz;vec4 w=modelMatrix*vec4(position,1.0);vW=w.xyz;mat3 R=mat3(modelMatrix);vUp=normalize(R*vec3(0,1,0));vTx=normalize(R*vec3(1,0,0));vTz=normalize(R*vec3(0,0,1));gl_Position=projectionMatrix*viewMatrix*w;}',
   fragmentShader:`uniform float uT,uDir,uAmp,uChop,uRough,uGlint,uGW,uDay,uDark,uWhite,uBear,uHW,uIn,uShore,uMPU,uK;uniform vec3 uGC,uSun,uZen,uHor,uHaze,uDeep,uMid,uShal,uFoam,uSand;uniform vec4 uL[4];uniform vec4 uPh;
-  varying vec2 vXZ;varying vec3 vW;${NOISE}${TO_SRGB}
+  varying vec2 vXZ;varying vec3 vW,vUp,vTx,vTz;${NOISE}${TO_SRGB}
   void main(){vec2 p=vXZ/uMPU;float r=length(p);
    float a=atan(p.y,p.x)-uBear;a=mod(a+3.14159265,6.2831853)-3.14159265;
    float rin=uIn*(1.0+.45*(fbm(vec2(a*2.6+4.0,1.7))-.5));float hw=uHW*(1.0+.25*(fbm(vec2(r*.004,3.3))-.5));
    float sd=min((hw-abs(a))*r,r-rin)+(fbm(p*.02)-.5)*26.0; /* SEEDED coastline: metres inside the water (+) or up the beach (-) */
    if(sd<-uShore)discard;
-   vec3 up=normalize(mat3(modelMatrix)*vec3(0,1,0));vec3 V=normalize(cameraPosition-vW);vec3 S=normalize(uSun);
+   vec3 up=normalize(vUp);vec3 V=normalize(cameraPosition-vW);vec3 S=normalize(uSun);
    float sunUp=max(dot(up,S),0.0);float lit=(.12+.88*smoothstep(-.05,.25,dot(up,S)))*mix(.12,1.0,uDay)*(1.0-.5*uDark);
    float fd=1.0/(1.0+r/350.0); /* far waves flatten so the horizon does not shimmer */
    float h=0.0;vec2 g=vec2(0.0);
    for(int k=0;k<4;k++){vec4 L=uL[k];float ph0=k==0?uPh.x:k==1?uPh.y:k==2?uPh.z:uPh.w;float ang=uDir+L.w;vec2 d=vec2(cos(ang),sin(ang));float w=6.2831853/L.x;
     float ph=w*dot(d,p)-w*L.z*uT+ph0;float q=.5+.5*sin(ph);float am=uAmp*L.y*(k<2?1.0:uChop);h+=am*(2.0*q*q-1.0);g+=am*2.0*q*cos(ph)*w*d;}
    g*=fd;vec2 mic=vec2(vn(p*.9+vec2(uT*.7,0.0))-.5,vn(p*.9+vec2(0.0,uT*.6)+9.0)-.5)*uRough*fd*1.4; /* storm roughness: small SIMULATED ripples */
-   vec3 nL=normalize(vec3(-g.x-mic.x,1.0,-g.y-mic.y));vec3 N=normalize(mat3(modelMatrix)*nL);
+   vec3 nL=normalize(vec3(-g.x-mic.x,1.0,-g.y-mic.y));vec3 N=normalize(nL.x*vTx+nL.y*up+nL.z*vTz);
    vec3 R=reflect(-V,N);float re=clamp(dot(R,up),0.0,1.0);vec3 sky=mix(uHor,uZen,pow(re,.45));
    float fres=.02+.98*pow(1.0-max(dot(N,V),0.0),5.0);
    float depth=smoothstep(0.0,30.0,sd);vec3 body=mix(uShal,mix(uMid,uDeep,smoothstep(30.0,260.0,sd)),depth)*lit*(.45+.55*sunUp);
