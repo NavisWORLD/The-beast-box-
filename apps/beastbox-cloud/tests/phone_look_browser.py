@@ -64,7 +64,14 @@ with sync_playwright() as p:
     pill = page.evaluate("""() => {const s=document.querySelector('[data-spark-player][data-player-mode=minimized]');if(!s)return null;const o=s.querySelector('a,button:not([aria-label^=Close])');const c=s.querySelector('[aria-label="Close game card"]');
       const r=s.getBoundingClientRect(),cr=c.getBoundingClientRect(),or=o.getBoundingClientRect();return {op:+getComputedStyle(s).opacity,w:r.width,right:r.right,vw:innerWidth,cw:cr.width,ch:cr.height,clipped:o.scrollWidth>o.clientWidth+1,label:o.textContent.trim(),ol:or.right<=cr.left+1,bottom:r.bottom,vh:innerHeight}}""")
     check(pill is not None, "minimized game pill is present on Look Closer")
-    if pill:
+    if pill and pill["w"] == 0:
+        # One phone dock: the loose OPEN GAME pill is replaced by an "Open ...'s game" row in the dock column (same action, no second floater).
+        page.wait_for_timeout(1200)
+        row = page.evaluate("() => {const e=document.querySelector('[data-quick-game-card]');if(!e)return null;const r=e.getBoundingClientRect();return {h:r.height,t:(e.textContent||'').trim()}}")
+        check(row is not None and row["h"] >= 44 and re.search(r"game", row["t"], re.I), f"pill is replaced by a 44px+ game row in the one dock {row}")
+        o = page.evaluate(OVERLAPS)
+        check(not o, f"one dock sits on no other floating control: {o}")
+    elif pill:
         check(pill["op"] > 0.9, f"pill is back after scrolling stops {pill}")
         check(pill["cw"] >= 48 and pill["ch"] >= 48, f"pill close button is at least 48x48 {pill}")
         check(not pill["clipped"] and pill["label"] == "OPEN GAME" and pill["ol"], f"pill label is whole and does not run under the close button {pill}")
