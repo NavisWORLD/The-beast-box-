@@ -218,7 +218,7 @@ uniform float uT,uShow;uniform float uUseMap,uUseTiles,uField;uniform vec3 uSun,
        col=mix(col,trk*(1.0+.1*g),smoothstep(.3,.7,tsl)*tnr*.75);col=mix(col,tsn,smoothstep(.7,.86,th)*(1.0-.5*tsl)*tnr*.8);
        col*=1.0+(thx*-1.0+thy*0.6)*40.0*tnr;}}
       vec3 v=normalize(cameraPosition-n*${PR.toFixed(1)});float dif=max(0.0,dot(n,uSun));float l=.46+1.15*dif+uLift*.55*(1.0-dif);col*=l;
-      if(b==7)col+=vec3(.6,.2,.05)*pow(.5+.5*sin(bH(n)*50.0),8.0);if(b==10)col+=vec3(.2,.25,.4)*(1.0-dif);
+      /* the seeded fallback's ember stripes belong to the fallback only: with Cosmo's maps on, the procedural biome() can still say 'ember' over real ocean and drew pink-orange sine arcs across the sea in orbit */if(b==7&&uUseMap<.5)col+=vec3(.6,.2,.05)*pow(.5+.5*sin(bH(n)*50.0),8.0);if(b==10)col+=vec3(.2,.25,.4)*(1.0-dif);
       if(b==0)col+=vec3(.9,.95,1.0)*pow(max(0.0,dot(reflect(-uSun,n),v)),40.0)*.6;
       if(uUseMap>.5)col+=texture2D(uGlow,eqUV(n)).rgb*(1.0-smoothstep(-.1,.25,dot(n,uSun)))*1.1;
       /* Visual Life Pass B3: haze toward the sky horizon (pack curve 1-exp(-(d*density)^2), capped; density x fog multiplier from engine moisture and storm); first person only */
@@ -725,7 +725,7 @@ uniform vec3 uPlay[8];
     if(!sp&&wasSpawned){travNode.visible=false;lineRef.current('Grass will keep growing while you’re gone.');}wasSpawned=sp;
     let bSpeed=0;
     if(sp&&spawnT>=0){bSpeed=0;}// your beast spots you and freezes while you arrive
-    else if(sp){const side=new THREE.Vector3().crossVectors(pN,pF).normalize();const goal=pN.clone().addScaledVector(pF,.9/PR).addScaledVector(side,.5/PR).normalize();const toP=goal.clone().sub(bN);const dist=Math.acos(Math.min(1,bN.dot(goal)))*PR+1.5*TRAV_H-.05;const dir=toP.addScaledVector(bN,-toP.dot(bN));
+    else if(sp){const side=new THREE.Vector3().crossVectors(pN,pF).normalize();const goal=pN.clone().addScaledVector(pF,2.4/PR).addScaledVector(side,.35/PR).normalize(); /* target 36: the beast greets a few steps ahead, near the middle, not filling the right edge */const toP=goal.clone().sub(bN);const dist=Math.acos(Math.min(1,bN.dot(goal)))*PR+1.5*TRAV_H-.05;const dir=toP.addScaledVector(bN,-toP.dot(bN));
      if((!greeted||dist>6)&&dist>1.5*TRAV_H){if(dir.lengthSq()>1e-8){bF.copy(dir.normalize());}const v=1.6*Math.max(.7,bFeel());walkOn(bN,bF,v*dt);bSpeed=1;if(!greeted)greetT=-1;}
      else if(!greeted){greeted=true;greetT=0;lineRef.current('YOU’RE HERE. Rawr! Come see what I built.');traits=driftTraits(traits,u,bKey,'greet');brain.mode='glance';hop(1.4);}
      else if(greetT<0||greetT>2){bSpeed=wander();}
