@@ -65,9 +65,13 @@ export function addFlatGround(THREE:T,scene:import('three').Object3D,rand:()=>nu
  const addLife=(maps:any[])=>{maps.forEach((map,i)=>{for(const band of [0,1]){const sp=new THREE.Sprite(new THREE.SpriteMaterial({map,transparent:true,depthWrite:false,fog:false}));sp.center.set(.5,.02);
    const r=(band?200+rand()*400:25+rand()*95)*M;sp.scale.setScalar(.75);g.add(sp);life.push({sp,r,a:rand()*6.283,w:(rand()<.5?-1:1)*(.02+rand()*.04)/Math.max(1,r*.05)});}});};
  const step=(t:number)=>{for(const L of life){const a=L.a+L.w*t;L.sp.position.set(Math.cos(a)*L.r,0,Math.sin(a)*L.r);}};
- return {group:g,addLife,step,count:()=>life.length,farUnits:4600*M,update(on:boolean,groundPt:import('three').Vector3,up:import('three').Vector3,day:number,sunL:number){g.visible=on;if(!on)return;
-  g.position.copy(groundPt);g.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),up);for(const m of mats)m.uniforms.uDay.value=day;GU.uSunL.value=sunL;}};
+ return {group:g,addLife,step,count:()=>life.length,farUnits:4600*M,update(on:boolean,groundPt:import('three').Vector3,up:import('three').Vector3,day:number,sunL:number,face?:{fwd:import('three').Vector3;bearing:number}|null){g.visible=on;if(!on)return;
+  g.position.copy(groundPt);g.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),up);if(face)g.quaternion.premultiply(yawToward(THREE,g.quaternion,up,face.fwd,face.bearing)); /* GENESIS X step 0: optional yaw so a SEEDED local bearing (the P3 bay) lies along a given world heading */for(const m of mats)m.uniforms.uDay.value=day;GU.uSunL.value=sunL;}};
 }
+/** Yaw (about up) that turns the local bearing b (local dir (cos b,0,sin b) under q) onto fwd projected into the tangent plane. Pure maths, no random calls. */
+export function yawToward(THREE:T,q:import('three').Quaternion,up:import('three').Vector3,fwd:import('three').Vector3,b:number){
+ const u=up.clone().normalize();const d=new THREE.Vector3(Math.cos(b),0,Math.sin(b)).applyQuaternion(q);d.addScaledVector(u,-d.dot(u));const f=fwd.clone().addScaledVector(u,-fwd.dot(u));
+ if(d.lengthSq()<1e-8||f.lengthSq()<1e-8)return new THREE.Quaternion();d.normalize();f.normalize();const th=Math.atan2(u.dot(new THREE.Vector3().crossVectors(d,f)),d.dot(f));return new THREE.Quaternion().setFromAxisAngle(u,th);}
 /** World-volcano in the sky: lit by the one sun, lava glow only on its night side, no ring, no light; blended .35*(1-fade) toward the sky by day. */
 export function addSkyWorld(THREE:T,scene:import('three').Object3D,angularDeg?:number){
  const V=LOOK2.volcano;const U={uSun:{value:new THREE.Vector3(0,1,0)},uBody:{value:new THREE.Color(V.body)},uLava:{value:new THREE.Color(V.lava)},uLavaK:{value:V.lavaIntensity},uSky:{value:new THREE.Color()},uSkyK:{value:0}};
