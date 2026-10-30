@@ -13,3 +13,4 @@ test('phone sky caption sits below the View / Motion / Quality chips',()=>{
  const m=lw.match(/--lw-line-top:calc\(env\(safe-area-inset-top\) \+ (\d+)px\)/);assert.ok(m);assert.ok(+m[1]>=160);
 });
 test('no Math.random in the first-person look',()=>{assert.doesNotMatch(look,/Math\.random/);});
+test('atmosphere limb rim hides in first person and keeps its orbit visibility',()=>{assert.match(lw,/atmRim=atm;atmRimOn=atm\.visible;/);assert.match(lw,/if\(atmRim\)atmRim\.visible=atmRimOn&&!want;/);});
