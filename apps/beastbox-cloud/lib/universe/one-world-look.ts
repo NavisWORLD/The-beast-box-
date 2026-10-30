@@ -19,23 +19,41 @@ export const NEIGHBOUR_FP=Object.freeze({label:'SEEDED',elevationDeg:44,angularD
 const NOISE='float h21(vec2 p){p=fract(p*vec2(123.34,456.21));p+=dot(p,p+45.32);return fract(p.x*p.y);}float vn(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(h21(i),h21(i+vec2(1,0)),f.x),mix(h21(i+vec2(0,1)),h21(i+vec2(1,1)),f.x),f.y);}float fbm(vec2 p){return .5*vn(p)+.25*vn(p*2.03+7.1)+.125*vn(p*4.01+3.7)+.0625*vn(p*8.07+1.3);}';
 /** Far ridges from Cosmo's FIX_NOTES_43c74d3 (aerial perspective k .000267/m, tint #8CB3D6). SEEDED shapes. */
 export const RIDGES=Object.freeze([{d:300,crestDeg:1.99,fade:.077,hex:'#4F7A45'},{d:1200,crestDeg:2.07,fade:.274,hex:'#6E9283'},{d:2000,crestDeg:2.24,fade:.414,hex:'#8FA1A7'},{d:4500,crestDeg:2.27,fade:.7,hex:'#A7B6C1'}]);
+/** GENESIS X step 3: night starfield with depth (three star layers: many faint far, fewer mid, a few bright near with a soft halo; warm/cool colour by a fixed hash)
+ and a nebula band (two-tone glow with dark dust lanes) around a SEEDED axis. Fixed in world directions; twinkle on the caller's world clock. No random calls. A designed look (SEEDED), not a sky survey. */
+export const STARS3=Object.freeze({label:'SEEDED',nebulaAxis:[.35,.82,-.45],layers:[[300,.55,.32,.55],[120,.72,.16,1.0],[42,.93,.05,1.9]],nebulaA:'#7A2E8E',nebulaB:'#1E6E86',nebulaGain:.6});
+const STAR_GLSL=`float h31(vec3 p){p=fract(p*.1031);p+=dot(p,p.yzx+33.33);return fract((p.x+p.y)*p.z);}
+float n3(vec3 p){vec3 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(mix(h31(i),h31(i+vec3(1,0,0)),f.x),mix(h31(i+vec3(0,1,0)),h31(i+vec3(1,1,0)),f.x),f.y),mix(mix(h31(i+vec3(0,0,1)),h31(i+vec3(1,0,1)),f.x),mix(h31(i+vec3(0,1,1)),h31(i+vec3(1,1,1)),f.x),f.y),f.z);}
+float f3(vec3 p){return .5*n3(p)+.25*n3(p*2.03+7.1)+.125*n3(p*4.01+3.7)+.0625*n3(p*8.05+1.3);}
+vec3 starLayer(vec3 d,float sc,float th,float sz,float gain,float t,float boost){vec3 g=d*sc;vec3 c=floor(g);float h=h31(c);if(h<th-boost*.18)return vec3(0.0);
+ vec3 sp=c+.25+.5*vec3(h31(c+11.3),h31(c+27.1),h31(c+53.9));float dd=length(g-sp);float m=h31(c+91.7);
+ float tw=.75+.25*sin(t*(1.3+2.0*m)+m*40.0);float core=smoothstep(sz,0.0,dd);float halo=gain>1.5?.22*smoothstep(sz*2.2,0.0,dd):0.0;
+ vec3 tint=mix(vec3(.70,.80,1.0),vec3(1.0,.86,.68),h31(c+5.5));return tint*(core+halo)*gain*tw*(.5+.8*m);}
+vec3 nightSky(vec3 d,float e,vec3 ax,float t){vec3 b1=normalize(abs(ax.y)<.9?cross(ax,vec3(0,1,0)):cross(ax,vec3(1,0,0)));vec3 b2=cross(ax,b1);
+ float lat=dot(d,ax);float band=exp(-pow(lat/.36,2.0));vec3 q=d*3.2;float n=f3(q);float n2=f3(q*2.2+4.0);float dust=smoothstep(.48,.7,f3(q*4.1+9.0));
+ vec3 neb=mix(vec3(0.1946,0.0273,0.2705),vec3(0.0130,0.1559,0.2384),smoothstep(.35,.65,n2))*band*smoothstep(.25,.7,n)*(1.0-.75*dust)*${STARS3.nebulaGain.toFixed(2)};
+ neb+=vec3(.55,.5,.7)*.10*exp(-pow(lat/.09,2.0))*(1.0-.8*dust); /* the bright core of the band */
+ vec3 st=vec3(0.0);float bo=band*(1.0-dust);
+ st+=starLayer(d,300.0,.55,.32,.55,t,bo);st+=starLayer(d,120.0,.72,.16,1.0,t,bo);st+=starLayer(d,42.0,.93,.05,1.9,t,bo*.5);
+ return (neb+st)*smoothstep(-.02,.14,e);}`;
 /** Sky dome: c = mix(horizon, zenith, pow(up,.45)); zenith = mix(pack zenith, teal mood target, .5) by day; warm only near the sun. Colours in linear, converted once. */
 export function addSkyDome(THREE:T,scene:import('three').Object3D){
  const U={uUp:{value:new THREE.Vector3(0,1,0)},uSun:{value:new THREE.Vector3(0,1,0)},uZen:{value:new THREE.Color()},uHor:{value:new THREE.Color()},uDay:{value:0},
-  uTeal:{value:new THREE.Color(LOOK2.teal)},uWarm:{value:new THREE.Color().setRGB(1,.875,.7055)},uBelow:{value:new THREE.Color(MEADOW36.belowHorizon)}};
+  uTeal:{value:new THREE.Color(LOOK2.teal)},uWarm:{value:new THREE.Color().setRGB(1,.875,.7055)},uBelow:{value:new THREE.Color(MEADOW36.belowHorizon)},uNight:{value:0},uT:{value:0},uNebAx:{value:new THREE.Vector3(...STARS3.nebulaAxis).normalize()}};
  const m=new THREE.ShaderMaterial({uniforms:U,side:THREE.BackSide,depthWrite:false,depthTest:false,fog:false,toneMapped:false,
   vertexShader:'varying vec3 vD;void main(){vD=normalize(position);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
-  fragmentShader:`uniform vec3 uUp,uSun,uZen,uHor,uTeal,uWarm,uBelow;uniform float uDay;varying vec3 vD;${TO_SRGB}${DITHER_GLSL}
+  fragmentShader:`uniform vec3 uUp,uSun,uZen,uHor,uTeal,uWarm,uBelow;uniform float uDay,uNight,uT;uniform vec3 uNebAx;varying vec3 vD;${TO_SRGB}${DITHER_GLSL}${STAR_GLSL}
   void main(){vec3 d=normalize(vD);float e=dot(d,normalize(uUp));float s=max(0.0,dot(d,normalize(uSun)));
    vec3 zen=mix(uZen,mix(uZen,uTeal,.5),uDay);
    vec3 c=mix(uHor,zen,pow(clamp(e,0.0,1.0),.45));
    c=mix(c,uWarm*.9,.35*pow(s,24.0)*uDay);
    c+=uWarm*(${SUNBLOOM36.core.toFixed(2)}*pow(s,${SUNBLOOM36.coreExp.toFixed(2)})+${SUNBLOOM36.halo.toFixed(2)}*pow(s,${SUNBLOOM36.haloExp.toFixed(2)})+${SUNBLOOM36.wide.toFixed(2)}*pow(s,${SUNBLOOM36.wideExp.toFixed(2)}))*uDay*step(0.0,e); /* target 36 warm sun bloom by day: a hot core over the P1 bloom threshold (so the existing P1 bloom pass blooms it on MED/HIGH/GOD) plus a soft warm halo that also shows on LOW; only above the horizon, fades with the one sun's day factor */
+   if(uNight>.002&&e>-.02)c+=nightSky(d,e,normalize(uNebAx),uT)*uNight; /* GENESIS X step 3: the night starfield + nebula, faded in by the one sun's night factor and thinned by cloud cover */
    if(e<0.0)c=mix(uHor,uBelow*mix(.15,1.0,uDay),smoothstep(0.0,-.04,e)); /* below the horizon: ground, not sky */
    gl_FragColor=vec4(dith(toS(c)),1.0);}`});
  const dome=new THREE.Mesh(new THREE.SphereGeometry(300,48,24),m);dome.renderOrder=-20;dome.frustumCulled=false;dome.visible=false;scene.add(dome);
- return {dome,update(on:boolean,cam:import('three').Vector3,up:import('three').Vector3,sun:import('three').Vector3,zen:number[],hor:number[],day:number){
-  dome.visible=on;if(!on)return;dome.position.copy(cam);U.uUp.value.copy(up);U.uSun.value.copy(sun);U.uZen.value.setRGB(zen[0],zen[1],zen[2]);U.uHor.value.setRGB(hor[0],hor[1],hor[2]);U.uDay.value=day;}};
+ return {dome,update(on:boolean,cam:import('three').Vector3,up:import('three').Vector3,sun:import('three').Vector3,zen:number[],hor:number[],day:number,night?:{amount:number;t:number;axis?:number[]}){
+  dome.visible=on;if(!on)return;U.uNight.value=night?Math.max(0,Math.min(1,night.amount)):0;if(night){U.uT.value=night.t;if(night.axis)U.uNebAx.value.set(night.axis[0],night.axis[1],night.axis[2]).normalize();}dome.position.copy(cam);U.uUp.value.copy(up);U.uSun.value.copy(sun);U.uZen.value.setRGB(zen[0],zen[1],zen[2]);U.uHor.value.setRGB(hor[0],hor[1],hor[2]);U.uDay.value=day;}};
 }
 /** First person (target 36): the flat patch starts ~4 m out, just inside where the curved 8-unit planet drops below the 1.6 m eye's horizon (was 14 units, which left a flat below-horizon band and a teal planet rim between near grass and meadow). SEEDED look value. */
 export const FLAT_INNER=1.2;
