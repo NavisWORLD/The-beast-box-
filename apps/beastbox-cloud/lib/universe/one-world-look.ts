@@ -56,9 +56,9 @@ export function addFlatGround(THREE:T,scene:import('three').Object3D,rand:()=>nu
     gl_FragColor=vec4(toS(c*mix(.1,1.0,uDay)),1.0);}`});
   const geo=new THREE.CylinderGeometry(rad,rad,top,192,1,true);geo.translate(0,top*.5,0);const mesh=new THREE.Mesh(geo,m);mesh.renderOrder=-11;mesh.frustumCulled=false;g.add(mesh);mats.push(m);}
  const life:{sp:any;r:number;a:number;w:number}[]=[];
- /** far creatures: resident sprites walking slow seeded circles on the patch at 15-120 m (mid) and 200-600 m (far); motion follows the clock t. */
+ /** far creatures: resident sprites walking slow seeded circles on the patch at 25-120 m (mid; target 36: nothing crowds the near frame) and 200-600 m (far); motion follows the clock t. */
  const addLife=(maps:any[])=>{maps.forEach((map,i)=>{for(const band of [0,1]){const sp=new THREE.Sprite(new THREE.SpriteMaterial({map,transparent:true,depthWrite:false,fog:false}));sp.center.set(.5,.02);
-   const r=(band?200+rand()*400:15+rand()*105)*M;sp.scale.setScalar(.75);g.add(sp);life.push({sp,r,a:rand()*6.283,w:(rand()<.5?-1:1)*(.02+rand()*.04)/Math.max(1,r*.05)});}});};
+   const r=(band?200+rand()*400:25+rand()*95)*M;sp.scale.setScalar(.75);g.add(sp);life.push({sp,r,a:rand()*6.283,w:(rand()<.5?-1:1)*(.02+rand()*.04)/Math.max(1,r*.05)});}});};
  const step=(t:number)=>{for(const L of life){const a=L.a+L.w*t;L.sp.position.set(Math.cos(a)*L.r,0,Math.sin(a)*L.r);}};
  return {group:g,addLife,step,count:()=>life.length,farUnits:4600*M,update(on:boolean,groundPt:import('three').Vector3,up:import('three').Vector3,day:number,sunL:number){g.visible=on;if(!on)return;
   g.position.copy(groundPt);g.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),up);for(const m of mats)m.uniforms.uDay.value=day;GU.uSunL.value=sunL;}};
