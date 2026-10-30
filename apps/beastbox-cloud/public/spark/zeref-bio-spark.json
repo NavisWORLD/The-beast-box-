@@ -1,0 +1,70 @@
+{
+ "audio_numbers": {
+  "centroid_norm": 0.0035,
+  "enabled": true,
+  "rms_mean": 0.0007,
+  "zcr": 0.0187
+ },
+ "bio_vector_12": [
+  0.3781,
+  0.2781,
+  0.9206,
+  0.308,
+  0.5789,
+  0.05,
+  0.0769,
+  0.05,
+  0.05,
+  0.05,
+  0.7564,
+  0.6886
+ ],
+ "creature_id": "bb-deada969",
+ "evidence": "evidence/zeref-bio-spark-001",
+ "heart_seed_v9_sha256": "dafd7608647cc187cd0fbe39bacbe1ced91bc22cf271a03f7e4c14c261219786",
+ "honesty": "Pulse MEASURED by a fingertip camera on a phone (not a medical device). IBM counts RECORDED, never re-run. Rigetti SIMULATED. Placement SEEDED. Numbers only: no raw audio, video or heartbeat is published.",
+ "ibm": {
+  "backend": "ibm_fez",
+  "classical_bound": 0.75,
+  "job_id": "dbffvhvgdj9s73bbj940",
+  "note": "RECORDED on IBM hardware. Not loophole-free. It seeds order and motion only.",
+  "outcomes_sha256": "86d92cfbe5e2fbff55b831aef685ca9ef7ec01db57f68e06e8e462a7b07db397",
+  "per_question_pair": {
+   "x0y0": {
+    "rounds": 2040,
+    "win_rate": 0.8166666666666667
+   },
+   "x0y1": {
+    "rounds": 1967,
+    "win_rate": 0.833248601931876
+   },
+   "x1y0": {
+    "rounds": 1933,
+    "win_rate": 0.8329022245214692
+   },
+   "x1y1": {
+    "rounds": 2060,
+    "win_rate": 0.8451456310679611
+   }
+  },
+  "rounds": 8000,
+  "source_class": "RECORDED_IBM_HARDWARE",
+  "win_rate": 0.832
+ },
+ "labels": {
+  "ibm": "RECORDED",
+  "placement": "SEEDED",
+  "pulse": "MEASURED",
+  "rigetti": "SIMULATED"
+ },
+ "next_seed_sha256": "0427055428be322f7c90844b09b3937015ecb47f8826e0d60e88d7cc04e83853",
+ "packet_sha256": "81057f3865329c6bd19885c65cee4f54948d02d3df1340ed763b10e377649a8a",
+ "pulse": {
+  "beats": 46,
+  "bpm": 100.4994,
+  "duration_s": 27.0333,
+  "hrv_rmssd_ms": 41.7098,
+  "sqi": 0.9206
+ },
+ "schema": "beastbox-zeref-bio-spark-public-v1"
+}
