@@ -18,7 +18,8 @@ import dynamic from 'next/dynamic';
 import {isSoftwareGL} from '../lib/three/soft-gl';
 import WorldMenu,{type MenuHosts} from './world-menu';
 import useWorldView from './use-world-view';
-import {VIEW_STORAGE,VIEW_EVENT} from '../lib/world/world-options.mjs';
+import {VIEW_EVENT} from '../lib/world/world-options.mjs';
+import {guestPickedPocket} from '../lib/world/home-guest-view.mjs';
 const LivingWorld=dynamic(()=>import('./living-world'),{ssr:false});
 /** Guest default: Zeref bb-deada969's own recorded session record (display only; never adopted, never merged with the Moonwraith display guide). */
 export const ZEREF_HOME_DEFAULT={id:'bb-deada969',src:'/spark/zeref-live-20261010/unsigned-session.json'};
@@ -33,8 +34,8 @@ export default function HomePocket(){
  const {view:sharedView,setView:chooseHomeView}=useWorldView(!!own,{pixelSync:false});const homeView:'world'|'pocket'=sharedView==='world'?'world':'pocket';
  // Oct 30 (Cory: the home tiny universe is the same place as the world): a guest also sees the embedded living world, the same land,
  // one sun (lib/universe/one-sun.mjs) and residents as /beast-cage/world, unless they picked the pocket explorer on this device.
- const [guestPick,setGuestPick]=useState<string|null>(null);useEffect(()=>{const read=()=>{try{setGuestPick(localStorage.getItem(VIEW_STORAGE));}catch{}};read();window.addEventListener(VIEW_EVENT,read);return()=>window.removeEventListener(VIEW_EVENT,read);},[]);
- const guestWorld=!own&&guestPick!=='pocket'&&guestPick!=='classic';
+ const [guestPocket,setGuestPocket]=useState(false);useEffect(()=>{const read=()=>setGuestPocket(guestPickedPocket());read();window.addEventListener(VIEW_EVENT,read);return()=>window.removeEventListener(VIEW_EVENT,read);},[]);
+ const guestWorld=!own&&!guestPocket;
  const [hosts,setHosts]=useState<MenuHosts>({place:null,tools:null,about:null});
  useEffect(()=>{if(own||zeref)return;let live=true;fetch(ZEREF_HOME_DEFAULT.src).then(r=>r.ok?r.json():null).then(d=>{const b=d?.beast;if(live&&b?.qbeast?.profile?.id===ZEREF_HOME_DEFAULT.id)setZeref(b);}).catch(()=>{});return()=>{live=false;};},[own,zeref]);
  const beast=own||zeref;const [world,setWorld]=useState(false);const [envOpen,setEnvOpen]=useState(false);
