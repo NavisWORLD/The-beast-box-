@@ -25,11 +25,14 @@ import {useTalkPersona} from './use-talk-target';
 import {RAWRPHOS_PUBLIC_PIN} from '../lib/companion/brain.mjs';
 import ZerefLibraryPanel,{ReadsBox,RecordedNotes,type LibraryState} from './zeref-library-panel';
 import {libraryContext} from '../lib/library/context.mjs';
+import {BANK_URL,BANK_CONSENT_KEY,BANK_LABEL,buildBank,searchBank,bankContext,provenanceLine,isStillLearningReply,stillLearningNote} from '../lib/knowledge/bank.mjs';
 
 export type TalkState='idle'|'thinking'|'listening'|'speaking'|'replied'|'offline';
 type Route=TalkRoute;
 type TeacherHint={text:string;label:string;model?:string;route:string};
-type Turn={role:'you'|'beast'|'system';text:string;model?:string;route?:string;at?:number;id?:string;cloudImported?:boolean;verified?:boolean;teacher?:TeacherHint;beastMissing?:string;coachedBy?:string;reachOut?:string;read?:{readChars:number;totalChars:number;extracted:boolean;note:string};libraryUsed?:{title:string;loc:string}[]};
+type BankUsed={id:string;title:string;excerpt:string;source:string;license:string;version:number};
+type Turn=TurnBase&{bank?:BankUsed[];stillLearning?:boolean};
+type TurnBase={role:'you'|'beast'|'system';text:string;model?:string;route?:string;at?:number;id?:string;cloudImported?:boolean;verified?:boolean;teacher?:TeacherHint;beastMissing?:string;coachedBy?:string;reachOut?:string;read?:{readChars:number;totalChars:number;extracted:boolean;note:string};libraryUsed?:{title:string;loc:string}[]};
 type ChatTurn=Turn&{role:'you'|'beast'};
 /** System notices (model offline) are shown in the log but never sent to a model or saved as chat. */
 const chatOnly=(l:Turn[]):ChatTurn[]=>l.filter((t):t is ChatTurn=>t.role!=='system');
@@ -73,6 +76,10 @@ function BeastTalkContent({onState,compact=false,title,gameBridge}:PanelProps){
  const [verifiedAt,setVerifiedAt]=useState<number|null>(null),[listening,setListening]=useState(false),[speaking,setSpeaking]=useState(false);
  const [showBrains,setShowBrains]=useState(false);
  const [lib,setLib]=useState<LibraryState>({owner:false,ready:false,docCount:0}),[notes,setNotes]=useState<{id:string;items:{title:string;loc:string;excerpt:string;sha256?:string}[]}|null>(null),[libNote,setLibNote]=useState('');
+ // Knowledge bank: opt-in, default OFF. Public open-license passages, looked up by keyword in this browser; nothing leaves the device except the matching words sent with the message.
+ const [bankOn,setBankOn]=useState(false),bankRef=useRef<ReturnType<typeof buildBank>|null>(null);
+ useEffect(()=>{try{setBankOn(localStorage.getItem(BANK_CONSENT_KEY)==='on');}catch{/* off */}},[]);
+ function toggleBank(on:boolean){setBankOn(on);try{localStorage.setItem(BANK_CONSENT_KEY,on?'on':'off');}catch{/* optional */}}
  const [contribute,setContribute]=useState(false),[pairCount,setPairCount]=useState(0),[contribStatus,setContribStatus]=useState('');
  const [cloudStatus,setCloudStatus]=useState('Private cloud is optional. Restore your own conversation before saving.'),[cloudOwner,setCloudOwner]=useState(''),[cloudSync,setCloudSync]=useState(false),[cloudRestoring,setCloudRestoring]=useState(false);
  const [queueState,setQueueState]=useState<PrivateChatQueueState>({busy:false,pending:0,paused:false,error:null,lastSavedEvent:null});
@@ -177,6 +184,15 @@ function BeastTalkContent({onState,compact=false,title,gameBridge}:PanelProps){
     }catch{if(controller.signal.aborted)return;setLibNote('Library lookup failed. Zeref answered without notes.');}
     if(controller.signal.aborted||personaKey.current!==forKey||privateSelection.current!==forSelection)return;
    }
+   // Zeref's knowledge bank (opt-in): deterministic keyword lookup in the open-license library; passages are copied verbatim and shown with their source.
+   let bankUsed:BankUsed[]=[];
+   if(persona.source==='zeref'&&bankOn){
+    try{
+     if(!bankRef.current){const r=await fetch(BANK_URL,{cache:'force-cache',signal:controller.signal});if(r.ok)bankRef.current=buildBank(await r.json());}
+     if(bankRef.current){const c=bankContext(searchBank(bankRef.current,readInfo(saying).text.slice(-300)));bankUsed=c.used;if(c.text)libraryText=[libraryText,c.text].filter(Boolean).join(' | ');}
+    }catch{if(controller.signal.aborted)return;}
+    if(controller.signal.aborted||personaKey.current!==forKey||privateSelection.current!==forSelection)return;
+   }
    const ask={persona,history:chatOnly(log),text:saying,shareHistory,observation,context:[knownGameContext(session,gameBridge?.key),shareGrowth?growthModelContext(growth):''].filter(Boolean).join('\n'),signal:controller.signal,
     ollama:{url:prefs.ollamaUrl,model:prefs.ollamaModel},hf:{key:hfKey,model:prefs.hfModel,spendConfirmed:spend}};
    // Teacher design: any non-RAWRPHOS brain is a TEACHER. RAWRPHOS still writes the
@@ -199,7 +215,7 @@ function BeastTalkContent({onState,compact=false,title,gameBridge}:PanelProps){
    const exchangeId=crypto.randomUUID(),at=Date.now();
    const coachedBy=teacherResult&&teacherResult.ok?TEACHER_LABEL[teacherResult.route]||teacherResult.label:undefined;
    const youTurn={role:'you' as const,text:saying,at,id:exchangeId+'-you'};
-   const next=[...log.filter(t=>!String(t.id||'').startsWith('failed-')),youTurn,{role:'beast' as const,text:result.reply,model:result.model,route:result.route,at:result.at,id:exchangeId+'-beast',coachedBy,read:result.read?{readChars:result.read.readChars,totalChars:result.read.totalChars,extracted:result.read.extracted,note:result.read.note}:undefined,libraryUsed:used.length?used.map(u=>({title:u.title,loc:u.loc})):undefined}];
+   const next=[...log.filter(t=>!String(t.id||'').startsWith('failed-')),youTurn,{role:'beast' as const,text:result.reply,model:result.model,route:result.route,at:result.at,id:exchangeId+'-beast',coachedBy,read:result.read?{readChars:result.read.readChars,totalChars:result.read.totalChars,extracted:result.read.extracted,note:result.read.note}:undefined,libraryUsed:used.length?used.map(u=>({title:u.title,loc:u.loc})):undefined,bank:bankUsed.length?bankUsed:undefined,stillLearning:persona.source==='zeref'&&bankOn&&isStillLearningReply(result.reply)?true:undefined}];
    setLog(next);setNotes(used.length?{id:exchangeId+'-beast',items:used}:null);writeTalkLog(storage.current,forKey,chatOnly(next));setVerifiedAt(result.ok?result.at:at);editText('');
    if(visitorId&&storage.current){const prior=growth?.beastKey===forKey?growth:freshGrowth(visitorId,forKey);const updated=advanceVisitorGrowth(prior,{text:saying,reply:result.reply,verified:true});writeVisitorGrowth(storage.current,updated);setGrowth(updated);}
    if(boundForCloud){try{privateQueue.current?.enqueue({...boundForCloud,exchange:{eventId:exchangeId,text:saying,reply:result.reply,provider:result.route,model:result.model,at}});}catch(error){setCloudStatus((error instanceof Error?error.message:'Private queue unavailable.')+' The completed reply remains in local storage.');}}
@@ -318,6 +334,10 @@ function BeastTalkContent({onState,compact=false,title,gameBridge}:PanelProps){
      {turn.role==='beast'&&turn.coachedBy?<small data-coached-by>Coached by: {turn.coachedBy}</small>:null}
      {turn.role==='beast'&&turn.read&&(turn.read.extracted||turn.libraryUsed)?<small data-read-note>{turn.read.extracted?turn.read.note:`${persona.name} read all ${turn.read.totalChars.toLocaleString('en-US')} characters of your message.`}{turn.libraryUsed?` Notes recorded from your library: ${turn.libraryUsed.map(u=>u.title+(u.loc?' ('+u.loc+')':'')).join('; ')}.`:''}</small>:null}
      {turn.role==='beast'&&notes&&notes.id===turn.id?<RecordedNotes items={notes.items}/>:null}
+     {turn.role==='beast'&&(turn.stillLearning||turn.bank?.length)?<div data-knowledge-bank-notes role="note">
+      {turn.stillLearning?<small data-still-learning>{stillLearningNote(turn.bank)}</small>:null}
+      {(turn.bank||[]).map(b=><div key={b.id} data-bank-passage><q>{b.excerpt}</q><small>{BANK_LABEL} · {provenanceLine({...b,score:0,domain:''})}</small></div>)}
+     </div>:null}
     </div>
     </div>)}
    {busy?<div className={styles.beast}><span className={styles.speaker}>{persona.name}</span><p className={styles.thinking}>thinking<span>.</span><span>.</span><span>.</span></p></div>:null}
@@ -341,6 +361,7 @@ function BeastTalkContent({onState,compact=false,title,gameBridge}:PanelProps){
    {queueState.pending>0?<button type="button" disabled={cloudBusy||!cloudSync||!cloudConsented} onClick={()=>void privateQueue.current?.retry()}>Retry private save ({queueState.pending})</button>:null}
    <label>Keep this conversation <select value={retention} onChange={e=>{const next=e.target.value==='session'?'session':'device';const target=next==='session'?sessionStorage:localStorage;writeTalkLog(target,persona.key,chatOnly(log));writeTalkDraft(target,persona.key,text);if(next==='session'){localStorage.removeItem(LOG_PREFIX+persona.key);localStorage.removeItem(DRAFT_PREFIX+persona.key);}setRetention(next);try{localStorage.setItem(TALK_RETENTION_KEY,next);}catch{/* optional */}}}><option value="device">On this device</option><option value="session">In this tab only</option></select></label>
    <label><input type="checkbox" checked={shareHistory} onChange={e=>setShareHistory(e.target.checked)}/> Share recent conversation with the selected provider</label>
+   {persona.source==='zeref'?<label data-bank-toggle><input type="checkbox" checked={bankOn} onChange={e=>toggleBank(e.target.checked)}/> Let Zeref use his knowledge bank (open-license English, math, world facts and his own world, looked up by keyword; each passage is shown with its source). Off by default.</label>:null}
    {gameBridge&&gameBridge.key===gameBeastKey(session)?<><label><input type="checkbox" checked={includeGame} onChange={e=>setIncludeGame(e.target.checked)}/> Include measured game screen brightness, contrast and color</label><GameChatTools bridge={gameBridge} busy={busy} route={route} optedIn={includeGame}/></>:<p>Observation mode: creature identity and your message. No live game vision bridge is connected.</p>}
    <p>Voice typing starts only on your tap and may use your browser’s speech service. Speech playback follows your sound settings.</p>
   </details>
