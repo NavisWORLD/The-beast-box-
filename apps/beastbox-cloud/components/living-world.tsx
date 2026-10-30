@@ -366,16 +366,17 @@ uniform float uT,uShow;uniform float uUseMap,uUseTiles,uField;uniform vec3 uSun,
    const bladeGeo=new THREE.InstancedBufferGeometry();bladeGeo.index=cross.index;bladeGeo.attributes.position=cross.attributes.position;bladeGeo.attributes.uv=cross.attributes.uv;
    const MAXB=14000;const iN=new Float32Array(MAXB*3),iR=new Float32Array(MAXB*2);{const r=lwStream(u.seed+':blades');for(let i=0;i<MAXB;i++){let v=unitFrom(r) as number[];for(let k=0;k<6&&['ocean','glacier','peaks'].includes(biomeAt(BP,v) as string);k++)v=unitFrom(r) as number[];iN.set(v,i*3);iR[i*2]=r();iR[i*2+1]=Math.floor(r()*8);}}
    bladeGeo.setAttribute('aN',new THREE.InstancedBufferAttribute(iN,3));bladeGeo.setAttribute('aR',new THREE.InstancedBufferAttribute(iR,2));bladeGeo.instanceCount=bladeCap;
-   const bladeMat=new THREE.ShaderMaterial({uniforms:{...UG,uAtlas:{value:tex('grass_blade_atlas.png')},uAmp:{value:W.sway_amp_rad},uBladeK:{value:1},uFreq:{value:W.freq_hz},uWave:{value:W.wave_len_world},uGust:{value:W.gust_amp},uGustF:{value:W.gust_freq_hz},uR:{value:PR},uFpG:{value:0}},
+   const bladeMat=new THREE.ShaderMaterial({uniforms:{...UG,uAtlas:{value:tex('grass_blade_atlas.png')},uAmp:{value:W.sway_amp_rad},uBladeK:{value:1},uWindK:{value:0},uFreq:{value:W.freq_hz},uWave:{value:W.wave_len_world},uGust:{value:W.gust_amp},uGustF:{value:W.gust_freq_hz},uR:{value:PR},uFpG:{value:0}},
     side:THREE.DoubleSide,alphaTest:.5,
     vertexShader:`attribute vec3 aN;attribute vec2 aR;uniform vec3 uSun;uniform float uLift;uniform float uBladeK;uniform float uT,uAmp,uFreq,uWave,uGust,uGustF,uR;varying vec2 vUv;varying float vL;${COVER}
-uniform vec3 uPlay[8];
+uniform vec3 uPlay[8];uniform float uWindK;
      void main(){vec3 n=normalize(aN);float c=cover(n);float near=0.0;for(int i=0;i<8;i++)near=max(near,smoothstep(.22,.0,acos(clamp(dot(n,uPlay[i]),-1.0,1.0))));c*=1.0+near*.8;vec3 t=normalize(cross(abs(n.y)<.99?vec3(0,1,0):vec3(1,0,0),n));vec3 b=cross(n,t);
       float ca=cos(aR.x*6.283),sa=sin(aR.x*6.283);vec3 tx=t*ca+b*sa,tz=-t*sa+b*ca;
       vec3 p=position*(0.55+0.6*fract(aR.x*7.3))*c*uBladeK;float w=pow(uv.y,1.6);vec3 wp=n*(uR+disp(n));
       float ang=uAmp*w*sin(uT*6.2831*uFreq+dot(wp,normalize(vec3(1,.2,.4)))/uWave)+uGust*w*sin(uT*6.2831*uGustF+wp.x*.2);
       p.x+=sin(ang)*p.y;p.y*=cos(ang);
-      vec3 world=wp+tx*p.x+n*p.y+tz*p.z;vUv=vec2((aR.y+uv.x)/8.0,uv.y);vL=.3+1.0*max(0.0,dot(n,uSun))+uLift*.5*(1.0-max(0.0,dot(n,uSun)));
+      /* GENESIS X ground cover: the blades part around the beast and the residents (uPlay, their live positions) and lean harder in storm wind (uWindK from the weather state) */vec3 push=vec3(0.0);for(int i=0;i<8;i++){vec3 dq=n-uPlay[i]*dot(n,uPlay[i]);float dd=acos(clamp(dot(n,uPlay[i]),-1.0,1.0));float k=smoothstep(.07,.0,dd)*step(.0005,dd);push+=normalize(dq+vec3(1e-6))*k;}float hb=length(position)*c*uBladeK;
+      vec3 world=wp+tx*p.x*(1.0+uWindK)+n*p.y*(1.0-.25*min(1.0,length(push)))+tz*p.z+push*w*hb*.9;vUv=vec2((aR.y+uv.x)/8.0,uv.y);vL=.3+1.0*max(0.0,dot(n,uSun))+uLift*.5*(1.0-max(0.0,dot(n,uSun)));
       gl_Position=projectionMatrix*viewMatrix*vec4(world,1.0);if(c<.02)gl_Position=vec4(2.0,2.0,2.0,1.0);}`,
     fragmentShader:`uniform sampler2D uAtlas;uniform float uFpG;varying vec2 vUv;varying float vL;void main(){vec4 c=texture2D(uAtlas,vUv);if(c.a<.5)discard;float gy=clamp(vUv.y,0.,1.);vec3 gTip=mix(vec3(.545,.608,.333),vec3(.71,.643,.353),.4*clamp(vL-.6,0.,1.));vec3 g=mix(vec3(.373,.42,.251)*.55,gTip,gy);vec3 m36=mix(mix(vec3(.173,.353,.11)*.6,vec3(.298,.549,.165),smoothstep(0.,.55,gy)),vec3(.549,.753,.29),smoothstep(.45,1.,gy)*clamp(vL-.3,0.,1.));gl_FragColor=vec4(mix(mix(c.rgb,g,.7),m36,uFpG)*vL,1.0);} /* first person (target 36): lush green blades (MEADOW36 dark #2C5A1C -> base #4C8C2A -> tip #8CC04A), no lilac/teal from the atlas; the bright tip only where the one sun lights them (vL) */ /* pack grass #5F6B40 -> #8B9B55, roots x.55, warm tip #B5A45A only where lit */`});
    const blades=new THREE.Mesh(bladeGeo,bladeMat);blades.frustumCulled=false;scene.add(blades);
@@ -700,6 +701,7 @@ uniform vec3 uPlay[8];
      if(hudBiome.current)hudBiome.current.textContent='Biome: '+(cosmoNameOf(spawnRef.current?pN:bN)||(BIOME_NAMES as any)[spawnRef.current?biomeOf(pN):bb]);(window as any).__lwBiome={beast:bb,you:biomeOf(pN),home:biomeOf(gpts[0]),bN:bN.toArray(),g0:gpts[0].toArray()};}
     latPivot.rotation.y+=dt*.02;latObj.rotation.x+=dt*.03;latObj.rotation.z+=dt*.017;
     // residents wander
+    {/* GENESIS X ground cover: storm wind (weather state, live) leans the blades harder; calm air leaves the file's sway */const wf=(window as any).__lwWeatherForce;const wv=wf?.wind||weather.wind||[0,0];const wk=Math.min(1.2,Math.hypot(+wv[0]||0,+wv[1]||0)*.6+(+(wf?.rain??weather.rain)||0)*.5);bladeMat.uniforms.uWindK.value+=(wk-bladeMat.uniforms.uWindK.value)*Math.min(1,dt*1.5);(window as any).__lwGroundCover={windK:+bladeMat.uniforms.uWindK.value.toFixed(3),parts:'beast+residents'};}
     const play=UG.uPlay.value;play[0].copy(bN);residents.slice(0,6).forEach((r,i)=>play[i+1].copy(r.n));play[7].copy(spawnRef.current?pN:bN);
     // things wake when the spreading grass reaches them; touched things grow / pulse
     for(const th of things){if(!th.awake){const c=gpts.some(g=>ang(th.n,g)/PR<UG.uSpread.value-.2);if(c){th.awake=true;th.grow=1;}}
