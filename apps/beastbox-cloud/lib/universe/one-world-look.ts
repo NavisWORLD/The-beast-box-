@@ -8,6 +8,8 @@ export const LOOK2=Object.freeze({label:'SEEDED',teal:'#437E9E',skyMid:'#88C9BB'
 const TO_SRGB='vec3 toS(vec3 c){c=max(c,0.0);return mix(c*12.92,1.055*pow(c,vec3(1.0/2.4))-.055,step(.0031308,c));}';
 /** P2 ground fix (art target 36, Oct 30): a lush green meadow to the horizon instead of the pale olive plain. sRGB hexes (three converts to linear). SEEDED palette, DERIVED blends. */
 export const MEADOW36=Object.freeze({label:'SEEDED',dark:'#2C5A1C',base:'#4C8C2A',tip:'#8CC04A',soil:'#6E5A36',blade:'#B8E070',haze:'#A9C9DE',belowHorizon:'#3E6E2A'});
+/** Target 36 sun bloom (SEEDED look numbers). core is linear and above the P1 bloom threshold (~1.6 before exposure); halo/wide are the soft warm glow. */
+export const SUNBLOOM36=Object.freeze({label:'SEEDED',core:2.4,coreExp:900,halo:.55,haloExp:64,wide:.16,wideExp:6});
 /** Scene units per metre: TRAV_H .5 = 1.7 m. */
 export const M=.5/1.7;
 /** P1 fix-up (art target 36): in first person the neighbour world sits smaller and higher so it reads as a far planet, not a wall. SEEDED placement. */
@@ -26,6 +28,7 @@ export function addSkyDome(THREE:T,scene:import('three').Object3D){
    vec3 zen=mix(uZen,mix(uZen,uTeal,.5),uDay);
    vec3 c=mix(uHor,zen,pow(clamp(e,0.0,1.0),.45));
    c=mix(c,uWarm*.9,.35*pow(s,24.0)*uDay);
+   c+=uWarm*(${SUNBLOOM36.core.toFixed(2)}*pow(s,${SUNBLOOM36.coreExp.toFixed(2)})+${SUNBLOOM36.halo.toFixed(2)}*pow(s,${SUNBLOOM36.haloExp.toFixed(2)})+${SUNBLOOM36.wide.toFixed(2)}*pow(s,${SUNBLOOM36.wideExp.toFixed(2)}))*uDay*step(0.0,e); /* target 36 warm sun bloom by day: a hot core over the P1 bloom threshold (so the existing P1 bloom pass blooms it on MED/HIGH/GOD) plus a soft warm halo that also shows on LOW; only above the horizon, fades with the one sun's day factor */
    if(e<0.0)c=mix(uHor,uBelow*mix(.15,1.0,uDay),smoothstep(0.0,-.04,e)); /* below the horizon: ground, not sky */
    gl_FragColor=vec4(toS(c),1.0);}`});
  const dome=new THREE.Mesh(new THREE.SphereGeometry(300,48,24),m);dome.renderOrder=-20;dome.frustumCulled=false;dome.visible=false;scene.add(dome);
