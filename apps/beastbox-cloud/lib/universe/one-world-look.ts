@@ -8,6 +8,9 @@ export const LOOK2=Object.freeze({label:'SEEDED',teal:'#437E9E',skyMid:'#88C9BB'
 const TO_SRGB='vec3 toS(vec3 c){c=max(c,0.0);return mix(c*12.92,1.055*pow(c,vec3(1.0/2.4))-.055,step(.0031308,c));}';
 /** Scene units per metre: TRAV_H .5 = 1.7 m. */
 export const M=.5/1.7;
+/** P1 fix-up (art target 36): in first person the neighbour world sits smaller and higher so it reads as a far planet, not a wall. SEEDED placement. */
+export const NEIGHBOUR_FP=Object.freeze({label:'SEEDED',elevationDeg:44,angularDeg:5.4});
+const NOISE='float h21(vec2 p){p=fract(p*vec2(123.34,456.21));p+=dot(p,p+45.32);return fract(p.x*p.y);}float vn(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(h21(i),h21(i+vec2(1,0)),f.x),mix(h21(i+vec2(0,1)),h21(i+vec2(1,1)),f.x),f.y);}float fbm(vec2 p){return .5*vn(p)+.25*vn(p*2.03+7.1)+.125*vn(p*4.01+3.7)+.0625*vn(p*8.07+1.3);}';
 /** Far ridges from Cosmo's FIX_NOTES_43c74d3 (aerial perspective k .000267/m, tint #8CB3D6). SEEDED shapes. */
 export const RIDGES=Object.freeze([{d:300,crestDeg:1.99,fade:.077,hex:'#6A7864'},{d:1200,crestDeg:2.07,fade:.274,hex:'#819393'},{d:2000,crestDeg:2.24,fade:.414,hex:'#8FA1A7'},{d:4500,crestDeg:2.27,fade:.7,hex:'#A7B6C1'}]);
 /** Sky dome: c = mix(horizon, zenith, pow(up,.45)); zenith = mix(pack zenith, teal mood target, .5) by day; warm only near the sun. Colours in linear, converted once. */
@@ -32,17 +35,22 @@ export function addFlatGround(THREE:T,scene:import('three').Object3D,rand:()=>nu
  const g=new THREE.Group();g.visible=false;scene.add(g);const R=2500*M;const mats:any[]=[];
  const GU={uSunL:{value:1},uDay:{value:1},uHaze:{value:new THREE.Color(LOOK2.horizonHaze)},uTint:{value:new THREE.Color(LOOK2.aerialTint)},uBase:{value:new THREE.Color('#5F6B40')},uK:{value:.000267/M}};
  const gm=new THREE.ShaderMaterial({uniforms:GU,fog:false,toneMapped:false,
-  vertexShader:'varying float vD;void main(){vD=length(position.xz);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
-  fragmentShader:`uniform float uSunL,uDay,uK;uniform vec3 uHaze,uTint,uBase;varying float vD;${TO_SRGB}
-  void main(){vec3 c=uBase*(.12+.88*uSunL)*mix(.15,1.0,uDay);float f=1.0-exp(-uK*vD);c=mix(c,mix(uHaze,uTint,.5)*mix(.08,1.0,uDay),f);gl_FragColor=vec4(toS(c),1.0);}`});
+  vertexShader:'varying float vD;varying vec2 vXZ;void main(){vD=length(position.xz);vXZ=position.xz;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
+  fragmentShader:`uniform float uSunL,uDay,uK;uniform vec3 uHaze,uTint,uBase;varying float vD;varying vec2 vXZ;${TO_SRGB}${NOISE}
+  void main(){vec2 q=vXZ*.012;float m=fbm(q),d=fbm(q*3.1+11.0),r=fbm(q*.23+5.0);
+   vec3 tip=vec3(.545,.608,.333),dark=vec3(.243,.29,.173),soil=vec3(.42,.353,.235);
+   vec3 land=mix(dark,uBase,smoothstep(.25,.6,m));land=mix(land,tip,smoothstep(.55,.85,d)*.55);land=mix(land,soil,smoothstep(.62,.8,r)*.5);
+   land*=mix(.7,1.2,fbm(q*.4+2.0))*mix(.85,1.1,vn(q*9.0)); /* meadow patches, darker hollows, bare soil: seeded noise, no tiling */
+   vec3 c=land*(.12+.88*uSunL)*mix(.15,1.0,uDay);float f=1.0-exp(-uK*vD);c=mix(c,mix(uHaze,uTint,.5)*mix(.08,1.0,uDay),f);gl_FragColor=vec4(toS(c),1.0);}`});
  const ground=new THREE.Mesh(new THREE.RingGeometry(14,R,96,4).rotateX(-Math.PI/2),gm);ground.renderOrder=-12;ground.frustumCulled=false;g.add(ground);mats.push(gm);
  for(const r of RIDGES){const rad=r.d*M,top=Math.tan(r.crestDeg*Math.PI/180)*rad;const ph=[rand()*6.28,rand()*6.28,rand()*6.28];const lobes=Math.max(6,Math.round(2*Math.PI*r.d/(3*r.d/40)/6));
-  const U={uC:{value:new THREE.Color(r.hex)},uDay:{value:1},uP:{value:new THREE.Vector3(...ph)},uL:{value:lobes}};
+  const U={uC:{value:new THREE.Color(r.hex)},uHz:{value:new THREE.Color(LOOK2.horizonHaze).lerp(new THREE.Color(LOOK2.aerialTint),.5)},uF:{value:r.fade},uDay:{value:1},uP:{value:new THREE.Vector3(...ph)},uL:{value:lobes}};
   const m=new THREE.ShaderMaterial({uniforms:U,side:THREE.DoubleSide,fog:false,toneMapped:false,
    vertexShader:'varying vec2 vUv;varying vec3 vP;void main(){vUv=uv;vP=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
-   fragmentShader:`uniform vec3 uC,uP;uniform float uDay,uL;varying vec2 vUv;varying vec3 vP;${TO_SRGB}
+   fragmentShader:`uniform vec3 uC,uP,uHz;uniform float uDay,uL,uF;varying vec2 vUv;varying vec3 vP;${TO_SRGB}
    void main(){float a=atan(vP.z,vP.x);float h=.55+.25*sin(uL*a+uP.x)+.12*sin(uL*2.3*a+uP.y)+.08*sin(uL*.37*a+uP.z);
-    if(vUv.y>h)discard;gl_FragColor=vec4(toS(uC*mix(.1,1.0,uDay)),1.0);}`});
+    if(vUv.y>h)discard;float k=clamp(.25+uF*.7+.35*(1.0-vUv.y/h),0.0,.92);vec3 c=mix(uC,uHz,k); /* hazy far ridges: aerial haze rises toward the base (valley mist) and with distance */
+    gl_FragColor=vec4(toS(c*mix(.1,1.0,uDay)),1.0);}`});
   const geo=new THREE.CylinderGeometry(rad,rad,top,192,1,true);geo.translate(0,top*.5,0);const mesh=new THREE.Mesh(geo,m);mesh.renderOrder=-11;mesh.frustumCulled=false;g.add(mesh);mats.push(m);}
  const life:{sp:any;r:number;a:number;w:number}[]=[];
  /** far creatures: resident sprites walking slow seeded circles on the patch at 15-120 m (mid) and 200-600 m (far); motion follows the clock t. */
@@ -53,7 +61,7 @@ export function addFlatGround(THREE:T,scene:import('three').Object3D,rand:()=>nu
   g.position.copy(groundPt);g.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),up);for(const m of mats)m.uniforms.uDay.value=day;GU.uSunL.value=sunL;}};
 }
 /** World-volcano in the sky: lit by the one sun, lava glow only on its night side, no ring, no light; blended .35*(1-fade) toward the sky by day. */
-export function addSkyWorld(THREE:T,scene:import('three').Object3D){
+export function addSkyWorld(THREE:T,scene:import('three').Object3D,angularDeg?:number){
  const V=LOOK2.volcano;const U={uSun:{value:new THREE.Vector3(0,1,0)},uBody:{value:new THREE.Color(V.body)},uLava:{value:new THREE.Color(V.lava)},uLavaK:{value:V.lavaIntensity},uSky:{value:new THREE.Color()},uSkyK:{value:0}};
  const m=new THREE.ShaderMaterial({uniforms:U,depthWrite:false,depthTest:false,fog:false,toneMapped:false,
   vertexShader:'varying vec3 vN;varying vec3 vO;void main(){vN=normalize(mat3(modelMatrix)*normal);vO=normalize(position);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
@@ -64,5 +72,5 @@ export function addSkyWorld(THREE:T,scene:import('three').Object3D){
    c=mix(c,uSky,uSkyK);gl_FragColor=vec4(toS(c),1.0);}`});
  const mesh=new THREE.Mesh(new THREE.SphereGeometry(1,40,24),m);mesh.renderOrder=-19;mesh.visible=false;mesh.frustumCulled=false;scene.add(mesh);
  return {mesh,update(on:boolean,eye:import('three').Vector3,dir:number[],sun:import('three').Vector3,sky:number[],day:number){mesh.visible=on;if(!on)return;const D=250;
-  mesh.position.set(eye.x+dir[0]*D,eye.y+dir[1]*D,eye.z+dir[2]*D);mesh.scale.setScalar(D*Math.tan(V.angularDeg*Math.PI/360));U.uSun.value.copy(sun);U.uSky.value.setRGB(sky[0],sky[1],sky[2]);U.uSkyK.value=.35*day;}};
+  mesh.position.set(eye.x+dir[0]*D,eye.y+dir[1]*D,eye.z+dir[2]*D);mesh.scale.setScalar(D*Math.tan((angularDeg||V.angularDeg)*Math.PI/360));U.uSun.value.copy(sun);U.uSky.value.setRGB(sky[0],sky[1],sky[2]);U.uSkyK.value=.35*day;}};
 }
