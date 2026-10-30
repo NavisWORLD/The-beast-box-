@@ -134,7 +134,7 @@ export default function LivingWorld({genome,beastKey,beastName,onClose,embedded=
    const skyCfg=skyConfigFor(homePl,homeStar);const skyBoomList=skyBooms(u,homePl,homeStar,(u as any).tick||0);const hemiBase=new THREE.Color(0xb9a8ff);
    renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.15;
    // the Cage's sun glow + light shaft + bloom halo (lib/worlds/heaven, shared with the home Cage), standing over whoever you're close to
-   const heaven=addHeaven(THREE,scene,{low:phone,rand:lwStream(u.seed+':heaven')});heaven.root.scale.setScalar(.4);
+   const heaven=addHeaven(THREE,scene,{low:phone,rand:lwStream(u.seed+':heaven'),noLight:true});heaven.root.scale.setScalar(.4);
    // key light on the beast so it reads as brightly as in the Cage
    const beastLamp=new THREE.PointLight(0xfff1e6,7,TRAV_H*8,1.6);scene.add(beastLamp);
    const DAY_S=240;const sunDir=new THREE.Vector3(1,.3,.2).normalize();const SKY_DAY=new THREE.Color(0x86bfff),SKY_DUSK=new THREE.Color(0xff9a5a),SKY_NIGHT=new THREE.Color(0x05030f);
