@@ -300,7 +300,7 @@ export default function BeastGo() {
     {guestMode && guestOpen ? <p className={css.guestNote} data-guest-play="true" id="go-guest-note">Guests play with a beast saved in this browser. No owner authority and no private memory. Talk uses the guest-safe brain.</p> : null}
     <div className={css.card} ref={cardRef}>
       <span className={css.portrait}>
-        <SparkBeastCompanion profile={profile} fallbackLook={profile?.baseLook ?? 'nebula'} compact state={sparkVisualState(card.mood)} className={css.spark} label={`${profile?.name || 'Spark Beast'} portrait`} />
+        <SparkBeastCompanion profile={profile} fallbackLook={profile?.baseLook ?? 'nebula'} compact state={sparkVisualState(card.mood)} className={css.spark} label={`${profile?.name || 'Your beast'} portrait`} />
       </span>
       <button type="button" className={css.identity} onClick={() => toggle('beasts')}>
         <span className={css.meta}>
@@ -342,7 +342,7 @@ export default function BeastGo() {
       </> : null}
       {sheet === 'beasts' ? <>
         <h2>Beasts</h2>
-        <p>{profile ? `${profile.name} · ${profile.family} is the Spark Beast game profile on this browser.` : 'Customize chooses the Spark Beast. This portrait uses that same profile, including the preview when none is saved yet.'}</p>
+        <p>{profile ? `${profile.name} · ${profile.family} is your game beast on this browser.` : 'Customize chooses your beast. This portrait uses that same profile, including the preview when none is saved yet.'}</p>
         <div className={css.row}><Link href="/beast-cage#customize">Customize this Beast</Link></div>
         <div className={css.list}>
           {(session?.bestiary || []).map((item: { seed: string; name?: string }) => <button key={item.seed} type="button" aria-pressed={beast?.seed === item.seed} onClick={() => { sfx('confirm'); change((draft) => { focusBeast(draft, item.seed); },{allowUnsignedAdoption:true}); }}>{item.name || 'Beast'}{beast?.seed === item.seed ? ' · with you' : ''}</button>)}

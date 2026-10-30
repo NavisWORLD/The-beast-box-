@@ -91,7 +91,7 @@ with sync_playwright() as p:
   assert json.loads(page.evaluate("localStorage.getItem('beastbox-genesis-v1-saved-game-characters')"))[0]["id"]==creature_id
   page.evaluate("window.dispatchEvent(new Event('beastbox:master-privacy-stop'))")
   expect(page.locator("aside[data-companion-overlay]")).to_have_attribute("data-companion-state","halted")
-  page.get_by_role("link",name=re.compile("Take this creature to the GBA Game Lab")).click()
+  page.get_by_role("link",name=re.compile("Take .* to the game lab")).click()
   page.wait_for_url("**/beast-cage/guest",timeout=15000)
   expect(page.get_by_role("heading",name=re.compile("Catch a star"))).to_be_visible()
   guest=page.get_by_role("region",name="Animated companion test environment").locator('[data-spark-beast="true"][data-creature-id="'+creature_id+'"]')

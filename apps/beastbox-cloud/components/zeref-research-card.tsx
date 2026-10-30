@@ -25,7 +25,7 @@ export default function ZerefResearchCard({beastId}:{beastId?:string}){
   {view&&a?<>
    <p className={styles.summary}><strong>Experiment {a.experiment} · cycle {a.approved_cycle}</strong> · {a.training_steps.toLocaleString()} training steps</p>
    <p className={styles.small}>Checkpoint <code title={a.checkpoint_sha256}>{short(a.checkpoint_sha256)}</code> · optimizer and replay state preserved. <a href={a.run_url} target="_blank" rel="noopener noreferrer">Approval evidence</a></p>
-   <p className={styles.small}>Research lineage <code>{view.trainingId}</code>{beastId&&beastId!==view.trainingId?<> · selected creature <code>{beastId}</code></>:null}. The Moonwraith display companion <code>{view.displayId}</code> has no verified association to this neural lineage.</p>
+   <p className={styles.small}>Research lineage <code>{view.trainingId}</code>{beastId&&beastId!==view.trainingId?<> · selected creature <code>{beastId}</code></>:null}. Zeref's display form <code>{view.displayId}</code> has no verified association to this neural lineage.</p>
    <div className={styles.trials}>
     {view.trials.map(t=><details key={t.experiment} className={styles.trial} data-experiment={t.experiment} data-candidate-status={t.status}>
      <summary><span>{t.experiment} · {t.name}</span><b>REJECTED</b></summary>

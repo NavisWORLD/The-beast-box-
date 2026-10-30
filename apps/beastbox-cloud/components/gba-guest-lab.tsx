@@ -75,7 +75,7 @@ export default function GuestGbaLab(){
  return <main className={styles.page}>
   <header className={styles.header}>
    <Link href="/beast-cage"><ArrowLeft size={16}/> Beast Cage</Link>
-   <span>THE LITTLE BEAST · GAME LAB</span>
+   <span>THE LITTLE BEAST · CATCH A STAR</span>
    <Link href="/beast-cage/talk">Real guest chat <ArrowRight size={16}/></Link>
    <Link href="/beast-cage/play">Adventure <ArrowRight size={16}/></Link>
    <Link href="/beast-cage/go">Lost COSMOS Field <ArrowRight size={16}/></Link>
