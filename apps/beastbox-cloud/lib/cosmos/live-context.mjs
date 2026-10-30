@@ -24,10 +24,17 @@
  * beside {text, guest_identity}, so the forever door sends these pieces
  * through that contract (assembleBridgeContext, byte caps below) instead of
  * riding them inside the prompt text.
+ *
+ * SIGHT (Option C): a fourth piece rides the same contract as its own
+ * field — his sight (lib/cosmos/sight.mjs): his own world's light DERIVED
+ * from its sky, a visitor's light MEASURED only when fresh and real,
+ * composed by the caller and fitted here (the library still yields first
+ * under total pressure; a sight line is whole or absent, never truncated).
  */
 import {readFile} from 'node:fs/promises';
 import {buildIndex,search} from '../library/bm25.mjs';
 import {tokenize} from '../library/text.mjs';
+import {SIGHT_LABELS} from './sight.mjs';
 
 export const LIVE_CONTEXT_LABEL='Live universe lines carry the world-live channel labels verbatim; library lines are his approved teaching, composed read-only on a topic match and absent on a miss.';
 export const SHELF_SOURCES=Object.freeze([
@@ -229,8 +236,9 @@ export function assembleServedPreface({continuity='',recompose=null,world=null,s
 
 /* ---------------- bridge context (the #675 contract, byte caps) ---------------- */
 
-/** The bridge's context caps, in UTF-8 bytes (guest_hebbian.CONTEXT_CAPS + total). */
-export const BRIDGE_CONTEXT_CAPS=Object.freeze({continuity:600,universe:300,library:300,total:1000});
+/** The bridge's context caps, in UTF-8 bytes (guest_hebbian.CONTEXT_CAPS + total).
+ * Sight's cap is its own; the total rose by exactly that cap (1000 -> 1300). */
+export const BRIDGE_CONTEXT_CAPS=Object.freeze({continuity:600,universe:300,library:300,sight:300,total:1300});
 const BYTE_ENCODER=new TextEncoder();
 const byteLen=s=>BYTE_ENCODER.encode(String(s??'')).length;
 /** Byte-safe clip: never splits a UTF-8 sequence (backs off to a clean boundary). */
@@ -276,18 +284,50 @@ function fitShelf(hits,capBytes){
  if(out&&byteLen(out)>capBytes)out=clipBytes(out,capBytes);
  return out||'';
 }
+/** The receipt shape when no sight was composed for a request: labels
+ * present, nothing claimed composed, the absence stated. */
+function absentSightReceipt(){
+ return {world_light:{composed:false,label:SIGHT_LABELS.world,brightness_band:null,trend:null,feeling:null,
+   reason:'no sight composed for this request'},
+  visitor_light:{composed:false,label:SIGHT_LABELS.absent,source:null}};
+}
+/** Sight fitted to its byte cap by re-composing smaller (composeSight's own
+ * whole-line discipline: the visitor line drops first, then the block is
+ * absent — a label is never truncated, so unlike the shelf there is no
+ * byte-clip last resort). Without a refit callback an over-cap block is
+ * dropped whole rather than cut. Returns the fitted text and the receipt
+ * of the composition that produced it. */
+function fitSight(text,meta,refit,capBytes){
+ let out=String(text??'');
+ let m=meta||null;
+ // First refit happens AT the cap (the caller's text was composed at
+ // composeSight's own larger default), then shrinks by the house 0.8 step.
+ let n=Math.min(capBytes,out.length);
+ while(out&&byteLen(out)>capBytes&&typeof refit==='function'&&n>0){
+  const next=refit(n);
+  if(!next)break;
+  out=String(next.text??'');
+  if(next.receipt)m=next.receipt;
+  n=Math.floor(n*0.8);
+ }
+ if(out&&byteLen(out)>capBytes)out='';
+ return {text:out,meta:m};
+}
 
 /**
  * Compose the bridge `context` object for the forever door:
- * {continuity, universe, library}, each field within its byte cap and the
- * three within the total cap. Priority follows the bridge's own assembly
- * order: continuity is fitted first and never traded away, then the live
- * universe, then the library gets what total budget remains (a miss or a
- * squeezed-out library composes nothing — never a fake book). Empty fields
- * are omitted. Returns the context plus per-field byte counts and the same
- * honest receipt metadata assembleServedPreface reports.
+ * {continuity, universe, library, sight}, each field within its byte cap
+ * and the four within the total cap. Priority follows the bridge's own
+ * assembly order: continuity is fitted first and never traded away, then
+ * the live universe, then sight (composed by the caller via composeSight;
+ * `refitSight(n)` re-composes it at a smaller char budget, the same idiom
+ * as `recompose`), then the library gets what total budget remains (a miss
+ * or a squeezed-out library composes nothing — never a fake book). Empty
+ * fields are omitted. Returns the context plus per-field byte counts and
+ * the same honest receipt metadata assembleServedPreface reports, plus the
+ * sight receipt (labels present either way; `composed` states inclusion).
  */
-export function assembleBridgeContext({continuity='',recompose=null,world=null,shelfHits=[]}={}){
+export function assembleBridgeContext({continuity='',recompose=null,world=null,shelfHits=[],sight='',sightMeta=null,refitSight=null}={}){
  const liveMeta=liveUniverseReceipt(world);
  const libMeta=shelfReceipt(shelfHits);
  // The bridge's validator refuses control characters (other than \n and
@@ -296,15 +336,25 @@ export function assembleBridgeContext({continuity='',recompose=null,world=null,s
  const clean=s=>String(s??'').replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g,'');
  const cont=clean(fitContinuity(continuity,recompose,BRIDGE_CONTEXT_CAPS.continuity));
  const univ=clean(fitUniverse(world,BRIDGE_CONTEXT_CAPS.universe));
- const remaining=BRIDGE_CONTEXT_CAPS.total-byteLen(cont)-byteLen(univ);
+ const sightCap=Math.max(0,Math.min(BRIDGE_CONTEXT_CAPS.sight,BRIDGE_CONTEXT_CAPS.total-byteLen(cont)-byteLen(univ)));
+ const fittedSight=fitSight(sight,sightMeta,refitSight,sightCap);
+ const sightText=clean(fittedSight.text);
+ const sightKept=Boolean(sightText)&&byteLen(sightText)<=sightCap?sightText:'';
+ const sightBase=fittedSight.meta||absentSightReceipt();
+ const sightReceipt={
+  world_light:{...sightBase.world_light,composed:Boolean(sightKept)&&Boolean(sightBase.world_light?.composed)},
+  visitor_light:{...sightBase.visitor_light,composed:Boolean(sightKept)&&Boolean(sightBase.visitor_light?.composed)}};
+ const remaining=BRIDGE_CONTEXT_CAPS.total-byteLen(cont)-byteLen(univ)-byteLen(sightKept);
  const lib=remaining>0?clean(fitShelf(shelfHits,Math.min(BRIDGE_CONTEXT_CAPS.library,remaining))):'';
  const context={};
  if(cont)context.continuity=cont;
  if(univ)context.universe=univ;
  if(lib)context.library=lib;
- const bytes={continuity:byteLen(cont),universe:byteLen(univ),library:byteLen(lib)};
- bytes.total=bytes.continuity+bytes.universe+bytes.library;
+ if(sightKept)context.sight=sightKept;
+ const bytes={continuity:byteLen(cont),universe:byteLen(univ),library:byteLen(lib),sight:byteLen(sightKept)};
+ bytes.total=bytes.continuity+bytes.universe+bytes.library+bytes.sight;
  return {context,bytes,
   live:{...liveMeta,composed:Boolean(univ)},
-  library:{...libMeta,composed:Boolean(lib)}};
+  library:{...libMeta,composed:Boolean(lib)},
+  sight:sightReceipt};
 }

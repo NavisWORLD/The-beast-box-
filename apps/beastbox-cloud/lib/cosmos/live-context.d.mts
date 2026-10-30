@@ -9,5 +9,5 @@ export function composeShelfLines(hits:any[],maxChars?:number):string;
 export function shelfReceipt(hits:any[]):any;
 export function loadShelfIndex():Promise<any>;
 export function assembleServedPreface(o:{continuity?:string,recompose?:((n:number)=>string)|null,world?:any,shelfHits?:any[],budget?:number}):{preface:string,live:any,library:any};
-export const BRIDGE_CONTEXT_CAPS:{continuity:number,universe:number,library:number,total:number};
-export function assembleBridgeContext(o:{continuity?:string,recompose?:((n:number)=>string)|null,world?:any,shelfHits?:any[]}):{context:{continuity?:string,universe?:string,library?:string},bytes:{continuity:number,universe:number,library:number,total:number},live:any,library:any};
+export const BRIDGE_CONTEXT_CAPS:{continuity:number,universe:number,library:number,sight:number,total:number};
+export function assembleBridgeContext(o:{continuity?:string,recompose?:((n:number)=>string)|null,world?:any,shelfHits?:any[],sight?:string,sightMeta?:any,refitSight?:((n:number)=>{text:string,receipt:any})|null}):{context:{continuity?:string,universe?:string,library?:string,sight?:string},bytes:{continuity:number,universe:number,library:number,sight:number,total:number},live:any,library:any,sight:any};

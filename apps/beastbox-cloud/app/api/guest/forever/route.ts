@@ -2,6 +2,7 @@ import {bridgeConfigured,safeJson} from '@/lib/security';
 import {storageConfig} from '@/lib/cosmos/azure-blob.mjs';
 import {appendExchange,appendGuestEvent,bridgeIdentityForThread,composeContinuityPreface,isThreadId,newThreadId,readThread} from '@/lib/cosmos/forever-store.mjs';
 import {assembleBridgeContext,loadShelfIndex,matchShelf,LIVE_CONTEXT_LABEL} from '@/lib/cosmos/live-context.mjs';
+import {composeSight} from '@/lib/cosmos/sight.mjs';
 import {buildWorldLive} from '@/lib/zeref/world-live.mjs';
 import {DIARY_SCHEMA,entryHash,genesisState} from '@/lib/zeref/zeref-diary.mjs';
 import PUBLIC_PIN from '@/lib/rawrphos-public-pin.json';
@@ -25,8 +26,8 @@ import PUBLIC_PIN from '@/lib/rawrphos-public-pin.json';
 // BRIDGE CONTEXT (PR #675 follow-up, docs/forever-connection/
 // BRIDGE-PERSISTENCE.md): those three pieces no longer ride inside the
 // prompt text. They go through the bridge's bounded context contract —
-// {text, guest_identity, context:{continuity, universe, library}} within
-// its byte caps (assembleBridgeContext) — which is also the only door to
+// {text, guest_identity, context:{continuity, universe, library, sight}}
+// within its byte caps (assembleBridgeContext) — which is also the only door to
 // the bridge's persisted per-guest Hebbian thread: a truthful
 // memory_used:true is accepted exactly when hebbian_mode is 'persisted',
 // and both receipts are surfaced below. A visitor message over the
@@ -34,6 +35,13 @@ import PUBLIC_PIN from '@/lib/rawrphos-public-pin.json';
 // the plain contract instead (no context, memory must report unused).
 // There is no 400-truncation retry here: a 400 in context mode means the
 // composed pieces exceeded the caps — composing within them is the fix.
+// SIGHT (Option C): a fourth piece rides the same contract as its own
+// field — his world's light DERIVED from its sky, and the visitor's light
+// MEASURED only when the request carries a fresh, valid environment
+// summary (the site light conversion's shape; stale, malformed or absent
+// composes nothing). See lib/cosmos/sight.mjs. The bridge must already
+// know the sight field when this ships: a bridge predating it refuses
+// any context that carries the field (its validator is strict).
 const PIN_STEP:number=PUBLIC_PIN.training_steps,PIN_SHA:string=PUBLIC_PIN.checkpoint_sha256;
 export const runtime='nodejs';
 export const dynamic='force-dynamic';
@@ -109,8 +117,8 @@ export async function POST(request:Request){
  if(!data||typeof data!=='object'||Array.isArray(data))
   return safeJson(400,{error:'Invalid guest request'});
  const item=data as Record<string,unknown>;
- if(!Object.keys(item).every(k=>['provider','text','thread'].includes(k)))
-  return safeJson(400,{error:'Forever guest mode only accepts a message and an optional thread id'});
+ if(!Object.keys(item).every(k=>['provider','text','thread','environment'].includes(k)))
+  return safeJson(400,{error:'Forever guest mode only accepts a message, an optional thread id and an optional environment summary'});
  if(item.provider!=='rawrphos-local')
   return safeJson(400,{error:'The forever door serves the local RAWRPHOS brain only'});
  if(typeof item.text!=='string'||item.text.trim().length<1||item.text.length>MAX_PROMPT||
@@ -139,17 +147,26 @@ export async function POST(request:Request){
  const shelf=await loadShelfIndex().catch(()=>null);
  const shelfHits=shelf?matchShelf(shelf,text):[];
  const continuityArgs={pinStep:PIN_STEP,diary,threadTurns:threadRec?.thread?.turns||[]};
- // The three context pieces, each within the bridge's byte caps and the
- // total cap (continuity first, then live universe, then library).
+ // His sight: the light over his own world (DERIVED from its sky) and the
+ // visitor's light (MEASURED only when a fresh, valid environment summary
+ // rode along — anything else composes nothing, and the receipt says so).
+ const sightBlock=composeSight({world,environment:item.environment,nowMs:world.at_ms});
+ // The four context pieces, each within the bridge's byte caps and the
+ // total cap (continuity first, then live universe, then sight, then library).
  const bridgeContext=assembleBridgeContext({
   continuity:composeContinuityPreface(continuityArgs,600),
   recompose:(n:number)=>composeContinuityPreface(continuityArgs,n),
-  world,shelfHits});
+  world,shelfHits,
+  sight:sightBlock.text,sightMeta:sightBlock.receipt,
+  refitSight:(n:number)=>composeSight({world,environment:item.environment,nowMs:world.at_ms,maxChars:n})});
  // Context rides only when the visitor text itself fits the contract cap.
  const contextSent=Buffer.byteLength(text,'utf8')<=MAX_TEXT_WITH_CONTEXT;
  const liveReceipt=contextSent?bridgeContext.live:{...bridgeContext.live,composed:false};
  const libraryReceipt=contextSent?bridgeContext.library:{...bridgeContext.library,composed:false};
- const sentContextBytes=contextSent?bridgeContext.bytes:{continuity:0,universe:0,library:0,total:0};
+ const sightReceipt=contextSent?bridgeContext.sight:{
+  world_light:{...bridgeContext.sight.world_light,composed:false},
+  visitor_light:{...bridgeContext.sight.visitor_light,composed:false}};
+ const sentContextBytes=contextSent?bridgeContext.bytes:{continuity:0,universe:0,library:0,sight:0,total:0};
  // The identity handed to the bridge keys its persisted per-guest Hebbian
  // thread (bridge store: sha256(guest_identity)), so it must follow the
  // VISITOR, not their network: it is derived from the stable guestbook
@@ -220,11 +237,12 @@ export async function POST(request:Request){
     source:'zeref-diary branch + Azure guestbook (beasts/bb-deada969/guestbook)',
     live_universe:liveReceipt,
     library:libraryReceipt,
+    sight:sightReceipt,
     bridge_context:{sent:contextSent,bytes:sentContextBytes,
-     label:'Composed pieces sent through the bridge context contract (continuity, universe, library), not inside the prompt text; sent:false means the visitor text exceeded the contract text cap and the plain contract served the reply.'},
+     label:'Composed pieces sent through the bridge context contract (continuity, universe, library, sight), not inside the prompt text; sent:false means the visitor text exceeded the contract text cap and the plain contract served the reply.'},
     live_context_label:LIVE_CONTEXT_LABEL,
     training_eligible:false,
-    label:'Continuity, the live universe and the library are composed from his persisted record into the bridge context object; guest exchanges are recorded as guest-origin events and never enter training.'},
+    label:'Continuity, the live universe, the library and his sight are composed from his persisted record into the bridge context object; guest exchanges are recorded as guest-origin events and never enter training.'},
    prompt_chars:text.length,
    ...(result.routing&&typeof result.routing==='object'&&!Array.isArray(result.routing)?{routing:result.routing}:{})},
    {status:200,headers});
