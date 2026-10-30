@@ -984,3 +984,8 @@ html[data-cage-creature=off] :is(.beast-landing-creature,.beast-landing-art [dat
 .home-look-made[open]{max-width:340px}
 .home-look-made p{margin:8px 0 4px}.home-look-made ul{margin:0;padding-left:18px}
 .home-pocket-layer [class*=cage-pocket-dimension][class*=__live]{display:none!important}
+/* Home bubble at phone width: the RECORDED/SIMULATED label stops before '≡ Universe' so the button never covers it (additive). */
+@media(max-width:600px){.home-pocket-layer [data-sand-source]{max-width:33%!important;font-size:6.5px!important}}
+/* Home bubble with the embedded living world: its View/Quality chips sit top right, so '≡ Universe' moves to the top left (additive). */
+.beast-landing-art:has([data-lw-view]) .home-menu-layer [data-world-menu=home]{right:auto!important;left:16%!important}
+@media(min-width:601px){.beast-landing-art [data-lw-view-chips]{right:17%!important;top:13%!important}}
