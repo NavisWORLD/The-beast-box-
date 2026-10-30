@@ -56,6 +56,7 @@ import {readActiveBeast} from '@/lib/companion/beast-name.mjs';
 import {cosmicEvents,cosmicLine,createWindow,stepWindow,windowLine,seededMood,spreadMood,napGroup,buildKind,advanceBuild,coexistLine,worldLine,placeLine,learnBiome,worldRecord,toJsonl,windowEmissive,traitIcon,MOOD_ICON,ZEREF_ID} from '@/lib/universe/living-alive.mjs';
 import {addCageSurface} from '@/lib/universe/surface-three';
 import {ROADSTER_LABEL,bodyVariantIndex,wheelOmega,steerAngle,driveState,bodyBob,headlamp,underglow} from '@/lib/universe/roadster-view.mjs';
+import {FLIGHT,FLIGHT_LABEL,liftOff,stepFlight,flightInfo,landingAssist,ascentAssist,orbitElements,skyFade,norm} from '@/lib/universe/roadster-flight.mjs';
 import {growthNodesAt,GROWTH} from '@/lib/universe/seeded-growth-nodes.mjs';
 import {snapNodesToHabitat,TINT_BIOMES} from '@/lib/universe/growth-view.mjs';
 import {REDUCED_MOTION_KEY} from '@/components/use-universe-motion';
@@ -93,7 +94,7 @@ export default function LivingWorld({genome,beastKey,beastName,onClose,embedded=
  const toggleSound=()=>{const s=sndRef.current;if(s.on){s.on=false;setSndOn(false);try{s.ctx?.suspend();}catch{}return;}try{const AC=(window as any).AudioContext||(window as any).webkitAudioContext;if(!s.ctx&&AC)s.ctx=new AC();s.ctx?.resume?.();}catch{}s.on=!!s.ctx;setSndOn(!!s.ctx);};
  const [err,setErr]=useState<string|null>(null);const [booted,setBooted]=useState(false);const [line,setLine]=useState<string|null>(null);const lineRef=useRef(setLine);lineRef.current=setLine;
  useEffect(()=>{if(!line)return;const id=setTimeout(()=>setLine(null),4200);return()=>clearTimeout(id);},[line]);
- const [ascii,setAscii]=useState(false);const asciiRef=useRef(false);asciiRef.current=ascii;const [visit,setVisit]=useState<{id:string;star?:string}|null>(null);const [roadster,setRoadster]=useState(false);const roadsterRef=useRef(false);roadsterRef.current=roadster;const [flying,setFlying]=useState(false);const flyRef=useRef(false);flyRef.current=flying;const joy=useRef({x:0,y:0,active:false,id:-1,cx:0,cy:0});const keys=useRef(new Set<string>());
+ const [ascii,setAscii]=useState(false);const asciiRef=useRef(false);asciiRef.current=ascii;const [visit,setVisit]=useState<{id:string;star?:string}|null>(null);const [roadster,setRoadster]=useState(false);const roadsterRef=useRef(false);roadsterRef.current=roadster;const [flying,setFlying]=useState(false);const flyRef=useRef(false);flyRef.current=flying;const joy=useRef({x:0,y:0,active:false,id:-1,cx:0,cy:0});const keys=useRef(new Set<string>());const rfRef=useRef({want:false,thrust:false,brake:false,assist:'' as ''|'land'|'ascent',on:false});const [rfUi,setRfUi]=useState(false);const hudRef=useRef<HTMLDivElement>(null);
  const [stick,setStick]=useState<{x:number;y:number}|null>(null);
  useEffect(()=>{if(embedded||door)return;try{sessionStorage.setItem('lw:spawned',spawned?'1':'0');}catch{}},[spawned,embedded]);
  useEffect(()=>{spawnRef.current=spawned;(window as any).__lwSpawned=spawned;},[spawned]);
@@ -450,7 +451,15 @@ uniform vec3 uPlay[8];
     if(disposed)return;const root=g.scene;const bb=new THREE.Box3().setFromObject(root);const k=TRAV_H/Math.max(.01,bb.max.y-bb.min.y);root.scale.setScalar(k);root.position.y=-bb.min.y*k;root.traverse((o:any)=>{if(o.isMesh)o.castShadow=true;});
     explorer.clear();explorer.add(root);legs.length=0;exMixer=new THREE.AnimationMixer(root);for(const c of g.animations||[]){const nm=/walk/i.test(c.name)?'walk':/look/i.test(c.name)?'look':/idle/i.test(c.name)?'idle':c.name;exActs[nm]=exMixer.clipAction(c);}(window as any).__lwExplorerGlb=Object.keys(exActs);});}).catch(()=>{});
    // ---- Roadster · SEEDED (Cosmo's pack): a VISUAL swap for the spawned-in traveler, loaded only when the button is first pressed. The traveler's own walkOn/stepMover motion drives it (no second physics).
-   let car:any=null,carLoading=false,carPrev:any=null,carV=0,carSteer=0;const carK=TRAV_H/1.7;
+   const SPACE_BG=new THREE.Color(0x02010a);let car:any=null,carLoading=false,carPrev:any=null,carV=0,carSteer=0;const carK=TRAV_H/1.7;
+   // roadster flight (SIMULATED): the car lifts off from where it drives, climbs through the air into space seen from the cockpit, and comes back. State lives here; the maths is lib/universe/roadster-flight.mjs
+   // look around the cockpit: drag the view; with no drag, in space the view eases down toward the planet below
+   let lkY=0,lkP=0,lkD:{x:number;y:number}|null=null,lkAt=-9;
+   {const lpd=(e:PointerEvent)=>{if(rf.on)lkD={x:e.clientX,y:e.clientY};},lpm=(e:PointerEvent)=>{if(lkD&&rf.on){lkY-=(e.clientX-lkD.x)*.006;lkP=Math.max(-1.4,Math.min(1.4,lkP-(e.clientY-lkD.y)*.006));lkD={x:e.clientX,y:e.clientY};lkAt=performance.now()/1000;}},lpu=()=>{lkD=null;};
+    canvas.addEventListener('pointerdown',lpd);addEventListener('pointermove',lpm);addEventListener('pointerup',lpu);addEventListener('pointercancel',lpu);cleanup.push(()=>{canvas.removeEventListener('pointerdown',lpd);removeEventListener('pointermove',lpm);removeEventListener('pointerup',lpu);removeEventListener('pointercancel',lpu);});}
+   (window as any).__lwLook=(y:number,p:number,hold=8)=>{lkY=y;lkP=p;lkAt=performance.now()/1000+hold;};
+   const rf:any={on:false,S:null,blend:0,landT:0,hudT:0,plume:null,atmo:null,v:new THREE.Vector3()};
+   const rfAtmo=(()=>{const m=new THREE.Mesh(new THREE.SphereGeometry(PR*1.12,48,32),new THREE.ShaderMaterial({transparent:true,depthWrite:false,side:THREE.BackSide,blending:THREE.AdditiveBlending,uniforms:{uK:{value:0}},vertexShader:'varying vec3 vN;varying vec3 vV;void main(){vN=normalize(normalMatrix*normal);vec4 mv=modelViewMatrix*vec4(position,1.);vV=normalize(-mv.xyz);gl_Position=projectionMatrix*mv;}',fragmentShader:'varying vec3 vN;varying vec3 vV;uniform float uK;void main(){float f=pow(clamp(dot(-vN,vV),0.,1.),2.2);gl_FragColor=vec4(vec3(.36,.62,1.)*f*.55*uK,f*uK);}'}));m.visible=false;m.renderOrder=3;scene.add(m);return m;})();cleanup.push(()=>{rfAtmo.geometry.dispose();(rfAtmo.material as any).dispose();});
    const loadCar=()=>{carLoading=true;Promise.all([import('three/examples/jsm/loaders/GLTFLoader.js'),fetch('/universe/livingworld/roadster/roadster_palette.json').then(r=>r.json())]).then(([{GLTFLoader},pal])=>new GLTFLoader().loadAsync('/universe/livingworld/roadster/roadster.glb').then((g:any)=>{
     if(disposed)return;const root=g.scene;const vi=bodyVariantIndex(lwStream(u.seed+':roadster')());const bv=pal.body_variants[vi]||pal.body_variants[0];const parts:any={wheels:[],steer:[],glows:[]};
     root.traverse((o:any)=>{if(o.isMesh){o.castShadow=true;if(o.material?.name==='body_paint'){o.material=o.material.clone();o.material.color.setRGB(...bv.baseColorFactor.slice(0,3));}
@@ -484,7 +493,7 @@ uniform vec3 uPlay[8];
     try{growthUi();}catch{}
     try{lwStore.setItem('lw:universe',JSON.stringify(u));lwStore.setItem('lw:traits:'+bKey,JSON.stringify(traits));}catch{}};
    // ---- input
-   const kd=(e:KeyboardEvent)=>{keys.current.add(e.key.toLowerCase());if(e.key.toLowerCase()==='f')setFlying(v=>!v);},ku=(e:KeyboardEvent)=>{keys.current.delete(e.key.toLowerCase());};
+   const kd=(e:KeyboardEvent)=>{const k=e.key.toLowerCase();keys.current.add(k);if(k===' '&&spawnRef.current&&roadsterRef.current)e.preventDefault();if(k==='l'&&rfRef.current.on)rfRef.current.assist=rfRef.current.assist==='land'?'':'land';if(k==='f'&&!rfRef.current.on)setFlying(v=>!v);},ku=(e:KeyboardEvent)=>{keys.current.delete(e.key.toLowerCase());};
    addEventListener('keydown',kd);addEventListener('keyup',ku);cleanup.push(()=>{removeEventListener('keydown',kd);removeEventListener('keyup',ku);});
    // orbit drag when not spawned
    let oy=.3,ox=0,drag:{x:number;y:number}|null=null;let userAt=performance.now();const poke=()=>{userAt=performance.now();};let seaF:any=null;let seaQ=0;const SEA_NAMES:Record<string,string>={fish:'fish school',ray:'manta rays',whale:'whale',jelly:'jellyfish',turtle:'turtles',seabird:'seabirds'};const seaHud=(on:boolean,sc?:any)=>{const e=hudSea.current;if(!e)return;e.style.display=on?'':'none';if(on&&sc)e.textContent='Sea life: '+(SEA_NAMES[sc.kind]||sc.kind)+' · SEEDED (recorded IBM counts, not a live feed)';};
@@ -716,7 +725,7 @@ uniform vec3 uPlay[8];
     glow.position.copy(beastNode.position).addScaledVector(bN,TRAV_H*1.6).addScaledVector(new THREE.Vector3().crossVectors(bN,bF).normalize(),-TRAV_H*.6);
     // traveler + camera
     if(sp){let ix=joy.current.x,iy=joy.current.y;const K=keys.current;if(K.has('w')||K.has('arrowup'))iy=-1;if(K.has('s')||K.has('arrowdown'))iy=1;if(K.has('a')||K.has('arrowleft'))ix=-1;if(K.has('d')||K.has('arrowright'))ix=1;
-     const mag=Math.min(1,Math.hypot(ix,iy));exBack=iy>.3;
+     const mag=rf.on?0:Math.min(1,Math.hypot(ix,iy));exBack=iy>.3;
      if(spawnT>=0){spawnT+=dt;const fr=Math.min(F.traveler_spawn.count-1,Math.floor(spawnT*F.traveler_spawn.fps));trav.visible=true;explorer.visible=false;trav.material.map=tSpawn;setFrame(tSpawn,F.traveler_spawn.cols,1,fr,0);if(spawnT>F.traveler_spawn.count/F.traveler_spawn.fps)spawnT=-1;}
      else if(mag>.08){turn(pN,pF,-ix*dt*2.2*(iy>.3?-1:1));const fwd=-iy;exRun=mag>.85;walkOn(pN,pF,(fwd>=0?1:-1)*Math.max(.25,Math.abs(fwd))*(exRun?3.5:1.2)*(TRAV_H/1.7)*Math.min(1,mag/.85)*dt*Math.max(.6,(BIOME_FEEL as any)[biomeOf(pN)]?.speed??1));
       const ang=Math.atan2(ix,-iy);const oct=((Math.round(ang/(Math.PI/4))%8)+8)%8;const ROW8=['N','NE','E','SE','S','SW','W','NW'][oct];const row=ROWS.indexOf(ROW8);
@@ -727,7 +736,7 @@ uniform vec3 uPlay[8];
       explorer.rotation.y=(exWalk>.08&&exBack?Math.PI:0)+(exMixer?0:0);}
      exMixer?.update(dt);exWalk=0;
      if(roadsterRef.current&&!car&&!carLoading)loadCar();
-     if(car){const cs=mover.w.swim<.4&&mover.w.fly<.4;const wantCar=roadsterRef.current&&spawnT<0&&cs;car.root.visible=wantCar;
+     if(car){const cs=mover.w.swim<.4&&mover.w.fly<.4;const wantCar=roadsterRef.current&&spawnT<0&&cs&&!rf.on;car.root.visible=wantCar;
       {/* roadster voices (approved lines, additive; the existing Roadster · SEEDED label is unchanged): board / other_rides / cruise / stop, sequenced by createRoadsterVoice (no clock, no random) */const rv=roadsterSeq.step(dt,{wantCar,carV,storming,night:lastSunH<0,nearResident:(residents as any[]).find((q:any)=>ang(q.n,pN)<.5)?.name||null});if(rv){const rl=roadsterVoice(rv.cat,String(u.seed),++voiceN,{beast:beastNm,other:rv.other||'A friend'});if(rl)say(rl,5);}}
       if(wantCar){explorer.visible=false;const arc=carPrev&&dt>0?Math.acos(Math.min(1,pN.dot(carPrev)))*PR/carK/dt:0;carV+=((exBack?-1:1)*Math.min(14,arc)-carV)*Math.min(1,dt*6);
        const st=driveState(carV),reduced=reducedNow();const P=car.parts;const om=wheelOmega(carV);for(const w of P.wheels)w.rotation.x+=om*dt;
@@ -738,7 +747,36 @@ uniform vec3 uPlay[8];
        (window as any).__lwRoadster={...((window as any).__lwRoadster||{}),on:true,state:st,v:+carV.toFixed(2),omega:+om.toFixed(2),steer:+carSteer.toFixed(3)};}
       else if((window as any).__lwRoadster)(window as any).__lwRoadster.on=false;}
      carPrev=(carPrev||new THREE.Vector3()).copy(pN);
-     place(travNode,pN,pF);
+     // ---- roadster flight (SIMULATED): lift off from the ground, one continuous climb, no loading cut
+     {const RC=rfRef.current,K=keys.current;
+      if(!rf.on&&car&&roadsterRef.current&&spawnT<0&&mover.w.swim<.4&&(RC.want||K.has(' ')||RC.assist==='ascent')){
+       const g0=PR+hAt(pN);const p0=pN.toArray().map((c:number)=>c*(g0+FLIGHT.hullR)) as number[];
+       rf.S=liftOff(p0,pN.toArray(),pF.toArray(),Math.max(0,carV)*carK);rf.on=true;rf.landT=0;RC.on=true;RC.want=false;if(RC.assist!=='ascent')RC.assist='';
+       scene.add(car.root);car.root.visible=true;setRfUi(true);lineRef.current('Lift off · '+FLIGHT_LABEL+'. Space = thrust, W/S = nose, A/D = turn, B = brake, L = land.');}
+      else if(RC.want&&!rf.on)RC.want=false;
+      if(rf.on&&rf.S){const S=rf.S;const gAt=(n:number[])=>PR+hAt(rf.v.set(n[0],n[1],n[2]));
+       let inp:any={thrust:(K.has(' ')||RC.thrust)?1:0,brake:(K.has('b')||K.has('shift')||RC.brake)?1:0,pitch:-iy,yaw:ix,roll:(K.has('e')?1:0)-(K.has('q')?1:0),level:1};
+       const manual=inp.thrust>0||Math.abs(inp.pitch)>.5||Math.abs(inp.yaw)>.5;
+       if(RC.assist&&manual&&RC.assist==='land'){RC.assist='';}
+       if(RC.assist==='land'){inp=landingAssist(S,gAt(norm(S.p)));}
+       else if(RC.assist==='ascent'){const a=ascentAssist(S,PR+0);if(a.done){RC.assist='';}else inp=a;}
+       stepFlight(S,inp,dt,gAt);
+       // the world follows the car: everything that reads where the traveler is now reads the car
+       const nn=norm(S.p);pN.set(nn[0],nn[1],nn[2]);{const f=new THREE.Vector3(S.fwd[0],S.fwd[1],S.fwd[2]);f.addScaledVector(pN,-f.dot(pN));if(f.lengthSq()>1e-4)pF.copy(f.normalize());}
+       const U=new THREE.Vector3(S.up[0],S.up[1],S.up[2]),Fw=new THREE.Vector3(S.fwd[0],S.fwd[1],S.fwd[2]),Rt=new THREE.Vector3().crossVectors(U,Fw);
+       m4.makeBasis(Rt,U,Fw);car.root.quaternion.setFromRotationMatrix(m4);car.root.position.set(S.p[0],S.p[1],S.p[2]).addScaledVector(U,-FLIGHT.hullR);
+       const om=wheelOmega(Math.min(14,Math.hypot(S.v[0],S.v[1],S.v[2])/carK))*(S.landed?1:.2);for(const w of car.parts.wheels)w.rotation.x+=om*dt;
+       if(!rf.plume){const pl=new THREE.Mesh(new THREE.ConeGeometry(.42,3.2,18,1,true),new THREE.MeshBasicMaterial({color:0xb48cff,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide}));pl.rotation.x=-Math.PI/2;pl.position.set(0,.55,-2.6-1.6);car.root.add(pl);rf.plume=pl;cleanup.push(()=>{pl.geometry.dispose();(pl.material as any).dispose();});}
+       {const th=S.throttle;rf.plume.material.opacity=.7*th;rf.plume.scale.set(1,1+th*.5,1);for(const gl of car.parts.glows)if(gl.role==='underglow_mood'){gl.m.emissive.set(0x9fe8ff);gl.m.emissiveIntensity=.8+th*3;}}
+       const fi=flightInfo(S,gAt(nn));rf.fi=fi;
+       // hud: only the text node changes, a few times a second
+       rf.hudT-=dt;if(rf.hudT<=0&&hudRef.current){rf.hudT=.12;const el=orbitElements(S);hudRef.current.textContent=FLIGHT_LABEL+' · alt '+Math.max(0,fi.alt).toFixed(1)+' · speed '+fi.speed.toFixed(1)+' · '+(fi.inSpace?(el.bound?'orbit '+el.peri.toFixed(0)+'–'+(isFinite(el.apo)?el.apo.toFixed(0):'open'):'on an open path, speed '+(fi.speed/fi.escape).toFixed(2)+'× escape'):'in the air')+(RC.assist==='land'?' · landing':RC.assist==='ascent'?' · climbing to orbit':'');}
+       (window as any).__lwFlight={on:true,alt:+fi.alt.toFixed(3),speed:+fi.speed.toFixed(3),climb:+fi.climb.toFixed(3),r:+fi.r.toFixed(3),inSpace:fi.inSpace,escaping:fi.escaping,throttle:+S.throttle.toFixed(2),assist:RC.assist,label:FLIGHT_LABEL,landed:!!S.landed,t:+S.t.toFixed(2)};
+       // touch down softly and stop: hand the car back to the ground (same place, same heading)
+       if(S.landed&&S.t>1.2&&S.throttle<.05&&inp.thrust<.05&&Math.hypot(S.v[0],S.v[1],S.v[2])<.6){rf.on=false;RC.on=false;RC.assist='';RC.thrust=false;RC.brake=false;travNode.add(car.root);car.root.position.set(0,0,0);car.root.quaternion.identity();car.root.visible=false;rf.plume.material.opacity=0;carV=0;carPrev=null;setRfUi(false);(window as any).__lwFlight={...((window as any).__lwFlight||{}),on:false};}
+      }
+      else if((window as any).__lwFlight?.on)(window as any).__lwFlight.on=false;}
+     place(travNode,pN,pF);if(rf.on)travNode.visible=false;else if(spawnT<0||trav.visible)travNode.visible=true;
      {const inW=WATER_IDS.has(field?legendAt(field,[pN.x,pN.y,pN.z]):(cosmoBiome(pN)||''));mover.fly=flyRef.current;stepMover(mover,{dt,inWater:inW,ground:hAt(pN),mpu:TRAV_H/1.7});
       travNode.position.addScaledVector(pN,mover.y-hAt(pN)*0);(window as any).__lwMove={y:+mover.y.toFixed(3),w:{walk:+mover.w.walk.toFixed(2),swim:+mover.w.swim.toFixed(2),fly:+mover.w.fly.toFixed(2)},inWater:inW};}
      // over-the-shoulder (art target 08_explore_daynight): behind and right of you, looking ahead
@@ -778,7 +816,25 @@ uniform vec3 uPlay[8];
      if(zb.orbit<.5){const off=cW.clone().sub(cN.clone().multiplyScalar(PR));const k=(len-cW.length())/Math.max(.001,oW.length()-cW.length());want.lerp(cN.clone().multiplyScalar(PR).add(off.multiplyScalar(1+k*6)),1-zb.orbit*2);}
      if(seaF&&seaF.snap>0){camPos.copy(want);}else camPos.lerp(want,Math.min(1,dt*(sp?4:2.5)));camPos.setLength(clampAboveGround(camPos.length(),ground0,0));
      const tgt=cT.clone().lerp(cN.clone().multiplyScalar(PR*.15),zb.orbit);if(seaF&&seaF.snap>0){camLook.copy(tgt);seaF.snap--;}else camLook.lerp(tgt,Math.min(1,dt*4));
-     camera.position.copy(camPos);camera.up.copy(cN).lerp(new THREE.Vector3(0,1,0),zb.orbit).normalize();camera.lookAt(camLook);{const L=camPos.length(),farW=Math.max(400,L*12);if(lwStars){const tk=Math.min(1,zXc*2);lwStars.position.copy(camera.position).multiplyScalar(tk);lwStars.scale.setScalar(1+(Math.max(1,L/60)-1)*tk);}if(Math.abs(camera.far-farW)>1){camera.far=farW;camera.near=zXc>.02?Math.max(.05,L*.004):.05;camera.updateProjectionMatrix();}}}
+     camera.position.copy(camPos);camera.up.copy(cN).lerp(new THREE.Vector3(0,1,0),zb.orbit).normalize();camera.lookAt(camLook);{const L=camPos.length(),farW=Math.max(400,L*12);if(lwStars){const tk=Math.min(1,zXc*2);lwStars.position.copy(camera.position).multiplyScalar(tk);lwStars.scale.setScalar(1+(Math.max(1,L/60)-1)*tk);}if(!rf.blend&&Math.abs(camera.far-farW)>1){camera.far=farW;camera.near=zXc>.02?Math.max(.05,L*.004):.05;camera.updateProjectionMatrix();}}}
+    // roadster flight camera (first person, from the cockpit). blend 0 -> 1 on lift off and back on landing, so the climb is one continuous shot, never a cut.
+    {const tB=rf.on?1:0;rf.blend+=(tB-rf.blend)*Math.min(1,dt*(rf.on?2.6:3.2));if(Math.abs(rf.blend-tB)<.003)rf.blend=tB;
+     if(rf.blend>0&&rf.S){const S=rf.S,e=THREE.MathUtils.smoothstep(rf.blend,0,1);
+      const U=new THREE.Vector3(S.up[0],S.up[1],S.up[2]),Fw=new THREE.Vector3(S.fwd[0],S.fwd[1],S.fwd[2]),Rt=new THREE.Vector3().crossVectors(U,Fw);
+      const eye=new THREE.Vector3(S.p[0],S.p[1],S.p[2]).addScaledVector(U,-FLIGHT.hullR+1.12*carK).addScaledVector(Rt,.3*carK).addScaledVector(Fw,.05*carK);
+      const gq=camera.quaternion.clone(),gp=camera.position.clone();m4.lookAt(eye,eye.clone().add(Fw),U);const cq=new THREE.Quaternion().setFromRotationMatrix(m4);
+      {const fi0=rf.fi;const idle=!lkD&&performance.now()/1000-lkAt>2;if(idle){const toPlanet=Math.acos(Math.max(-1,Math.min(1,-(Fw.x*S.p[0]+Fw.y*S.p[1]+Fw.z*S.p[2])/Math.max(1e-6,Math.hypot(S.p[0],S.p[1],S.p[2])))));const tp=fi0&&fi0.alt>.3?-Math.max(0,Math.min(1,(toPlanet-.35)*.6)):0;lkP+=(tp-lkP)*Math.min(1,dt*1.2);lkY-=lkY*Math.min(1,dt*1.5);}
+       cq.multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(lkP,lkY,0,'YXZ')));}
+      camera.position.lerpVectors(gp,eye,e);camera.quaternion.copy(gq).slerp(cq,e);camera.up.copy(U);
+      const fi=rf.fi||{alt:0,speed:0};const sf=skyFade(fi.alt)*e;const fov=55+e*(10+Math.min(14,(fi.speed||0)*2.2));
+      const L=camera.position.length(),farW=Math.max(2400,L*40),nearW=THREE.MathUtils.lerp(.05,.03,e);
+      if(Math.abs(camera.fov-fov)>.05||Math.abs(camera.far-farW)>1||Math.abs(camera.near-nearW)>.001){camera.fov=fov;camera.far=farW;camera.near=nearW;camera.updateProjectionMatrix();}
+      // leaving the air: the sky goes dark and the stars come out; a blue rim of atmosphere hangs around the planet
+      (scene.background as any).lerp(SPACE_BG,1-sf);if(starMat)starMat.opacity=Math.max(starMat.opacity,1-sf);
+      if(lwStars){lwStars.position.copy(camera.position);lwStars.scale.setScalar(Math.max(1,L/90));}
+      rfAtmo.visible=e>.02;(rfAtmo.material as any).uniforms.uK.value=e*(.5+.5*Math.min(1,Math.max(0,fi.alt)/PR));
+      (window as any).__lwFlightCam={e:+e.toFixed(3),fov:+fov.toFixed(1),sky:+sf.toFixed(3),eye:eye.toArray().map((v:number)=>+v.toFixed(2))};}
+     else if(rfAtmo.visible){rfAtmo.visible=false;if(camera.fov!==55){camera.fov=55;camera.near=.05;camera.updateProjectionMatrix();}}}
     try{(window as any).__lwPlacePin?.();lwLand?.update(t,dt,{sunDir,storm:Math.max(field?.storm||0,storming||0,(window as any).__lwStormForce||0),hasLife:residents.length>0||(u.life||[]).some((l:any)=>l.planet===homePl?.id),cam:camera.position,reduced:reducedNow()});
      {const it0=lwLand?.items?.[0];if(it0){const m=it0.mode;if(m!==lmPrev){const prev=lmPrev;lmPrev=m;if(prev!==null){const g=noticeGate(lmGate,'land:'+m,performance.now(),8000,60000);lmGate=g.state;if(g.show){const tx=landscapeNotice(it0.ls,m,{beast:beastName||'Your beast',planet:(homePl as any)?.name||'this world',seed:String(u.seed),n:lmN++});if(tx)lineRef.current(tx);}}}}}}catch{}
     {const lc=(window as any).__lwLandCam;if(lc&&lwLand)try{lwLand.inspectCam(camera,lc);}catch{}}
@@ -794,7 +850,7 @@ uniform vec3 uPlay[8];
      mech?.update(t,dt,{focus:cN.clone().multiplyScalar(PR+hAt(cN)),up:cN,camPos:camera.position,rain:(window as any).__lwWeatherForce?.rain??weather.rain,cloud:(window as any).__lwWeatherForce?.cloud??weather.cloud,wind:weather.wind,night,dusk,ground3:zC<.6,
       torch:sp?travNode.position.clone().addScaledVector(pN,TRAV_H*.7).addScaledVector(new THREE.Vector3().crossVectors(pN,pF).normalize(),-TRAV_H*.25):null,beast:beastNode.position.clone().addScaledVector(bN,TRAV_H*.5)});
      // underwater: Cosmo's ramp tints fog + background by depth when the camera is in the sea
-     const sw=sp?mover.w.swim:0;if(sw>.4){const dM=Math.max(0,-mover.y)/(TRAV_H/1.7);const tD=Math.min(1,dM/60+.15);const uc=underwaterColor(THREE,tD);
+     const sw=sp&&!rf.on?mover.w.swim:0;if(sw>.4){const dM=Math.max(0,-mover.y)/(TRAV_H/1.7);const tD=Math.min(1,dM/60+.15);const uc=underwaterColor(THREE,tD);
       if(!(scene.fog as any)?.isFogExp2)scene.fog=new THREE.FogExp2(uc.getHex(),.1);(scene.fog as any).color.copy(uc);(scene.fog as any).density=THREE.MathUtils.lerp(.035,.09,tD)/(TRAV_H/1.7)*sw*.5;(scene.background as any).lerp(uc,sw);}
      else if((scene.fog as any)?.isFogExp2)scene.fog=null;(window as any).__lwUnder=sw>.4;}
      // Emeth's world lines, fired by the real loop's state edges (sun height, weather, swim/fly, lava, water paths)
@@ -849,7 +905,7 @@ uniform vec3 uPlay[8];
     {err?<div style={{color:'#ffb4b4'}}>Couldn’t load the world: {err}</div>:null}
    </div>
    {(()=>{const toMenu=embedded&&!!menuHost&&!spawned;const actions=<div data-lw-actions data-lw-in-menu={toMenu?'':undefined} style={toMenu?{display:'grid',gridTemplateColumns:'1fr',gap:8}:embedded?{display:'flex',flexDirection:'row',flexWrap:'wrap',justifyContent:'flex-end',gap:5,pointerEvents:'auto',marginLeft:'auto',maxWidth:'100%'}:{display:'flex',flexDirection:'column',gap:6,pointerEvents:'auto'}}>
-    {!spawned?<><button type="button" data-lw-beachcam aria-pressed={beachCam} onClick={()=>setBeachCam(v=>!v)} style={btn(beachCam?'#b7791f':'#333')}>{beachCam?'🏖 Beach view: on':'🏖 Beach view'}</button>{!embedded?<button type="button" data-lw-sealife onClick={()=>{const w:any=window;const n=seaJump.current++;const k=1+n%3,i=Math.floor(n/3);if(!w.__lw?.toOcean(i,k)){seaJump.current=0;w.__lw?.toOcean(0,k);}w.__lwSetZoom?.(0);}} style={btn('#1a6b8a')}>🐋 Sea life</button>:null}<button type="button" data-lw-spawn onClick={()=>setSpawned(true)} style={btn('#6b46c1')}>✦ Spawn in</button><button type="button" data-lw-watch onClick={()=>setWatch(w=>!w)} style={btn('#2c5282')}>{watch?'🌍 Orbit view':'👁 Watch your beast'}</button></>:<><button type="button" data-lw-roadster aria-pressed={roadster} onClick={()=>setRoadster(v=>!v)} style={btn(roadster?'#a3111b':'#333')}>{roadster?'🚗 '+ROADSTER_LABEL+': on':'🚗 '+ROADSTER_LABEL}</button><button type="button" data-lw-fly onClick={()=>setFlying(v=>!v)} style={btn(flying?'#2b6cb0':'#333')}>{flying?'🪽 Flying':'🪽 Fly'}</button><button type="button" data-lw-exit onClick={()=>setSpawned(false)} style={btn('#444')}>Exit to orbit</button></>}{!embedded||spawned?<button type="button" data-lw-ascii onClick={()=>setAscii(v=>!v)} style={btn(ascii?'#2f855a':'#333')}>{ascii?'▦ ASCII on':'▦ ASCII'}</button>:null}
+    {!spawned?<><button type="button" data-lw-beachcam aria-pressed={beachCam} onClick={()=>setBeachCam(v=>!v)} style={btn(beachCam?'#b7791f':'#333')}>{beachCam?'🏖 Beach view: on':'🏖 Beach view'}</button>{!embedded?<button type="button" data-lw-sealife onClick={()=>{const w:any=window;const n=seaJump.current++;const k=1+n%3,i=Math.floor(n/3);if(!w.__lw?.toOcean(i,k)){seaJump.current=0;w.__lw?.toOcean(0,k);}w.__lwSetZoom?.(0);}} style={btn('#1a6b8a')}>🐋 Sea life</button>:null}<button type="button" data-lw-spawn onClick={()=>setSpawned(true)} style={btn('#6b46c1')}>✦ Spawn in</button><button type="button" data-lw-watch onClick={()=>setWatch(w=>!w)} style={btn('#2c5282')}>{watch?'🌍 Orbit view':'👁 Watch your beast'}</button></>:<><button type="button" data-lw-roadster aria-pressed={roadster} onClick={()=>setRoadster(v=>!v)} style={btn(roadster?'#a3111b':'#333')}>{roadster?'🚗 '+ROADSTER_LABEL+': on':'🚗 '+ROADSTER_LABEL}</button><button type="button" data-lw-fly onClick={()=>setFlying(v=>!v)} style={btn(flying?'#2b6cb0':'#333')}>{flying?'🪽 Flying':'🪽 Fly'}</button>{roadster&&!rfUi?<button type="button" data-lw-liftoff onClick={()=>{rfRef.current.want=true;}} style={btn('#5b21b6')}>🚀 Lift off</button>:null}{rfUi?<button type="button" data-lw-land onClick={()=>{rfRef.current.assist=rfRef.current.assist==='land'?'':'land';}} style={btn('#0f766e')}>🛬 Land (assist)</button>:null}<button type="button" data-lw-exit onClick={()=>{if(roadster&&!rfUi){rfRef.current.assist='ascent';}else if(!rfUi)setSpawned(false);else rfRef.current.assist='ascent';}} style={btn('#444')}>{roadster?'🚀 Exit to orbit':'Exit to orbit'}</button></>}{!embedded||spawned?<button type="button" data-lw-ascii onClick={()=>setAscii(v=>!v)} style={btn(ascii?'#2f855a':'#333')}>{ascii?'▦ ASCII on':'▦ ASCII'}</button>:null}
     {embedded&&onExpand?<button type="button" data-lw-expand onClick={onExpand} style={btn('#553c9a')}>⤢ Full screen</button>:null}
     {onClose?<button type="button" data-lw-close onClick={onClose} style={btn('#222')}>Close world</button>:null}
    </div>;return toMenu?createPortal(actions,menuHost!):actions;})()}
@@ -859,6 +915,11 @@ uniform vec3 uPlay[8];
    <img src="/universe/livingworld/asciimode/glow_sprite_torch_256.png" alt="" style={{position:'absolute',left:-25,top:-30,width:120,height:120,mixBlendMode:'screen'}}/>
    <div style={{position:'absolute',left:28,top:26,width:12,height:58,borderRadius:4,background:'linear-gradient(#7a4a24,#4a2a12)'}}/><div style={{position:'absolute',left:22,top:66,width:30,height:30,borderRadius:'40% 40% 46% 46%',background:'#c99a7a',boxShadow:'0 0 18px rgba(255,190,110,.6)'}}/></div>:null}
   {line?<><style>{embedded?'':'@media (max-width:640px){[data-lw-line]{--lw-line-top:calc(env(safe-area-inset-top) + 136px)}}'}</style><div data-lw-line style={{position:'absolute',left:'50%',top:'var(--lw-line-top, calc(env(safe-area-inset-top) + 70px))',transform:'translateX(-50%)',background:'rgba(20,10,50,.82)',borderRadius:12,padding:'8px 14px',fontSize:15,maxWidth:'86%',textAlign:'center',pointerEvents:'none'}}>{line}</div></>:null}
+  {spawned&&rfUi?<>
+   <div ref={hudRef} data-lw-flight-hud aria-live="off" style={{position:'absolute',left:'50%',transform:'translateX(-50%)',bottom:'calc(env(safe-area-inset-bottom) + 258px)',maxWidth:'92%',padding:'5px 10px',borderRadius:10,background:'rgba(8,4,24,.72)',color:'#cfe',font:'12px/1.3 ui-monospace,monospace',textAlign:'center',pointerEvents:'none'}}>{FLIGHT_LABEL}</div>
+   <button type="button" data-lw-thrust onPointerDown={e=>{(e.currentTarget as any).setPointerCapture?.(e.pointerId);rfRef.current.thrust=true;}} onPointerUp={()=>{rfRef.current.thrust=false;}} onPointerCancel={()=>{rfRef.current.thrust=false;}} style={{position:'absolute',right:'calc(env(safe-area-inset-right) + 14px)',bottom:'calc(env(safe-area-inset-bottom) + 130px)',width:88,height:88,borderRadius:'50%',border:'2px solid rgba(180,140,255,.8)',background:'rgba(110,60,220,.55)',color:'#fff',fontWeight:700,fontSize:14,touchAction:'none'}}>🔥 Thrust</button>
+   <button type="button" data-lw-brake onPointerDown={e=>{(e.currentTarget as any).setPointerCapture?.(e.pointerId);rfRef.current.brake=true;}} onPointerUp={()=>{rfRef.current.brake=false;}} onPointerCancel={()=>{rfRef.current.brake=false;}} style={{position:'absolute',left:'calc(env(safe-area-inset-left) + 14px)',bottom:'calc(env(safe-area-inset-bottom) + 140px)',width:70,height:70,borderRadius:'50%',border:'2px solid rgba(255,255,255,.35)',background:'rgba(255,255,255,.1)',color:'#fff',fontWeight:700,fontSize:13,touchAction:'none'}}>Brake</button>
+  </>:null}
   {spawned?<div data-lw-joystick onPointerDown={jd} onPointerMove={jm} onPointerUp={ju} onPointerCancel={ju}
    style={{position:'absolute',left:'calc(50% - 60px)',bottom:'calc(env(safe-area-inset-bottom) + 120px)',width:120,height:120,borderRadius:'50%',background:'rgba(255,255,255,.08)',border:'2px solid rgba(255,255,255,.25)',touchAction:'none'}}>
    <div style={{position:'absolute',left:60-22+(stick?.x||0)*38,top:60-22+(stick?.y||0)*38,width:44,height:44,borderRadius:'50%',background:'rgba(200,180,255,.55)'}}/>

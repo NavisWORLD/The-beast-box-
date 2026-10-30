@@ -162,7 +162,7 @@ export default function BeastCagePortal(){
    onAmbient={setAmbient}/>:<div className="cage-generated-status"><span>{creatureName} · same recorded genome and QBEAST</span><Link href="/sol-game">Play this Beast in LOST COSMOS 🎮</Link></div>}
   {creature?<div className="cage-generated-status" role="status">
    ✧ {creatureName} · {creature.family} · {ambient} (classical seeded visual behavior)
-   <Link href="/beast-cage/guest">Take this creature to the GBA Game Lab ↗</Link>
+   <Link href="/beast-cage/guest">Take {creatureName} to the game lab ↗</Link>
   </div>:null}
   <CreatureHabitat />
   <BeastCareDeck />
