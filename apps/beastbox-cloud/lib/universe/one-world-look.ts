@@ -35,6 +35,8 @@ export function addSkyDome(THREE:T,scene:import('three').Object3D){
  return {dome,update(on:boolean,cam:import('three').Vector3,up:import('three').Vector3,sun:import('three').Vector3,zen:number[],hor:number[],day:number){
   dome.visible=on;if(!on)return;dome.position.copy(cam);U.uUp.value.copy(up);U.uSun.value.copy(sun);U.uZen.value.setRGB(zen[0],zen[1],zen[2]);U.uHor.value.setRGB(hor[0],hor[1],hor[2]);U.uDay.value=day;}};
 }
+/** First person (target 36): the flat patch starts ~4 m out, just inside where the curved 8-unit planet drops below the 1.6 m eye's horizon (was 14 units, which left a flat below-horizon band and a teal planet rim between near grass and meadow). SEEDED look value. */
+export const FLAT_INNER=1.2;
 /** First person: a flat local ground patch (2.5 km radius) with aerial haze, plus four full 360 deg ridge rings. The 27 m sphere stays for orbit. */
 export function addFlatGround(THREE:T,scene:import('three').Object3D,rand:()=>number){
  const g=new THREE.Group();g.visible=false;scene.add(g);const R=2500*M;const mats:any[]=[];
@@ -48,7 +50,7 @@ export function addFlatGround(THREE:T,scene:import('three').Object3D,rand:()=>nu
    land*=mix(.7,1.2,fbm(q*.4+2.0))*mix(.85,1.1,vn(q*9.0)); /* meadow patches, darker hollows, bare soil: seeded noise, no tiling */
    float nb=1.0-smoothstep(4.0,90.0,vD);float bl=vn(vec2(vXZ.x*7.0,vXZ.y*1.3))*vn(vec2(vXZ.x*1.1,vXZ.y*6.5));land=mix(land,uBlade*.55,smoothstep(.35,.8,bl)*.35*nb);land*=mix(1.0,.78+.44*vn(vXZ*3.0),nb); /* target 36: near grass streaks and light/dark tufts, fading out with distance */
    vec3 c=land*(.12+.88*uSunL)*mix(.15,1.0,uDay);float f=1.0-exp(-uK*vD);c=mix(c,mix(mix(uHaze,uTint,.5),uAir,.6)*mix(.08,1.0,uDay),min(f,.85)); /* cooler blue-green air (target 36), and the far meadow never fully washes out */gl_FragColor=vec4(toS(c),1.0);}`});
- const ground=new THREE.Mesh(new THREE.RingGeometry(14,R,96,4).rotateX(-Math.PI/2),gm);ground.renderOrder=-12;ground.frustumCulled=false;g.add(ground);mats.push(gm);
+ const ground=new THREE.Mesh(new THREE.RingGeometry(FLAT_INNER,R,96,8).rotateX(-Math.PI/2).translate(0,-.02,0),gm); /* inner edge meets the 8-unit planet's horizon seen from the 1.6 m eye, so no below-horizon band, hard seam or bright rim (the planet's far edge) shows between the near grass and the far meadow */ground.renderOrder=-12;ground.frustumCulled=false;g.add(ground);mats.push(gm);
  for(const r of RIDGES){const rad=r.d*M,top=Math.tan(r.crestDeg*Math.PI/180)*rad;const ph=[rand()*6.28,rand()*6.28,rand()*6.28];const lobes=Math.max(6,Math.round(2*Math.PI*r.d/(3*r.d/40)/6));
   const U={uC:{value:new THREE.Color(r.hex)},uHz:{value:new THREE.Color(LOOK2.horizonHaze).lerp(new THREE.Color(LOOK2.aerialTint),.5)},uF:{value:r.fade},uDay:{value:1},uP:{value:new THREE.Vector3(...ph)},uL:{value:lobes}};
   const m=new THREE.ShaderMaterial({uniforms:U,side:THREE.DoubleSide,fog:false,toneMapped:false,
