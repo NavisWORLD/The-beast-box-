@@ -39,6 +39,9 @@ export default function SiteDock(){
  const fold=useCallback(()=>setOpen(false),[]);
  // Under automation the dock itself is not drawn, so it never sits over the original controls the suites click.
  useEffect(()=>{if(auto)return;document.body.dataset.oneDock='1';return()=>{delete document.body.dataset.oneDock;};},[auto]);
+ // Oct 30 (home cleanup, additive): on home, exactly ONE sound control and ONE talk control stay visible; the heart/voice/reach-out
+ // switches, music and volume fold into Quick buttons (same controls, nothing removed). Other pages are unchanged.
+ useEffect(()=>{if(auto)return;if(pathname==='/')document.body.dataset.dockHome='1';else delete document.body.dataset.dockHome;return()=>{delete document.body.dataset.dockHome;};},[auto,pathname]);
  useEffect(()=>{if(auto||!open)return;const k=(e:KeyboardEvent)=>{if(e.key==='Escape')setOpen(false);};window.addEventListener('keydown',k);return()=>window.removeEventListener('keydown',k);},[auto,open]);
  // Zeref's voice + reach-out switches live in zeref-voice-dock.tsx; the column reads and flips them through events.
  useEffect(()=>{if(auto)return;
@@ -65,10 +68,16 @@ export default function SiteDock(){
  };
  const flip=(key:'voice'|'reachOut')=>window.dispatchEvent(new CustomEvent('beastbox:voice-pref',{detail:{key}}));
  const openChat=(e:React.MouseEvent<HTMLButtonElement>)=>{window.dispatchEvent(new CustomEvent('beastbox:open-chat',{detail:{opener:e.currentTarget}}));fold();};
+ const onHome=pathname==='/';
+ const audible=soundOn&&snd.contextState==='running'&&snd.unlocked;
+ // Honest: 'Sound on' only once the browser is really playing; before the first tap it says so.
+ const soundWord=!soundOn?'Sound off':audible?'Sound on':'Tap for sound';
+ const homeSound=<button type="button" className="dock-home-sound" data-home-sound aria-pressed={soundOn} onClick={()=>{if(soundOn&&!audible){audio.unlock();audio.sfx('confirm',{element:'starlight',seedKey:'cosmos-workshop'});}else toggleSound();}} aria-label={soundOn&&!audible?'Tap for sound (plays a test chirp)':`${soundWord}. Tap to turn ${soundOn?'off':'on'}`} title={soundWord}>{soundOn?'🔊':'🔇'}<span>{soundWord}</span></button>;
  return <>
  {/* Desktop and tablets keep the original compact pill; phones use the column below. */}
  <nav className="site-dock" aria-label="Quick dock" data-site-dock={open?'open':'closed'}>
   <button type="button" onClick={e=>window.dispatchEvent(new CustomEvent('beastbox:open-chat',{detail:{opener:e.currentTarget}}))} aria-label={`Talk to ${short}`}>💬<span>{name&&name!=='your beast'?`Talk to ${name}`:'Talk'}</span></button>
+  {onHome?homeSound:null}
   <button type="button" data-dock-menu aria-controls="site-nav-sheet" onClick={()=>window.dispatchEvent(new Event('beastbox:open-site-nav'))} aria-label="Open site menu">☰<span>Menu</span></button>
   <Link prefetch={false} href="/sol-game" aria-label="Play Lost COSMOS">🎮<span>Lost COSMOS</span></Link>
   <button type="button" aria-pressed={open} onClick={toggle} aria-label={open?'Close quick buttons':'Open quick buttons'} title={open?'Close':'Open quick buttons'}>{open?'✕':'⋯'}<span>{open?'Less':'More'}</span></button>
@@ -79,7 +88,7 @@ export default function SiteDock(){
    {inCage
     ?<Switch on={creature} attr="data-quick-creature" label={words.dockLabel} state={creature?words.stateOn:words.stateOff} onToggle={()=>setCreature(!creature)}/>
     :<Link prefetch={false} href="/beast-cage" className="qd-row" data-quick-creature-link onClick={fold}><span className="qd-ico" aria-hidden="true">🐾</span><span className="qd-label">See {short} in the cage</span></Link>}
-   <h3 className="qd-h">Talk</h3>
+   <h3 className="qd-h" data-quick-talk-h>Talk</h3>
    <button type="button" className="qd-row" data-quick-talk onClick={openChat}><span className="qd-ico" aria-hidden="true">💬</span><span className="qd-label">Talk to {short}</span></button>
    <h3 className="qd-h">Care</h3>
    <div className="qd-sub" role="group" aria-label={`${lineStartName(short)}'s voice and reach-out switches`}>

@@ -40,7 +40,17 @@ def audit(page, label):
     print(label, [(f["name"][:20], round(f["x"]), round(f["y"]), round(f["r"] - f["x"]), round(f["b"] - f["y"])) for f in fl], flush=True)
     check(hero, label + ": hero text/CTAs found")
     names = " | ".join(f["name"] for f in fl)
-    for need in ("Talk to", "Quick dock", "Support Beast Box", "Cosmic sound controls"):
+    # Oct 30 home cleanup: on home the heart/voice/reach-out icons, sound dock, chat launcher and Feed card fold into the Quick buttons column
+    # (opened by More), leaving one Sound and one Talk control in the pill. Then those folded floaters are expected to be absent.
+    folded = page.evaluate("!!document.body.dataset.dockHome")
+    if folded:
+        check(page.locator("nav[data-site-dock] [data-home-sound]").count() == 1, f"{label}: exactly one home Sound control")
+        for gone in ("aside[data-sound-room]", "[data-zeref-voice-dock]", "button[data-beast-chat-launcher]"):
+            check(not page.locator(gone).first.is_visible() if page.locator(gone).count() else True, f"{label}: {gone} folded away")
+    if folded:
+        check(page.locator('nav[data-site-dock] button[aria-label^="Talk to"]').count() == 1, f"{label}: exactly one home Talk control")
+        check(page.locator("#quick-dock-panel").is_visible(), f"{label}: Quick buttons column open (More)")
+    for need in (("Quick dock",) if folded else ("Talk to", "Quick dock", "Support Beast Box", "Cosmic sound controls")):
         check(need in names, f"{label}: floater '{need}' present ({names})")
     for i, a in enumerate(fl):
         for c in fl[i + 1:]:
@@ -67,6 +77,11 @@ with sync_playwright() as p:
         audit(page, f"{W}x{H}")
         page.screenshot(path=str(OUT / f"home-{W}.png"))
         # COSMIC SOUND panel: open it and make sure it neither overlaps another floater nor covers hero text
+        if page.evaluate("!!document.body.dataset.dockHome"):
+            # Folded home: the music + volume controls live in the Quick buttons column (same audio controls).
+            check(page.locator("[data-quick-music]").is_visible(), f"{W}x{H}: music row visible in Quick buttons")
+            check(not errs, f"{W}x{H}: page errors {errs}")
+            ctx.close(); continue
         page.locator("aside[data-sound-room] button[aria-controls=cosmos-sound-options]").click()
         page.wait_for_selector("#cosmos-sound-options", timeout=8000); page.wait_for_timeout(500)
         audit(page, f"{W}x{H} sound panel open")
