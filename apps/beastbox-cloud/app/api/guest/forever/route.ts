@@ -1,6 +1,6 @@
 import {bridgeConfigured,safeJson} from '@/lib/security';
 import {storageConfig} from '@/lib/cosmos/azure-blob.mjs';
-import {appendExchange,appendGuestEvent,bridgeIdentityForThread,composeContinuityPreface,isThreadId,newThreadId,readThread} from '@/lib/cosmos/forever-store.mjs';
+import {appendExchange,appendGuestEvent,exchangeId,bridgeIdentityForThread,composeContinuityPreface,isThreadId,newThreadId,readThread} from '@/lib/cosmos/forever-store.mjs';
 import {assembleBridgeContext,loadShelfIndex,matchShelf,LIVE_CONTEXT_LABEL} from '@/lib/cosmos/live-context.mjs';
 import {composeSight} from '@/lib/cosmos/sight.mjs';
 import {buildWorldLive} from '@/lib/zeref/world-live.mjs';
@@ -223,7 +223,7 @@ export async function POST(request:Request){
    }catch{/* receipt marks persisted:false */}
    try{
     recorded=await appendGuestEvent(cfg,{at,thread:threadId,step:PIN_STEP,checkpoint_sha256:PIN_SHA,
-     guest_chars:text.length,reply_chars:reply.length});
+     guest_chars:text.length,reply_chars:reply.length,exchange_id:exchangeId('public',threadId,at,text,reply)});
    }catch{/* receipt marks recorded:false */}
   }
   const headers:Record<string,string>={'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'};

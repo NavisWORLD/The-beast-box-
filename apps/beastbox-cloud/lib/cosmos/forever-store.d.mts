@@ -4,6 +4,7 @@ export const THREAD_ID_RE:RegExp;
 export const MAX_THREAD_TURNS:number;
 export const MAX_GUEST_EVENTS:number;
 export const GUESTBOOK_LABEL:string;
+export function exchangeId(kind:string,thread:string,at:string,a:string,b:string):string;
 export function newThreadId():string;
 export function isThreadId(v:unknown):boolean;
 export function bridgeIdentityForThread(secret:unknown,threadId:unknown):string|null;
