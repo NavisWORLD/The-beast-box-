@@ -118,7 +118,7 @@ test('pure: no Math.random, no clock, no growth-nodes import',()=>{
 });
 test('zoom lines: Emeth\'s short mode lines are wired, seeded, honest and keep the storm line exact',()=>{
  const f=J('../lib/universe/data/living_world_lines.json').landscape_zoom;
- assert.deepEqual(f.gather,["{place} is at play. Nobody is keeping score.","The ring at {place} is full of small feet."]);
+ assert.deepEqual(f.gather,["{place} is at play. No one keeps score.","The ring at {place} is full of small feet."]);
  assert.deepEqual(f.shelter,["{place} is sheltering from the storm."]);assert.deepEqual(f.empty,["{place} is built and waiting.","No one here yet. {place} is patient."]);
  const l=seededLandscapes(real)[0];const pools={gather:f.gather,sleep:f.sleep,empty:f.empty};
  for(const [m,pool] of Object.entries(pools)){const a=landscapeZoom(l,m,{beast:'Zeref',planet:'Home',seed:'s1'});

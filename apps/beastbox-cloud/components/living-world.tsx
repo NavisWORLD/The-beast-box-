@@ -777,6 +777,7 @@ uniform vec3 uPlay[8];
        {const th=S.throttle;rf.plume.material.opacity=.7*th;rf.plume.scale.set(1,1+th*.5,1);for(const gl of car.parts.glows)if(gl.role==='underglow_mood'){gl.m.emissive.set(0x9fe8ff);gl.m.emissiveIntensity=.8+th*3;}}
        const fi=flightInfo(S,gAt(nn));rf.fi=fi;
        // hud: only the text node changes, a few times a second
+       {const ph=fi.inSpace?'space':(rf.ph==='space'||rf.ph==='home')?'home':fi.alt>1.5?'leaving':'air';if(ph!==rf.ph){if(ph==='leaving')lineRef.current('Leaving the air behind');else if(ph==='space')lineRef.current('Out past the sky. Same sun.');else if(ph==='home')lineRef.current('Heading home to '+beastNm);rf.ph=ph;}} /* Emeth's roadster lines (one_universe_lines_PROPOSED) */
        rf.hudT-=dt;if(rf.hudT<=0&&hudRef.current){rf.hudT=.12;const el=orbitElements(S);hudRef.current.textContent='Flight · SIMULATED · alt '+Math.max(0,fi.alt).toFixed(1)+' · '+(RC.assist==='land'?'landing':RC.assist==='ascent'?'climbing':fi.inSpace?(el.bound?'in orbit':'leaving'):'in the air');hudRef.current.title='Space = thrust · W/S = nose · A/D = turn · B = brake · L = land';}
        (window as any).__lwFlight={on:true,alt:+fi.alt.toFixed(3),speed:+fi.speed.toFixed(3),climb:+fi.climb.toFixed(3),r:+fi.r.toFixed(3),inSpace:fi.inSpace,escaping:fi.escaping,throttle:+S.throttle.toFixed(2),assist:RC.assist,label:FLIGHT_LABEL,landed:!!S.landed,t:+S.t.toFixed(2)};
        // touch down softly and stop: hand the car back to the ground (same place, same heading)
