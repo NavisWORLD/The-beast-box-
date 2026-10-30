@@ -16,6 +16,8 @@ import time
 import urllib.error
 import urllib.request
 
+from .guest_hebbian import (MAX_TEXT_WITH_CONTEXT, GuestHebbianStore,
+                            assemble_messages, persist_enabled, validate_context)
 from .providers import _local_opener
 from .rawrphos_local import MODEL, SHA, STEP, status as native_status
 
@@ -118,14 +120,33 @@ def _guest_router(root: Path):
 
 
 def guest_local_infer(root: Path, payload: dict, *, owner_jobs_busy: bool = False) -> tuple[int, dict]:
-    """Exactly one stateless native inference. No owner-provider selection or fallback."""
+    """Exactly one native inference. No owner-provider selection or fallback.
+
+    The plain contract {text, guest_identity} is stateless, byte-for-byte as
+    before. The optional bounded `context` object (see guest_hebbian) is the
+    only door to persisted mode, and only when persistence is enabled: the
+    guest's own thread is restored into the model context and the exchange is
+    appended to it. The stateless site BFF never sends `context` and keeps
+    receiving memory_used false, exactly as its verification requires.
+    """
     if os.environ.get("BEASTBOX_GUEST_LOCAL_ENABLED", "no") != "yes":
         return 503, {"error": "Public local guest inference is disabled"}
-    if (not isinstance(payload, dict) or set(payload) != {"text", "guest_identity"}
-            or not isinstance(payload.get("guest_identity"), str)
+    if not isinstance(payload, dict):
+        return 400, {"error": "Invalid bounded guest request"}
+    keys = set(payload)
+    context = None
+    if keys == {"text", "guest_identity", "context"}:
+        context = validate_context(payload["context"])
+        if context is None:
+            return 400, {"error": "Invalid bounded guest request"}
+    elif keys != {"text", "guest_identity"}:
+        return 400, {"error": "Invalid bounded guest request"}
+    if (not isinstance(payload.get("guest_identity"), str)
             or not _GUEST_ID.fullmatch(payload["guest_identity"])
             or not isinstance(payload.get("text"), str)
             or not 1 <= len(payload["text"].strip()) <= MAX_PROMPT
+            or (context is not None
+                and len(payload["text"].strip().encode("utf-8", "surrogatepass")) > MAX_TEXT_WITH_CONTEXT)
             or any(ord(c) < 32 and c not in "\n\t" for c in payload["text"])):
         return 400, {"error": "Invalid bounded guest request"}
     if owner_jobs_busy:
@@ -138,6 +159,18 @@ def guest_local_infer(root: Path, payload: dict, *, owner_jobs_busy: bool = Fals
     code, token, message = quota.reserve(payload["guest_identity"])
     if code != 200:
         return code, {"error": message}
+    # Persisted Hebbian thread (W7): only on the context contract, only when
+    # enabled. Any store failure degrades this request to in-context; the
+    # receipts below say which mode actually served the reply.
+    store, history = None, []
+    if context is not None and persist_enabled():
+        try:
+            candidate = GuestHebbianStore(root)
+            loaded = candidate.load(payload["guest_identity"])
+            if loaded is not None:
+                store, history = candidate, loaded
+        except ValueError:  # unsafe store path or invalid persistence configuration
+            store, history = None, []
     try:
         api_key = os.environ.get("RAWRPHOS_API_KEY", "")
         if len(api_key) < 32 or any(c in api_key for c in "\r\n"):
@@ -150,7 +183,11 @@ def guest_local_infer(root: Path, payload: dict, *, owner_jobs_busy: bool = Fals
                 routing = router.route_turn(f"guest-{_ROUTER['n']}")  # counter, never the guest identity
         except Exception:  # routing never blocks a reply; the response then simply carries no routing summary
             routing = None
-        request_body = {"model": MODEL, "messages": [{"role": "user", "content": payload["text"].strip()}],
+        if context is not None:
+            messages = assemble_messages(context, history, payload["text"].strip())
+        else:
+            messages = [{"role": "user", "content": payload["text"].strip()}]
+        request_body = {"model": MODEL, "messages": messages,
                         "max_tokens": MAX_OUTPUT_TOKENS, "temperature": 0.3, "stream": False}
         if routing is not None and ready.get("cond54") is True:  # only a model that declares cond54 is conditioned
             request_body["condition54"] = routing["condition54"]
@@ -176,11 +213,24 @@ def guest_local_infer(root: Path, payload: dict, *, owner_jobs_busy: bool = Fals
             "receipt_sha256": routing["summary"]["receipt_sha256"], "tally": routing["summary"]["tally"],
             "spark": {k: routing["summary"]["spark"].get(k) for k in ("state", "tick", "late")},
             "condition54_used": used, "label": routing["summary"]["label"], "private_signals": False}
+        # The exchange joins the guest's own thread only after the reply has
+        # passed every identity check above. A failed save never eats a good
+        # reply; it only shows up as stored_turns not growing.
+        stored_turns = store.save(payload["guest_identity"], payload["text"].strip(), text) if store else None
+        persisted = store is not None
         return 200, {"schema": SCHEMA, "model": MODEL, "step": STEP,
-                     "checkpoint_sha256": SHA, "reply": text, "memory_used": False,
+                     "checkpoint_sha256": SHA, "reply": text,
+                     # True only when a persisted thread actually fed this reply.
+                     "memory_used": persisted and len(history) > 0,
                      **({"routing": public_routing} if public_routing else {}),
-                     # In-context fast weights only; reset per request, never persisted.
+                     # Fast weights: "persisted" = the guest's thread was restored
+                     # into this request and the exchange appended (guest_hebbian);
+                     # "in-context" = they lived only inside this one request.
                      "hebbian": result.get("hebbian") is True,
+                     "hebbian_mode": "persisted" if persisted else "in-context",
+                     **({"guest_thread": {"loaded_turns": len(history),
+                                          "stored_turns": stored_turns if stored_turns is not None else len(history),
+                                          "training_eligible": False}} if persisted else {}),
                      "state_mode": result.get("state_mode") if result.get("state_mode") in ("dyn12", "tri") else None,
                      "owner_tools_used": False, "provider_key_shared": False}
     except (OSError, TimeoutError, ValueError, TypeError, KeyError, IndexError, urllib.error.HTTPError):
