@@ -20,3 +20,8 @@ test('look keys bound page-wide, wheel tilts over HUD too, no Math.random',()=>{
   assert.ok(lw.includes("addEventListener('keydown',kd)"));assert.ok(lw.includes("addEventListener('wheel',wheelW,{passive:true})"));
   assert.ok(!/Math\.random/.test(src));
 });
+test('rings never read as a thread in first person: turned >=25° open to the eye, orbit pose restored',()=>{
+  assert.ok(lw.includes('const FP_RING_OPEN=Math.sin(25*Math.PI/180)'));
+  assert.ok(lw.includes('fpRingOpen(m,dir,pu);'));assert.ok(lw.includes('fpRingRestore(m);'));
+  assert.ok(lw.includes('__lwFpRings'));
+});
