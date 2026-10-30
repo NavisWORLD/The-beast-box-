@@ -3,6 +3,8 @@
 // volcano world in the sky (no ring, no light of its own, lava glow on its night side only). Placement is SEEDED; colour blends DERIVED.
 // No random calls: hill shapes come from a seeded stream passed in by the caller.
 import {landArcAngle} from './p3-ocean.mjs';
+import {farLayersFor,recentreAnchor,layerPhase,HORIZON_LABEL} from './horizon-terrain.mjs';
+import {activeTier} from './post-tiers.mjs';
 type T=typeof import('three');
 export const LOOK2=Object.freeze({label:'SEEDED',teal:'#437E9E',skyMid:'#88C9BB',horizonHaze:'#E4E4BD',hillsFar:'#8CA192',aerialTint:'#8CB3D6',warm:'#F2B27A',
  volcano:{azimuthDeg:191.785,elevationDeg:30.4477,angularDeg:9.292,body:'#B5532E',lava:'#FF7A2E',lavaIntensity:.35}});
@@ -62,7 +64,7 @@ export function addSkyDome(THREE:T,scene:import('three').Object3D){
 /** First person (target 36): the flat patch starts ~4 m out, just inside where the curved 8-unit planet drops below the 1.6 m eye's horizon (was 14 units, which left a flat below-horizon band and a teal planet rim between near grass and meadow). SEEDED look value. */
 export const FLAT_INNER=1.2;
 /** First person: a flat local ground patch (2.5 km radius) with aerial haze, plus four full 360 deg ridge rings. The 27 m sphere stays for orbit. */
-export function addFlatGround(THREE:T,scene:import('three').Object3D,rand:()=>number){
+export function addFlatGround(THREE:T,scene:import('three').Object3D,rand:()=>number,tierIn?:string){
  const g=new THREE.Group();g.visible=false;scene.add(g);const R=2500*M;const mats:any[]=[];
  const GU={uSunL:{value:1},uDay:{value:1},uHaze:{value:new THREE.Color(LOOK2.horizonHaze)},uTint:{value:new THREE.Color(LOOK2.aerialTint)},uBase:{value:new THREE.Color(MEADOW36.base)},uDark:{value:new THREE.Color(MEADOW36.dark)},uTip:{value:new THREE.Color(MEADOW36.tip)},uSoil:{value:new THREE.Color(MEADOW36.soil)},uBlade:{value:new THREE.Color(MEADOW36.blade)},uAir:{value:new THREE.Color(MEADOW36.haze)},uK:{value:.000267/M}};
  const gm=new THREE.ShaderMaterial({uniforms:GU,fog:false,toneMapped:false,
@@ -75,7 +77,7 @@ export function addFlatGround(THREE:T,scene:import('three').Object3D,rand:()=>nu
    float nb=1.0-smoothstep(4.0,90.0,vD);float bl=vn(vec2(vXZ.x*7.0,vXZ.y*1.3))*vn(vec2(vXZ.x*1.1,vXZ.y*6.5));land=mix(land,uBlade*.55,smoothstep(.35,.8,bl)*.35*nb);land*=mix(1.0,.78+.44*vn(vXZ*3.0),nb); /* target 36: near grass streaks and light/dark tufts, fading out with distance */
    vec3 c=land*(.12+.88*uSunL)*mix(.15,1.0,uDay);float f=1.0-exp(-uK*vD);c=mix(c,mix(mix(uHaze,uTint,.5),uAir,.6)*mix(.08,1.0,uDay),min(f,.85)); /* cooler blue-green air (target 36), and the far meadow never fully washes out */gl_FragColor=vec4(dith(toS(c)),1.0);}`});
  const ground=new THREE.Mesh(new THREE.RingGeometry(FLAT_INNER,R,96,8).rotateX(-Math.PI/2).translate(0,-.02,0),gm); /* inner edge meets the 8-unit planet's horizon seen from the 1.6 m eye, so no below-horizon band, hard seam or bright rim (the planet's far edge) shows between the near grass and the far meadow */ground.renderOrder=-12;ground.frustumCulled=false;g.add(ground);mats.push(gm);
- const RU:any[]=[];const mkRidge=(r:{d:number;crestDeg:number;fade:number;hex:string;cutBay?:boolean},ph:number[],lobes:number)=>{const rad=r.d*M,top=Math.tan(r.crestDeg*Math.PI/180)*rad;
+ const RU:any[]=[];const ridgeMeshes:{mesh:any;dM:number;anchor:number[]|null}[]=[];const FAR_DRAW_U=1400;const mkRidge=(r:{d:number;crestDeg:number;fade:number;hex:string;cutBay?:boolean},ph:number[],lobes:number)=>{const rad=r.d*M,top=Math.tan(r.crestDeg*Math.PI/180)*rad;
   const U={uC:{value:new THREE.Color(r.hex)},uHz:{value:new THREE.Color(LOOK2.horizonHaze).lerp(new THREE.Color(LOOK2.aerialTint),.5)},uHz0:{value:new THREE.Color(LOOK2.horizonHaze).lerp(new THREE.Color(LOOK2.aerialTint),.5)},uF:{value:r.fade},uDay:{value:1},uP:{value:new THREE.Vector3(...ph)},uL:{value:lobes},uBay:{value:new THREE.Vector3(0,0,0)},uCut:{value:r.cutBay?1:0}};RU.push(U);
   const m=new THREE.ShaderMaterial({uniforms:U,side:THREE.DoubleSide,fog:false,toneMapped:false,
    vertexShader:'varying vec2 vUv;varying vec3 vP;varying vec3 vW;void main(){vUv=uv;vP=position;vW=(modelMatrix*vec4(position,1.0)).xyz;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
@@ -86,16 +88,27 @@ export function addFlatGround(THREE:T,scene:import('three').Object3D,rand:()=>nu
     if(uCut>.5){float a=atan(vP.z,vP.x)-uBay.x;a=mod(a+3.14159265,6.2831853)-3.14159265;h*=smoothstep(uBay.y*1.05,uBay.y*1.35,abs(a));} /* near hills stop at the bay, they do not stand in the sea */
     if(vUv.y>h)discard;float k=clamp(.12+uF*.8+.3*(1.0-vUv.y/max(h,.001)),0.0,.9);vec3 c=mix(uC*(.85+.3*vUv.y/max(h,.001)),uHz,k)*(.92+.16*n3); /* hazy layers: aerial haze grows with distance and toward the base (valley mist); haze colour follows the live sky horizon */
     gl_FragColor=vec4(dith(toS(c*mix(.1,1.0,uDay))),1.0);}`});
-  const geo=new THREE.CylinderGeometry(rad,rad,top,192,1,true);geo.translate(0,top*.5,0);const mesh=new THREE.Mesh(geo,m);mesh.renderOrder=-11;mesh.frustumCulled=false;g.add(mesh);mats.push(m);};
+  const drawR=Math.min(rad,FAR_DRAW_U),topD=Math.tan(r.crestDeg*Math.PI/180)*drawR; /* horizonterrain F5/F6: drawn at the camera far limit at their true crest angle (same size on screen) */
+  const geo=new THREE.CylinderGeometry(drawR,drawR,topD,192,1,true);geo.translate(0,topD*.5,0);const mesh=new THREE.Mesh(geo,m);mesh.renderOrder=-11;mesh.frustumCulled=false;g.add(mesh);mats.push(m);ridgeMeshes.push({mesh,dM:r.d,anchor:null as number[]|null});};
  for(const r of RIDGES){const ph=[rand()*6.28,rand()*6.28,rand()*6.28];const lobes=Math.max(6,Math.round(2*Math.PI*r.d/(3*r.d/40)/6));mkRidge(r,ph,lobes);}
- for(const r of RIDGES_NEAR){const ph=[rand()*6.28,rand()*6.28,rand()*6.28];mkRidge(r,ph,r.lobes);} /* after the old layers, so their seeded shapes keep their stream draws */
+ for(const r of RIDGES_NEAR){const ph=[rand()*6.28,rand()*6.28,rand()*6.28];mkRidge(r,ph,r.lobes);}
+ /* GENESIS X horizonterrain (SEEDED, Cosmo's pack): far layers F5 9 km and F6 18 km by quality tier (HIGH adds F5, GOD adds F6). Phases come from each layer's
+    seed tag (no stream draws, so every older layer keeps its seeded shape); colour and fade are the pack's DERIVED aerial values; lit by the one sun only via uDay. */
+ const tier=tierIn||(()=>{try{const w:any=globalThis as any;return activeTier(w.localStorage,{phone:(w.innerWidth||1280)<820,cores:w.navigator?.hardwareConcurrency,memoryGB:w.navigator?.deviceMemory,reducedMotion:!!w.matchMedia?.('(prefers-reduced-motion: reduce)').matches});}catch{return 'MED';}})();
+ const farIds:string[]=[];for(const l of farLayersFor(tier)){mkRidge({d:l.distance_m,crestDeg:l.crest_elev_deg,fade:l.fade,hex:l.colour.hex},layerPhase(l.noise.seed_tag),Math.max(6,Math.round(2*Math.PI*l.distance_m/l.noise.wavelength_m/6)));farIds.push(l.id);}
+ (globalThis as any).__lwHorizon={label:HORIZON_LABEL,tier,far:farIds,rings:ridgeMeshes.length,recentres:0}; /* after the old layers, so their seeded shapes keep their stream draws */
  const life:{sp:any;r:number;a:number;w:number}[]=[];
  /** far creatures: resident sprites walking slow seeded circles on the patch at 25-120 m (mid; target 36: nothing crowds the near frame) and 200-600 m (far); motion follows the clock t. */
  const addLife=(maps:any[])=>{maps.forEach((map,i)=>{for(const band of [0,1]){const sp=new THREE.Sprite(new THREE.SpriteMaterial({map,transparent:true,depthWrite:false,fog:false}));sp.center.set(.5,.02);
    const r=(band?200+rand()*400:25+rand()*95)*M;sp.scale.setScalar(.75);g.add(sp);life.push({sp,r,a:rand()*6.283,w:(rand()<.5?-1:1)*(.02+rand()*.04)/Math.max(1,r*.05)});}});};
  const step=(t:number,bay?:{bearing:number;halfWidth:number;innerM:number}|null)=>{for(const L of life){const a0=L.a+L.w*t;const a=bay?landArcAngle(bay,L.r/M,a0):a0; /* GENESIS X: walkers turn back at the P3 bay shore, so none walks on the drawn sea */L.sp.position.set(Math.cos(a)*L.r,0,Math.sin(a)*L.r);}};
  return {group:g,addLife,step,count:()=>life.length,farUnits:4600*M,update(on:boolean,groundPt:import('three').Vector3,up:import('three').Vector3,day:number,sunL:number,face?:{fwd:import('three').Vector3;bearing:number}|null,look?:{hor?:number[];bay?:{bearing:number;halfWidth:number}}|null){g.visible=on;if(!on)return;for(const U of RU){if(look?.hor)U.uHz.value.setRGB(look.hor[0],look.hor[1],look.hor[2]).lerp(U.uHz0.value,.5);if(look?.bay)U.uBay.value.set(look.bay.bearing,look.bay.halfWidth,1);} /* GENESIS X terrain: haze takes the live sky horizon colour (dusk, night, storm) */
-  g.position.copy(groundPt);g.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),up);if(face)g.quaternion.premultiply(yawToward(THREE,g.quaternion,up,face.fwd,face.bearing)); /* GENESIS X step 0: optional yaw so a SEEDED local bearing (the P3 bay) lies along a given world heading */for(const m of mats)m.uniforms.uDay.value=day;GU.uSunL.value=sunL;}};
+  g.position.copy(groundPt);g.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),up);if(face)g.quaternion.premultiply(yawToward(THREE,g.quaternion,up,face.fwd,face.bearing)); /* GENESIS X step 0: optional yaw so a SEEDED local bearing (the P3 bay) lies along a given world heading */
+  /* GENESIS X horizonterrain parallax: each ridge ring is world-fixed at an anchor and only recentres once the ground point has moved 5% of its distance; it then eases back over
+     ~0.5 s (instead of a pop), so near rings slide past far ones while you walk. Pure maths on positions, no random calls, no clock. */
+  g.updateMatrixWorld(true);const gp=[groundPt.x,groundPt.y,groundPt.z];for(const rm of ridgeMeshes){const prev=rm.anchor;const nx=prev?recentreAnchor(prev,gp,rm.dM,M):gp.slice();
+   if(prev&&nx!==prev){(globalThis as any).__lwHorizon&&((globalThis as any).__lwHorizon.recentres++);}rm.anchor=prev&&nx!==prev?[prev[0]+(nx[0]-prev[0])*.12,prev[1]+(nx[1]-prev[1])*.12,prev[2]+(nx[2]-prev[2])*.12]:nx;
+   const lp=g.worldToLocal(new THREE.Vector3(rm.anchor[0],rm.anchor[1],rm.anchor[2]));rm.mesh.position.set(lp.x,0,lp.z);}for(const m of mats)m.uniforms.uDay.value=day;GU.uSunL.value=sunL;}};
 }
 /** Yaw (about up) that turns the local bearing b (local dir (cos b,0,sin b) under q) onto fwd projected into the tangent plane. Pure maths, no random calls. */
 export function yawToward(THREE:T,q:import('three').Quaternion,up:import('three').Vector3,fwd:import('three').Vector3,b:number){
