@@ -6,3 +6,4 @@ export function skyBooms(u:any,homePlanet:any,homeStar:any,tick:number):{star:an
 export function skyMoons(seed:string,planet:any,up:number[],t:number):any[];
 export function boomSpriteScale(radiusDeg:number,dist?:number):number;
 export function engineChannels(F:any):{chaos:number;coherence:number;tick:number};
+export function lightRigFor(os:any,exposure?:number):{label:string;sunIntensity:number;hemiIntensity:number;hemiColor:number[];exposure:number;sunElevationDeg:number};
