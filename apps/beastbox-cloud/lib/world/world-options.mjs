@@ -11,7 +11,7 @@ export const VIEW_OPTIONS=Object.freeze([
 ]);
 export const CONTEXTS=Object.freeze({
  cage:{key:'cage',menuLabel:'Habitat menu',title:'Habitat options',frame:'How you see your beast’s habitat.',diaryHref:'#zeref-diary',reset:'Reset 3D camera'},
- home:{key:'home',menuLabel:'Pocket universe menu',title:'Pocket universe options',frame:'How you see the whole pocket universe.',diaryHref:'/beast-cage#zeref-diary',reset:'Reset 3D camera'}
+ home:{key:'home',menuLabel:'Universe menu: sharing, Senses, Privacy',title:'Pocket universe options',frame:'How you see the whole pocket universe.',diaryHref:'/beast-cage#zeref-diary',reset:'Reset 3D camera'}
 });
 export const SHARED_LABELS=Object.freeze({
  reset:'Reset 3D camera',resetAria:'Reset 3D pocket camera',diary:name=>(name||'Your beast')+'’s Diary',

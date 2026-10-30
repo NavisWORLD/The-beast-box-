@@ -970,3 +970,6 @@ html[data-cage-creature=off] :is(.beast-landing-creature,.beast-landing-art [dat
 /* ON: the creature stands at one side, smaller, so the world gets the rest of the frame. */
 .beast-landing-art .beast-landing-creature{left:1%!important;right:auto!important;top:30%!important;width:46%!important;height:50%!important}
 @media(max-width:560px){body[data-one-dock] [data-site-nav-float]{display:none!important}}
+/* Home bubble: keep '≡ Universe' inside the round window so it is never clipped by the curve (additive). */
+.home-menu-layer [data-world-menu=home]{top:16%;right:20%}
+@media(max-width:600px){.home-menu-layer [data-world-menu=home]{top:14%;right:18%}}
