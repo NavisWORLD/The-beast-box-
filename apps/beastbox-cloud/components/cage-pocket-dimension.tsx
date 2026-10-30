@@ -10,6 +10,11 @@ import {createGeyserSound} from '../lib/geyser/sound';
 import {inBlock as gjInBlock,islandGround,GJ as GJ_ALL} from '../lib/geyser/geyser-math.mjs';
 const GJ_V=GJ_ALL.volcano,GJ_G=GJ_ALL.geyser;
 import {addHeaven,HEAVEN} from '../lib/worlds/heaven';
+import {oneSunAt} from '../lib/universe/one-sun.mjs';
+/** ONE SUN (SEEDED): the pocket's far sun sits where the living world's one sun is, not at a second seeded spot. */
+const pocketSunDir=():[number,number,number]=>{const d=oneSunAt(Date.now()/1000).dir;return [d[0],Math.max(.08,d[1]),d[2]];};
+/** By day keep only the sun disc (PR #688 treatment): the additive halo, rays, shaft, motes and flares hide; lights stay. */
+const pocketDayDiscOnly=(root:any)=>{const day=oneSunAt(Date.now()/1000).day>=.05;root.traverse((o:any)=>{if(o===root||o.isLight||o.name==='heaven-sun'||o.parent!==root&&o.parent?.isLight)return;if(o.material&&o.material.blending===2)o.visible=!day;});return day;};
 import {terrainHeight} from '../lib/worlds/terrain-math.mjs';
 import {createCompanions} from '../lib/companions/companions';
 import {createSensors,bodyDims,nervePaletteChoice} from '../lib/sensors/sensors';
@@ -253,7 +258,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     const moonlight=new THREE.PointLight(0xa8eaff,24,12);
     moonlight.position.set(0,4,1);scene.add(moonlight);
     const glow=new THREE.PointLight(0xba82f4,13,11);glow.position.set(-2,2,-3);scene.add(glow);
-    const heaven=addHeaven(THREE,scene,{low,rand:randomFor(key+':heaven'),far:soft?undefined:(()=>{const r=randomFor(key+':sun');const a=r()*6.283,el=.42+r()*.35;return {dir:[Math.cos(a)*Math.cos(el),Math.sin(el),Math.sin(a)*Math.cos(el)] as [number,number,number],dist:70};})()});// the user's heaven: warm divine light, endless depth, serene flow
+    const heaven=addHeaven(THREE,scene,{low,rand:randomFor(key+':heaven'),far:soft?undefined:{dir:pocketSunDir(),dist:70}});// the user's heaven: warm divine light, endless depth, serene flow
     // Lost COSMOS look: dark cosmic sand floor instead of blue stone.
     const stone=new THREE.MeshStandardMaterial({color:0x1c1530,emissive:0x0a0618,roughness:1,metalness:.02});
     const floraMat=new THREE.MeshStandardMaterial({color:0x6fe7ff,emissive:0x2aa6d6,emissiveIntensity:.9,metalness:.3,roughness:.18,transparent:true,opacity:.9});
@@ -500,7 +505,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
        else if(g.id!=='wander'){try{recordArrival(lcId,g.id);}catch{}}}
       if(lcS.goal)(zActor as any).target={x:lcS.goal.x,z:lcS.goal.z};
       stepLivingCore(lcS.LC,reduced?0:dt);lcS.syn?.step(reduced?0:dt);}
-     flowU.uTime.value+=reduced?0:dt*HEAVEN.flow;heaven.update(elapsed);
+     flowU.uTime.value+=reduced?0:dt*HEAVEN.flow;heaven.update(elapsed);pocketDayDiscOnly(heaven.root);
      land?.update(elapsed,camera);gj?.update(reduced?0:dt,elapsed);gjEv?.update(reduced?0:dt,elapsed);gjLife?.update(reduced?0:dt,elapsed);uwPose=uw.update(reduced?0:dt,elapsed,camera,{x:zHolder.position.x,y:zHolder.position.y,z:zHolder.position.z},!reduced&&!!(ze?.claimed||lcS.LC));
      extras.step(reduced?0:dt*HEAVEN.flow,{x:zHolder.position.x,z:zHolder.position.z});
      if(ze?.claimed||lcS.LC){
