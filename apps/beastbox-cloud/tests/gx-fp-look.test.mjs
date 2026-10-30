@@ -6,4 +6,4 @@ test('night sea sheen is DERIVED from the night sky, reflection only',()=>{asser
 test('first-person tilt is clamped to about ±85° everywhere it is set',()=>{assert.ok(lw.includes('const FP_TILT=85*Math.PI/180'));assert.ok(!/fpP=Math\.max\(-1\.2/.test(lw));assert.ok(!/Math\.min\(1\.3,fpP/.test(lw));});
 test('arrow keys and the wheel turn and tilt the eye in first person; orbit drag stays off',()=>{assert.ok(lw.includes("KP.has('arrowleft')"));assert.ok(lw.includes("KP.has('arrowup')"));assert.ok(lw.includes('if(fpOn){fpP=Math.max(-FP_TILT'));assert.ok(lw.includes('const AW=!fpOn'));assert.ok(lw.includes('const pd=(e:PointerEvent)=>{if(fpOn)return;'));});
 test('12D lattice lines hide in first person',()=>{assert.ok(lw.includes('latPivot.visible=!want'));});
-test('far night sea sheen ~0.04, DERIVED reflection only',()=>{assert.ok(/far night sheen ~0\.04/.test(oc));assert.ok(oc.includes('vec3(.034,.04,.048)*(1.0-fd)'));});
+test('far night sea sheen ~0.06, DERIVED reflection only',()=>{assert.ok(/far night sheen ~0\.06/.test(oc));assert.ok(oc.includes('vec3(.051,.06,.072)*(1.0-fd)'));});
