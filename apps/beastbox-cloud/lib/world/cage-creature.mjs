@@ -19,7 +19,7 @@ export function cageCreatureWords(name) {
   const N = n.charAt(0).toUpperCase() + n.slice(1);
   return {
     switchLabel: 'Creature',
-    dockLabel: `Show ${n}`,
+    dockLabel: `Show ${midSentenceName(n)}`,
     stateOn: `${N} is out front`,
     stateOff: `${N} is back inside the cage`,
     ariaOn: `Hide ${midSentenceName(n)} from the front of the screen`,
