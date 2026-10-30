@@ -8,6 +8,7 @@
  */
 import {useEffect,useRef,useState} from 'react';
 import {useCageCreature} from './use-cage-creature';
+import {insideCreatureVisible} from '../lib/world/cage-creature.mjs';
 import {createPortal} from 'react-dom';
 import {grow} from '@/lib/universe/tiny-universe.mjs';
 import {worldThings,THING_LESSON,biomeParams,biomeAt,BIOME_PROPS,BIOME_FEEL,BIOME_NAMES,lwStream as lwS} from '@/lib/universe/living-world.mjs';
@@ -638,7 +639,7 @@ uniform vec3 uPlay[8];
    })();
    let fpsT=0,fpsN=0,fps=0,last=performance.now(),t=0,hudT=0;let skyStarA=-1;const camTarget=new THREE.Vector3(),camPos=new THREE.Vector3(0,6,22);const cW=new THREE.Vector3(),cT=new THREE.Vector3(),cN=new THREE.Vector3(0,1,0),camLook=new THREE.Vector3();
    let os1:any=null,lastMoment='';const compDisc=new THREE.Sprite(new THREE.SpriteMaterial({map:boomTex,color:new THREE.Color(COMPANION_DISC.hex),transparent:true,opacity:.55,depthWrite:false,fog:false,blending:THREE.AdditiveBlending}));compDisc.scale.setScalar(5);scene.add(compDisc);/* second sun: dim disc, NO light (pending Cory) */
-   const frame=()=>{os1=null;if(lk2Sky)lk2Sky.dome.visible=false;lk2World.mesh.visible=false;heaven.root.visible=true;raf=requestAnimationFrame(frame);beastNode.visible=creatureRef.current;const now=performance.now();const rdt=Math.min(.25,(now-last)/1000),dt=Math.min(.05,rdt);last=now;t+=dt;UG.uT.value=t;if(field)UG.uSeaT.value=(field.tick+field.clock.alpha)/4;
+   const frame=()=>{os1=null;if(lk2Sky)lk2Sky.dome.visible=false;lk2World.mesh.visible=false;heaven.root.visible=true;raf=requestAnimationFrame(frame);beastNode.visible=insideCreatureVisible(creatureRef.current);const now=performance.now();const rdt=Math.min(.25,(now-last)/1000),dt=Math.min(.05,rdt);last=now;t+=dt;UG.uT.value=t;if(field)UG.uSeaT.value=(field.tick+field.clock.alpha)/4;
     fpsT+=dt;fpsN++;if(fpsT>=3){fps=fpsN/fpsT;fpsT=0;fpsN=0;if(fps<48&&bladeCap>2000){bladeCap=Math.floor(bladeCap*.75);bladeGeo.instanceCount=bladeCap;}(window as any).__lwPerf={fps:+fps.toFixed(1),blades:bladeCap};}
     tickAcc+=dt;if(tickAcc>=TICK_S){tickAcc=0;applyTick();}
     {let a=(((Date.now()/1000+((window as any).__lwDayOffset||0))%DAY_S+DAY_S)%DAY_S)/DAY_S*Math.PI*2;if(HOLD){if(hz.a===null)hz.a=a;a=hz.a;}sunDir.set(Math.cos(a),.35*Math.sin(a*.5+1),Math.sin(a)).normalize();UG.uSun.value.copy(sunDir);{const sSrc=sunSource({field,override:HOLD||(window as any).__lwDayOffset!==undefined});if(sSrc.dir)sunDir.set(sSrc.dir[0],sSrc.dir[1],sSrc.dir[2]).normalize();(window as any).__lwSunSource=sSrc.source;UG.uSun.value.copy(sunDir);}
