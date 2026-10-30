@@ -904,47 +904,46 @@ body:has([data-not-found]) :is(.site-dock,[data-beast-chat-launcher],[data-zeref
 /* Phone, dock open: the minimized Lost COSMOS 'OPEN GAME' pill rides one row above the dock instead of on top of it and the sound dock. */
 @media(max-width:480px){body[data-dock=open]:has(.site-dock) [data-spark-player][data-player-mode=minimized]{left:max(8px,env(safe-area-inset-left))!important;right:auto!important;bottom:calc(max(8px,env(safe-area-inset-bottom)) + 66px)!important;max-width:calc(100vw - 96px)!important}}
 
-/* ===== Oct 26 2026: ONE tidy floating dock on phones (Cory's iPhone screenshot: heart, talk pill, game, close, sound, music and the Feed-the-Beast tile were stacked on each other and on the hero text) =====
-   Phones only (<=560 px), real visitors only (body[data-one-dock] is never set under automation, so the original controls stay as the test suites expect).
-   Closed (default): one 48 px launcher bottom-right. Open: one right-edge column, 48 px round buttons every 56 px:
-   launcher, music+sound, game, talk, heart (Zeref's voice switches), Feed-the-Beast tile. Page keeps a right gutter while open so nothing sits on text. */
+/* ===== Oct 26 2026 (polish 2): ONE quick-buttons dock on phones (Cory's screenshots: heart, talk, game, sound, music, two close buttons and the
+   OPEN GAME card were stacked on each other). Phones only (<=560 px), real visitors only (body[data-one-dock] is never set under automation, so the
+   original controls stay as the test suites expect). Closed = one rounded pill with a chevron, bottom-right, safe-area aware. Open = one column
+   (View, Talk, Care, Play, Sound, Go) with ONE chevron that closes it all. The loose floaters keep running; the column drives the same controls. */
+.quick-dock{display:none}
 .site-dock~[data-dock-game],[data-dock-game]{display:none}
+@media (min-width:561px){.quick-dock{display:none!important}}
 @media (max-width:560px){
  body[data-one-dock]{--dk-r:max(10px,env(safe-area-inset-right,0px));--dk-b:calc(12px + env(safe-area-inset-bottom,0px))}
- body[data-one-dock] .site-dock{right:var(--dk-r);bottom:var(--dk-b);width:48px;height:48px;padding:0;gap:0;border-radius:50%;z-index:62;opacity:1;overflow:hidden}
- body[data-one-dock] .site-dock>*:not(:last-child){display:none}
- body[data-one-dock] .site-dock>*:last-child{width:48px;height:48px;min-height:48px;padding:0;justify-content:center;font-size:20px}
- body[data-one-dock] .site-dock[data-away]{transform:none;opacity:1;pointer-events:auto}
- /* closed: the launcher sits bottom-right, so the home call-to-action row keeps a gutter for it; open: every section keeps one */
- body[data-one-dock] main .hero-cta{box-sizing:border-box;padding-right:calc(62px + env(safe-area-inset-right,0px))}
- body[data-one-dock][data-dock=open] main>*:not(.starscape){box-sizing:border-box;padding-right:calc(66px + env(safe-area-inset-right,0px))}
- body[data-one-dock][data-dock=open] :is([data-zeref-voice-dock],aside[data-sound-room],aside.cosmic-support:not(.is-open),[data-beast-chat-launcher],[data-dock-game],[data-lost-cosmos-dock][data-dock-state=mini]){transition:opacity .18s ease}
- body[data-one-dock][data-dock=open][data-dock-away] :is([data-zeref-voice-dock],aside[data-sound-room],aside.cosmic-support:not(.is-open),[data-beast-chat-launcher],[data-dock-game]){opacity:0;pointer-events:none}
- /* the mini game card and its pill/tab are replaced by the game button */
- body[data-one-dock][data-dock=open] [data-lost-cosmos-dock][data-dock-state=mini]{display:none!important}
- /* game button */
- body[data-one-dock][data-dock=open] [data-dock-game]{display:inline-flex;position:fixed;z-index:61;right:var(--dk-r);bottom:calc(var(--dk-b) + 168px);width:48px;height:48px;align-items:center;justify-content:center;border-radius:50%;border:1px solid #8a6cff88;background:#120c2ee8;color:#efe6ff;font-size:22px;text-decoration:none;box-shadow:0 6px 18px #0008}
- /* talk */
- body[data-one-dock][data-dock=open] [data-beast-chat-launcher]{position:fixed!important;z-index:61!important;left:auto!important;right:var(--dk-r)!important;bottom:calc(var(--dk-b) + 224px)!important;top:auto!important;width:48px!important;height:48px!important;min-height:48px!important;max-width:48px!important;padding:0!important;border-radius:50%!important;font-size:0!important;line-height:0;display:inline-flex!important;align-items:center;justify-content:center;overflow:visible!important}
- html body[data-one-dock][data-dock=open] button[data-beast-chat-launcher][data-critical-control]{bottom:calc(var(--dk-b) + 224px)!important;right:var(--dk-r)!important}
- body[data-one-dock][data-dock=open] [data-beast-chat-launcher]::before{content:'💬';font-size:22px;line-height:1}
- /* heart = Zeref's voice + reach-out switches; the two switches open to its left, in a row */
- body[data-one-dock][data-dock=open] [data-zeref-voice-dock]{left:auto!important;right:var(--dk-r)!important;top:auto!important;bottom:calc(var(--dk-b) + 280px)!important;z-index:61!important;width:48px;height:48px;gap:0!important}
- body[data-one-dock][data-dock=open] [data-zeref-heart]{width:48px!important;height:48px!important;border-radius:50%!important;font-size:22px!important}
- body[data-one-dock][data-dock=open] [data-zeref-voice-toggle],body[data-one-dock][data-dock=open] [data-zeref-reachout-toggle]{position:absolute!important;top:0;right:56px;width:48px!important;height:48px!important;border-radius:50%!important;font-size:20px!important}
- body[data-one-dock][data-dock=open] [data-zeref-reachout-toggle]{right:112px!important}
- body[data-one-dock][data-dock=open] [data-zeref-reach-out]{right:56px!important;top:56px!important;width:min(240px,calc(100vw - 96px))!important}
- /* Feed-the-Beast tile (the Zeref avatar) */
- body[data-one-dock][data-dock=open] aside.cosmic-support:not(.is-open){left:auto!important;right:var(--dk-r)!important;bottom:calc(var(--dk-b) + 336px)!important;top:auto!important;width:48px;height:48px;z-index:61;transform:none!important}
- body[data-one-dock][data-dock=open] aside.cosmic-support:not(.is-open) .cosmic-support-launcher{width:48px!important;min-height:48px!important;height:48px;padding:0!important;border-radius:50%!important;justify-content:center;align-items:center;gap:0;overflow:hidden}
- body[data-one-dock][data-dock=open] aside.cosmic-support:not(.is-open) .support-beast-shell{width:40px!important;height:40px!important}
- body[data-one-dock][data-dock=open] aside.cosmic-support:not(.is-open) :is(.support-launcher-copy,.support-launcher-heart){display:none!important}
- /* sound (top) and music (bottom) */
-  html body[data-one-dock][data-dock=open] aside[data-sound-room][data-site-sound]{left:auto!important;right:var(--dk-r)!important;bottom:calc(var(--dk-b) + 56px)!important;top:auto!important;z-index:61!important;transform:none}
- body[data-one-dock][data-dock=open] aside[data-sound-room]>div:first-child{flex-direction:column;gap:8px;padding:0;background:none;border:0;box-shadow:none;backdrop-filter:none}
- body[data-one-dock][data-dock=open] aside[data-sound-room]>div:first-child>button{width:48px!important;min-width:48px!important;height:48px;min-height:48px;padding:0!important;border-radius:50%!important}
- body[data-one-dock][data-dock=open] aside[data-sound-room]>section{left:auto!important;right:0;bottom:calc(100% + 10px);width:min(305px,calc(100vw - 20px))}
+ body[data-one-dock] .site-dock{display:none!important}
+ body[data-one-dock] :is([data-zeref-voice-dock],aside[data-sound-room],aside.cosmic-support:not(.is-open),[data-beast-chat-launcher],[data-dock-game],[data-spark-player][data-player-mode=minimized],[data-lost-cosmos-dock][data-dock-state=mini],[data-lost-cosmos-dock][data-dock-state=expanded]){display:none!important}
+ .quick-dock{display:block;position:fixed;z-index:62;right:var(--dk-r,10px);bottom:var(--dk-b,12px);left:auto;max-width:calc(100vw - 20px);pointer-events:none;font:600 14px/1.25 system-ui,sans-serif;color:#efe6ff}
+ .quick-dock>*{pointer-events:auto}
+ .qd-toggle{display:inline-flex;align-items:center;justify-content:center;gap:8px;float:right;clear:both;min-width:48px;min-height:48px!important;padding:0 16px;border-radius:999px;border:1px solid #8a6cffaa;background:#120c2eee;color:#efe6ff;font:700 13px system-ui,sans-serif;letter-spacing:.04em;cursor:pointer;box-shadow:0 8px 24px #000a;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+ .qd-chev{display:inline-block;font-size:17px;line-height:1;transition:transform .18s ease}
+ .qd-chev[data-open=true]{transform:rotate(180deg)}
+ .qd-panel{clear:both;width:min(320px,calc(100vw - 20px));max-height:calc(100dvh - 48px - 12px - 24px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px) - 56px);overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;box-sizing:border-box;margin-bottom:8px;padding:6px 10px 10px;border-radius:20px;border:1px solid #8a6cff88;background:#100a28;box-shadow:0 14px 40px #000c;display:flex;flex-direction:column;gap:6px}
+ .qd-h{margin:8px 2px 0;font:700 10.5px system-ui,sans-serif;letter-spacing:.16em;text-transform:uppercase;color:#b9a6ff}
+ .qd-h:first-child{margin-top:4px}
+ .qd-row{display:flex;align-items:center;gap:10px;box-sizing:border-box;width:100%;min-height:48px;padding:6px 12px;border-radius:14px;border:1px solid #ffffff22;background:#ffffff0d;color:#f1ecff;font:600 14px system-ui,sans-serif;text-align:left;text-decoration:none;cursor:pointer}
+ .qd-row:focus-visible,.qd-toggle:focus-visible,.qd-vol input:focus-visible{outline:2px solid #b9a6ff;outline-offset:2px}
+ .qd-ico{width:24px;text-align:center;font-size:18px;flex:0 0 24px}
+ .qd-label{flex:1 1 auto;min-width:0}
+ .qd-label small{display:block;font-weight:400;font-size:11.5px;color:#cfc6ee}
+ .qd-switch{justify-content:space-between}
+ .qd-state{flex:0 0 auto;max-width:48%;font-size:12px;font-weight:700;text-align:right;color:#cfc6ee}
+ .qd-state[data-on=true]{color:#8ff0cf}
+ .qd-switch[aria-checked=true]{background:#7c5cff33;border-color:#b9a6ff}
+ .qd-switch[aria-disabled=true]{opacity:.55}
+ .qd-sub{display:flex;flex-direction:column;gap:6px}
+ .qd-cap{font-size:12px;font-weight:600;color:#d7cffa;padding:0 4px}
+ .qd-note{margin:0;padding:8px 10px;border-radius:12px;background:#ffffff10;font-size:12.5px;font-weight:400;color:#efe6ff}
+ .qd-note small{display:block;opacity:.75}
+ .qd-note button{display:block;margin-top:4px;min-height:44px;padding:0 12px;border-radius:12px;border:1px solid #ffffff33;background:none;color:inherit;font:600 12px system-ui,sans-serif;cursor:pointer}
+ .qd-here{opacity:.8;cursor:default}
+ .qd-quiet{justify-content:center;min-height:44px;font-size:13px}
+ .qd-vol{display:flex;flex-direction:column;gap:2px;padding:4px 4px 0;font-size:12px;font-weight:600;color:#d7cffa}
+ .qd-vol input{width:100%;min-height:44px;accent-color:#9dd9ff}
 }
+@media(prefers-reduced-motion:reduce){.qd-chev{transition:none}}
 
 /* Oct 26 2026: desktop (>=561px) — the TALK TO bubble no longer sits on the top edge of the minimized OPEN GAME card.
    When that card is on screen the bubble steps left of it, bottoms aligned; otherwise nothing changes. Phones use the one-dock layout above. */
@@ -953,3 +952,21 @@ body:has([data-not-found]) :is(.site-dock,[data-beast-chat-launcher],[data-zeref
   right:calc(max(8px,env(safe-area-inset-right,0px)) + 220px + 12px)!important;
   bottom:calc(max(8px,env(safe-area-inset-bottom,0px)) + 86px)!important}
 }
+
+/* Oct 26 2026 (Cory): the "Creature" switch, and a fuller cage. One saved choice (beastbox.cage.creature.v1) shared with the dock row.
+   OFF = the universe alone (planet, sky, trees, small life). ON (default) = the creature stands to one side in the open scene. */
+.cage-details-row{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:6px 18px;margin:10px auto;padding:0 12px}
+.cage-creature-switch{display:inline-flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:4px 12px}
+.cage-creature-switch button{display:inline-flex;align-items:center;gap:10px;min-height:44px;padding:0 16px 0 10px;border-radius:999px;border:1px solid #b9a6ff88;background:#0c0820d9;color:#f1ecff;font:700 13px system-ui,sans-serif;letter-spacing:.04em;cursor:pointer}
+.cage-creature-switch button:focus-visible{outline:2px solid #b9a6ff;outline-offset:2px}
+.ccs-track{position:relative;flex:none;width:38px;height:22px;border-radius:999px;background:#ffffff2e;transition:background .18s}
+.ccs-track i{position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;transition:transform .18s}
+.cage-creature-switch button[aria-checked=true] .ccs-track{background:#7c5cff}
+.cage-creature-switch button[aria-checked=true] .ccs-track i{transform:translateX(16px)}
+.ccs-state,.ccs-cap{font:600 12px system-ui,sans-serif;color:#cfc6ee}
+.ccs-cap{opacity:.8}
+@media(prefers-reduced-motion:reduce){.ccs-track,.ccs-track i{transition:none}}
+html[data-cage-creature=off] :is(.beast-landing-creature,.beast-landing-art [data-spark-beast],.cage-habitat-visual [data-beast-arena],.cage-habitat-visual [data-spark-beast]){display:none!important}
+/* ON: the creature stands at one side, smaller, so the world gets the rest of the frame. */
+.beast-landing-art .beast-landing-creature{left:1%!important;right:auto!important;top:30%!important;width:46%!important;height:50%!important}
+@media(max-width:560px){body[data-one-dock] [data-site-nav-float]{display:none!important}}
