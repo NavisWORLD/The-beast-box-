@@ -33,7 +33,8 @@ export function addP2Sky(THREE:T,scene:import('three').Object3D,phone:boolean){
    /* aurora: night only, a soft curtain band driven by spark ticks (SIMULATED) */
    float band=exp(-pow((e-.2-.05*sin(p.x*1.3+uT*.05))/.09,2.0));float cur=.6+.4*sin(p.x*7.0+uT*.11+fbm(p*2.0)*4.0);
    vec3 au=mix(vec3(.2,1.0,.6),vec3(.55,.35,1.0),smoothstep(.25,.5,e))*band*cur*uAur;
-  fragmentShader:`uniform vec3 uUp,uSun,uSunCol,uHor;uniform float uT,uCover,uLit,uDark,uAur,uLayers;varying vec3 vD;${NOISE}${TO_SRGB}${DITHER_GLSL}
+   vec3 o=o0+au*(1.0-a);float oa=max(a,clamp(length(au)*1.4,0.0,1.0)*.85);
+   gl_FragColor=vec4(dith(toS(o/max(oa,.001))),oa);} /* step 1: dithered, no bands in the soft cloud edges */`});
  const shell=new THREE.Mesh(new THREE.SphereGeometry(280,48,24),m);shell.renderOrder=-15;shell.frustumCulled=false;shell.visible=false;scene.add(shell);
  // rain: seeded streaks in a 30 x 30 x 20 unit box around the eye, falling on the clock t
  const N=phone?700:1800;const pos=new Float32Array(N*6);const base:number[]=[];for(let i=0;i<N;i++)base.push(hash(i*3)*30-15,hash(i*3+1)*20,hash(i*3+2)*30-15);
