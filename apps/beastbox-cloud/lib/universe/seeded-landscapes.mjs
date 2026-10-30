@@ -122,10 +122,10 @@ const fill=(t,v)=>t==null?null:t.replace(/\{beast\}/g,v.beast||'The beast').repl
 export function landscapeNotice(ls,mode,{beast,planet,seed='tiny',n=0}={}){return fill(pick(LW_LINES.landscape_notices[mode],String(seed),ls.id+':'+mode+':'+n),{beast,place:ls.name,planet});}
 export function landscapeTapLine(ls,{beast,planet,seed='tiny',n=0}={}){return fill(pick(LW_LINES.landscape_notices.tap,String(seed),ls.id+':tap:'+n),{beast,place:ls.name,planet});}
 /** Zoom line: "{place} · {kind}" plus the live mode line, derived from landscapeMode (shelter text is the spec's; the others are the authored notice for that mode). */
-export function landscapeZoom(ls,mode,{beast,planet,seed='tiny'}={}){
+export function landscapeZoom(ls,mode,{beast,planet,seed='tiny',n=0}={}){
  const title=ls.name+' · '+KIND_LABEL[ls.kind];
  const pool=LW_LINES.landscape_zoom?.[mode];// Emeth's short zoom lines (seeded pick); the longer authored notice is the fallback
- const line=pick(pool,String(seed),ls.id+':zoom:'+mode)?fill(pick(pool,String(seed),ls.id+':zoom:'+mode),{beast,place:ls.name,planet}):mode==='shelter'?ls.name+' is sheltering from the storm.':landscapeNotice(ls,mode,{beast,planet,seed});
+ const line=pick(pool,String(seed),ls.id+':zoom:'+mode+(n?':'+n:''))?fill(pick(pool,String(seed),ls.id+':zoom:'+mode+(n?':'+n:'')),{beast,place:ls.name,planet}):mode==='shelter'?ls.name+' is sheltering from the storm.':landscapeNotice(ls,mode,{beast,planet,seed});
  return {title,line,mode};
 }
 

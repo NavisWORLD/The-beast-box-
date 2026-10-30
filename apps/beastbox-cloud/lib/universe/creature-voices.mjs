@@ -18,3 +18,10 @@ export function roadsterVoice(cat,seed,n=0,{beast='Your beast',other='A friend'}
 export function voiceTurn(seed,n,count){const r=lwStream(String(seed)+':voice:turn:'+n);const who=Math.floor(r()*Math.max(1,count))%Math.max(1,count);const wait=+(18+r()*22).toFixed(2);return {who,wait};}
 /** Category from the resident's real state: storm > sleep > move > idle. */
 export function voiceCategory({storming=0,napping=false,moving=false}={}){return storming>.6?'storm':napping?'sleep':moving?'move':'idle';}
+/** Species temperament lines (idle|tap) for NEBULA, AURORA, VOID, PLASMA, MEMORY, SIGNAL, STARLIGHT. `family` may be lower case ('nebula'). Null when unknown. */
+export function speciesVoice(family,cat,seed,n=0){const k=String(family||'').toUpperCase();return pick(voicePoolOf(VOICES.species_optional?.[k],cat),seed,'species:'+k+':'+cat+':'+n);}
+const voicePoolOf=(o,cat)=>{const p=o?.[cat];return Array.isArray(p)&&p.length?p:null;};
+/** The ocean's own kind names (fish, ray, whale, jelly, turtle, seabird) to the sea_life keys in the voice data. */
+export const SEA_VOICE_KEY=Object.freeze({fish:'fish',ray:'manta ray',whale:'whale',jelly:'jellyfish',turtle:'turtle',seabird:'seabird'});
+/** One seeded sea-life line for an ocean kind (or a sea_life key), or null. */
+export function seaLifeVoice(kind,seed,n=0){const k=SEA_VOICE_KEY[kind]||kind;return pick(voicePoolOf(VOICES.sea_life,k),seed,'sea:'+k+':'+n);}
