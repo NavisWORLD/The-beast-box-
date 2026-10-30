@@ -21,7 +21,7 @@ with sync_playwright() as p:
         check(sw.get_attribute("role") == "switch", f"{label}: role=switch")
         check((sw.inner_text() or "").strip() == "Creature", f"{label}: visible word is Creature")
         check(sw.get_attribute("aria-checked") == "true", f"{label}: default ON")
-        check((sw.get_attribute("aria-label") or "").startswith("Show ") and "front of the screen" in sw.get_attribute("aria-label"), f"{label}: aria label when on")
+        check((sw.get_attribute("aria-label") or "").startswith("Hide ") and "front of the screen" in sw.get_attribute("aria-label"), f"{label}: aria label when on")
         check(page.evaluate("document.documentElement.dataset.cageCreature") == "on", f"{label}: html marker on")
         front = page.locator(".beast-landing-creature")
         check(front.is_visible(), f"{label}: front creature visible by default")

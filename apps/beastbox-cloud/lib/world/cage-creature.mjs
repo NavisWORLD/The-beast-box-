@@ -20,8 +20,8 @@ export function cageCreatureWords(name) {
     dockLabel: `Show ${n}`,
     stateOn: `${N} is out front`,
     stateOff: `${N} is back inside the cage`,
-    ariaOn: `Show ${n} at the front of the screen`,
-    ariaOff: `Hide ${n} from the front of the screen`,
+    ariaOn: `Hide ${n} from the front of the screen`,
+    ariaOff: `Show ${n} at the front of the screen`,
     note: `Turn this off to see the whole cage with nothing in front. ${N} is still there and still alive.`,
   };
 }
