@@ -2,6 +2,7 @@
 // a gradient sky dome (pack stops, teal top, warm only near the sun), two far hill rings with blue aerial haze, and the
 // volcano world in the sky (no ring, no light of its own, lava glow on its night side only). Placement is SEEDED; colour blends DERIVED.
 // No random calls: hill shapes come from a seeded stream passed in by the caller.
+import {landArcAngle} from './p3-ocean.mjs';
 type T=typeof import('three');
 export const LOOK2=Object.freeze({label:'SEEDED',teal:'#437E9E',skyMid:'#88C9BB',horizonHaze:'#E4E4BD',hillsFar:'#8CA192',aerialTint:'#8CB3D6',warm:'#F2B27A',
  volcano:{azimuthDeg:191.785,elevationDeg:30.4477,angularDeg:9.292,body:'#B5532E',lava:'#FF7A2E',lavaIntensity:.35}});
@@ -84,7 +85,7 @@ export function addFlatGround(THREE:T,scene:import('three').Object3D,rand:()=>nu
  /** far creatures: resident sprites walking slow seeded circles on the patch at 25-120 m (mid; target 36: nothing crowds the near frame) and 200-600 m (far); motion follows the clock t. */
  const addLife=(maps:any[])=>{maps.forEach((map,i)=>{for(const band of [0,1]){const sp=new THREE.Sprite(new THREE.SpriteMaterial({map,transparent:true,depthWrite:false,fog:false}));sp.center.set(.5,.02);
    const r=(band?200+rand()*400:25+rand()*95)*M;sp.scale.setScalar(.75);g.add(sp);life.push({sp,r,a:rand()*6.283,w:(rand()<.5?-1:1)*(.02+rand()*.04)/Math.max(1,r*.05)});}});};
- const step=(t:number)=>{for(const L of life){const a=L.a+L.w*t;L.sp.position.set(Math.cos(a)*L.r,0,Math.sin(a)*L.r);}};
+ const step=(t:number,bay?:{bearing:number;halfWidth:number;innerM:number}|null)=>{for(const L of life){const a0=L.a+L.w*t;const a=bay?landArcAngle(bay,L.r/M,a0):a0; /* GENESIS X: walkers turn back at the P3 bay shore, so none walks on the drawn sea */L.sp.position.set(Math.cos(a)*L.r,0,Math.sin(a)*L.r);}};
  return {group:g,addLife,step,count:()=>life.length,farUnits:4600*M,update(on:boolean,groundPt:import('three').Vector3,up:import('three').Vector3,day:number,sunL:number,face?:{fwd:import('three').Vector3;bearing:number}|null){g.visible=on;if(!on)return;
   g.position.copy(groundPt);g.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),up);if(face)g.quaternion.premultiply(yawToward(THREE,g.quaternion,up,face.fwd,face.bearing)); /* GENESIS X step 0: optional yaw so a SEEDED local bearing (the P3 bay) lies along a given world heading */for(const m of mats)m.uniforms.uDay.value=day;GU.uSunL.value=sunL;}};
 }
