@@ -4,10 +4,11 @@ const look=readFileSync(new URL('../lib/universe/one-world-look.ts',import.meta.
 const lw=readFileSync(new URL('../components/living-world.tsx',import.meta.url),'utf8');
 test('flat patch inner edge sits inside the 1.6 m eye horizon of the 8-unit planet',()=>{
  const m=look.match(/export const FLAT_INNER=([\d.]+)/);assert.ok(m);const inner=+m[1];
- const PR=8,eye=.47;const dip=Math.acos(PR/(PR+eye));const reach=eye/Math.tan(dip); // where the planet horizon ray meets the eye-level plane
+ const PR=8,eye=.47,drop=1.5;const dip=Math.acos(PR/(PR+eye));const reach=(eye+drop)/Math.tan(dip); // where the planet horizon ray meets the flat patch (set 1.5 units under the ground point)
  assert.ok(inner<=reach+.05&&inner>=.6,`inner ${inner} vs horizon reach ${reach.toFixed(2)}`);
  assert.match(look,/RingGeometry\(FLAT_INNER,R/);assert.doesNotMatch(look,/RingGeometry\(14,R/);
 });
+test('planet grazing rim is an orbit look only (no teal ring at the eye)',()=>{assert.match(lw,/rim\*\.45\*smoothstep\(0\.0,\.35,uLift\)/);});
 test('phone sky caption sits below the View / Motion / Quality chips',()=>{
  const m=lw.match(/--lw-line-top:calc\(env\(safe-area-inset-top\) \+ (\d+)px\)/);assert.ok(m);assert.ok(+m[1]>=160);
 });
