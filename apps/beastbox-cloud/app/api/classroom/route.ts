@@ -3,6 +3,8 @@ import {storageConfig} from '@/lib/cosmos/azure-blob.mjs';
 import {appendClassExchange,classThreadId,classroomBridgeIdentity,isClassName,readClassThread} from '@/lib/cosmos/classroom-store.mjs';
 import {confusedState} from '@/lib/companion/emotion.mjs';
 import PUBLIC_PIN from '@/lib/rawrphos-public-pin.json';
+import {bankLookup} from '@/lib/knowledge/server-lookup.mjs';
+import {framePrompt,talkPersona,GUEST_LIMIT} from '@/lib/companion/beast-talk.mjs';
 
 // ZEREF CLASSROOM (owner-only, kind "classroom"). Same pinned brain, same
 // bridge door (/api/guest-local) and the same reply verification as the
@@ -47,10 +49,14 @@ export async function POST(request:Request){
  if(!secret||secret.length<32)return safeJson(503,{error:'Identity signing unavailable'});
  const id=classThreadId(name as string)!;
  const identity=classroomBridgeIdentity(secret,id)!;
+ // 2026-10-31 (Cory): the knowledge-bank LOOKUP is on by default in class. Passages are copied word for
+ // word with their source; they go into this one prompt only (a lookup, not memory, never training).
+ const lookup=await bankLookup(new URL(request.url).origin,text);
+ const prompt=lookup.text?framePrompt(talkPersona(),[],text,GUEST_LIMIT,'',null,lookup.text):text;
  try{
   const res=await fetch(new URL('/api/guest-local',process.env.BEASTBOX_CLOUD_BRIDGE_URL!),{method:'POST',redirect:'error',cache:'no-store',
    headers:{Authorization:'Bearer '+process.env.BEASTBOX_CLOUD_BRIDGE_TOKEN!,'Content-Type':'application/json'},
-   body:JSON.stringify({text,guest_identity:identity}),signal:AbortSignal.timeout(55_000)});
+   body:JSON.stringify({text:prompt,guest_identity:identity}),signal:AbortSignal.timeout(55_000)});
   const raw=await res.text();if(raw.length>16000)return safeJson(502,{error:'Invalid brain host response'});
   const result=JSON.parse(raw) as Record<string,unknown>;
   if(!res.ok)return safeJson([400,403,429,503].includes(res.status)?res.status:502,{error:typeof result.error==='string'&&result.error.length<128?result.error:'Brain unavailable'});
@@ -66,6 +72,6 @@ export async function POST(request:Request){
    w={persisted:r.persisted,recorded:r.recorded,duplicate:r.duplicate,exchange_id:r.record.exchange_id};}catch{/* receipt shows false */}}
   return safeJson(200,{kind:'classroom',thread:name,model:'rawrphos-native',step:PIN_STEP,checkpoint_sha256:PIN_SHA,reply,
    hebbian_mode:result.hebbian_mode==='persisted'||result.hebbian_mode==='in-context'?result.hebbian_mode:null,
-   confused_state:confused,record:{...w,source_kind:'classroom',training_eligible:false,review:'PENDING_REVIEW'}});
+   confused_state:confused,lookup:{label:lookup.label,kind:'LOOKUP',used:lookup.used,...('error' in lookup&&lookup.error?{error:lookup.error}:{})},record:{...w,source_kind:'classroom',training_eligible:false,review:'PENDING_REVIEW'}});
  }catch{return safeJson(502,{error:'Brain unavailable or timed out'});}
 }

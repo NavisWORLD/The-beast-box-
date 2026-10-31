@@ -1,6 +1,7 @@
 'use client';
 import {useEffect,useState} from 'react';
-type Turn={from:string,text:string,at?:string};
+type Looked={title:string,provenance:string};
+type Turn={from:string,text:string,at?:string,lookup?:Looked[]};
 type Confused={active:boolean,why:string[],label:string}|null;
 export default function ClassroomPanel(){
  const [owner,setOwner]=useState<boolean|null>(null);
@@ -15,7 +16,7 @@ export default function ClassroomPanel(){
   const body:Record<string,string>={text};if(topic.trim())body.topic=topic.trim();if(target.trim())body.target=target.trim();if(drill)body.drill=drill;
   try{const r=await fetch('/api/classroom',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
    const d=await r.json();if(!r.ok){setError(d.error||'Something went wrong');return;}
-   setTurns(t=>[...t,{from:'teacher',text},{from:'zeref',text:d.reply}].slice(-40));setConfused(d.confused_state);setText('');setDrill('');}
+   setTurns(t=>[...t,{from:'teacher',text},{from:'zeref',text:d.reply,lookup:Array.isArray(d.lookup?.used)?d.lookup.used:[]}].slice(-40));setConfused(d.confused_state);setText('');setDrill('');}
   catch{setError('The brain did not answer this time.');}finally{setBusy(false);}
  }
  const box:React.CSSProperties={maxWidth:760,margin:'40px auto',padding:20,color:'#e8e6ff',fontFamily:'system-ui,sans-serif'};
@@ -23,9 +24,9 @@ export default function ClassroomPanel(){
  if(!owner)return <main style={box}><h1>Zeref&apos;s classroom</h1><p>This classroom is for Zeref&apos;s owner and his teachers only. You can still talk with him in the public chat.</p></main>;
  return <main style={box}>
   <h1>Zeref&apos;s classroom</h1>
-  <p style={{opacity:.8}}>Owner-only teaching thread (kind: classroom). Same live pinned brain as the public chat, separate thread. Every exchange is saved as a text-only experience record, pending review.</p>
+  <p style={{opacity:.8}}>Owner-only teaching thread (kind: classroom). Same live pinned brain as the public chat, separate thread. Every exchange is saved as a text-only experience record, pending review. Knowledge-bank lookup is on: matching open-license passages are added to his prompt and shown with their source.</p>
   <div aria-live="polite" style={{border:'1px solid #444',borderRadius:8,padding:12,minHeight:160,maxHeight:420,overflowY:'auto'}}>
-   {turns.length===0?<p style={{opacity:.6}}>No lessons in this thread yet.</p>:turns.map((t,i)=><p key={i}><b>{t.from==='zeref'?'Zeref':'Teacher'}:</b> {t.text}</p>)}
+   {turns.length===0?<p style={{opacity:.6}}>No lessons in this thread yet.</p>:turns.map((t,i)=><div key={i}><p><b>{t.from==='zeref'?'Zeref':'Teacher'}:</b> {t.text}</p>{(t.lookup||[]).map((u,j)=><p key={j} data-class-lookup style={{opacity:.7,fontSize:12,margin:'0 0 6px 12px'}}>Looked up (knowledge bank, word for word): {u.provenance}</p>)}</div>)}
   </div>
   <p data-testid="confused-line" title={confused&&confused.active?'Why: '+confused.why.join('; ')+' (a missed drill or a missing target word)':undefined}><b data-testid="confused-chip">{confused?(confused.active?'Confused · DERIVED':'Not confused · DERIVED'):'Not derived yet'}</b>{confused&&confused.active?<> · Zeref feels confused. That&apos;s okay.</>:null}</p>
   <form onSubmit={send} style={{display:'grid',gap:8}}>
