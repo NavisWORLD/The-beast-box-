@@ -92,9 +92,13 @@ def row(kind, title, text, source, lic, revision_id, reason, picked):
                        "gutenberg": "Project Gutenberg"}[kind],
             "revision_id": revision_id, "sha256": sha(text), "chosen_by": "zeref-chooses", "topic": picked, "reason": reason}
 
+def on_topic(topic, title):
+    """A title must carry the chosen word as a whole word (so 'shard' never lands on 'Sharda')."""
+    return re.search(r"\b" + re.escape(topic) + r"(s|es)?\b", title, re.I) is not None
+
 def wiki(host, kind, topic, reason):
     s = get(f"https://{host}/w/api.php?" + urllib.parse.urlencode({"action": "opensearch", "search": topic, "limit": 1, "namespace": 0, "format": "json"}))
-    if not s or not s[1]: return None
+    if not s or not s[1] or not on_topic(topic, s[1][0]): return None
     t = get(f"https://{host}/api/rest_v1/page/summary/" + urllib.parse.quote(s[1][0].replace(" ", "_")))
     if not t or not t.get("extract") or len(t["extract"].split()) < 25: return None
     rev = t.get("revision")
@@ -105,6 +109,7 @@ def wikisource(topic, reason):
     hits = ((s or {}).get("query") or {}).get("search") or []
     if not hits: return None
     title = hits[0]["title"]
+    if not on_topic(topic, title): return None
     p = get("https://en.wikisource.org/w/api.php?" + urllib.parse.urlencode({"action": "parse", "page": title, "prop": "text|revid", "format": "json", "formatversion": 2}))
     html = ((p or {}).get("parse") or {}).get("text") or ""
     paras = [re.sub(r"<[^>]+>", "", m) for m in re.findall(r"<p>(.*?)</p>", html, re.S)]
@@ -117,6 +122,7 @@ def commons(topic, reason):
     d = get("https://commons.wikimedia.org/w/api.php?" + urllib.parse.urlencode({"action": "query", "generator": "search", "gsrsearch": topic, "gsrnamespace": 6, "gsrlimit": 1,
             "prop": "imageinfo|revisions", "iiprop": "extmetadata", "rvprop": "ids", "format": "json", "formatversion": 2}))
     for pg in ((d or {}).get("query") or {}).get("pages") or []:
+        if not on_topic(topic, pg.get("title", "")): continue
         md = ((pg.get("imageinfo") or [{}])[0].get("extmetadata") or {})
         lic = (md.get("LicenseShortName") or {}).get("value", "")
         lic = "CC BY-SA 4.0" if lic == "CC BY-SA 4.0" else ("Public domain (USA)" if lic.lower().startswith("public domain") else None)
