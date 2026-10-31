@@ -1,7 +1,7 @@
 // Cosmo's landforms v1 on the planet: the volcano island (bent to the planet's curve, moss/rock blended per vertex so the
 // edge isn't a zigzag), sky (equirect + twinkling stars + sun corona) and sprite-sheet VFX (lava burst x2, embers,
 // geyser plume, supernova). Schedules and placement come from seeded streams (lwStream), never an unseeded RNG.
-import {lwStream} from './living-world.mjs';
+import {lwStream} from './living-world.mjs';import {SKY_OCCLUDER,OCC_DECL,OCC_CULL} from './fp-volcano-sky.mjs';
 type T=typeof import('three');type V3=import('three').Vector3;
 export const LF='/universe/livingworld/landforms/';
 export const ISLAND_ANCHORS:Record<string,[number,number,number]>={crater_center:[0,50.2,0],lava_source:[0,52,0],geyser_vent:[18.85,24.36,-28.3]};
@@ -52,13 +52,13 @@ export function addCosmoSky(THREE:T,scene:import('three').Scene,{radius,phone}:{
  const tx=new THREE.TextureLoader().load(LF+'sky/sky_equirect_4096x2048.webp');tx.colorSpace=THREE.SRGBColorSpace;
  const mat=new THREE.MeshBasicMaterial({map:tx,side:THREE.BackSide,depthWrite:false,fog:false,transparent:true,opacity:1,toneMapped:false});
  const dome=new THREE.Mesh(new THREE.SphereGeometry(radius,phone?48:64,phone?24:32),mat);dome.renderOrder=-10;scene.add(dome);
- const U={uT:{value:0},uA:{value:1}};let pts:any=null;
+ const U:any={uT:{value:0},uA:{value:1},...SKY_OCCLUDER};let pts:any=null;
  fetch(LF+'sky/star_twinkle_points.json').then(r=>r.ok?r.json():null).then((j:any)=>{const arr=Array.isArray(j)?j:(j?.stars||j?.points||[]);if(!arr.length)return;
   const N=phone?Math.min(800,arr.length):arr.length;const P=new Float32Array(N*3),C=new Float32Array(N*3),A=new Float32Array(N*3);
   for(let i=0;i<N;i++){const s=arr[i];const d=s.dir;P.set([d[0]*radius*.97,d[1]*radius*.97,d[2]*radius*.97],i*3);const c=s.rgb||[1,1,1];const mx=Math.max(c[0],c[1],c[2])>1?255:1;C.set([c[0]/mx,c[1]/mx,c[2]/mx],i*3);A.set([s.mag??1,s.phase??0,s.rate_hz??.5],i*3);}
   const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(P,3));g.setAttribute('color',new THREE.BufferAttribute(C,3));g.setAttribute('aM',new THREE.BufferAttribute(A,3));
   pts=new THREE.Points(g,new THREE.ShaderMaterial({uniforms:U,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,
-   vertexShader:'attribute vec3 aM;attribute vec3 color;uniform float uT;varying vec3 vC;varying float vA;void main(){float tw=.7+.3*sin(uT*6.2832*aM.z+aM.y);float b=clamp(1.6-aM.x*.25,.2,1.6);vC=color;vA=tw;gl_PointSize=(1.5+2.5*b)*tw;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+   vertexShader:OCC_DECL+'attribute vec3 aM;attribute vec3 color;uniform float uT;varying vec3 vC;varying float vA;void main(){float tw=.7+.3*sin(uT*6.2832*aM.z+aM.y);float b=clamp(1.6-aM.x*.25,.2,1.6);vC=color;vA=tw;gl_PointSize=(1.5+2.5*b)*tw;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);'+OCC_CULL+'}',
    fragmentShader:'uniform float uA;varying vec3 vC;varying float vA;void main(){float d=length(gl_PointCoord-.5);if(d>.5)discard;gl_FragColor=vec4(vC*smoothstep(.5,0.,d)*vA*uA,1.);}'}));pts.renderOrder=-9;pts.frustumCulled=false;scene.add(pts);}).catch(()=>{});
  return {dome,update(t:number,night:number,center:V3){U.uT.value=t;mat.opacity=night;U.uA.value=night;dome.visible=night>.02;dome.position.copy(center);if(pts){pts.position.copy(center);pts.visible=night>.02;}}};
 }
