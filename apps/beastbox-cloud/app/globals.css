@@ -1036,3 +1036,5 @@ body[data-one-dock][data-dock-home] .qd-home-row{display:none}
  /* RECORDED label: a wider gap before '≡ Universe' at desktop widths. */
  .home-pocket-layer [data-sand-source]{max-width:30%!important}
 }
+/* #754 (Cosmo): the Habitat chip sat at top:5%/right:11% of the round cage scene, outside its 50% radius mask, so most of it was clipped and clicks on the clipped part fell through to the scene. Keep it inside the circle. */
+.cage-habitat-visual [data-world-menu=cage]{top:15%;right:17%}
