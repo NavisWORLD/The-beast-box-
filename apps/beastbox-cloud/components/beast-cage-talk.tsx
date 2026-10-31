@@ -14,7 +14,7 @@ import {useBeastSession} from './beast-session';
 import styles from './beast-cage-talk.module.css';
 
 const CREATURE:Record<TalkState,CreatureState>={idle:'idle',thinking:'thinking',listening:'listening',speaking:'celebrating',replied:'observing',offline:'idle'};
-const CAPTION:Record<TalkState,string>={idle:'WAITING FOR YOUR MESSAGE',thinking:'MODEL REQUEST PENDING',listening:'LISTENING',speaking:'READING THE REPLY ALOUD',replied:'MODEL REPLY RECEIVED · WORDING NOT CHECKED',offline:'MODEL OFFLINE · NO REPLY INVENTED'};
+const CAPTION:Record<TalkState,string>={idle:'WAITING FOR YOUR MESSAGE',thinking:'MODEL REQUEST PENDING',listening:'LISTENING',speaking:'READING THE REPLY ALOUD',replied:'Reply from the model · not checked',offline:'MODEL OFFLINE · NO REPLY INVENTED'};
 
 /** Talk to Beast page: the animated habitat reacts to the real request state of the shared talk panel. */
 export default function BeastCageTalk(){
@@ -44,14 +44,14 @@ export default function BeastCageTalk(){
    {askedBeast&&!companion?<p data-talk-no-beast>You haven’t met your own beast yet, so Zeref is answering. <Link href="/beast-cage">Find your beast in the Cage</Link>.</p>:null}
    {/* site_labels.json (Emeth): each creature thinks with its own brain on the shared RAWRPHØS model, never as Zeref */}
    {talkingToZeref?<p data-talk-subtitle>He's still learning to speak. Some replies come out strange.</p>:<p data-talk-subtitle>{persona.name} thinks with its own brain, built on Zeref (RAWRPHØS). It's still learning, so some replies come out strange.</p>}
-   <p data-talk-honesty>{talkingToZeref?'Zeref is RAWRPHØS, running on the rawrphos-local model.':`${persona.name} keeps its own name, traits and memories, and answers through the same rawrphos-local model as Zeref.`} Every reply comes from that model. If it is offline you will see that, never a made-up answer.</p>
+   <p data-talk-honesty>{talkingToZeref?'Zeref is RAWRPHØS, running on the rawrphos-local model.':`${persona.name} keeps its own name, traits and memories. Zeref answers through the RAWRPHØS model. If it's offline, you'll see that.`} Every reply comes from that model. If it is offline you will see that, never a made-up answer.</p>
   </section>
   <div className={styles.main}>
    <section className={styles.scene} aria-label="Animated cosmic companion">
     <div className={styles.orbit} aria-hidden="true"/>
     {zeref&&solid?<div className={styles.zeref}><ZerefSprite3D greet={greet}/></div>:zeref&&!solid?<div className={styles.zeref}><ZerefMoonwraith greet={greet} showCaption={false}/></div>:
      <CosmicCompanion3D state={motion&&!reduced?CREATURE[talk]:'idle'} speaking={talk==='speaking'} look="nebula" profile={dimensionalId?null:profile} dimensionalId={dimensionalId} preferSprite={!dimensionalId&&Boolean(session?.beast?.genome?.seed)} spriteGenome={session?.beast?.genome?.seed?session.beast.genome:null} spriteStage={session?.beast?.nativeStage||session?.beast?.stage||1} className={styles.creature} label={(dimensionalId?'Artistic 3D '+dimensionalId+' · ':'Your creature: ')+CREATURE[talk]}/>}
-    <div className={styles.caption}>✧ {CAPTION[talk]}</div>
+    {talk==='replied'?<div className={styles.chip} data-talk-chip>{CAPTION[talk]}</div>:<div className={styles.caption}>✧ {CAPTION[talk]}</div>}
     <button className={styles.motion} type="button" aria-pressed={motion} onClick={()=>setMotion(v=>!v)}>{motion?'Pause':'Enable'} reactive animation</button>
     {canSolid?<button className={styles.motion+" "+styles.formToggle} type="button" aria-pressed={solid} onClick={()=>setSolid(v=>!v)}>{solid?'Flat art':'3D form'}</button>:null}
    </section>
