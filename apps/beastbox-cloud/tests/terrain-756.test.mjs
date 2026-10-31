@@ -8,3 +8,7 @@ test('#757 hills grow with distance and stay under ~7 deg',()=>{assert.match(g,/
 test('#762 bands in metres of the real shape, slope in degrees, lit by the one sun colour, ambient floor, haze from 300 m',()=>{
  assert.match(g,/float tM\(vec2 l\)/);assert.match(g,/vRm=tM\(l\)/);assert.match(g,/wet=dry\*\.5/);assert.match(g,/smoothstep\(36\.0,44\.0,bh\)/);assert.match(g,/smoothstep\(100\.0,110\.0,bh\)\*\(1\.0-smoothstep\(27\.0,32\.0,vSl\)\)/);
  assert.match(g,/uTSunC\*dif\*uSunL\*uDay/);assert.match(g,/uTAmb\*\.25/);assert.match(g,/-300\.0\)/);});
+test('#764 sea at a SEEDED water level: depth fade, foam line, fresnel, one-sun glint, live sea clock, SIMULATED',()=>{
+ const w=readFileSync(new URL('../components/living-world.tsx',import.meta.url),'utf8');
+ assert.match(g,/const float T_WATER=8\.0/);assert.match(g,/mix\(shallow,deep,smoothstep\(\.0,6\.0,dep\)\)/);assert.match(g,/pow\(1\.0-max\(dot\(N,V\),0\.0\),4\.0\)/);assert.match(g,/,100\.0\)\*uSunL\*uDay/);assert.match(g,/float fo=/);
+ assert.match(g,/sea:'SIMULATED sea/);assert.match(w,/lk2Ground\.terrainSea\(UG\.uSeaT\.value/);assert.ok(!/Math\.random/.test(g));});
