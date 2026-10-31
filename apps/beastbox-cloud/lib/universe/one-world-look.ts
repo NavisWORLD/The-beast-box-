@@ -5,7 +5,7 @@
 import {landArcAngle} from './p3-ocean.mjs';
 import {farLayersFor,recentreAnchor,layerPhase,HORIZON_LABEL} from './horizon-terrain.mjs';
 import {activeTier} from './post-tiers.mjs';
-import {VOLCANO_DAY_LOOK,crackSeed,daySkyK,crackK,skyAtUp} from './fp-volcano-sky.mjs';
+import {VOLCANO_DAY_LOOK,crackSeed,daySkyK,crackK,skyAtUp,VOLCANO_LIT_LOOK,termEdges,setOccluder} from './fp-volcano-sky.mjs';
 type T=typeof import('three');
 export const LOOK2=Object.freeze({label:'SEEDED',teal:'#437E9E',skyMid:'#88C9BB',horizonHaze:'#E4E4BD',hillsFar:'#8CA192',aerialTint:'#8CB3D6',warm:'#F2B27A',
  volcano:{azimuthDeg:191.785,elevationDeg:30.4477,angularDeg:9.292,body:'#B5532E',lava:'#FF7A2E',lavaIntensity:.35}});
@@ -120,24 +120,24 @@ export function addSkyWorld(THREE:T,scene:import('three').Object3D,angularDeg?:n
  /* GENESIS X: Cosmo's spec. Cracks are drawn in the shader (seeded Voronoi edges, ~0.02 wide on the sphere, fwidth antialiased; no texture). By day the sky lies
     over the disc at no more than 0.2 (VOLCANO_DAY_LOOK.daySkyMax), cracks at 0.3 of night strength, plus a thin sunlit crescent rim from the one sun. Night (day=0) is as before. */
  const V=LOOK2.volcano,L=VOLCANO_DAY_LOOK,sd=crackSeed();const U={uSun:{value:new THREE.Vector3(0,1,0)},uBody:{value:new THREE.Color(V.body)},uLava:{value:new THREE.Color(V.lava)},uLavaK:{value:V.lavaIntensity},uSky:{value:new THREE.Color()},uSkyK:{value:0},
-  uCrack:{value:new THREE.Color(L.crackHex)},uCrackFall:{value:new THREE.Color(L.crackFallHex)},uDayBody:{value:new THREE.Color(L.dayBodyHex)},uNightBody:{value:new THREE.Color(L.nightBodyHex)},uDay:{value:0},uCrackK:{value:1},uSeed:{value:new THREE.Vector3(sd[0],sd[1],sd[2])},uCell:{value:L.cellScale},uLine:{value:L.lineWidth},uDayBodyK:{value:L.dayBodyK}};
+  uCrack:{value:new THREE.Color(L.crackHex)},uCrackFall:{value:new THREE.Color(L.crackFallHex)},uDayBody:{value:new THREE.Color(L.dayBodyHex)},uNightBody:{value:new THREE.Color(L.nightBodyHex)},uDay:{value:0},uCrackK:{value:1},uSeed:{value:new THREE.Vector3(sd[0],sd[1],sd[2])},uCell:{value:L.cellScale},uLine:{value:L.lineWidth},uDayBodyK:{value:L.dayBodyK},uLitBody:{value:new THREE.Color(VOLCANO_LIT_LOOK.litHex)},uLitCrackDark:{value:VOLCANO_LIT_LOOK.litCrackDark},uTerm:{value:new THREE.Vector2(...termEdges())}};
  const m=new THREE.ShaderMaterial({uniforms:U,depthWrite:false,depthTest:false,fog:false,toneMapped:false,
   vertexShader:'varying vec3 vN;varying vec3 vO;varying vec3 vW;void main(){vN=normalize(mat3(modelMatrix)*normal);vO=normalize(position);vW=(modelMatrix*vec4(position,1.0)).xyz;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
-  fragmentShader:`uniform vec3 uSun,uBody,uLava,uSky,uCrack,uCrackFall,uDayBody,uNightBody,uSeed;uniform float uLavaK,uSkyK,uDay,uCrackK,uCell,uLine,uDayBodyK;varying vec3 vN;varying vec3 vO;varying vec3 vW;${TO_SRGB}
+  fragmentShader:`uniform vec3 uSun,uBody,uLava,uSky,uCrack,uCrackFall,uDayBody,uNightBody,uSeed;uniform vec3 uLitBody;uniform float uLitCrackDark;uniform vec2 uTerm;uniform float uLavaK,uSkyK,uDay,uCrackK,uCell,uLine,uDayBodyK;varying vec3 vN;varying vec3 vO;varying vec3 vW;${TO_SRGB}
   vec3 h3(vec3 p){p=vec3(dot(p,vec3(127.1,311.7,74.7)),dot(p,vec3(269.5,183.3,246.1)),dot(p,vec3(113.5,271.9,124.6)));return fract(sin(p)*43758.5453);}
   float vEdge(vec3 x){vec3 n=floor(x),f=fract(x);vec3 mr=vec3(0.0);float md=8.0;vec3 mg=vec3(0.0);
    for(int k=-1;k<=1;k++)for(int j=-1;j<=1;j++)for(int i=-1;i<=1;i++){vec3 g=vec3(float(i),float(j),float(k));vec3 r=g+h3(n+g+uSeed)-f;float d=dot(r,r);if(d<md){md=d;mr=r;mg=g;}}
    md=8.0;for(int k=-2;k<=2;k++)for(int j=-2;j<=2;j++)for(int i=-2;i<=2;i++){vec3 g=mg+vec3(float(i),float(j),float(k));vec3 r=g+h3(n+g+uSeed)-f;if(dot(mr-r,mr-r)>1e-5)md=min(md,dot(.5*(mr+r),normalize(r-mr)));}
    return md;}
-  void main(){float l=dot(normalize(vN),normalize(uSun));float lit=smoothstep(-.06,.25,l);
+  void main(){float l=dot(normalize(vN),normalize(uSun));float lit=smoothstep(uTerm.x,uTerm.y,l); /* #741: crisp terminator, softness 0.05, same centre as before */
    float e=vEdge(vO*uCell)/uCell;float fw=max(fwidth(e),1e-5);float hw=uLine*.5;float crack=1.0-smoothstep(hw-fw,hw+fw,e);
    vec3 cc=mix(uCrack,uCrackFall,smoothstep(0.0,hw,e));
-   vec3 side=mix(uNightBody,uDayBody,uDay);vec3 c=mix(side,uBody*(.04+.96*lit),lit); /* #739: the face away from the sun is a dark rust body (night (28,16,14), day #B5532E×0.4); sky bodies take no scene light, only this shader */
+   vec3 side=mix(uNightBody,uDayBody,uDay);vec3 litSurf=uLitBody*(1.0-uLitCrackDark*crack); /* #741: the lit crescent is the #B5532E surface with the cracks as darker lines, not a flat wash */vec3 c=mix(side,litSurf,lit); /* #739: the face away from the sun is a dark rust body (night (28,16,14), day #B5532E×0.4); sky bodies take no scene light, only this shader */
    c+=cc*crack*2.2*uLavaK*uCrackK*(1.0-lit);
    vec3 vv=normalize(cameraPosition-vW);float limb=1.0-max(dot(normalize(vN),vv),0.0);float rim=smoothstep(-.02,.12,l)*smoothstep(.72,.97,limb)*uDay;c+=vec3(1.0,.93,.82)*rim*.6;
    gl_FragColor=vec4(mix(toS(c),toS(uSky),uSkyK),1.0);}`}); /* #739: the air over the disc is laid on in display (sRGB) space at 0.15, so blue sky over dark rust stays warm instead of going mauve */
  const mesh=new THREE.Mesh(new THREE.SphereGeometry(1,64,40),m);mesh.renderOrder=-19;mesh.visible=false;mesh.frustumCulled=false;scene.add(mesh);
- return {mesh,update(on:boolean,eye:import('three').Vector3,dir:number[],sun:import('three').Vector3,sky:number[],day:number,zen?:number[]|null,up?:import('three').Vector3|null){mesh.visible=on;if(!on)return;const D=250;
+ return {mesh,update(on:boolean,eye:import('three').Vector3,dir:number[],sun:import('three').Vector3,sky:number[],day:number,zen?:number[]|null,up?:import('three').Vector3|null){mesh.visible=on;setOccluder(on,dir,angularDeg||V.angularDeg);if(!on)return;const D=250;
   if(zen&&up){const u=up.clone().normalize();const tl=new THREE.Color(LOOK2.teal);sky=skyAtUp(sky,zen,[tl.r,tl.g,tl.b],day,dir[0]*u.x+dir[1]*u.y+dir[2]*u.z);} /* #738: the dome's colour at the disc's elevation, not the pale horizon */
   mesh.position.set(eye.x+dir[0]*D,eye.y+dir[1]*D,eye.z+dir[2]*D);mesh.scale.setScalar(D*Math.tan((angularDeg||V.angularDeg)*Math.PI/360));U.uSun.value.copy(sun);U.uSky.value.setRGB(sky[0],sky[1],sky[2]);
   U.uSkyK.value=daySkyK(day);U.uCrackK.value=crackK(day);U.uDay.value=Math.max(0,Math.min(1,day||0));(globalThis as any).__lwVolcanoLook={skyK:U.uSkyK.value,crackK:U.uCrackK.value,day:U.uDay.value,bodyK:L.dayBodyK,sky:sky.map(v=>+v.toFixed(4))};}};

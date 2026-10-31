@@ -35,3 +35,20 @@ export const crackK=(day,L=VOLCANO_DAY_LOOK)=>1+(L.dayCrackK-1)*Math.max(0,Math.
  *  Sky share over the disc drops to 0.15 and is mixed in sRGB. Target disc centre by day ≈ (85,60,55). DERIVED. */
 export const scaleHex=(hex,k)=>'#'+[1,3,5].map(i=>Math.round(parseInt(hex.slice(i,i+2),16)*k).toString(16).padStart(2,'0')).join('').toUpperCase();
 export const VOLCANO_DISC_TARGETS=Object.freeze({label:'DERIVED',day:[85,60,55],night:[28,16,14]});
+/** #741 (Cosmo): the sunlit crescent shows the surface, not a flat orange wash: lit body #B5532E with the same Voronoi cracks drawn
+ *  as DARKER lines (lit colour × (1−litCrackDark)); the day/night edge is crisp (softness 0.05 in sun·normal), centred where the
+ *  old soft band was centred (0.095) so the crescent does not move. Night colour untouched. SEEDED look values. */
+export const VOLCANO_LIT_LOOK=Object.freeze({label:'SEEDED',litHex:'#B5532E',litCrackDark:.55,termSoft:.05,termCentre:.095});
+/** Smoothstep edges of the terminator for a softness and centre. */
+export const termEdges=(L=VOLCANO_LIT_LOOK)=>[L.termCentre-L.termSoft/2,L.termCentre+L.termSoft/2];
+/** #741: sky occluder — star point layers drawn after the disc skip any star whose direction from the eye falls inside the disc
+ *  (plus a small pad for the point's own size). Shared uniforms (three accepts arrays for vec3); cos 2 = nothing hidden. DERIVED. */
+export const OCCLUDER_PAD_DEG=.35;
+export const SKY_OCCLUDER={uOccDir:{value:[0,0,1]},uOccCos:{value:2}};
+export const occluderCos=(angularDeg,pad=OCCLUDER_PAD_DEG)=>Math.cos((angularDeg/2+pad)*Math.PI/180);
+export function setOccluder(on,dir,angularDeg){SKY_OCCLUDER.uOccCos.value=on?occluderCos(angularDeg):2;if(on){const n=Math.hypot(dir[0],dir[1],dir[2])||1;SKY_OCCLUDER.uOccDir.value=[dir[0]/n,dir[1]/n,dir[2]/n];}}
+/** True when a star at this direction (from the eye) is hidden behind the disc. */
+export const occludes=(starDir,diskDir,angularDeg)=>angleDeg(starDir,diskDir)<angularDeg/2+OCCLUDER_PAD_DEG;
+/** GLSL for point-star vertex shaders: declare + cull (after gl_Position is set). */
+export const OCC_DECL='uniform vec3 uOccDir;uniform float uOccCos;';
+export const OCC_CULL='{vec3 occD=normalize((modelMatrix*vec4(position,1.0)).xyz-cameraPosition);if(dot(occD,uOccDir)>uOccCos){gl_PointSize=0.0;gl_Position=vec4(2.0,2.0,2.0,1.0);}}';
