@@ -71,13 +71,14 @@ float tVn(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(tH
 float tRaw(vec2 p){p=p/${M.toFixed(6)}+uTSeed;return ${(80*M).toFixed(6)}*tVn(p*.0015)+${(20*M).toFixed(6)}*tVn(p*.005+17.3)+${(5*M).toFixed(6)}*tVn(p*.02+41.7);}
 float tH(vec2 l){if(uTOn<.5)return 0.0;float d=length(l);float a=atan(l.y,l.x)-uTBay.x;a=mod(a+3.14159265,6.2831853)-3.14159265;float bay=uTBay.z>.5?smoothstep(uTBay.y*.95,uTBay.y*1.2,abs(a)):1.0;
 /* #756: absolute seeded height (lifted so most land rises), flattened only on a 6-unit spawn pad (FP_RES_CLEAR) */
- return max(0.0,tRaw(l+uTOrg)+${(45*M).toFixed(6)})*smoothstep(6.0,14.0,d)*(1.0-smoothstep(uTR*.8,uTR,d))*bay;}`;
+ /* #757: rise with distance and never above ~7 deg from the eye, so hills sit behind the meadow instead of a wall */
+ return min(max(0.0,tRaw(l+uTOrg)+${(45*M).toFixed(6)})*smoothstep(6.0,uTR*.35,d),.12*d)*(1.0-smoothstep(uTR*.8,uTR,d))*bay;}`;
 const tHashJ=(x:number,y:number)=>{const fr=(v:number)=>v-Math.floor(v);let a=fr(x*.1031),b=fr(y*.1031),c=fr(x*.1031);const d=a*(b+33.33)+b*(c+33.33)+c*(a+33.33);a+=d;b+=d;c+=d;return fr((a+b)*c);};
 const tVnJ=(x:number,y:number)=>{const ix=Math.floor(x),iy=Math.floor(y);let fx=x-ix,fy=y-iy;fx=fx*fx*(3-2*fx);fy=fy*fy*(3-2*fy);const L=(p:number,q:number,t:number)=>p+(q-p)*t;return L(L(tHashJ(ix,iy),tHashJ(ix+1,iy),fx),L(tHashJ(ix,iy+1),tHashJ(ix+1,iy+1),fx),fy)*2-1;};
 const tRawJ=(x:number,y:number,sd:number[])=>{const px=x/M+sd[0],py=y/M+sd[1];return 80*M*tVnJ(px*.0015,py*.0015)+20*M*tVnJ(px*.005+17.3,py*.005+17.3)+5*M*tVnJ(px*.02+41.7,py*.02+41.7);};
 /** CPU mirror of tH (local x,z in ground units). Pure; no random calls. */
 export function terrainHeightAt(x:number,z:number,o:{org:number[];seed:number[];bay:number[];on:boolean;r:number}){if(!o.on)return 0;const d=Math.hypot(x,z);const ss=(e0:number,e1:number,v:number)=>{const t=Math.min(1,Math.max(0,(v-e0)/(e1-e0)));return t*t*(3-2*t);};let a=Math.atan2(z,x)-o.bay[0];a=((a+Math.PI)%(2*Math.PI)+2*Math.PI)%(2*Math.PI)-Math.PI;const bay=o.bay[2]>.5?ss(o.bay[1]*.95,o.bay[1]*1.2,Math.abs(a)):1;
- return Math.max(0,tRawJ(x+o.org[0],z+o.org[1],o.seed)+45*M)*ss(6,14,d)*(1-ss(o.r*.8,o.r,d))*bay;}
+ return Math.min(Math.max(0,tRawJ(x+o.org[0],z+o.org[1],o.seed)+45*M)*ss(6,o.r*.35,d),.12*d)*(1-ss(o.r*.8,o.r,d))*bay;}
 /** First person (target 36): the flat patch starts ~4 m out, just inside where the curved 8-unit planet drops below the 1.6 m eye's horizon (was 14 units, which left a flat below-horizon band and a teal planet rim between near grass and meadow). SEEDED look value. */
 export const FLAT_INNER=1.2;
 /** First person: a flat local ground patch (2.5 km radius) with aerial haze, plus four full 360 deg ridge rings. The 27 m sphere stays for orbit. */
