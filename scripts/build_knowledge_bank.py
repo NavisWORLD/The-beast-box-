@@ -4,7 +4,8 @@
 Reads the authored files in apps/beastbox-cloud/knowledge-bank/authored (english, math) and derives the rest from material
 already in the repo: Knowledge 001/002 facts + tables, the ERIDORIA canon, the real IBM bio run numbers, and the clean-text
 lyrics of "Rainbows On My Face" (Cory's own song; clean text only, never the machine-transcribed ones).
-Writes knowledge-bank/{world-facts,zeref-lore,songs}.jsonl, manifest.json, public/knowledge-bank/bank.json and
+Writes knowledge-bank/{world-facts,zeref-lore,songs}.jsonl, manifest.json, public/knowledge-bank/bank.json (+ shards/ for
+evidence/zeref-world-001, fetched on demand) and
 evidence/zeref-knowledge-003/dialogue.jsonl (a corpus-format EXPORT only: it is not in the training mix; adding it needs Cory's go-ahead).
 Usage: build_knowledge_bank.py [--check]   (--check exits 1 if the committed files differ from a fresh build)
 """
@@ -136,6 +137,28 @@ def corpus_export(entries):
                      "author": AUTH, "license": "same as repository"})
     return rows, dropped
 
+WORLD = EV / "zeref-world-001/qa.jsonl"
+SHARD_DIR = APP / "public/knowledge-bank/shards"
+WORLD_SHARDS = 24
+def world_001():
+    """evidence/zeref-world-001 (knowledge bank only, never the training mix): Simple English Wikipedia lead sentences
+    (CC BY-SA 4.0) and GSM8K word problems (MIT), copied word for word, each with its own source URL and licence."""
+    out = []
+    if not WORLD.is_file(): return out
+    for r in read_jsonl(WORLD):
+        if r["subject"] == "world_knowledge":
+            out.append(entry(f"wiki-{len(out)+1:04d}", "world", "passage", r["title"], r["assistant"], r["source"],
+                             license=r["license"], author=r["author"], license_url=r["license_url"], question=r["user"]))
+        else:
+            words = r["user"].split()
+            out.append(entry(f"gsm-{len(out)+1:04d}", "math", "word-problem", "Math word problem: " + " ".join(words[:10]),
+                             r["user"] + " " + r["assistant"], r["source"], license=r["license"], author=r["author"],
+                             license_url=r["license_url"], question=r["user"], answer=r["answer"]))
+    return out
+
+def shard_of(e):
+    return int(sha(e["title"].encode())[:8], 16) % WORLD_SHARDS
+
 def build():
     authored = read_jsonl(KB / "authored/english-usage.jsonl") + read_jsonl(KB / "authored/math-basics.jsonl")
     files = {"world-facts.jsonl": world_facts(), "zeref-lore.jsonl": lore(), "songs.jsonl": songs()}
@@ -148,20 +171,41 @@ def build():
         assert not re.search(r"\bAI\b|\bLLM\b", e["text"]), e["id"]
     rows, dropped = corpus_export(authored)
     corpus = "".join(dump(r) + "\n" for r in rows)
+    world = world_001()
+    assert not set(ids) & {e["id"] for e in world}, "duplicate ids"
+    for e in world:
+        assert e["license"] in ("CC BY-SA 4.0", "MIT") and e["source"].startswith("https://"), e["id"]
+        assert not re.search(r"\bAI\b|\bLLM\b", e["text"]), e["id"]
+    groups = {}
+    for e in world: groups.setdefault(shard_of(e), []).append(e)
+    shard_texts, shards = {}, []
+    J = lambda o: json.dumps(o, sort_keys=True, ensure_ascii=False, separators=(",", ":")) + "\n"
+    for i in sorted(groups):
+        rel = f"shards/world-001-{i:02d}.json"
+        t = J({"schema": "zeref-knowledge-bank-shard/v1", "version": VERSION, "shard": i, "count": len(groups[i]), "entries": groups[i]})
+        shard_texts[SHARD_DIR / f"world-001-{i:02d}.json"] = t
+        shards.append({"path": rel, "count": len(groups[i]), "sha256": sha(t.encode())})
+    # Routing table: only titles + shard number travel in bank.json; a visitor fetches just the shards their question names.
+    routes = [[e["title"], shard_of(e)] for e in world]
     bank = {"schema": "zeref-knowledge-bank/v1", "version": VERSION, "count": len(allentries),
-            "domains": sorted({e["domain"] for e in allentries}), "entries": allentries}
-    bank_text = json.dumps(bank, sort_keys=True, ensure_ascii=False, separators=(",", ":")) + "\n"
+            "domains": sorted({e["domain"] for e in allentries}), "entries": allentries,
+            "shards": shards, "shard_entries": len(world), "routes": routes}
+    bank_text = J(bank)
     per_file = {"authored/english-usage.jsonl": (KB / "authored/english-usage.jsonl").read_text(),
                 "authored/math-basics.jsonl": (KB / "authored/math-basics.jsonl").read_text(), **texts}
     manifest = {"schema": "zeref-knowledge-bank-manifest/v1", "version": VERSION, "entries": len(allentries),
         "files": {n: {"sha256": sha(t.encode()), "entries": t.count("\n")} for n, t in sorted(per_file.items())},
         "bank_json_sha256": sha(bank_text.encode()),
+        "shards": {"source": "evidence/zeref-world-001/qa.jsonl", "entries": len(world), "in_training_mix": False,
+                   "licenses": sorted({e["license"] for e in world}), "files": {s["path"]: {"sha256": s["sha256"], "entries": s["count"]} for s in shards},
+                   "note": "Knowledge bank only. Simple English Wikipedia (CC BY-SA 4.0) and GSM8K (MIT), word for word with per-entry source. Never in the training mix; the gate, pin and growth routine are unchanged."},
         "corpus_export": {"path": "evidence/zeref-knowledge-003/dialogue.jsonl", "rows": len(rows), "dropped_by_filters": dropped,
                           "in_training_mix": False, "note": "Same filters as Knowledge 002. Not wired into the growth mix; adding it needs the owner's go-ahead and the fair promotion check stays unchanged."},
         "rules": "Public-domain or open-license or original text only. Every entry carries source and license. No private transcripts, no raw audio."}
     out = {KB / n: t for n, t in texts.items()}
     out[KB / "manifest.json"] = json.dumps(manifest, indent=1, sort_keys=True) + "\n"
     out[PUB] = bank_text
+    out.update(shard_texts)
     out[EV / "zeref-knowledge-003/dialogue.jsonl"] = corpus
     return out
 

@@ -1,0 +1,190 @@
+{
+ "bank_by_subject": {
+  "math": 500,
+  "world_knowledge": 2000
+ },
+ "bank_rows": 2500,
+ "gate_prompts_checked": 250,
+ "heldout_by_subject": {
+  "math": 50,
+  "world_knowledge": 100
+ },
+ "heldout_loaded_for_training": false,
+ "heldout_rows": 150,
+ "in_training_mix": false,
+ "purpose": "knowledge bank only",
+ "removed": [
+  {
+   "gate_prompt": "How do you say love in French?",
+   "gate_source": "gate_sets_v2.set_b_added",
+   "kind": "wiki",
+   "question": "What is Love?"
+  },
+  {
+   "gate_prompt": "What is the capital of Ireland?",
+   "gate_source": "gate_sets_v2.set_a_added",
+   "kind": "wiki",
+   "question": "What is Capital?"
+  },
+  {
+   "gate_prompt": "How is your day going?",
+   "gate_source": "chat_eval.CHAT",
+   "kind": "wiki",
+   "question": "What is Day?"
+  },
+  {
+   "gate_prompt": "What are the layers of the Earth?",
+   "gate_source": "gate_sets_v2.set_b_added",
+   "kind": "wiki",
+   "question": "What is Earth?"
+  },
+  {
+   "gate_prompt": "What is special about Neptune?",
+   "gate_source": "gate_sets_v2.set_a_added",
+   "kind": "wiki",
+   "question": "What is Neptune?"
+  },
+  {
+   "gate_prompt": "When is the sun usually up?",
+   "gate_source": "gate_sets_v2.set_a_added",
+   "kind": "wiki",
+   "question": "What is Sun?"
+  },
+  {
+   "gate_prompt": "What is the plural of fish?",
+   "gate_source": "gate_sets_v2.set_b_added",
+   "kind": "wiki",
+   "question": "What is Fish?"
+  },
+  {
+   "gate_prompt": "What does the cat do with the ball?",
+   "gate_source": "gate_sets_v2.set_a_added",
+   "kind": "wiki",
+   "question": "What is Cat?"
+  },
+  {
+   "gate_prompt": "How do you say dog in Spanish?",
+   "gate_source": "gate_sets_v2.set_b_added",
+   "kind": "wiki",
+   "question": "What is Dog?"
+  },
+  {
+   "gate_prompt": "Name a fruit.",
+   "gate_source": "chat_eval.PAIRS",
+   "kind": "wiki",
+   "question": "What is Fruit?"
+  },
+  {
+   "gate_prompt": "What should you do if you have a cold?",
+   "gate_source": "gate_sets_v2.set_b_added",
+   "kind": "wiki",
+   "question": "What is Common cold?"
+  },
+  {
+   "gate_prompt": "What color is grass?",
+   "gate_source": "heldout_b",
+   "kind": "wiki",
+   "question": "What is Color?"
+  },
+  {
+   "gate_prompt": "Name a fruit.",
+   "gate_source": "chat_eval.PAIRS",
+   "kind": "wiki",
+   "question": "What is Nut?"
+  },
+  {
+   "gate_prompt": "What color is a fire?",
+   "gate_source": "gate_sets_v2.set_b_added",
+   "kind": "wiki",
+   "question": "What is Fire?"
+  },
+  {
+   "gate_prompt": "What was the Great Wall of China built for?",
+   "gate_source": "gate_sets_v2.set_b_added",
+   "kind": "wiki",
+   "question": "What is Great Wall of China?"
+  },
+  {
+   "gate_prompt": "I finished my song.",
+   "gate_source": "gate_sets_v2.chat_added",
+   "kind": "wiki",
+   "question": "What is Song?"
+  },
+  {
+   "gate_prompt": "What should you do if you have a cold?",
+   "gate_source": "gate_sets_v2.set_b_added",
+   "kind": "wiki",
+   "question": "What is Cold War?"
+  },
+  {
+   "gate_prompt": "What is a telescope for?",
+   "gate_source": "gate_sets_v2.set_a_added",
+   "kind": "wiki",
+   "question": "What is Hubble Space Telescope?"
+  },
+  {
+   "gate_prompt": "What is a telescope for?",
+   "gate_source": "gate_sets_v2.set_a_added",
+   "kind": "wiki",
+   "question": "What is James Webb Space Telescope?"
+  },
+  {
+   "gate_prompt": "What is a telescope for?",
+   "gate_source": "gate_sets_v2.set_a_added",
+   "kind": "wiki",
+   "question": "What is Spitzer Space Telescope?"
+  },
+  {
+   "gate_prompt": "What is a telescope for?",
+   "gate_source": "gate_sets_v2.set_a_added",
+   "kind": "wiki",
+   "question": "What is Very Large Telescope?"
+  },
+  {
+   "gate_prompt": "What is a dragon?",
+   "gate_source": "chat_eval.CHAT",
+   "kind": "wiki",
+   "question": "What is Azure Dragon?"
+  },
+  {
+   "gate_prompt": "What is the atomic number of argon?",
+   "gate_source": "gate_sets_v2.set_a_added",
+   "kind": "wiki",
+   "question": "What is Atomic number?"
+  },
+  {
+   "gate_prompt": "How many legs do you have?",
+   "gate_source": "gate_sets_v2.set_a_added",
+   "kind": "gsm8k",
+   "question": "Adlai has 2 dogs and 1 chicken. How many animal legs are there in all?"
+  }
+ ],
+ "removed_by_source": {
+  "gsm8k vs gate_sets_v2.set_a_added": 1,
+  "wiki vs chat_eval.CHAT": 2,
+  "wiki vs chat_eval.PAIRS": 2,
+  "wiki vs gate_sets_v2.chat_added": 1,
+  "wiki vs gate_sets_v2.set_a_added": 9,
+  "wiki vs gate_sets_v2.set_b_added": 8,
+  "wiki vs heldout_b": 1
+ },
+ "removed_near_gate": 24,
+ "schema": "zeref-world-001",
+ "sha256": {
+  "heldout.jsonl": "22ad191fc90377ff7b0a5ec44e9fb7efec45539bf904831078e925113f7055ae",
+  "qa.jsonl": "f5b869d73654377130eeebcb1b1860df348a1eae1268d5ac44657ea6978785a7"
+ },
+ "sources": {
+  "gsm8k": {
+   "commit": "3101c7d5072418e28b9008a6636bde82a006892c",
+   "license": "MIT",
+   "repo": "https://github.com/openai/grade-school-math",
+   "selection": "numeric final answers, question <= 360 chars, ordered by sha256 of the question; bank from train.jsonl, held-out from test.jsonl"
+  },
+  "simplewiki": {
+   "fetched": "2026-10-30",
+   "license": "CC BY-SA 4.0",
+   "selection": "Meta 'List of articles every Wikipedia should have' (core 1,000, rev 31182226 of 2026-10-18, then the Expanded lists) mapped to Simple English Wikipedia via Wikidata; first one or two lead sentences, word for word (whitespace collapsed); each row pinned to its page revision id (oldid)"
+  }
+ }
+}

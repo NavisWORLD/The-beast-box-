@@ -25,7 +25,7 @@ import {useTalkPersona} from './use-talk-target';
 import {RAWRPHOS_PUBLIC_PIN} from '../lib/companion/brain.mjs';
 import ZerefLibraryPanel,{ReadsBox,RecordedNotes,type LibraryState} from './zeref-library-panel';
 import {libraryContext} from '../lib/library/context.mjs';
-import {BANK_URL,BANK_CONSENT_KEY,BANK_LABEL,buildBank,searchBank,bankContext,provenanceLine,isStillLearningReply,stillLearningNote} from '../lib/knowledge/bank.mjs';
+import {BANK_URL,BANK_CONSENT_KEY,BANK_LABEL,buildBank,loadShardsFor,searchBank,bankContext,provenanceLine,isStillLearningReply,stillLearningNote} from '../lib/knowledge/bank.mjs';
 
 export type TalkState='idle'|'thinking'|'listening'|'speaking'|'replied'|'offline';
 type Route=TalkRoute;
@@ -189,6 +189,7 @@ function BeastTalkContent({onState,compact=false,title,gameBridge}:PanelProps){
    if(persona.source==='zeref'&&bankOn){
     try{
      if(!bankRef.current){const r=await fetch(BANK_URL,{cache:'force-cache',signal:controller.signal});if(r.ok)bankRef.current=buildBank(await r.json());}
+     if(bankRef.current){bankRef.current=await loadShardsFor(bankRef.current,readInfo(saying).text.slice(-300),async(u:string)=>{const r=await fetch(u,{cache:'force-cache',signal:controller.signal});if(!r.ok)throw new Error(String(r.status));return r.json();});}
      if(bankRef.current){const c=bankContext(searchBank(bankRef.current,readInfo(saying).text.slice(-300)));bankUsed=c.used;if(c.text)libraryText=[libraryText,c.text].filter(Boolean).join(' | ');}
     }catch{if(controller.signal.aborted)return;}
     if(controller.signal.aborted||personaKey.current!==forKey||privateSelection.current!==forSelection)return;
