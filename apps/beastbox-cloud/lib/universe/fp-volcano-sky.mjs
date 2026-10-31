@@ -13,3 +13,13 @@ export function clearOfVolcano(dir,vol,up,rule=FP_NEIGHBOUR_RULE){
  let d=dir;for(let k=1;k<=24&&angleDeg(d,vol)<rule.minSepDeg;k++)d=rotAbout(dir,up,sg*k*rule.stepDeg*Math.PI/180);return d;}
 /** Distance so a neighbour of this radius (ring outer factor included) spans at most maxShare of world-volcano's 9.29°. */
 export function fpNeighbourDist(radius,ringOuter,dd,rule=FP_NEIGHBOUR_RULE){const ext=radius*Math.max(1,ringOuter||1);const half=VOLCANO_FP.angularDeg*rule.maxShare*Math.PI/360;return Math.max(dd,ext/Math.tan(half));}
+/** Cosmo's day/crack look for world-volcano (SEEDED pattern, DERIVED colours): shader-drawn Voronoi-edge cracks ~0.02 wide on the unit sphere,
+ *  antialiased with fwidth; glow #FF7A2E falling off to #B5532E. By day the sky lies over the disc at no more than 0.2, cracks show at 0.3 of
+ *  their night strength, and a thin sunlit crescent rim follows the one sun. Night is unchanged (day = 0). */
+export const VOLCANO_DAY_LOOK=Object.freeze({label:'SEEDED',crackHex:'#FF7A2E',crackFallHex:'#B5532E',dayBodyHex:'#B5532E',lineWidth:.02,cellScale:7,daySkyMax:.2,dayCrackK:.3,dayBodyK:.3});
+/** Seed offset for the crack cells from a fixed tag (FNV-1a, no random calls). */
+export function crackSeed(tag='world-volcano:cracks'){let h=2166136261;const o=[];for(let k=0;k<3;k++){for(let i=0;i<tag.length;i++){h^=tag.charCodeAt(i)+k;h=Math.imul(h,16777619)>>>0;}o.push((h%10007)/10007*97);}return o;}
+/** Sky share laid over the disc for a day factor 0..1 (never above daySkyMax; 0 at night). */
+export const daySkyK=(day,L=VOLCANO_DAY_LOOK)=>L.daySkyMax*Math.max(0,Math.min(1,day||0));
+/** Crack strength multiplier: 1 at night, dayCrackK at full day. */
+export const crackK=(day,L=VOLCANO_DAY_LOOK)=>1+(L.dayCrackK-1)*Math.max(0,Math.min(1,day||0));
