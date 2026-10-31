@@ -1,0 +1,42 @@
+name: Zeref daily licensed reader
+# Cory 2026-10-31: reading is Zeref's own thing. Once a day (13:23 UTC) a few open-licence / public-domain
+# passages (Simple English Wikipedia, Wikinews, Project Gutenberg) are saved word for word with revision id,
+# URL, licence and sha256; anything overlapping the gate / held-out sets or a secret pattern is dropped.
+# Feeds the knowledge bank shards and the growing branch's lessons. Never the pin's training mix.
+on:
+  schedule:
+    - cron: '23 13 * * *'
+  workflow_dispatch:
+permissions:
+  contents: write   # commit the day's reading + rebuilt bank to main
+concurrency:
+  group: zeref-daily-reader
+  cancel-in-progress: false
+jobs:
+  read:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11'}
+      - name: Install CPU torch and RAWRPHOS (needed for the gate-overlap filter)
+        run: |
+          python -m pip install --index-url https://download.pytorch.org/whl/cpu torch==2.6.0
+          python -m pip install -e . -e ./models/rawrphos
+      - name: Read today
+        run: python scripts/zeref_reader.py "$(date -u +%F)"
+      - name: Rebuild the knowledge bank (deterministic) and check it
+        run: |
+          python scripts/build_knowledge_bank.py
+          python scripts/build_knowledge_bank.py --check
+      - name: Commit the reading
+        run: |
+          set -Eeuo pipefail
+          git config user.name "zeref-reader[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add evidence/zeref-read-001 apps/beastbox-cloud/knowledge-bank apps/beastbox-cloud/public/knowledge-bank
+          git diff --cached --quiet && { echo "nothing new today"; exit 0; }
+          git commit -m "Zeref read $(date -u +%F): licensed passages + bank shards"
+          git pull --rebase origin main
+          git push origin HEAD:main

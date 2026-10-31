@@ -156,6 +156,19 @@ def world_001():
                              license_url=r["license_url"], question=r["user"], answer=r["answer"]))
     return out
 
+READ_DIR = EV / "zeref-read-001"
+READ_LICENSES = ("CC BY-SA 4.0", "CC BY 2.5", "Public domain (USA)")
+def reading():
+    """evidence/zeref-read-001 (2026-10-31, Cory's daily licensed reader): passages word for word, each with its
+    revision-pinned source URL, licence and sha256. Knowledge bank + growing-branch lessons only; never the pin's mix."""
+    out = []
+    for f in sorted(READ_DIR.glob("*.jsonl")) if READ_DIR.is_dir() else []:
+        for r in read_jsonl(f):
+            out.append(entry(f"read-{len(out)+1:05d}", "world", "passage", r["title"], r["text"], r["source"],
+                             license=r["license"], author=r["author"], license_url=r["license_url"],
+                             revision_id=r["revision_id"], sha256=r["sha256"], read_on=f.stem))
+    return out
+
 def shard_of(e):
     return int(sha(e["title"].encode())[:8], 16) % WORLD_SHARDS
 
@@ -171,10 +184,10 @@ def build():
         assert not re.search(r"\bAI\b|\bLLM\b", e["text"]), e["id"]
     rows, dropped = corpus_export(authored)
     corpus = "".join(dump(r) + "\n" for r in rows)
-    world = world_001()
+    world = world_001() + reading()
     assert not set(ids) & {e["id"] for e in world}, "duplicate ids"
     for e in world:
-        assert e["license"] in ("CC BY-SA 4.0", "MIT") and e["source"].startswith("https://"), e["id"]
+        assert e["license"] in ("CC BY-SA 4.0", "MIT") + READ_LICENSES and e["source"].startswith("https://"), e["id"]
         assert not re.search(r"\bAI\b|\bLLM\b", e["text"]), e["id"]
     groups = {}
     for e in world: groups.setdefault(shard_of(e), []).append(e)

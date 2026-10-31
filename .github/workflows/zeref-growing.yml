@@ -1,0 +1,69 @@
+name: Growing Zeref - always-learning side branch (never the pin)
+# Cory 2026-10-31: "No one should have to start it by hand, Zeref should be alive."
+# Every 4 hours (UTC :47) one bounded CPU round on free GitHub runners. Resumes from its OWN newest
+# zeref-growing-NNN release (first run: the public pin). No gate on saving; set A/B are reported only.
+# The pin json, the 006 workflow, its gate and promotion are NOT touched here. Releases are never deleted.
+on:
+  schedule:
+    - cron: '47 */4 * * *'
+  workflow_dispatch:
+  pull_request:
+    paths: ['scripts/zeref_growing.py', 'scripts/zeref_lessons.py', '.github/workflows/zeref-growing.yml', 'tests/test_zeref_lessons.py']
+permissions:
+  contents: write   # only to publish zeref-growing-NNN release assets
+concurrency:
+  group: zeref-growing-branch
+  cancel-in-progress: false
+jobs:
+  grow:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      GH_TOKEN: ${{ github.token }}
+      OMP_NUM_THREADS: '2'
+      MKL_NUM_THREADS: '2'
+    steps:
+      - uses: actions/checkout@v4
+        with: {persist-credentials: false}
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11'}
+      - name: Install CPU torch and RAWRPHOS
+        run: |
+          python -m pip install --index-url https://download.pytorch.org/whl/cpu torch==2.6.0
+          python -m pip install -e . -e ./models/rawrphos pytest
+      - name: Lesson builder tests
+        run: python -m pytest -q tests/test_zeref_lessons.py
+      - name: Resume from the newest growing checkpoint (or the pin on the first run)
+        run: |
+          set -Eeuo pipefail
+          mkdir -p build/grow/rel build/grow/prev
+          last="$(gh release list --repo "${{ github.repository }}" -L 200 --json tagName --jq 'map(.tagName|select(test("^zeref-growing-[0-9]{3,}$")))|sort|last // empty')"
+          if [ -n "$last" ]; then
+            src="$last"; n=$(( 10#${last#zeref-growing-} + 1 ))
+          else
+            src="$(python -c "import json;print(json.load(open('apps/beastbox-cloud/lib/rawrphos-public-pin.json'))['promotion']['release_tag'])")"; n=1
+          fi
+          gh release download "$src" --repo "${{ github.repository }}" -D build/grow/rel -p '*.tar.gz' -p '*.sha256'
+          (cd build/grow/rel && sha256sum -c ./*.sha256)
+          tar -C build/grow/prev -xzf build/grow/rel/*.tar.gz
+          parent="$(find build/grow/prev -type d -name accepted-checkpoint -print -quit)"
+          test -s "$parent/manifest.json"
+          printf 'GROW_PARENT=%s\nGROW_SRC=%s\nGROW_N=%s\nGROW_TAG=zeref-growing-%03d\n' "$parent" "$src" "$n" "$n" >> "$GITHUB_ENV"
+          echo "GROWING_RESUME_FROM=$src next=$n"
+      - name: Train one bounded round (CPU)
+        if: github.event_name != 'pull_request'
+        run: python scripts/zeref_growing.py --parent "$GROW_PARENT" --out build/grow/out --number "$GROW_N" --parent-tag "$GROW_SRC"
+      - name: Smoke round on pull requests (8 updates, not published)
+        if: github.event_name == 'pull_request'
+        run: python scripts/zeref_growing.py --parent "$GROW_PARENT" --out build/grow/out --number 0 --parent-tag "$GROW_SRC" --updates 8
+      - name: Publish zeref-growing-NNN (never deleted, never the pin)
+        if: github.event_name != 'pull_request'
+        run: |
+          set -Eeuo pipefail
+          cd build/grow/out
+          tar -czf "$GROW_TAG.tar.gz" accepted-checkpoint
+          sha256sum "$GROW_TAG.tar.gz" > "$GROW_TAG.tar.gz.sha256"
+          gh release create "$GROW_TAG" --repo "${{ github.repository }}" --prerelease --target "$GITHUB_SHA" \
+            --title "Growing Zeref $GROW_TAG (not the pin)" \
+            --notes "Growing Zeref - always-learning side branch, NOT the pin. Ungated; set A/B reported in report.json. Parent: $GROW_SRC. Row sources and licences: rows-log.jsonl." \
+            "$GROW_TAG.tar.gz" "$GROW_TAG.tar.gz.sha256" report.json rows-log.jsonl
