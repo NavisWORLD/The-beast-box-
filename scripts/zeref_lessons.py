@@ -22,8 +22,27 @@ def _fits(answer: str, tok=None) -> bool:
         return len(tok.encode(" " + answer, add_eos=True)) < MAX_ANSWER_TOKENS
     return len(answer.split()) <= _WORD_CAP
 
+def _row(passage, title, q, a):
+    return {"mode": "chat", "kind": "reading-lesson", "user": q, "assistant": a, "title": title,
+            "shelf": passage.get("shelf"), "origin": passage.get("source"), "license": passage.get("license"),
+            "revision_id": passage.get("revision_id"), "passage_sha256": passage.get("sha256")}
+
+def _verse_lessons(passage, tok):
+    """Scripture rows: framed as what the book says, never as a fact claim. Verse text is verbatim."""
+    frame, rows = passage.get("frame") or "The King James Bible says", []
+    for v in passage["verses"]:
+        a = f"{frame} ({v['ref']}): {v['text']}"
+        if _fits(a, tok):
+            rows.append(_row(passage, passage.get("title", ""), f"What does the King James Bible say in {v['ref']}?", a))
+    rows = rows[:MAX_LESSONS]
+    return rows if len(rows) >= MIN_LESSONS else []
+
 def lessons(passage: dict, tok=None) -> list[dict]:
-    """passage: {title, text, source, license, revision_id?, sha256?}. Returns [] or 3..5 lesson rows."""
+    """passage: {title, text, source, license, revision_id?, sha256?, frame?, verses?}. Returns [] or 3..5 lesson rows.
+    With a frame (religion shelves), every answer is "<frame>: <verbatim sentence>" so a belief is never stated as fact."""
+    if passage.get("verses"):
+        return _verse_lessons(passage, tok)
+    frame = passage.get("frame")
     title = (passage.get("title") or "").strip()
     sents = [s for s in sentences(passage.get("text", "")) if _fits(s, tok)]
     if not title or not sents:
@@ -39,18 +58,25 @@ def lessons(passage: dict, tok=None) -> list[dict]:
             break
     if len(sents) >= 2:
         out.append((f"Tell me one more thing about {title}.", sents[1]))
+    if frame:
+        out = [(f"What do followers of {title} believe?" if i == 0 else q, f"{frame}: {a}") for i, (q, a) in enumerate(out)]
     seen, rows = set(), []
     for q, a in out:
         if a in seen or not _fits(a, tok):
             continue
         seen.add(a)
-        rows.append({"mode": "chat", "kind": "reading-lesson", "user": q, "assistant": a, "title": title,
-                     "origin": passage.get("source"), "license": passage.get("license"),
-                     "revision_id": passage.get("revision_id"), "passage_sha256": passage.get("sha256")})
+        rows.append(_row(passage, title, q, a))
     rows = rows[:MAX_LESSONS]
     return rows if len(rows) >= MIN_LESSONS else []
 
 def all_in_passage(row: dict, passage: dict) -> bool:
     """Every answer must be a verbatim substring of the passage (whitespace-normalised)."""
     norm = lambda s: re.sub(r"\s+", " ", s).strip()
-    return norm(row["assistant"]) in norm(passage["text"])
+    a = row["assistant"]
+    if passage.get("verses"):
+        m = re.match(r"^.*? \(([^)]+)\): (.*)$", a, re.S)
+        return bool(m) and any(v["ref"] == m.group(1) and norm(v["text"]) == norm(m.group(2)) for v in passage["verses"])
+    if passage.get("frame"):
+        if not a.startswith(passage["frame"] + ": "): return False
+        a = a[len(passage["frame"]) + 2:]
+    return norm(a) in norm(passage["text"])
