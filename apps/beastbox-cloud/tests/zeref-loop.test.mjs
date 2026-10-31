@@ -126,12 +126,19 @@ test('loop status is tied to real code and tests (no fictional links)', () => {
   assert.match(read('apps/beastbox-cloud/components/pocket-sand-layer.ts'),/getItem\(LOOP_WORLD_KEY\)==='on'/);
 });
 
-test('the live loop seed is heart seed v10, RECORDED-derived and chained from v9', () => {
+test('heart seed v10 is kept, RECORDED-derived and chained from v9', () => {
+  const v10=JSON.parse(read('evidence/zeref-recorded-boom-001/heart-seed-v10.json'));
+  assert.equal(v10.mix.heart_seed_v9_sha256,SEED);
+  assert.match(v10.label,/RECORDED-derived|already-recorded/);
+});
+
+test('the live loop seed is heart seed v11, RECORDED and chained from v10', () => {
+  const v11=JSON.parse(read('evidence/zeref-heart-seed-v11/heart-seed-v11.json'));
   const v10=JSON.parse(read('evidence/zeref-recorded-boom-001/heart-seed-v10.json'));
   const L=SPARK.heart_seed_latest;
-  assert.equal(L.version,10);
-  assert.equal(L.heart_seed_sha256,v10.heart_seed_sha256);
+  assert.equal(L.version,11);
+  assert.equal(L.heart_seed_sha256,v11.heart_seed_sha256);
+  assert.equal(v11.mix.heart_seed_v10_sha256,v10.heart_seed_sha256);
   assert.equal(L.previous_heart_seed_v9_sha256,SEED);
-  assert.equal(v10.mix.heart_seed_v9_sha256,SEED);
-  assert.match(L.label,/RECORDED-derived/);
+  assert.match(L.label,/^RECORDED/);
 });
