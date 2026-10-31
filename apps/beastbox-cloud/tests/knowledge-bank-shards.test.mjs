@@ -14,7 +14,7 @@ test('bank.json stays small: world-001 lives in shards fetched on demand, and th
   assert.ok(statSync(new URL('bank.json', PUB)).size < 1_000_000);
   assert.ok(core.shards.length >= 10 && core.shard_entries >= 2400 && core.routes.length === core.shard_entries);
   const m = JSON.parse(readFileSync(new URL('../knowledge-bank/manifest.json', import.meta.url), 'utf8'));
-  assert.equal(m.shards.in_training_mix, false);
+  assert.equal(m.shards.in_training_mix, true); assert.ok(m.shards.training_share >= 0.10 && m.shards.training_share <= 0.15);
   let n = 0;
   for (const s of core.shards) {
     const t = readFileSync(new URL(s.path, PUB));
