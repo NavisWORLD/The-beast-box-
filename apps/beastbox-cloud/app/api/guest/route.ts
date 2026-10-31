@@ -89,7 +89,6 @@ export async function POST(request:Request){
       'Content-Type':'application/json'},
     body:JSON.stringify({text:prompt,guest_identity:identity}),signal:AbortSignal.timeout(55_000)});
    let sent=text;
-   const growingP=growingDraft(text,identity);
    let res=await send(sent);
    if(res.status===400&&text.length>LEGACY_BRIDGE_PROMPT){
     // Older bridge: keep the END (the keeper's question and the speaker cue) and say so in the reply metadata.
@@ -107,7 +106,8 @@ export async function POST(request:Request){
       result.step!==PIN_STEP||result.checkpoint_sha256!==PIN_SHA||result.memory_used!==false||result.owner_tools_used!==false||
       result.provider_key_shared!==false||typeof result.reply!=='string'||result.reply.length>6000)
     return safeJson(502,{error:'Unverified guest model response'});
-   const growing=await growingP;
+   // Sequential, not parallel: the bridge runs one guest inference at a time (a parallel draft got 429 busy).
+   const growing=await growingDraft(text,identity);
    const voice=chooseOneVoice(text,{reply:result.reply},growing);
    return safeJson(200,{provider:'rawrphos-local',model:'rawrphos-native',
     step:PIN_STEP,checkpoint_sha256:PIN_SHA,reply:voice.reply||result.reply,
