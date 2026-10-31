@@ -15,12 +15,57 @@ export const BANK_PASSAGE_CHARS = 300;
 export const BANK_MIN_SCORE = 2.2;
 export const BANK_LABEL = 'Knowledge bank (open-license, copied word for word, nothing invented)';
 
+/** Routing: a question word that names more than this many shard titles is too common to pick shards by. */
+export const SHARD_ROUTE_MAX_TITLES = 40;
+/** At most this many shards are fetched for one question (each is ~60 KB). */
+export const SHARD_FETCH_MAX = 4;
+
 /** @param {{entries:{id:string,domain:string,title:string,text:string,source:string,license:string,version:number}[]}} bank */
 export function buildBank(bank) {
-  const entries = Array.isArray(bank?.entries) ? bank.entries : [];
+  const core = Array.isArray(bank?.entries) ? bank.entries : [];
+  const shards = Array.isArray(bank?.shards) ? bank.shards : [];
+  const routes = new Map();
+  for (const [title, shard] of Array.isArray(bank?.routes) ? bank.routes : []) {
+    for (const t of new Set(tokenize(title))) { if (!routes.has(t)) routes.set(t, new Map()); const m = routes.get(t); m.set(shard, (m.get(shard) || 0) + 1); }
+  }
+  return indexed({ core, shards, routes, loaded: new Map(), version: bank?.version ?? null, raw: bank });
+}
+
+function indexed(b) {
+  const entries = [...b.core, ...[...b.loaded.keys()].sort((x, y) => x - y).flatMap(k => b.loaded.get(k))];
   const byId = new Map(entries.map(e => [e.id, e]));
   const index = buildIndex(entries.map(e => ({ id: e.id, title: e.title, chunks: [{ loc: e.domain, text: e.title + '. ' + e.text }] })));
-  return { index, byId, version: bank?.version ?? null, count: entries.length };
+  return { ...b, index, byId, count: entries.length };
+}
+
+/** Which shard numbers a question needs (by the titles it names), best first; already-loaded shards are skipped. */
+export function shardsFor(bank, query, { max = SHARD_FETCH_MAX } = {}) {
+  if (!bank?.routes?.size) return [];
+  const score = new Map();
+  for (const t of new Set(tokenize(query))) {
+    const m = bank.routes.get(t);
+    if (!m) continue;
+    let titles = 0; for (const v of m.values()) titles += v;
+    if (titles > SHARD_ROUTE_MAX_TITLES) continue;
+    for (const [s, v] of m) score.set(s, (score.get(s) || 0) + v / titles);
+  }
+  return [...score].filter(([s]) => !bank.loaded.has(s)).sort((a, b) => b[1] - a[1] || a[0] - b[0]).slice(0, max).map(([s]) => s);
+}
+
+/** Returns a new bank with these shard files added (each {shard, entries}). Pure: same inputs, same bank. */
+export function addShards(bank, shardFiles) {
+  const loaded = new Map(bank.loaded);
+  for (const f of shardFiles) if (f && Number.isInteger(f.shard) && Array.isArray(f.entries)) loaded.set(f.shard, f.entries);
+  return loaded.size === bank.loaded.size ? bank : indexed({ ...bank, loaded });
+}
+
+/** Fetches only the shards this question needs (getJson(url) -> parsed JSON), then returns the bank ready for searchBank. */
+export async function loadShardsFor(bank, query, getJson) {
+  const need = shardsFor(bank, query);
+  if (!need.length) return bank;
+  const byNum = new Map(bank.shards.map((s, i) => [Number(s.path.match(/(\d+)\.json$/)?.[1] ?? i), s]));
+  const files = await Promise.all(need.map(n => byNum.get(n)).filter(Boolean).map(s => getJson(BANK_URL.replace(/bank\.json$/, s.path)).catch(() => null)));
+  return addShards(bank, files);
 }
 
 function cut(text, chars) {
