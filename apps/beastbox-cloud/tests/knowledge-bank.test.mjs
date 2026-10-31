@@ -64,9 +64,9 @@ test('note wording is honest and the bank is opt-in by key (default off is the c
   assert.equal(typeof BANK_CONSENT_KEY, 'string');
 });
 
-test('chat wiring: the bank is opt-in, default off, and the old library path is untouched', () => {
+test('chat wiring: the bank is ON by default (Cory 2026-10-31, keeper can turn it off), and the old library path is untouched', () => {
   const src = readFileSync(new URL('../components/beast-talk-panel.tsx', import.meta.url), 'utf8');
-  assert.match(src, /useState\(false\),bankRef/);
+  assert.match(src, /useState\(true\),bankRef/);
   assert.match(src, /persona\.source==='zeref'&&bankOn/);
   assert.match(src, /data-knowledge-bank-notes/);
   assert.match(src, /\/api\/zeref\/library\/search/);

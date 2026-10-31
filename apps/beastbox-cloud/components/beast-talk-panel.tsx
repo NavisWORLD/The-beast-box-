@@ -76,9 +76,9 @@ function BeastTalkContent({onState,compact=false,title,gameBridge}:PanelProps){
  const [verifiedAt,setVerifiedAt]=useState<number|null>(null),[listening,setListening]=useState(false),[speaking,setSpeaking]=useState(false);
  const [showBrains,setShowBrains]=useState(false);
  const [lib,setLib]=useState<LibraryState>({owner:false,ready:false,docCount:0}),[notes,setNotes]=useState<{id:string;items:{title:string;loc:string;excerpt:string;sha256?:string}[]}|null>(null),[libNote,setLibNote]=useState('');
- // Knowledge bank: opt-in, default OFF. Public open-license passages, looked up by keyword in this browser; nothing leaves the device except the matching words sent with the message.
- const [bankOn,setBankOn]=useState(false),bankRef=useRef<ReturnType<typeof buildBank>|null>(null);
- useEffect(()=>{try{setBankOn(localStorage.getItem(BANK_CONSENT_KEY)==='on');}catch{/* off */}},[]);
+ // Knowledge bank: ON by default (Cory, 2026-10-31); the keeper can turn it off. Public open-license passages, looked up by keyword in this browser; nothing leaves the device except the matching words sent with the message.
+ const [bankOn,setBankOn]=useState(true),bankRef=useRef<ReturnType<typeof buildBank>|null>(null);
+ useEffect(()=>{try{setBankOn(localStorage.getItem(BANK_CONSENT_KEY)!=='off');}catch{/* on */}},[]);
  function toggleBank(on:boolean){setBankOn(on);try{localStorage.setItem(BANK_CONSENT_KEY,on?'on':'off');}catch{/* optional */}}
  const [contribute,setContribute]=useState(false),[pairCount,setPairCount]=useState(0),[contribStatus,setContribStatus]=useState('');
  const [cloudStatus,setCloudStatus]=useState('Private cloud is optional. Restore your own conversation before saving.'),[cloudOwner,setCloudOwner]=useState(''),[cloudSync,setCloudSync]=useState(false),[cloudRestoring,setCloudRestoring]=useState(false);
@@ -362,7 +362,7 @@ function BeastTalkContent({onState,compact=false,title,gameBridge}:PanelProps){
    {queueState.pending>0?<button type="button" disabled={cloudBusy||!cloudSync||!cloudConsented} onClick={()=>void privateQueue.current?.retry()}>Retry private save ({queueState.pending})</button>:null}
    <label>Keep this conversation <select value={retention} onChange={e=>{const next=e.target.value==='session'?'session':'device';const target=next==='session'?sessionStorage:localStorage;writeTalkLog(target,persona.key,chatOnly(log));writeTalkDraft(target,persona.key,text);if(next==='session'){localStorage.removeItem(LOG_PREFIX+persona.key);localStorage.removeItem(DRAFT_PREFIX+persona.key);}setRetention(next);try{localStorage.setItem(TALK_RETENTION_KEY,next);}catch{/* optional */}}}><option value="device">On this device</option><option value="session">In this tab only</option></select></label>
    <label><input type="checkbox" checked={shareHistory} onChange={e=>setShareHistory(e.target.checked)}/> Share recent conversation with the selected provider</label>
-   {persona.source==='zeref'?<label data-bank-toggle><input type="checkbox" checked={bankOn} onChange={e=>toggleBank(e.target.checked)}/> Let Zeref use his knowledge bank (open-license English, math, world facts and his own world, looked up by keyword; each passage is shown with its source). Off by default.</label>:null}
+   {persona.source==='zeref'?<label data-bank-toggle><input type="checkbox" checked={bankOn} onChange={e=>toggleBank(e.target.checked)}/> Zeref looks things up in his knowledge bank (a keyword lookup in open-license English, math, world facts and his own world; each passage used is shown under his reply with its source). On by default; untick to turn it off.</label>:null}
    {gameBridge&&gameBridge.key===gameBeastKey(session)?<><label><input type="checkbox" checked={includeGame} onChange={e=>setIncludeGame(e.target.checked)}/> Include measured game screen brightness, contrast and color</label><GameChatTools bridge={gameBridge} busy={busy} route={route} optedIn={includeGame}/></>:<p>Observation mode: creature identity and your message. No live game vision bridge is connected.</p>}
    <p>Voice typing starts only on your tap and may use your browser’s speech service. Speech playback follows your sound settings.</p>
   </details>
