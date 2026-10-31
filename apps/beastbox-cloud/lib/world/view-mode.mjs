@@ -12,4 +12,4 @@ export function viewModeLabel(m,name){const n=midSentenceName(String(name||'').t
 /** Camera wishes for the world loop: eye = use the 1.6 m first-person eye; forceOrbit = hold the orbit zoom. */
 export function viewModeCamera(m){return {eye:m==='first',forceOrbit:m==='orbit'};}
 /** What the chip shows: the view you are actually in. Before Spawn in the camera is always the orbit view, so say so (Oct 30 2026 live shots: chip said First person while the camera orbited). */
-export function viewChipLabel(m,name,spawned){if(spawned||m==='orbit')return viewModeLabel(m,name);return m==='behind'?'View: Orbit · Spawn in for behind view':'View: Orbit · Spawn in for First person';}
+export function viewChipLabel(m,name,spawned){if(spawned||m==='orbit')return viewModeLabel(m,name);return m==='behind'?`View: Orbit · Spawn in for Behind ${midSentenceName(String(name||'').trim()||'Your beast')}`:'View: Orbit · Spawn in for First person'; /* Emeth #751: preset wording matches the chip and Habitat: First person / Behind {name} / Orbit */}
