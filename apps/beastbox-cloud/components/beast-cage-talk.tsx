@@ -44,7 +44,7 @@ export default function BeastCageTalk(){
    {askedBeast&&!companion?<p data-talk-no-beast>You haven’t met your own beast yet, so Zeref is answering. <Link href="/beast-cage">Find your beast in the Cage</Link>.</p>:null}
    {/* site_labels.json (Emeth): each creature thinks with its own brain on the shared RAWRPHØS model, never as Zeref */}
    {talkingToZeref?<p data-talk-subtitle>He's still learning to speak. Some replies come out strange.</p>:<p data-talk-subtitle>{persona.name} thinks with its own brain, built on Zeref (RAWRPHØS). It's still learning, so some replies come out strange.</p>}
-   <p data-talk-honesty>{talkingToZeref?'Zeref is RAWRPHØS, running on the rawrphos-local model.':`${persona.name} keeps its own name, traits and memories. Zeref answers through the RAWRPHØS model. If it's offline, you'll see that.`} Every reply comes from that model. If it is offline you will see that, never a made-up answer.</p>
+   <p data-talk-honesty>{talkingToZeref?'Zeref is RAWRPHØS, running on the rawrphos-local model. Every reply comes from that model. If it is offline you will see that, never a made-up answer.':`${persona.name} keeps its own name, traits and memories. Zeref answers through the RAWRPHØS model. If it's offline, you'll see that.`}</p>
   </section>
   <div className={styles.main}>
    <section className={styles.scene} aria-label="Animated cosmic companion">
