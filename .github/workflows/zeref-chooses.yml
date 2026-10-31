@@ -26,6 +26,8 @@ jobs:
           python -m pip install -e . -e ./models/rawrphos
       - name: Zeref chooses and reads
         run: python scripts/zeref_chooses.py "$(date -u +%F)"
+      - name: Refresh the Mind Room TVs (deterministic, from the logs)
+        run: python scripts/build_mind_room.py
       - name: Rebuild the knowledge bank (deterministic) and check it
         run: |
           python scripts/build_knowledge_bank.py

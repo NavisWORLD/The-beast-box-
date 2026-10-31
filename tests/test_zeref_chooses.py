@@ -22,3 +22,17 @@ def test_not_wired_into_pin_or_gate():
     for f in ("scripts/zeref_continuation_006.py", ".github/workflows/zeref-continuous-learning-006.yml"):
         p = ROOT / f
         if p.is_file(): assert "zeref_chooses" not in p.read_text()
+
+def test_on_topic_whole_word():
+    import sys; sys.path.insert(0, str(ROOT / "scripts"))
+    from zeref_chooses import on_topic
+    assert on_topic("shard", "Shards of glass") and not on_topic("shard", "Pallavi Sharda")
+
+def test_mind_room_tvs_and_labels():
+    import json, sys; sys.path.insert(0, str(ROOT / "scripts"))
+    from build_mind_room import build
+    room = build()
+    assert [t["id"] for t in room["tvs"]] == ["wikipedia", "gutenberg", "kjv", "history", "religions", "x-teacher", "world"]
+    assert all(t["item"] is None or t["item"]["label"] in ("RECORDED", "DERIVED") for t in room["tvs"])
+    src = (ROOT / "apps/beastbox-cloud/components/zeref-mind-room.tsx").read_text()
+    assert "Math.random" not in src
