@@ -16,7 +16,10 @@ export function fpNeighbourDist(radius,ringOuter,dd,rule=FP_NEIGHBOUR_RULE){cons
 /** Cosmo's day/crack look for world-volcano (SEEDED pattern, DERIVED colours): shader-drawn Voronoi-edge cracks ~0.02 wide on the unit sphere,
  *  antialiased with fwidth; glow #FF7A2E falling off to #B5532E. By day the sky lies over the disc at no more than 0.2, cracks show at 0.3 of
  *  their night strength, and a thin sunlit crescent rim follows the one sun. Night is unchanged (day = 0). */
-export const VOLCANO_DAY_LOOK=Object.freeze({label:'SEEDED',crackHex:'#FF7A2E',crackFallHex:'#B5532E',dayBodyHex:'#B5532E',lineWidth:.02,cellScale:7,daySkyMax:.2,dayCrackK:.3,dayBodyK:.3});
+export const VOLCANO_DAY_LOOK=Object.freeze({label:'SEEDED',crackHex:'#FF7A2E',crackFallHex:'#B5532E',dayBodyHex:'#B5532E',lineWidth:.02,cellScale:7,daySkyMax:.2,dayCrackK:.3,dayBodyK:.45});
+/** GENESIS X (#738): the sky laid over the disc is the dome's own colour at the disc's elevation (same formula as the sky dome: mix(horizon, zenith, pow(up,.45)),
+ *  zenith pulled halfway to teal by day), not the pale horizon haze. Feeding the horizon colour lifted the dark night-side body toward a pinkish grey. DERIVED. */
+export function skyAtUp(hor,zen,teal,day,up){const d=Math.max(0,Math.min(1,day||0)),k=Math.pow(Math.max(0,Math.min(1,up)),.45);return [0,1,2].map(i=>{const z=zen[i]+(((zen[i]+teal[i])/2)-zen[i])*d;return hor[i]+(z-hor[i])*k;});}
 /** Seed offset for the crack cells from a fixed tag (FNV-1a, no random calls). */
 export function crackSeed(tag='world-volcano:cracks'){let h=2166136261;const o=[];for(let k=0;k<3;k++){for(let i=0;i<tag.length;i++){h^=tag.charCodeAt(i)+k;h=Math.imul(h,16777619)>>>0;}o.push((h%10007)/10007*97);}return o;}
 /** Sky share laid over the disc for a day factor 0..1 (never above daySkyMax; 0 at night). */

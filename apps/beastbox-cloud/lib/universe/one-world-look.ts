@@ -5,7 +5,7 @@
 import {landArcAngle} from './p3-ocean.mjs';
 import {farLayersFor,recentreAnchor,layerPhase,HORIZON_LABEL} from './horizon-terrain.mjs';
 import {activeTier} from './post-tiers.mjs';
-import {VOLCANO_DAY_LOOK,crackSeed,daySkyK,crackK} from './fp-volcano-sky.mjs';
+import {VOLCANO_DAY_LOOK,crackSeed,daySkyK,crackK,skyAtUp} from './fp-volcano-sky.mjs';
 type T=typeof import('three');
 export const LOOK2=Object.freeze({label:'SEEDED',teal:'#437E9E',skyMid:'#88C9BB',horizonHaze:'#E4E4BD',hillsFar:'#8CA192',aerialTint:'#8CB3D6',warm:'#F2B27A',
  volcano:{azimuthDeg:191.785,elevationDeg:30.4477,angularDeg:9.292,body:'#B5532E',lava:'#FF7A2E',lavaIntensity:.35}});
@@ -137,7 +137,8 @@ export function addSkyWorld(THREE:T,scene:import('three').Object3D,angularDeg?:n
    vec3 vv=normalize(cameraPosition-vW);float limb=1.0-max(dot(normalize(vN),vv),0.0);float rim=smoothstep(-.02,.12,l)*smoothstep(.72,.97,limb)*uDay;c+=vec3(1.0,.93,.82)*rim*.6;
    c=mix(c,uSky,uSkyK);gl_FragColor=vec4(toS(c),1.0);}`});
  const mesh=new THREE.Mesh(new THREE.SphereGeometry(1,64,40),m);mesh.renderOrder=-19;mesh.visible=false;mesh.frustumCulled=false;scene.add(mesh);
- return {mesh,update(on:boolean,eye:import('three').Vector3,dir:number[],sun:import('three').Vector3,sky:number[],day:number){mesh.visible=on;if(!on)return;const D=250;
+ return {mesh,update(on:boolean,eye:import('three').Vector3,dir:number[],sun:import('three').Vector3,sky:number[],day:number,zen?:number[]|null,up?:import('three').Vector3|null){mesh.visible=on;if(!on)return;const D=250;
+  if(zen&&up){const u=up.clone().normalize();const tl=new THREE.Color(LOOK2.teal);sky=skyAtUp(sky,zen,[tl.r,tl.g,tl.b],day,dir[0]*u.x+dir[1]*u.y+dir[2]*u.z);} /* #738: the dome's colour at the disc's elevation, not the pale horizon */
   mesh.position.set(eye.x+dir[0]*D,eye.y+dir[1]*D,eye.z+dir[2]*D);mesh.scale.setScalar(D*Math.tan((angularDeg||V.angularDeg)*Math.PI/360));U.uSun.value.copy(sun);U.uSky.value.setRGB(sky[0],sky[1],sky[2]);
-  U.uSkyK.value=daySkyK(day);U.uCrackK.value=crackK(day);U.uDay.value=Math.max(0,Math.min(1,day||0));(globalThis as any).__lwVolcanoLook={skyK:U.uSkyK.value,crackK:U.uCrackK.value,day:U.uDay.value};}};
+  U.uSkyK.value=daySkyK(day);U.uCrackK.value=crackK(day);U.uDay.value=Math.max(0,Math.min(1,day||0));(globalThis as any).__lwVolcanoLook={skyK:U.uSkyK.value,crackK:U.uCrackK.value,day:U.uDay.value,bodyK:L.dayBodyK,sky:sky.map(v=>+v.toFixed(4))};}};
 }
