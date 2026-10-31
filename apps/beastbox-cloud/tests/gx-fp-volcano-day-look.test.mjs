@@ -1,0 +1,7 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {readFileSync} from 'node:fs';
+import {VOLCANO_DAY_LOOK,crackSeed,daySkyK,crackK} from '../lib/universe/fp-volcano-sky.mjs';
+const lk=readFileSync(new URL('../lib/universe/one-world-look.ts',import.meta.url),'utf8');
+test('Cosmo\'s world-volcano colours and day values are pinned',()=>{const L=VOLCANO_DAY_LOOK;assert.equal(L.crackHex,'#FF7A2E');assert.equal(L.crackFallHex,'#B5532E');assert.equal(L.dayBodyHex,'#B5532E');assert.equal(L.daySkyMax,.2);assert.equal(L.dayCrackK,.3);assert.equal(L.lineWidth,.02);});
+test('sky over the disc never above 0.2, cracks 0.3 by day, night unchanged',()=>{assert.equal(daySkyK(1),.2);assert.equal(daySkyK(5),.2);assert.equal(daySkyK(0),0);assert.equal(crackK(0),1);assert.ok(Math.abs(crackK(1)-.3)<1e-12);});
+test('cracks are drawn in the shader with fwidth, seeded, no texture',()=>{assert.ok(lk.includes('fwidth(e)'));assert.ok(lk.includes('vEdge(vO*uCell)'));assert.ok(!/hs\(vO\)/.test(lk));assert.ok(!/DataTexture|TextureLoader/.test(lk.slice(lk.indexOf('export function addSkyWorld'),lk.indexOf('export function addSkyWorld')+4000)));assert.deepEqual(crackSeed(),crackSeed());assert.ok(lk.includes('U.uSkyK.value=daySkyK(day)'));});
+test('no random calls',()=>{assert.ok(!/Math\.random/.test(readFileSync(new URL('../lib/universe/fp-volcano-sky.mjs',import.meta.url),'utf8')));});

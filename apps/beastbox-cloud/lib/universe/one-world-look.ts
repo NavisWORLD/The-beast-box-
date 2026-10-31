@@ -5,6 +5,7 @@
 import {landArcAngle} from './p3-ocean.mjs';
 import {farLayersFor,recentreAnchor,layerPhase,HORIZON_LABEL} from './horizon-terrain.mjs';
 import {activeTier} from './post-tiers.mjs';
+import {VOLCANO_DAY_LOOK,crackSeed,daySkyK,crackK} from './fp-volcano-sky.mjs';
 type T=typeof import('three');
 export const LOOK2=Object.freeze({label:'SEEDED',teal:'#437E9E',skyMid:'#88C9BB',horizonHaze:'#E4E4BD',hillsFar:'#8CA192',aerialTint:'#8CB3D6',warm:'#F2B27A',
  volcano:{azimuthDeg:191.785,elevationDeg:30.4477,angularDeg:9.292,body:'#B5532E',lava:'#FF7A2E',lavaIntensity:.35}});
@@ -116,15 +117,27 @@ export function yawToward(THREE:T,q:import('three').Quaternion,up:import('three'
  if(d.lengthSq()<1e-8||f.lengthSq()<1e-8)return new THREE.Quaternion();d.normalize();f.normalize();const th=Math.atan2(u.dot(new THREE.Vector3().crossVectors(d,f)),d.dot(f));return new THREE.Quaternion().setFromAxisAngle(u,th);}
 /** World-volcano in the sky: lit by the one sun, lava glow only on its night side, no ring, no light; blended .35*(1-fade) toward the sky by day. */
 export function addSkyWorld(THREE:T,scene:import('three').Object3D,angularDeg?:number){
- const V=LOOK2.volcano;const U={uSun:{value:new THREE.Vector3(0,1,0)},uBody:{value:new THREE.Color(V.body)},uLava:{value:new THREE.Color(V.lava)},uLavaK:{value:V.lavaIntensity},uSky:{value:new THREE.Color()},uSkyK:{value:0}};
+ /* GENESIS X: Cosmo's spec. Cracks are drawn in the shader (seeded Voronoi edges, ~0.02 wide on the sphere, fwidth antialiased; no texture). By day the sky lies
+    over the disc at no more than 0.2 (VOLCANO_DAY_LOOK.daySkyMax), cracks at 0.3 of night strength, plus a thin sunlit crescent rim from the one sun. Night (day=0) is as before. */
+ const V=LOOK2.volcano,L=VOLCANO_DAY_LOOK,sd=crackSeed();const U={uSun:{value:new THREE.Vector3(0,1,0)},uBody:{value:new THREE.Color(V.body)},uLava:{value:new THREE.Color(V.lava)},uLavaK:{value:V.lavaIntensity},uSky:{value:new THREE.Color()},uSkyK:{value:0},
+  uCrack:{value:new THREE.Color(L.crackHex)},uCrackFall:{value:new THREE.Color(L.crackFallHex)},uDayBody:{value:new THREE.Color(L.dayBodyHex)},uDay:{value:0},uCrackK:{value:1},uSeed:{value:new THREE.Vector3(sd[0],sd[1],sd[2])},uCell:{value:L.cellScale},uLine:{value:L.lineWidth},uDayBodyK:{value:L.dayBodyK}};
  const m=new THREE.ShaderMaterial({uniforms:U,depthWrite:false,depthTest:false,fog:false,toneMapped:false,
-  vertexShader:'varying vec3 vN;varying vec3 vO;void main(){vN=normalize(mat3(modelMatrix)*normal);vO=normalize(position);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
-  fragmentShader:`uniform vec3 uSun,uBody,uLava,uSky;uniform float uLavaK,uSkyK;varying vec3 vN;varying vec3 vO;${TO_SRGB}
-  float hs(vec3 p){return fract(sin(dot(floor(p*9.0),vec3(12.9898,78.233,37.719)))*43758.5453);}
+  vertexShader:'varying vec3 vN;varying vec3 vO;varying vec3 vW;void main(){vN=normalize(mat3(modelMatrix)*normal);vO=normalize(position);vW=(modelMatrix*vec4(position,1.0)).xyz;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
+  fragmentShader:`uniform vec3 uSun,uBody,uLava,uSky,uCrack,uCrackFall,uDayBody,uSeed;uniform float uLavaK,uSkyK,uDay,uCrackK,uCell,uLine,uDayBodyK;varying vec3 vN;varying vec3 vO;varying vec3 vW;${TO_SRGB}
+  vec3 h3(vec3 p){p=vec3(dot(p,vec3(127.1,311.7,74.7)),dot(p,vec3(269.5,183.3,246.1)),dot(p,vec3(113.5,271.9,124.6)));return fract(sin(p)*43758.5453);}
+  float vEdge(vec3 x){vec3 n=floor(x),f=fract(x);vec3 mr=vec3(0.0);float md=8.0;vec3 mg=vec3(0.0);
+   for(int k=-1;k<=1;k++)for(int j=-1;j<=1;j++)for(int i=-1;i<=1;i++){vec3 g=vec3(float(i),float(j),float(k));vec3 r=g+h3(n+g+uSeed)-f;float d=dot(r,r);if(d<md){md=d;mr=r;mg=g;}}
+   md=8.0;for(int k=-2;k<=2;k++)for(int j=-2;j<=2;j++)for(int i=-2;i<=2;i++){vec3 g=mg+vec3(float(i),float(j),float(k));vec3 r=g+h3(n+g+uSeed)-f;if(dot(mr-r,mr-r)>1e-5)md=min(md,dot(.5*(mr+r),normalize(r-mr)));}
+   return md;}
   void main(){float l=dot(normalize(vN),normalize(uSun));float lit=smoothstep(-.06,.25,l);
-   vec3 c=uBody*(.04+.96*lit);float crack=smoothstep(.82,.97,hs(vO))*(1.0-lit);c+=(uLava*crack*2.2+uLava*.15)*uLavaK*(1.0-lit);
+   float e=vEdge(vO*uCell)/uCell;float fw=max(fwidth(e),1e-5);float hw=uLine*.5;float crack=1.0-smoothstep(hw-fw,hw+fw,e);
+   vec3 cc=mix(uCrack,uCrackFall,smoothstep(0.0,hw,e));
+   vec3 c=mix(uBody*(.04+.96*lit),mix(uBody*(.04+.96*lit),uDayBody*uDayBodyK,1.0-lit),uDay);
+   c+=(cc*crack*2.2+uLava*.15)*uLavaK*uCrackK*(1.0-lit);
+   vec3 vv=normalize(cameraPosition-vW);float limb=1.0-max(dot(normalize(vN),vv),0.0);float rim=smoothstep(-.02,.12,l)*smoothstep(.72,.97,limb)*uDay;c+=vec3(1.0,.93,.82)*rim*.6;
    c=mix(c,uSky,uSkyK);gl_FragColor=vec4(toS(c),1.0);}`});
- const mesh=new THREE.Mesh(new THREE.SphereGeometry(1,40,24),m);mesh.renderOrder=-19;mesh.visible=false;mesh.frustumCulled=false;scene.add(mesh);
+ const mesh=new THREE.Mesh(new THREE.SphereGeometry(1,64,40),m);mesh.renderOrder=-19;mesh.visible=false;mesh.frustumCulled=false;scene.add(mesh);
  return {mesh,update(on:boolean,eye:import('three').Vector3,dir:number[],sun:import('three').Vector3,sky:number[],day:number){mesh.visible=on;if(!on)return;const D=250;
-  mesh.position.set(eye.x+dir[0]*D,eye.y+dir[1]*D,eye.z+dir[2]*D);mesh.scale.setScalar(D*Math.tan((angularDeg||V.angularDeg)*Math.PI/360));U.uSun.value.copy(sun);U.uSky.value.setRGB(sky[0],sky[1],sky[2]);U.uSkyK.value=.35*day;}};
+  mesh.position.set(eye.x+dir[0]*D,eye.y+dir[1]*D,eye.z+dir[2]*D);mesh.scale.setScalar(D*Math.tan((angularDeg||V.angularDeg)*Math.PI/360));U.uSun.value.copy(sun);U.uSky.value.setRGB(sky[0],sky[1],sky[2]);
+  U.uSkyK.value=daySkyK(day);U.uCrackK.value=crackK(day);U.uDay.value=Math.max(0,Math.min(1,day||0));(globalThis as any).__lwVolcanoLook={skyK:U.uSkyK.value,crackK:U.uCrackK.value,day:U.uDay.value};}};
 }
