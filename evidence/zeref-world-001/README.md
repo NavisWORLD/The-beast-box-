@@ -29,7 +29,7 @@ The file is named `qa.jsonl` (not `dialogue.jsonl`) on purpose.
 ## Overlap with the gate test sets (removed, same idea as lessons-005/006)
 
 Checked against `scripts/zeref_heldout_b.py` PAIRS_B, `scripts/zeref_gate_sets_v2.json` (set A, set B, chat),
-and `scripts/rawrphos_chat_eval.py` PAIRS + CHAT: 356 gate prompts. A row is removed when its question matches a gate
+and `scripts/rawrphos_chat_eval.py` PAIRS + CHAT: 250 gate prompts. A row is removed when its question matches a gate
 prompt after normalising, shares at least half its content words (Jaccard >= 0.5), or is a short question that contains
 all of a gate prompt's content words. **24 rows removed** (23 Wikipedia, 1 GSM8K); each is listed in `manifest.json`.
 
