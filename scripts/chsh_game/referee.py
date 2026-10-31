@@ -23,8 +23,10 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 ROUNDS = int(os.environ.get("CHSH_GAME_ROUNDS", "1024"))
-QPU_CAP = min(67 if os.environ.get("BEAST_CHSH_GAME_DAILY") == "YES_SECOND_COMING_ONCE" else 20, int(os.environ.get("CHSH_QPU_CAP", "20")))  # per-job hard cap (server enforced); 20 daily, <=67 only for owner-authorized one-off runs
-RESERVE = 60          # stop when plan remaining would drop below this
+_WAIVED = os.environ.get("BEAST_CHSH_GAME_DAILY") == "YES_SECOND_COMING_ONCE" and os.environ.get("CHSH_OWNER_RESERVE_WAIVED") == "YES_USE_THE_REST_2026-10-31"
+QPU_CAP = min(90 if _WAIVED else (67 if os.environ.get("BEAST_CHSH_GAME_DAILY") == "YES_SECOND_COMING_ONCE" else 20), int(os.environ.get("CHSH_QPU_CAP", "20")))  # per-job hard cap (server enforced); 20 daily, <=67 only for owner-authorized one-off runs
+RESERVE = 5 if _WAIVED else 60  # owner waived the 60 s reserve once (2026-10-31); 5 s safety margin
+
 CLASSICAL_BOUND = 0.75
 QUANTUM_IDEAL = (2 + math.sqrt(2)) / 4
 A_ANG = [0.0, math.pi / 2]

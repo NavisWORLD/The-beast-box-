@@ -1,0 +1,75 @@
+name: Zeref heart seed v11 - one real IBM CHSH job (cap = min(90, remaining-5) s, owner waived 60 s reserve), owner-authorized 2026-10-31
+# Cory (2026-10-31) asked to rerun the real IBM heart-seed run and waived the 60 s reserve ("just use the rest of it").
+# Same referee/protocol as final-spark-003 (CHSH, best pair, least-busy active backend, 15 min queue guard).
+# Cap = remaining - 5 s safety margin (server-enforced max_execution_time). Result seeds heart seed v11. IBM result = RECORDED.
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: chsh-game-daily-qpu
+  cancel-in-progress: false
+jobs:
+  heart:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install 'qiskit-ibm-runtime>=0.45,<0.50' 'qiskit>=2.1,<2.5'
+      - name: Read-only quota before + cap
+        env:
+          IBM_QUANTUM_TOKEN: ${{ secrets.IBM_QUANTUM_TOKEN }}
+        run: |
+          python scripts/ibm_open_plan_preflight.py
+          cp _ibm_open_plan_preflight/receipt.json quota_before.json
+          cap=$(python -c "import json;r=json.load(open('quota_before.json'))['remaining_seconds'];print(max(0,min(90,int(r-5))))")
+          echo "SPARK_CAP=$cap"; echo "CAP=$cap" >> "$GITHUB_ENV"
+      - name: Real IBM hardware CHSH, one job
+        if: env.CAP >= 15 && github.ref == 'refs/heads/main'
+        timeout-minutes: 25
+        env:
+          IBM_QUANTUM_TOKEN: ${{ secrets.IBM_QUANTUM_TOKEN }}
+          BEAST_CHSH_GAME_DAILY: YES_SECOND_COMING_ONCE
+          CHSH_GAME_ROUNDS: '24000'
+          CHSH_OWNER_RESERVE_WAIVED: YES_USE_THE_REST_2026-10-31
+          CHSH_BEST_PAIR: '1'
+          CHSH_BACKEND_PICK: least_busy
+          CHSH_QUEUE_WAIT_S: '900'
+          CHSH_RUN_TAG: navisworld-zeref-heart-seed-v11
+          CHSH_GAME_OUT: _final
+        run: CHSH_QPU_CAP=$CAP python scripts/chsh_game/referee.py
+      - name: Read-only quota after
+        if: always()
+        env:
+          IBM_QUANTUM_TOKEN: ${{ secrets.IBM_QUANTUM_TOKEN }}
+        run: python scripts/ibm_open_plan_preflight.py || true
+      - name: Public summary
+        if: always()
+        run: |
+          python - <<'PY'
+          import json,pathlib
+          r=pathlib.Path('_final/chsh_game_result.json')
+          if r.exists():
+            d=json.loads(r.read_text())
+            q=d['quantum']
+            print('SPARK_JOB='+json.dumps({k:d.get(k) for k in ('job_id','backend','quantum_seconds','job_tag','outcomes_sha256')}|{'win_rate':q['win_rate'],'se':q['standard_error'],'label':'RECORDED IBM hardware (not simulated)'}))
+          f=pathlib.Path('_final/failure.json')
+          if f.exists(): print('FAILURE='+f.read_text())
+          q=pathlib.Path('_ibm_open_plan_preflight/receipt.json')
+          if q.exists():print('QUOTA_AFTER='+q.read_text().replace('\n',' '))
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: zeref-heart-seed-v11-${{ github.run_id }}
+          path: |
+            _final/
+            quota_before.json
+            _ibm_open_plan_preflight/receipt.json
+          retention-days: 90
+          if-no-files-found: ignore
