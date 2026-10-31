@@ -8,23 +8,22 @@
 ## Inputs (IBM hardware only)
 | Source | Rule | Jobs |
 |---|---|---|
-| Zeref evidence (`evidence/zeref-*/ibm-chsh-*.json`, `rawrphos-closed-loop-*/results.json`) | top-level `job_id` plus an `ibm_*` backend; the whole-file sha256 is the leaf | 7 |
+| Zeref evidence (`evidence/zeref-*/ibm-chsh-*.json`, `rawrphos-closed-loop-*/results.json`) | top-level or nested `job_id` (ibm-play `jobs[]`, rawrphos `chsh_source`) plus an `ibm_*` backend; leaf = job + whole-file sha256 | 19 |
 | CST closed-loop tape (NavisWORLD/Cosmic-synapse-the-living-universe-sim-engine- @ 7658689a, `research/cst-closed-loop/tape_all.json`) | only the `hardware` section | 187 |
 | hfkit `quantum_measurements_public.jsonl` | only records with `provider_class == measured_quantum_hardware`, a job id and an `ibm_*` backend | 1897 |
 
-Unique jobs across all sources: **2091**. Unique record leaves: **7357**.
-Jobs per device: ibm_fez 1478 · ibm_marrakesh 322 · ibm_kingston 285 · ibm_torino 6.
+Unique jobs across all sources: **2102**. Unique record leaves: **7369**.
+Jobs per device: ibm_fez 1479 · ibm_marrakesh 322 · ibm_kingston 295 · ibm_torino 6.
 
 ## Excluded
 - 32 CST `simulated` records (Rigetti QVM, SIMULATED).
 - 2 hfkit `classical_simulator` records (rigetti.sim.qvm).
 - 877 hfkit `legacy_unlabelled` records (no provenance).
-- 3 evidence files whose job id is nested rather than top-level (ibm-play batch, rawrphos 001/002 results). Their CHSH jobs are partly covered through other files and the tape.
 
 ## Hashes
-- records root: `945ca019a1fb5bf9fcb622c7694ba00c2003440c847db7f547a44cecad9c8705`
+- records root: `6a148dfd04378e60e8d1c0afb72419b6533aa97cb9f1fdd8337b759a5ebbdc6f`
 - tape_all.json: `c65a06ab…0de6`; quantum_measurements_public.jsonl: `986b4778…3b82` (full values are in `heart-seed-v10.json`)
-- **heart seed v10: `49e37215625fe99106546634a2cf9631dc8accbf92902e20ce3fb2f4082d8ad1`**
+- **heart seed v10: `7ef858c5a2e194c829b6eddf74275bbe925f14cdf07ee54c62be66e7bbd79154`**
 
 ## Reproduce
 `python3 build_heart_seed_v10.py <repo_root> <tape_all.json> <quantum_measurements_public.jsonl>`. The build is deterministic, streams the inputs and uses no randomness. Two runs gave byte-identical output.

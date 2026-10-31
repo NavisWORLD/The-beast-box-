@@ -18,9 +18,14 @@ leaves = {}; jobs = {"zeref_evidence": set(), "cst_closed_loop": set(), "hfkit_p
 dev = collections.defaultdict(set); excluded = collections.Counter()
 # 1) Zeref evidence: IBM CHSH result files with a job id + ibm_ backend (whole-file hash as leaf)
 for p in sorted(glob.glob(os.path.join(root, 'evidence/zeref-*/ibm-chsh-*.json'))) + sorted(glob.glob(os.path.join(root, 'evidence/rawrphos-closed-loop-*/results.json'))):
-    d = json.load(open(p)); b = d.get('backend'); j = d.get('job_id')
-    if not (j and b and IBM.match(b)): excluded['zeref_no_provenance'] += 1; continue
-    l = H(b + '|' + j + '|' + fsha(p)); leaves[l] = 1; jobs['zeref_evidence'].add(j); dev[b].add(j)
+    d = json.load(open(p)); fs = fsha(p)
+    # top-level ids, plus nested ids (ibm-play batch `jobs[]`, rawrphos `chsh_source`)
+    found = [(d.get('backend'), d.get('job_id'))] + [(x.get('backend'), x.get('job_id')) for x in d.get('jobs', []) if isinstance(x, dict)]
+    if isinstance(d.get('chsh_source'), dict): found.append((d['chsh_source'].get('backend'), d['chsh_source'].get('job_id')))
+    found = [(b, j) for b, j in found if j and b and IBM.match(b)]
+    if not found: excluded['zeref_no_provenance'] += 1; continue
+    for b, j in sorted(set(found)):
+        leaves[H(b + '|' + j + '|' + fs)] = 1; jobs['zeref_evidence'].add(j); dev[b].add(j)
 # 2) CST closed-loop tape: 'hardware' section only (the 'simulated' Rigetti section is excluded)
 t = json.load(open(tape))
 for r in t['hardware']:
