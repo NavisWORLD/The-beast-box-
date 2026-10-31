@@ -39,6 +39,7 @@ from beastbox.rawrphos_hf import (MODEL as HF_NATIVE_MODEL, SPACE_URL as HF_NATI
                                   profile as hosted_native_profile, PrivateSpaceProvider)
 from beastbox.chat_jobs import ChatJobs
 from beastbox.guest_local import guest_local_infer
+from beastbox.growing import growing_infer
 from beastbox.private_features import FeatureStore, extract_numeric, make_source, AUDIO_KINDS
 from beastbox.cns_model_probe import cns_model_probe
 from beastbox.signal_model_probe import signal_model_probe
@@ -46,7 +47,7 @@ from beastbox.soul.archive_summary import archive_manifest
 
 MAX_BYTES = 256_000
 GET_ALLOW = frozenset({"orbit", "memory", "trace", "provider", "conversation", "storage", "context", "connections", "bio", "chat-job", "observations", "models", "model-inventory", "hf-model-inventory", "engine-growth", "engine-loop", "activation"})
-POST_ALLOW = frozenset({"chat", "chat-start", "context", "connections", "bio", "observations", "models", "azure-read", "guest-local", "cns-model-probe", "signal-model-probe", "activation", "authority", "features"})
+POST_ALLOW = frozenset({"chat", "chat-start", "context", "connections", "bio", "observations", "models", "azure-read", "guest-local", "guest-growing", "cns-model-probe", "signal-model-probe", "activation", "authority", "features"})
 
 
 class OwnerBridge:
@@ -783,6 +784,13 @@ class OwnerBridge:
                 return 429, {"error": "Owner inference or local guest slot is busy"}
             try:
                 return guest_local_infer(self.root, data)
+            finally:
+                self.chat_jobs.release_guest()
+        if name == "guest-growing":  # Growing Zeref, not the pin (beastbox/growing.py); same guest slot
+            if not self.chat_jobs.acquire_guest():
+                return 429, {"error": "Owner inference or local guest slot is busy"}
+            try:
+                return growing_infer(self.root, data)
             finally:
                 self.chat_jobs.release_guest()
         if name == "chat-start":

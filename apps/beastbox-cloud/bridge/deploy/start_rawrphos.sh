@@ -40,6 +40,7 @@ cleanup() {
   if [[ -n "$bridge_pid" ]]; then kill "$bridge_pid" 2>/dev/null || true; fi
   kill "$native_pid" 2>/dev/null || true
   kill "$experimental_pid" 2>/dev/null || true
+  if [[ -n "${growing_pid:-}" ]]; then kill "$growing_pid" 2>/dev/null || true; fi
   if [[ -n "$qc67_pid" ]]; then kill "$qc67_pid" 2>/dev/null || true; fi
   if [[ -n "$bridge_pid" ]]; then wait "$bridge_pid" 2>/dev/null || true; fi
   if [[ -n "$qc67_pid" ]]; then wait "$qc67_pid" 2>/dev/null || true; fi
@@ -251,6 +252,14 @@ PY
     echo "Original QC67 checkpoint failed strict identity; prior production remains rollback" >&2
     exit 70
   fi
+fi
+# Growing Zeref (2026-10-31): separate supervisor on loopback 8769, labelled "Growing Zeref · not the pin".
+# Best effort and NOT in the wait list below: if it fails, the pin and bridge keep serving unchanged.
+export BEASTBOX_GROWING_ENABLED="${BEASTBOX_GROWING_ENABLED:-yes}"
+growing_pid=""
+if [[ "$BEASTBOX_GROWING_ENABLED" == "yes" ]]; then
+  gosu beastbox python -m beastbox.growing &
+  growing_pid=$!
 fi
 "$BASE/start_tiny.sh" &
 bridge_pid=$!
