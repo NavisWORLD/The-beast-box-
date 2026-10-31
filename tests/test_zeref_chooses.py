@@ -36,3 +36,13 @@ def test_mind_room_tvs_and_labels():
     assert all(t["item"] is None or t["item"]["label"] in ("RECORDED", "DERIVED") for t in room["tvs"])
     src = (ROOT / "apps/beastbox-cloud/components/zeref-mind-room.tsx").read_text()
     assert "Math.random" not in src
+
+def test_senses_rows_labelled_first_person():
+    import sys; sys.path.insert(0, str(ROOT / "scripts"))
+    from zeref_chooses import senses_rows
+    rows = senses_rows("2026-10-31", [{"title": "Lost", "topic": "lost", "reason": "his diary has him at Violet Shard (RECORDED)",
+                                       "source": "https://simple.wikipedia.org/w/index.php?title=Lost"}],
+                       {"band": "bright", "trend": "rising", "hue_family": "violet", "feeling": "joy"})
+    assert "derived" in rows[0]["text"] and rows[0]["frame"] == "What I see in my world"
+    assert "my diary has me" in rows[1]["text"] and rows[1]["frame"] == "What I chose to read"
+    assert senses_rows("d", [], None) == []
