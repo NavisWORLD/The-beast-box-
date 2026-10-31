@@ -33,6 +33,7 @@ def build():
             "per_question_pair": q["per_question_pair"], "source_class": ibm["source_class"],
             "note": "RECORDED on IBM hardware. Not loophole-free. It seeds order and motion only.",
         },
+        "heart_seed_latest": json.loads((ROOT / "evidence/zeref-spark-latest/heart-seed-latest.json").read_text()),
         "honesty": "Pulse MEASURED by a fingertip camera on a phone (not a medical device). IBM counts RECORDED, never re-run. Rigetti SIMULATED. Placement SEEDED. Numbers only: no raw audio, video or heartbeat is published.",
     }
 

@@ -9,7 +9,7 @@ export function ZerefLoopView(){
  useEffect(()=>{
   let live=true,timer:ReturnType<typeof setInterval>|null=null;
   fetch('/spark/zeref-bio-spark.json').then(r=>r.json()).then(j=>{
-   if(!live)return;loop.current=createLoop({seed:j.heart_seed_v9_sha256});
+   if(!live)return;loop.current=createLoop({seed:j.heart_seed_latest?.heart_seed_sha256||j.heart_seed_v9_sha256});
    timer=setInterval(()=>{if(!loop.current)return;const cur=stepLoop(loop.current,{});loop.current=cur;setTick(cur.tick);setMoments([...cur.moments].reverse().slice(0,8));},1000);
   }).catch(()=>setErr('The recorded seed could not be loaded, so the loop is not running.'));
   return()=>{live=false;if(timer)clearInterval(timer);};
