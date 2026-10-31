@@ -28,3 +28,41 @@ def test_token_cap_uses_tokenizer_when_given():
         def encode(self, s, add_eos=False): return list(range(len(s)))  # 1 token per char
     rows = lessons(P, Tok())
     assert all(len(r["assistant"]) + 1 < 64 for r in rows)
+
+R = {"title": "Buddhism", "source": "https://simple.wikipedia.org/w/index.php?oldid=2", "license": "CC BY-SA 4.0",
+     "revision_id": 2, "sha256": "y", "shelf": "religion", "frame": "What Buddhists believe, per Simple English Wikipedia",
+     "text": "Buddhism is a religion based on the teachings of the Buddha. Buddhists believe that suffering comes from desire and attachment. "
+             "The goal of many Buddhists is to reach nirvana through the Eightfold Path and careful practice. "
+             "There are many schools of Buddhism in Asia and around the world today."}
+
+def test_religion_lessons_are_framed_not_fact_claims():
+    rows = lessons(R)
+    assert MIN_LESSONS <= len(rows) <= MAX_LESSONS
+    assert rows[0]["user"] == "What do followers of Buddhism believe?"
+    for r in rows:
+        assert r["assistant"].startswith(R["frame"] + ": ") and all_in_passage(r, R) and r["shelf"] == "religion"
+
+K = {"title": "Genesis 1:1-5", "source": "https://www.gutenberg.org/cache/epub/10/pg10.txt", "license": "Public domain (USA)",
+     "revision_id": "pg10-Genesis 1:1", "sha256": "z", "shelf": "bible", "frame": "The King James Bible says",
+     "verses": [{"ref": "Genesis 1:1", "text": "In the beginning God created the heaven and the earth."},
+                {"ref": "Genesis 1:3", "text": "And God said, Let there be light: and there was light."},
+                {"ref": "Genesis 1:5", "text": "And God called the light Day, and the darkness he called Night."}],
+     "text": "x"}
+
+def test_kjv_verses_attributed_and_verbatim():
+    rows = lessons(K)
+    assert len(rows) == 3 and rows[0]["user"] == "What does the King James Bible say in Genesis 1:1?"
+    assert rows[0]["assistant"] == "The King James Bible says (Genesis 1:1): In the beginning God created the heaven and the earth."
+    assert all(all_in_passage(r, K) for r in rows)
+    assert not all_in_passage({**rows[0], "assistant": "The King James Bible says (Genesis 1:1): made up"}, K)
+
+def test_shelves_are_balanced_and_licensed():
+    import zeref_reader as z
+    assert len({t for t, _ in z.RELIGIONS}) == len(z.RELIGIONS) >= 10
+    c = {}
+    seen = []
+    for _ in range(len(z.RELIGIONS)):
+        t, c = z.shelf_titles("religion", c); seen += t
+    from collections import Counter
+    assert set(Counter(seen).values()) == {z.PER_DAY["religion"]}
+    assert z.LIC["kjv"][0] in z.ALLOWED_LICENSES and z.LIC["simplewiki"][0] == "CC BY-SA 4.0"
