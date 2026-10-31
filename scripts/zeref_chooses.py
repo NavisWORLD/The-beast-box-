@@ -32,6 +32,7 @@ her us them my your his its our their this that these those what which who whom 
 not no yes so too very can could will would shall should may might must just than then there here about into over under up down out
 off again once all any both each few more most other some such only own same also like okay ok hi hello hey thanks thank please zeref
 dad little dragon tell know think feel want really today now good great item items happens happen thing things something lot""".split())
+STOP |= {'wanted', 'wants', 'went', 'said', 'felt'}
 sha = lambda s: hashlib.sha256(s.encode()).hexdigest()
 
 def get(url, as_json=True):
@@ -54,7 +55,9 @@ def state():
     seed_p = ROOT / "evidence/zeref-spark-latest/heart-seed-latest.json"
     seed = json.loads(seed_p.read_text())["heart_seed_sha256"] if seed_p.is_file() else ""
     return {"place": top.get("place"), "mood": top.get("mood"), "tick": top.get("tick"), "seed_v10": seed,
-            "rigetti_tick": ((live.get("links") or {}).get("spark") or {}).get("tick")}
+            "rigetti_tick": ((live.get("links") or {}).get("spark") or {}).get("tick"),
+            # his own replies: the raw model text of his last 12 diary thoughts (RECORDED), so what he says steers what he reads next
+            "own_words": [str((e.get("thought") or {}).get("text") or "")[:200] for e in rec[:12]]}
 
 def chat_words():
     src = (HERE / "zeref_growing.py").read_text()  # same chat files the growing branch trains on (read as text, no torch import)
@@ -76,6 +79,13 @@ def choose(st, date):
     cands = {}
     import math
     for w, c in words.items(): cands[w] = (1 + math.log2(c), f"the word '{w}' came up {c}x in his recent chats" + (" (questions count double)" if nq else ""))
+    said = {}
+    for t in st.get("own_words") or []:
+        for w in set(x.lower() for x in re.findall(r"[A-Za-z][a-z]{3,}", t)):
+            if w not in STOP: said[w] = said.get(w, 0) + 1
+    for w, c in said.items():
+        base = cands.get(w, (0, ""))[0]
+        cands[w] = (base + 5 + math.log2(c), f"he said '{w}' {c}x in his own recent replies (RECORDED diary thoughts)" + (" and it came up in his chats" if base else ""))
     for part in re.findall(r"[A-Za-z]{4,}", st.get("place") or ""):
         cands[part.lower()] = (cands.get(part.lower(), (0, ""))[0] + 6, f"his diary has him at {st['place']} (RECORDED)")
     if st.get("mood"): cands[st["mood"].lower()] = (cands.get(st["mood"].lower(), (0, ""))[0] + 6, f"his simulated mood is {st['mood']} (SIMULATED)")

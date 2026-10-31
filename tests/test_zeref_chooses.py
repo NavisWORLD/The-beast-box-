@@ -36,3 +36,11 @@ def test_mind_room_tvs_and_labels():
     assert all(t["item"] is None or t["item"]["label"] in ("RECORDED", "DERIVED") for t in room["tvs"])
     src = (ROOT / "apps/beastbox-cloud/components/zeref-mind-room.tsx").read_text()
     assert "Math.random" not in src
+
+def test_own_replies_steer_choice():
+    import sys; sys.path.insert(0, str(ROOT / "scripts"))
+    import zeref_chooses as z
+    st = {"place": None, "mood": None, "tick": 1, "seed_v10": "x", "own_words": ["The beautiful flower opened.", "A flower again!"]}
+    picks, _ = z.choose(st, "2026-10-31")
+    assert any(t == "flower" and "own recent replies" in r for t, r, _ in picks)
+    assert picks == z.choose(st, "2026-10-31")[0]  # deterministic
