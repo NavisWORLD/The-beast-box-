@@ -26,6 +26,7 @@ import {RAWRPHOS_PUBLIC_PIN} from '../lib/companion/brain.mjs';
 import ZerefLibraryPanel,{ReadsBox,RecordedNotes,type LibraryState} from './zeref-library-panel';
 import {libraryContext} from '../lib/library/context.mjs';
 import {worldContextLine} from '../lib/zeref/world-context.mjs';
+import {worldSensesLines} from '../lib/zeref/world-senses.mjs';
 import {BANK_URL,BANK_CONSENT_KEY,BANK_LABEL,buildBank,loadShardsFor,searchBank,bankContext,provenanceLine,isStillLearningReply,stillLearningNote} from '../lib/knowledge/bank.mjs';
 
 export type TalkState='idle'|'thinking'|'listening'|'speaking'|'replied'|'offline';
@@ -202,8 +203,8 @@ function BeastTalkContent({onState,compact=false,title,gameBridge}:PanelProps){
    let worldLine='';
    if(persona.source==='zeref'){
     try{
-     const [lv,dy]=await Promise.all(['/api/world/live','/api/zeref/diary'].map(u=>fetch(u,{cache:'no-store',signal:controller.signal}).then(r=>r.ok?r.json():null).catch(()=>null)));
-     worldLine=worldContextLine(lv,dy);
+     const [lv,dy,rd,sp]=await Promise.all(['/api/world/live','/api/zeref/diary','/zeref-chooses/latest.json','/spark/zeref-bio-spark.json'].map(u=>fetch(u,{cache:'no-store',signal:controller.signal}).then(r=>r.ok?r.json():null).catch(()=>null)));
+     worldLine=[worldContextLine(lv,dy),worldSensesLines({live:lv,latest:rd,spark:sp,nowMs:Date.now()})].filter(Boolean).join('\n');
     }catch{worldLine='';}
     if(controller.signal.aborted)return;
    }
