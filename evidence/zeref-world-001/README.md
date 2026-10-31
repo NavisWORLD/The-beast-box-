@@ -1,8 +1,12 @@
 # zeref-world-001 — world knowledge for Zeref's knowledge bank (bank only, NOT training)
 
 Short, answer-first Q/A rows for the opt-in knowledge bank. Every passage is copied word for word from its source
-(whitespace collapsed only) and carries its own source URL and licence. **Not in the training mix**: nothing here is
-referenced by `scripts/zeref_chat_corpus.py`, the workflows, the promotion gate, the pin or the growth routine.
+(whitespace collapsed only) and carries its own source URL and licence.
+
+**Training (2026-10-31, Cory's yes):** `scripts/zeref_chat_corpus.py` now takes `qa.jsonl` bank rows as a capped slice at
+0.12 of the final chat mix, keeping each row's licence, attribution and source URL. Rows sharing half or more of their
+content words with any gate prompt or any `evidence/*/heldout*.jsonl` prompt are dropped (50 of 2,500). `heldout.jsonl`
+is never loaded. Pin, gate and growth routine unchanged.
 The file is named `qa.jsonl` (not `dialogue.jsonl`) on purpose.
 
 ## Contents

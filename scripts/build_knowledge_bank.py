@@ -141,7 +141,7 @@ WORLD = EV / "zeref-world-001/qa.jsonl"
 SHARD_DIR = APP / "public/knowledge-bank/shards"
 WORLD_SHARDS = 24
 def world_001():
-    """evidence/zeref-world-001 (knowledge bank only, never the training mix): Simple English Wikipedia lead sentences
+    """evidence/zeref-world-001 (knowledge bank; since 2026-10-31 also a 0.12-capped slice of the chat mix): Simple English Wikipedia lead sentences
     (CC BY-SA 4.0) and GSM8K word problems (MIT), copied word for word, each with its own source URL and licence."""
     out = []
     if not WORLD.is_file(): return out
@@ -196,7 +196,7 @@ def build():
     manifest = {"schema": "zeref-knowledge-bank-manifest/v1", "version": VERSION, "entries": len(allentries),
         "files": {n: {"sha256": sha(t.encode()), "entries": t.count("\n")} for n, t in sorted(per_file.items())},
         "bank_json_sha256": sha(bank_text.encode()),
-        "shards": {"source": "evidence/zeref-world-001/qa.jsonl", "entries": len(world), "in_training_mix": False,
+        "shards": {"source": "evidence/zeref-world-001/qa.jsonl", "entries": len(world), "in_training_mix": True, "training_share": 0.12,
                    "licenses": sorted({e["license"] for e in world}), "files": {s["path"]: {"sha256": s["sha256"], "entries": s["count"]} for s in shards},
                    "note": "Knowledge bank only. Simple English Wikipedia (CC BY-SA 4.0) and GSM8K (MIT), word for word with per-entry source. Never in the training mix; the gate, pin and growth routine are unchanged."},
         "corpus_export": {"path": "evidence/zeref-knowledge-003/dialogue.jsonl", "rows": len(rows), "dropped_by_filters": dropped,

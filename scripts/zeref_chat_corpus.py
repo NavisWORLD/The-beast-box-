@@ -122,6 +122,44 @@ def extra_slice(path,frac,repeat,base_rows,held):
   import random as _r
   _r.Random("extra:"+path+os.environ.get("ZEREF_CHAT_ROTATE_SEED","0")).shuffle(out);out=out[:cap]
  return out
+# Zeref World 001 (2026-10-31, Cory's yes at 1:10 AM CT): word-for-word Simple English Wikipedia leads
+# (CC BY-SA 4.0, per-row oldid source) + GSM8K train problems (MIT). Capped at WORLD_SHARE of the final mix
+# (0.10-0.15). Rows sharing >=half their content words with ANY gate prompt or ANY evidence/*/heldout*.jsonl
+# prompt are dropped. heldout.jsonl of world-001 is never loaded. Order by sha256 (no random).
+WORLD=Path("evidence/zeref-world-001/qa.jsonl");WORLD_SHARE=0.12
+_WSW=set("a an the is are was were what who where when why how do does did of in on to and or for with by it its this that be your you i my me he she they his her their can which as at from has have had there about tell".split())
+def _wwords(s):
+ import re
+ return {w for w in re.sub(r"[^a-z0-9 ]"," ",s.lower()).split() if w not in _WSW}
+def world_gate_prompts():
+ g=set(held)
+ def walk(o):
+  if isinstance(o,dict):[walk(v) for v in o.values()]
+  elif isinstance(o,list):[walk(v) for v in o]
+  elif isinstance(o,str):g.add(o)
+ gp=Path(__file__).parent/"zeref_gate_sets_v2.json"
+ if gp.is_file():walk(json.loads(gp.read_text()))
+ for f in sorted(Path("evidence").glob("*/heldout*.jsonl")):
+  for l in f.read_text().splitlines():
+   try:r=json.loads(l)
+   except Exception:continue
+   for k in("user","prompt","question"):
+    if isinstance(r.get(k),str):g.add(r[k])
+ return [w for w in map(_wwords,g) if w]
+def world_overlaps(q,gate):
+ s=_wwords(q)
+ return bool(s) and any(len(s&t)/len(s|t)>=0.5 for t in gate)
+def world_slice(other_rows):
+ if not WORLD.is_file():return []
+ from zeref_teacher_distill import SECRET
+ gate=world_gate_prompts();out=[]
+ for r in map(json.loads,WORLD.read_text().splitlines()):
+  if r.get("split")!="bank":continue
+  q,a=r["user"].strip(),r["assistant"].strip()
+  if not a or q.lower() in held or SECRET.search(q+" "+a) or world_overlaps(q,gate):continue
+  out.append({"mode":"chat","source":"zeref-world-001","user":q,"assistant":a,"license":r["license"],"attribution":r["author"],"origin":r["source"]})
+ out.sort(key=lambda x:hashlib.sha256((x["user"]+os.environ.get("ZEREF_CHAT_ROTATE_SEED","0")).encode()).hexdigest())
+ return out[:int(other_rows*WORLD_SHARE/(1-WORLD_SHARE))]
 def main(dolly,out):
  rows=[]
  for r in map(json.loads,open("evidence/final-whole-organism-001/corpus/TRAIN.jsonl")):
@@ -166,6 +204,7 @@ def main(dolly,out):
  for path,frac,rep in EXTRA:
   ex=extra_slice(path,frac,rep,base,held);rows+=ex
   for r in ex:extra_counts[r["source"]]=extra_counts.get(r["source"],0)+1
+ world=world_slice(len(rows));rows+=world
  body="".join(json.dumps(r,sort_keys=True)+"\n" for r in rows).encode()
  Path(out).write_bytes(body)
  man={"schema":"zeref-chat-mix-v2","rows":len(rows),"jsonl_sha256":hashlib.sha256(body).hexdigest(),
@@ -184,7 +223,8 @@ def main(dolly,out):
    "lyrics_label":"Rainbows On My Face = Emeth clean text; other songs = whisper machine transcript (may contain errors); Fa Ra Me Sleepy skipped",
    "music_numbers":"measured from audio by scripts/build_zeref_songs_002.py; raw audio never committed",
    "voice_guide_excluded":"invented fear (left in the dark) and the goodbye line tied to it"},
-  "private_transcripts":False,"chat_test_prompts_excluded":True}
+  "world_rows":len(world),"world_share":WORLD_SHARE,"world_source":"evidence/zeref-world-001/qa.jsonl (Simple English Wikipedia contributors, CC BY-SA 4.0; GSM8K Cobbe et al. 2021, MIT; per-row source+licence kept; gate/held-out overlaps removed)",
+ "private_transcripts":False,"chat_test_prompts_excluded":True}
  Path(out).with_suffix(".manifest.json").write_text(json.dumps(man,indent=1,sort_keys=True)+"\n")
  print("ZEREF_CHAT_MIX="+json.dumps({k:man[k] for k in("rows","zeref_dialogue_rows","dad_voice_rows","jsonl_sha256","extra_sources")}))
 if __name__=="__main__":main(*sys.argv[1:3])

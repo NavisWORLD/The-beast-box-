@@ -132,13 +132,14 @@
     "sha256": "be6fe3a321c3125c4bdb06a6f3ca8c5d6a3ef35ce7ddcce7da2fd35d4195ce44"
    }
   },
-  "in_training_mix": false,
+  "in_training_mix": true,
   "licenses": [
    "CC BY-SA 4.0",
    "MIT"
   ],
   "note": "Knowledge bank only. Simple English Wikipedia (CC BY-SA 4.0) and GSM8K (MIT), word for word with per-entry source. Never in the training mix; the gate, pin and growth routine are unchanged.",
-  "source": "evidence/zeref-world-001/qa.jsonl"
+  "source": "evidence/zeref-world-001/qa.jsonl",
+  "training_share": 0.12
  },
  "version": 1
 }
