@@ -244,7 +244,7 @@ export default function BeastCareDeck({ chat = true, sprite = true }: { chat?: b
           <summary>See local memory and the recorded recipe</summary>
           <div className={css.stats}><span>Stage {beast?.stage || 1}</span><span>Mind steps {mind?.steps || 0}</span><span>Behavior ticks {beast?.behavior?.tick || 0}</span></div>
           <div className={css.weights}><WeightGrid weights={mind?.weights} steps={mind?.steps || 0} /><p className={css.note}>Word pairs grow these on-device Hebbian weights. This is pattern memory. The RAWRPHØS guest panel and selected Brain Bay model keep their own weights.</p></div>
-          <p className={css.note}>{beast?.qbeast ? `QBEAST ${id} · Care XP does not grant native evolution.` : 'Legacy local stages arrive at 40 and 120 XP.'} <SeedChip seed={beast?.seed} />. A selected model is not trained by this companion.</p>
+          <p className={css.note}>{beast?.qbeast ? `QBEAST ${id} · Care XP does not grant native evolution.` : 'Legacy local stages arrive at 40 and 120 XP.'} <SeedChip seed={beast?.seed} /><br />A selected model is not trained by this companion.</p>
         </details>
         {petted && trained && saved ? <button type="button" className={css.support} onClick={() => window.dispatchEvent(new Event('beastbox:open-support'))}>Keep this little world growing · optional support</button> : null}
         <input ref={file} type="file" accept=".beastjourney,.qbeast,.json,.sav,.lcx1,application/json" hidden onChange={event => void onImport(event.target.files)} />
