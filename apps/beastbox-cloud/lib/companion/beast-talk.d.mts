@@ -11,6 +11,7 @@ export const DEFAULT_OLLAMA_MODEL: string;
 export const DEFAULT_HF_MODEL: string;
 export const MAX_MESSAGE: number;
 export const GUEST_LIMIT: number;
+export const MEMORY_TURNS: number;
 export function readInfo(text: string, limit?: number, libraryChars?: number): TalkRead;
 export function libraryBlock(library: string, limit?: number): string;
 export const ROUTE_INFO: Readonly<Record<TalkRoute, { label: string; model: string; detail: string }>>;
@@ -20,7 +21,7 @@ export function framePrompt(persona: TalkPersona, history: TalkTurn[], text: str
 export function validOllamaUrl(value: string): boolean;
 export function connectHelp(route: string): string[];
 export function talkToBeast(input: {
-  route?: string; persona?: TalkPersona; history?: TalkTurn[]; shareHistory?: boolean; context?: string; library?: string; observation?: any; text: string; fetchImpl?: typeof fetch; signal?: AbortSignal;
+  route?: string; persona?: TalkPersona; history?: TalkTurn[]; shareHistory?: boolean; remember?: boolean; context?: string; library?: string; observation?: any; text: string; fetchImpl?: typeof fetch; signal?: AbortSignal;
   ollama?: { url?: string; model?: string }; hf?: { key?: string; model?: string; spendConfirmed?: boolean };
 }): Promise<TalkSuccess | TalkFailure>;
 export const LOG_PREFIX: string;

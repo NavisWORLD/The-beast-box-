@@ -239,7 +239,7 @@ test('raw passages never appear in listings, training manifests, chat logs or te
  assert.equal(JSON.stringify(await trainingManifest(store)).includes(PRIVATE),false);
  const panel=read('../components/beast-talk-panel.tsx');
  // passages are held in memory state only, and are passed to RAWRPHØS only (not to the teacher call)
- assert.match(panel,/talkToBeast\(\{\.\.\.ask,route,?\}\)/);assert.match(panel,/talkToBeast\(\{\.\.\.ask,route:'guest-rawrphos',library:libraryText\}\)/);
+ assert.match(panel,/talkToBeast\(\{\.\.\.ask,route,?\}\)/);assert.match(panel,/talkToBeast\(\{\.\.\.ask,route:'guest-rawrphos',library:libraryText[,}]/);
  assert.match(panel,/libraryUsed:used\.length\?used\.map\(u=>\(\{title:u\.title,loc:u\.loc\}\)\)/);
  assert.doesNotMatch(panel,/excerpt[^;]*writeTalkLog/);
 });

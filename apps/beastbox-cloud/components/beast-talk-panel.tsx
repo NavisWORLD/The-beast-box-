@@ -43,7 +43,7 @@ type SpeechResult={results:ArrayLike<{0:{transcript:string}}>};
 type Recognition={lang:string;interimResults:boolean;onresult:((event:SpeechResult)=>void)|null;onerror:(()=>void)|null;onend:(()=>void)|null;start:()=>void;stop:()=>void};
 type BrowserSpeech=Window&{SpeechRecognition?:new()=>Recognition;webkitSpeechRecognition?:new()=>Recognition};
 
-const PREFS_KEY='beastbox-talk-prefs-v1',HF_KEY='beastbox-talk-hf-key-v1',GROWTH_CONSENT_KEY='beastbox-growth-context-consent-v1';
+const REMEMBER_KEY='beastbox-zeref-remember-v1',PREFS_KEY='beastbox-talk-prefs-v1',HF_KEY='beastbox-talk-hf-key-v1',GROWTH_CONSENT_KEY='beastbox-growth-context-consent-v1';
 const DEFAULT_PREFS:Prefs={route:DEFAULT_ROUTE as Route,ollamaUrl:DEFAULT_OLLAMA_URL,ollamaModel:DEFAULT_OLLAMA_MODEL,hfModel:DEFAULT_HF_MODEL};
 const time=(at?:number)=>at?new Date(at).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'}):'';
 
@@ -79,6 +79,9 @@ function BeastTalkContent({onState,compact=false,title,gameBridge}:PanelProps){
  // Knowledge bank: ON by default (Cory, 2026-10-31); the keeper can turn it off. Public open-license passages, looked up by keyword in this browser; nothing leaves the device except the matching words sent with the message.
  const [bankOn,setBankOn]=useState(true),bankRef=useRef<ReturnType<typeof buildBank>|null>(null);
  useEffect(()=>{try{setBankOn(localStorage.getItem(BANK_CONSENT_KEY)!=='off');}catch{/* on */}},[]);
+ const [remember,setRemember]=useState(true);
+ useEffect(()=>{try{setRemember(localStorage.getItem(REMEMBER_KEY)!=='off');}catch{/* on */}},[]);
+ function toggleRemember(on:boolean){setRemember(on);try{localStorage.setItem(REMEMBER_KEY,on?'on':'off');}catch{/* optional */}}
  function toggleBank(on:boolean){setBankOn(on);try{localStorage.setItem(BANK_CONSENT_KEY,on?'on':'off');}catch{/* optional */}}
  const [contribute,setContribute]=useState(false),[pairCount,setPairCount]=useState(0),[contribStatus,setContribStatus]=useState('');
  const [cloudStatus,setCloudStatus]=useState('Private cloud is optional. Restore your own conversation before saving.'),[cloudOwner,setCloudOwner]=useState(''),[cloudSync,setCloudSync]=useState(false),[cloudRestoring,setCloudRestoring]=useState(false);
@@ -201,7 +204,7 @@ function BeastTalkContent({onState,compact=false,title,gameBridge}:PanelProps){
    const teaching=isTeacherRoute(route);
    // Cory (2026-10-16): chat is ALWAYS Zeref's own RAWRPHOS voice. Teachers run in the
    // background only to make distillation lessons; their text is never shown.
-   const [teacherResult,result]=await Promise.all([teaching?talkToBeast({...ask,route}).catch(()=>null):Promise.resolve(null),talkToBeast({...ask,route:'guest-rawrphos',library:libraryText})]);
+   const [teacherResult,result]=await Promise.all([teaching?talkToBeast({...ask,route}).catch(()=>null):Promise.resolve(null),talkToBeast({...ask,route:'guest-rawrphos',library:libraryText,remember:persona.source==='zeref'&&remember})]);
    if(pending.current!==controller||controller.signal.aborted||personaKey.current!==forKey||privateSelection.current!==forSelection)return;
    if(teacherResult&&teacherResult.ok&&teacherResult.route!=='shared-ollama')recordTeacherPair(saying,{text:teacherResult.reply,label:TEACHER_LABEL[teacherResult.route]||teacherResult.label,model:teacherResult.model,route:teacherResult.route});
    // A teacher that couldn't connect is reported honestly (with setup help) but never blocks Zeref's own reply.
@@ -362,6 +365,7 @@ function BeastTalkContent({onState,compact=false,title,gameBridge}:PanelProps){
    {queueState.pending>0?<button type="button" disabled={cloudBusy||!cloudSync||!cloudConsented} onClick={()=>void privateQueue.current?.retry()}>Retry private save ({queueState.pending})</button>:null}
    <label>Keep this conversation <select value={retention} onChange={e=>{const next=e.target.value==='session'?'session':'device';const target=next==='session'?sessionStorage:localStorage;writeTalkLog(target,persona.key,chatOnly(log));writeTalkDraft(target,persona.key,text);if(next==='session'){localStorage.removeItem(LOG_PREFIX+persona.key);localStorage.removeItem(DRAFT_PREFIX+persona.key);}setRetention(next);try{localStorage.setItem(TALK_RETENTION_KEY,next);}catch{/* optional */}}}><option value="device">On this device</option><option value="session">In this tab only</option></select></label>
    <label><input type="checkbox" checked={shareHistory} onChange={e=>setShareHistory(e.target.checked)}/> Share recent conversation with the selected provider</label>
+   {persona.source==='zeref'?<label data-remember-toggle><input type="checkbox" checked={remember} onChange={e=>toggleRemember(e.target.checked)}/> Zeref remembers this conversation (your last few lines go to his own model with each message, nowhere else). On by default.</label>:null}
    {persona.source==='zeref'?<label data-bank-toggle><input type="checkbox" checked={bankOn} onChange={e=>toggleBank(e.target.checked)}/> Zeref looks things up in his knowledge bank (a keyword lookup in open-license English, math, world facts and his own world; each passage used is shown under his reply with its source). On by default; untick to turn it off.</label>:null}
    {gameBridge&&gameBridge.key===gameBeastKey(session)?<><label><input type="checkbox" checked={includeGame} onChange={e=>setIncludeGame(e.target.checked)}/> Include measured game screen brightness, contrast and color</label><GameChatTools bridge={gameBridge} busy={busy} route={route} optedIn={includeGame}/></>:<p>Observation mode: creature identity and your message. No live game vision bridge is connected.</p>}
    <p>Voice typing starts only on your tap and may use your browser’s speech service. Speech playback follows your sound settings.</p>
