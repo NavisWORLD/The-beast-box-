@@ -3,3 +3,8 @@ const src=f=>readFileSync(new URL('../'+f,import.meta.url),'utf8');
 test('first person (target 36): residents keep out of the near frame; far life starts at 25 m',()=>{const w=src('components/living-world.tsx');
  assert.match(w,/const FP_RES_CLEAR=6;/);assert.match(w,/if\(fpOn&&ang\(r\.n,pN\)<FP_RES_CLEAR\)/);
  assert.match(src('lib/universe/one-world-look.ts'),/band\?200\+rand\(\)\*400:25\+rand\(\)\*95/);assert.ok(!w.includes('Math.random'));});
+test('GENESIS X snap: first-person entry places awake residents in view, 7.5-10.5 out, fades in 0.5 s on the engine clock',()=>{const w=src('components/living-world.tsx');
+ assert.match(w,/const FP_RES_CLEAR=6;/);assert.match(w,/if\(want&&!fpWas\)fpSnap=true;fpWas=want;/);
+ assert.match(w,/if\(r\.nap>0\|\|r\.pause>0\|\|r\.shelter\)\{kept\+\+;return;\}const sd=7\.5\+\(\(ri\*0\.618\)%1\)\*3;/);
+ assert.match(w,/Math\.min\(hf\*\.4,/);assert.match(w,/r\.wk=1;r\.fpFade0=fpCk;/);assert.match(w,/const FP_FADE_S=\.5;/);
+ assert.match(w,/fpCk=field\?\(field\.tick\+field\.clock\.alpha\)\/4:t;/);assert.ok(!w.includes('Math.random'));});
