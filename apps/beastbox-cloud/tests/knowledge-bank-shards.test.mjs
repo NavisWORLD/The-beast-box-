@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, statSync } from 'node:fs';
+import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { buildBank, searchBank, shardsFor, addShards, loadShardsFor, provenanceLine } from '../lib/knowledge/bank.mjs';
 
@@ -29,7 +29,8 @@ test('bank.json stays small: world-001 lives in shards fetched on demand, and th
 test('every shard entry has an https source and the right licence (CC BY-SA 4.0 for Wikipedia, MIT for GSM8K), never the repo default', () => {
   for (const s of core.shards) for (const e of readShard(s.path).entries) {
     assert.ok(e.source.startsWith('https://'), e.id);
-    if (e.id.startsWith('wiki-')) { assert.equal(e.license, 'CC BY-SA 4.0'); assert.match(e.source, /simple\.wikipedia\.org\/w\/index\.php\?title=.+&oldid=\d+$/); }
+    if (e.id.startsWith('read-')) { assert.ok(['CC BY-SA 4.0', 'CC BY 2.5', 'Public domain (USA)'].includes(e.license), e.id); assert.match(e.sha256, /^[0-9a-f]{64}$/); assert.ok(e.revision_id, e.id); }
+    else if (e.id.startsWith('wiki-')) { assert.equal(e.license, 'CC BY-SA 4.0'); assert.match(e.source, /simple\.wikipedia\.org\/w\/index\.php\?title=.+&oldid=\d+$/); }
     else { assert.ok(e.id.startsWith('gsm-')); assert.equal(e.license, 'MIT'); assert.match(e.source, /github\.com\/openai\/grade-school-math\/blob\/[0-9a-f]{40}\//); }
     assert.ok(!/\bAI\b|\bLLM\b/.test(e.text), e.id);
   }
@@ -38,7 +39,10 @@ test('every shard entry has an https source and the right licence (CC BY-SA 4.0 
 test('passages are word for word from evidence/zeref-world-001/qa.jsonl', () => {
   const qa = readFileSync(new URL('../../../evidence/zeref-world-001/qa.jsonl', import.meta.url), 'utf8').trim().split('\n').map(JSON.parse);
   const bySrc = new Map(qa.map(r => [r.source, r]));
+  const readDir = new URL('../../../evidence/zeref-read-001/', import.meta.url);
+  const reads = new Map(readdirSync(readDir).filter(f => f.endsWith('.jsonl')).flatMap(f => readFileSync(new URL(f, readDir), 'utf8').trim().split('\n').filter(Boolean).map(JSON.parse)).map(r => [r.sha256, r]));
   for (const s of core.shards) for (const e of readShard(s.path).entries) {
+    if (e.id.startsWith('read-')) { const r = reads.get(e.sha256); assert.ok(r, e.id); assert.equal(e.text, r.text); assert.equal(e.source, r.source); continue; }
     const r = bySrc.get(e.source); assert.ok(r, e.id);
     assert.equal(e.text, e.id.startsWith('wiki-') ? r.assistant : r.user + ' ' + r.assistant);
   }
