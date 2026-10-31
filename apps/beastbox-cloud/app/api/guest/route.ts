@@ -1,6 +1,7 @@
 import {createHmac} from 'node:crypto';
 import {bridgeConfigured,safeJson} from '@/lib/security';
 import PUBLIC_PIN from '@/lib/rawrphos-public-pin.json';
+import {chooseOneVoice,ONE_VOICE_SCHEMA,ONE_VOICE_RULE} from '@/lib/zeref/one-voice.mjs';
 // Reviewed public checkpoint pin (14000 unless a chat-not-worse promotion PR changed it).
 const PIN_STEP:number=PUBLIC_PIN.training_steps,PIN_SHA:string=PUBLIC_PIN.checkpoint_sha256;
 export const runtime='nodejs';
@@ -12,6 +13,23 @@ const MAX_PROMPT=1800;
 const LEGACY_BRIDGE_PROMPT=700;
 const MAX_BODY=8000;
 const MODEL_ID=/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+(?::[A-Za-z0-9_.-]+)?$/;
+
+const GROWING_LABEL='Growing Zeref · not the pin';
+// Two minds, one voice (Cory 2026-10-31): the growing branch drafts beside the pin. Its draft is checked the same way
+// /api/guest-growing checks it; any failure just leaves the gated draft alone (growing = ABSENT, null).
+async function growingDraft(text:string,identity:string):Promise<{reply:string;tag:string;checkpoint_sha256:string}|null>{
+ try{
+  const res=await fetch(new URL('/api/guest-growing',process.env.BEASTBOX_CLOUD_BRIDGE_URL!),{method:'POST',redirect:'error',cache:'no-store',
+   headers:{Authorization:'Bearer '+process.env.BEASTBOX_CLOUD_BRIDGE_TOKEN!,'Content-Type':'application/json'},
+   body:JSON.stringify({text,guest_identity:identity}),signal:AbortSignal.timeout(55_000)});
+  if(!res.ok)return null;
+  const r=await boundedJson(res,16000) as Record<string,unknown>;
+  if(!r||r.schema!=='beastbox-guest-growing-v1'||r.model!=='rawrphos-native'||r.is_public_pin!==false||r.label!==GROWING_LABEL||
+     typeof r.checkpoint_sha256!=='string'||r.checkpoint_sha256===PIN_SHA||typeof r.reply!=='string'||r.reply.length>6000||
+     typeof r.tag!=='string'||!/^zeref-growing-\d{3,}$/.test(r.tag))return null;
+  return {reply:r.reply,tag:r.tag,checkpoint_sha256:r.checkpoint_sha256};
+ }catch{return null;}
+}
 
 async function boundedJson(response:Response,max:number):Promise<unknown>{
  if(Number(response.headers.get('content-length')||0)>max||!response.body)
@@ -71,6 +89,7 @@ export async function POST(request:Request){
       'Content-Type':'application/json'},
     body:JSON.stringify({text:prompt,guest_identity:identity}),signal:AbortSignal.timeout(55_000)});
    let sent=text;
+   const growingP=growingDraft(text,identity);
    let res=await send(sent);
    if(res.status===400&&text.length>LEGACY_BRIDGE_PROMPT){
     // Older bridge: keep the END (the keeper's question and the speaker cue) and say so in the reply metadata.
@@ -88,8 +107,13 @@ export async function POST(request:Request){
       result.step!==PIN_STEP||result.checkpoint_sha256!==PIN_SHA||result.memory_used!==false||result.owner_tools_used!==false||
       result.provider_key_shared!==false||typeof result.reply!=='string'||result.reply.length>6000)
     return safeJson(502,{error:'Unverified guest model response'});
+   const growing=await growingP;
+   const voice=chooseOneVoice(text,{reply:result.reply},growing);
    return safeJson(200,{provider:'rawrphos-local',model:'rawrphos-native',
-    step:PIN_STEP,checkpoint_sha256:PIN_SHA,reply:result.reply,
+    step:PIN_STEP,checkpoint_sha256:PIN_SHA,reply:voice.reply||result.reply,
+    one_voice:{schema:ONE_VOICE_SCHEMA,rule:ONE_VOICE_RULE,spoken_by:voice.chosen,scores:voice.scores,
+     minds:[{role:'gated',label:'GATED (reviewed pin)',step:PIN_STEP,checkpoint_sha256:PIN_SHA},
+      {role:'growing',label:'NOT GATED (growing branch)',tag:growing?growing.tag:null,checkpoint_sha256:growing?growing.checkpoint_sha256:null,drafted:growing!==null}]},
     hebbian:result.hebbian===true,state_mode:result.state_mode==='tri'||result.state_mode==='dyn12'?result.state_mode:null,
     guest_stateless:true,prompt_chars:sent.length,
     ...(result.routing&&typeof result.routing==='object'&&!Array.isArray(result.routing)?{routing:result.routing}:{})});
