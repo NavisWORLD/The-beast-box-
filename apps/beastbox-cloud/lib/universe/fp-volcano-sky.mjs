@@ -16,7 +16,7 @@ export function fpNeighbourDist(radius,ringOuter,dd,rule=FP_NEIGHBOUR_RULE){cons
 /** Cosmo's day/crack look for world-volcano (SEEDED pattern, DERIVED colours): shader-drawn Voronoi-edge cracks ~0.02 wide on the unit sphere,
  *  antialiased with fwidth; glow #FF7A2E falling off to #B5532E. By day the sky lies over the disc at no more than 0.2, cracks show at 0.3 of
  *  their night strength, and a thin sunlit crescent rim follows the one sun. Night is unchanged (day = 0). */
-export const VOLCANO_DAY_LOOK=Object.freeze({label:'SEEDED',crackHex:'#FF7A2E',crackFallHex:'#B5532E',dayBodyHex:'#B5532E',lineWidth:.02,cellScale:7,daySkyMax:.2,dayCrackK:.3,dayBodyK:.45});
+export const VOLCANO_DAY_LOOK=Object.freeze({label:'SEEDED',crackHex:'#FF7A2E',crackFallHex:'#B5532E',dayBodyHex:'#482112',nightBodyHex:'#1C100E',dayBodyScale:.4,lineWidth:.02,cellScale:7,daySkyMax:.15,dayCrackK:.3,dayBodyK:.45});
 /** GENESIS X (#738): the sky laid over the disc is the dome's own colour at the disc's elevation (same formula as the sky dome: mix(horizon, zenith, pow(up,.45)),
  *  zenith pulled halfway to teal by day), not the pale horizon haze. Feeding the horizon colour lifted the dark night-side body toward a pinkish grey. DERIVED. */
 export function skyAtUp(hor,zen,teal,day,up){const d=Math.max(0,Math.min(1,day||0)),k=Math.pow(Math.max(0,Math.min(1,up)),.45);return [0,1,2].map(i=>{const z=zen[i]+(((zen[i]+teal[i])/2)-zen[i])*d;return hor[i]+(z-hor[i])*k;});}
@@ -26,3 +26,7 @@ export function crackSeed(tag='world-volcano:cracks'){let h=2166136261;const o=[
 export const daySkyK=(day,L=VOLCANO_DAY_LOOK)=>L.daySkyMax*Math.max(0,Math.min(1,day||0));
 /** Crack strength multiplier: 1 at night, dayCrackK at full day. */
 export const crackK=(day,L=VOLCANO_DAY_LOOK)=>1+(L.dayCrackK-1)*Math.max(0,Math.min(1,day||0));
+/** #739 (Cosmo): the face we see by day is the night side, so its body is dark rust #B5532E×0.4 = (72,33,18), not the lit #B5532E; at night it is (28,16,14) plus crack glow.
+ *  Sky share over the disc drops to 0.15 and is mixed in sRGB. Target disc centre by day ≈ (85,60,55). DERIVED. */
+export const scaleHex=(hex,k)=>'#'+[1,3,5].map(i=>Math.round(parseInt(hex.slice(i,i+2),16)*k).toString(16).padStart(2,'0')).join('').toUpperCase();
+export const VOLCANO_DISC_TARGETS=Object.freeze({label:'DERIVED',day:[85,60,55],night:[28,16,14]});

@@ -37,3 +37,9 @@ export const RING_SHADOW_DECL='uniform vec3 uRsC,uRsN;uniform float uRsR,uRsIn,u
 export function withRingShadow(frag){const m='gl_FragColor=vec4(c,1.0);';const i=frag.lastIndexOf(m);if(i<0)return frag;const j=frag.indexOf('void main(){');if(j<0)return frag;
  return frag.slice(0,j)+RING_SHADOW_DECL+frag.slice(j,i)+'c*=ringShade(vW,normalize(uSun));'+frag.slice(i);}
 export const RINGED_PACK_INFO=Object.freeze({label:P.label,honesty:P.honesty,seed:P.seed,version:P.version});
+
+/** #739: the pack's night floor (lighting.earthshine.cap_linear = 0.02 linear) tinted with the planet's rim colour, so a neighbour's dark side reads as a shape, never pure black.
+ *  The tint is normalised so its brightest channel is the 0.02 cap. Returned in display (sRGB) units because this body shader writes gl_FragColor without encoding. SEEDED. */
+const enc=x=>x<=.0031308?12.92*x:1.055*Math.pow(x,1/2.4)-.055;
+export function nightFloorLinear(rim){const m=Math.max(rim[0],rim[1],rim[2])||0;return m>0?rim.map(v=>EARTHSHINE_CAP*v/m):[EARTHSHINE_CAP,EARTHSHINE_CAP,EARTHSHINE_CAP];}
+export const nightFloorOut=rim=>nightFloorLinear(rim).map(enc);

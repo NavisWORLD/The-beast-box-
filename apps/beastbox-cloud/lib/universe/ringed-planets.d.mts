@@ -5,3 +5,5 @@ export function ringShadowOnPlanet(P:number[],C:number[],n:number[],sun:number[]
 export function forwardScatter(V:number[],sun:number[],g?:number):number;
 export function ringLook(id:any,tier:string):{preset:string;tint:number[];opacity:number;bands:number[];useBands:number;scatter:number;planetShadow:number;ringShadow:number};
 export const RING_FRAG:string;export const RING_VERT:string;export const RING_SHADOW_DECL:string;export function withRingShadow(frag:string):string;export const RINGED_PACK_INFO:any;
+export function nightFloorLinear(rim:number[]):number[];
+export function nightFloorOut(rim:number[]):number[];
