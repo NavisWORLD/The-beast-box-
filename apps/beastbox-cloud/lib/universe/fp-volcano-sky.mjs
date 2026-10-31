@@ -16,7 +16,12 @@ export function fpNeighbourDist(radius,ringOuter,dd,rule=FP_NEIGHBOUR_RULE){cons
 /** Cosmo's day/crack look for world-volcano (SEEDED pattern, DERIVED colours): shader-drawn Voronoi-edge cracks ~0.02 wide on the unit sphere,
  *  antialiased with fwidth; glow #FF7A2E falling off to #B5532E. By day the sky lies over the disc at no more than 0.2, cracks show at 0.3 of
  *  their night strength, and a thin sunlit crescent rim follows the one sun. Night is unchanged (day = 0). */
-export const VOLCANO_DAY_LOOK=Object.freeze({label:'SEEDED',crackHex:'#FF7A2E',crackFallHex:'#B5532E',dayBodyHex:'#482112',nightBodyHex:'#1C100E',dayBodyScale:.4,lineWidth:.02,cellScale:7,daySkyMax:.15,dayCrackK:.3,dayBodyK:.45});
+/** Day body mix (Cosmo, #738): 0.45. Since #739 the day body is already the dark rust #B5532E×0.4 (dayBodyHex), so this
+ *  number NO LONGER SHAPES THE COLOUR: the shader does not read it. It is kept, named, as a tuning handle for anyone who
+ *  later wants to weight the body against the sky share again (we add, we don't remove). Night measured #740 at sun ≤ −15°:
+ *  disc between cracks ≈ (36,23,20) sRGB vs target (28,16,14), within ~8 per channel. */
+export const VOLCANO_DAY_BODY_MIX_K=.45;
+export const VOLCANO_DAY_LOOK=Object.freeze({label:'SEEDED',crackHex:'#FF7A2E',crackFallHex:'#B5532E',dayBodyHex:'#482112',nightBodyHex:'#1C100E',dayBodyScale:.4,lineWidth:.02,cellScale:7,daySkyMax:.15,dayCrackK:.3,dayBodyK:VOLCANO_DAY_BODY_MIX_K});
 /** GENESIS X (#738): the sky laid over the disc is the dome's own colour at the disc's elevation (same formula as the sky dome: mix(horizon, zenith, pow(up,.45)),
  *  zenith pulled halfway to teal by day), not the pale horizon haze. Feeding the horizon colour lifted the dark night-side body toward a pinkish grey. DERIVED. */
 export function skyAtUp(hor,zen,teal,day,up){const d=Math.max(0,Math.min(1,day||0)),k=Math.pow(Math.max(0,Math.min(1,up)),.45);return [0,1,2].map(i=>{const z=zen[i]+(((zen[i]+teal[i])/2)-zen[i])*d;return hor[i]+(z-hor[i])*k;});}
