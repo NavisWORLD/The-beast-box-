@@ -125,3 +125,13 @@ test('loop status is tied to real code and tests (no fictional links)', () => {
   // new behaviour stays opt-in
   assert.match(read('apps/beastbox-cloud/components/pocket-sand-layer.ts'),/getItem\(LOOP_WORLD_KEY\)==='on'/);
 });
+
+test('the live loop seed is heart seed v10, RECORDED-derived and chained from v9', () => {
+  const v10=JSON.parse(read('evidence/zeref-recorded-boom-001/heart-seed-v10.json'));
+  const L=SPARK.heart_seed_latest;
+  assert.equal(L.version,10);
+  assert.equal(L.heart_seed_sha256,v10.heart_seed_sha256);
+  assert.equal(L.previous_heart_seed_v9_sha256,SEED);
+  assert.equal(v10.mix.heart_seed_v9_sha256,SEED);
+  assert.match(L.label,/RECORDED-derived/);
+});

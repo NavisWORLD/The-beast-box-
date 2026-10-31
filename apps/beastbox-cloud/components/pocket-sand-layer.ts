@@ -18,7 +18,7 @@ export function addPocketSand(THREE:Three,scene:import('three').Scene,{seed,low,
  const points=new THREE.Points(geom,new THREE.PointsMaterial({size:low?.11:.085,map,vertexColors:true,transparent:true,opacity:.85,depthWrite:false,blending:THREE.AdditiveBlending,sizeAttenuation:true}));
  points.name='pocket-sand';scene.add(points);
  let acc=0,loop:ReturnType<typeof createLoop>|null=null,lt=0,ownTilt=false;
- try{if(localStorage.getItem(LOOP_WORLD_KEY)==='on')fetch('/spark/zeref-bio-spark.json').then(r=>r.json()).then(j=>{loop=createLoop({seed:j.heart_seed_v9_sha256});}).catch(()=>{});}catch{/* off */}
+ try{if(localStorage.getItem(LOOP_WORLD_KEY)==='on')fetch('/spark/zeref-bio-spark.json').then(r=>r.json()).then(j=>{loop=createLoop({seed:j.heart_seed_latest?.heart_seed_sha256||j.heart_seed_v9_sha256});}).catch(()=>{});}catch{/* off */}
  const update=(dt:number,disturbers:{x:number;z:number;r:number;s:number}[])=>{
   if(reduced)return; // reduced motion: the field stays still
   if(loop){lt+=dt;while(lt>=1){lt-=1;loop=stepLoop(loop,{});if(!field.environment||ownTilt){field.setEnvironment(loopWellWeights(loop));ownTilt=true;}}}
