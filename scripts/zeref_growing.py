@@ -21,6 +21,7 @@ ROOT = HERE.parent
 CHAT_FILES = ["evidence/zeref-dad-voice-001/dialogue.jsonl", "evidence/zeref-warm-001/dialogue.jsonl",
               "evidence/zeref-warm-002/dialogue.jsonl", "evidence/zeref-knowledge-002/dialogue.jsonl"]
 READ_GLOB = "evidence/zeref-read-001/*.jsonl"
+HOME_FILE = "evidence/zeref-homeworld-001/units-1-10.jsonl"  # Cory's Unit 1-10 lines, lessons for growing only
 UPDATES, BATCH, LR, HEBB_LR, MIN_FRAC = 320, 8, 5e-5, 3e-4, 0.1
 ANCHOR_CHAT, ANCHOR_READ = 0.5, 0.1
 BRANCH = "growing"
@@ -55,6 +56,12 @@ def load_rows(tok, keep, root=ROOT):
                 if keep(L["user"], L["assistant"]) and (e := encode(tok, L["user"], L["assistant"])):
                     read.append({**e, "kind": "reading", "source": L["origin"], "license": L["license"],
                                  "revision_id": L.get("revision_id"), "row_sha256": sha(json.dumps([L["user"], L["assistant"]]).encode())})
+    hp = root / HOME_FILE
+    for r in (map(json.loads, hp.read_text().splitlines()) if hp.is_file() else []):
+        q, a = f"Unit {r['unit']} ({r['unit_title']}), lesson line {r['line']}: what did we learn?", r["text"]
+        if keep(q, a) and (e := encode(tok, q, a)):
+            read.append({**e, "kind": "home-lesson", "source": r["source"], "license": r["license"], "revision_id": None,
+                         "row_sha256": sha(json.dumps([q, a]).encode())})
     return chat, read
 
 def collate(rows):

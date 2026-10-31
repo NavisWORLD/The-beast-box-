@@ -169,12 +169,36 @@ def reading():
                              revision_id=r["revision_id"], sha256=r["sha256"], read_on=f.stem))
     return out
 
+HOME = EV / "zeref-homeworld-001/units-1-10.jsonl"
+HOME_LABEL = "Zeref lessons · home world"
+# Unit 1 grouped by topic (hand-written topic labels; the lines themselves stay word for word). Other units: 3 lines per entry.
+HOME_TOPICS = {1: [("how many suns: one sun", [1, 2]), ("day length at home", [3]), ("light and colours", [4, 5]),
+                   ("storms", [6, 7, 8]), ("volcano", [9, 10, 11]), ("rings", [12, 13])]}
+def home_world():
+    """evidence/zeref-homeworld-001 (2026-10-31): Cory's Emeth-approved Unit 1-10 narration lines, word for word, one entry
+    per unit (Unit 11+ not included). The Rigetti line stays SIMULATED. Knowledge bank + growing-branch lessons only."""
+    units = {}
+    for r in read_jsonl(HOME) if HOME.is_file() else []:
+        units.setdefault(r["unit"], []).append(r)
+    out = []
+    for n, rs in sorted(units.items()):
+        rs.sort(key=lambda r: r["line"])
+        topics = HOME_TOPICS.get(n) or [(f"part {k // 3 + 1}", list(range(k + 1, min(k + 3, len(rs)) + 1))) for k in range(0, len(rs), 3)]
+        for k, (topic, lines) in enumerate(topics, 1):
+            text = " ".join(rs[i - 1]["text"] for i in lines)
+            out.append(entry(f"home-u{n:02d}-{k:02d}", "zeref-lessons", "lesson-lines", f"{rs[0]['title']} ({topic})", text, rs[0]["source"],
+                             license=rs[0]["license"], author=rs[0]["author"], label=HOME_LABEL, unit=n, lines=lines,
+                             sha256=sha(text.encode())))
+    assert sorted(i for e in out if e["unit"] == 1 for i in e["lines"]) == list(range(1, 14)), "Unit 1 topics must cover lines 1-13 once"
+    assert all("Rigetti" not in e["text"] or "SIMULATED" in e["text"] for e in out), "Rigetti must stay SIMULATED"
+    return out
+
 def shard_of(e):
     return int(sha(e["title"].encode())[:8], 16) % WORLD_SHARDS
 
 def build():
     authored = read_jsonl(KB / "authored/english-usage.jsonl") + read_jsonl(KB / "authored/math-basics.jsonl")
-    files = {"world-facts.jsonl": world_facts(), "zeref-lore.jsonl": lore(), "songs.jsonl": songs()}
+    files = {"world-facts.jsonl": world_facts(), "zeref-lore.jsonl": lore(), "songs.jsonl": songs(), "zeref-lessons-home-world.jsonl": home_world()}
     texts = {n: "".join(dump(e) + "\n" for e in es) for n, es in files.items()}
     allentries = authored + [e for es in files.values() for e in es]
     ids = [e["id"] for e in allentries]
