@@ -4,7 +4,7 @@ import {appendClassExchange,classThreadId,classroomBridgeIdentity,isClassName,re
 import {confusedState} from '@/lib/companion/emotion.mjs';
 import PUBLIC_PIN from '@/lib/rawrphos-public-pin.json';
 import {bankLookup} from '@/lib/knowledge/server-lookup.mjs';
-import {framePrompt,talkPersona,GUEST_LIMIT} from '@/lib/companion/beast-talk.mjs';
+import {framePrompt,talkPersona,GUEST_LIMIT,MEMORY_TURNS} from '@/lib/companion/beast-talk.mjs';
 
 // ZEREF CLASSROOM (owner-only, kind "classroom"). Same pinned brain, same
 // bridge door (/api/guest-local) and the same reply verification as the
@@ -52,7 +52,12 @@ export async function POST(request:Request){
  // 2026-10-31 (Cory): the knowledge-bank LOOKUP is on by default in class. Passages are copied word for
  // word with their source; they go into this one prompt only (a lookup, not memory, never training).
  const lookup=await bankLookup(new URL(request.url).origin,text);
- const prompt=lookup.text?framePrompt(talkPersona(),[],text,GUEST_LIMIT,'',null,lookup.text):text;
+ // 2026-10-31 (Cory): the last few exchanges of this class thread go back with the message so he remembers the lesson.
+ const cfg0=storageConfig();
+ const past=cfg0?((await readClassThread(cfg0,id).catch(()=>null))?.thread?.turns||[]):[];
+ const memory=(past as {from?:string,text?:string}[]).filter(t=>typeof t?.text==='string'&&(t.from==='teacher'||t.from==='zeref'))
+  .slice(-MEMORY_TURNS).map(t=>({role:(t.from==='teacher'?'you':'beast') as 'you'|'beast',text:t.text as string}));
+ const prompt=lookup.text||memory.length?framePrompt(talkPersona(),memory,text,GUEST_LIMIT,'',null,lookup.text):text;
  try{
   const res=await fetch(new URL('/api/guest-local',process.env.BEASTBOX_CLOUD_BRIDGE_URL!),{method:'POST',redirect:'error',cache:'no-store',
    headers:{Authorization:'Bearer '+process.env.BEASTBOX_CLOUD_BRIDGE_TOKEN!,'Content-Type':'application/json'},
@@ -72,6 +77,6 @@ export async function POST(request:Request){
    w={persisted:r.persisted,recorded:r.recorded,duplicate:r.duplicate,exchange_id:r.record.exchange_id};}catch{/* receipt shows false */}}
   return safeJson(200,{kind:'classroom',thread:name,model:'rawrphos-native',step:PIN_STEP,checkpoint_sha256:PIN_SHA,reply,
    hebbian_mode:result.hebbian_mode==='persisted'||result.hebbian_mode==='in-context'?result.hebbian_mode:null,
-   confused_state:confused,lookup:{label:lookup.label,kind:'LOOKUP',used:lookup.used,...('error' in lookup&&lookup.error?{error:lookup.error}:{})},record:{...w,source_kind:'classroom',training_eligible:false,review:'PENDING_REVIEW'}});
+   confused_state:confused,memory_turns:memory.length,lookup:{label:lookup.label,kind:'LOOKUP',used:lookup.used,...('error' in lookup&&lookup.error?{error:lookup.error}:{})},record:{...w,source_kind:'classroom',training_eligible:false,review:'PENDING_REVIEW'}});
  }catch{return safeJson(502,{error:'Brain unavailable or timed out'});}
 }

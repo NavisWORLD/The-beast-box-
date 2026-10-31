@@ -23,6 +23,8 @@ export const MAX_MESSAGE = MAX_TYPED_CHARS;
 /** Prompt characters sent to the free guest brain (its context is 2048 tokens; see lib/library/limits.mjs). */
 export const GUEST_LIMIT = BRAIN.promptChars;
 const LEGACY_SAY = 400;
+/** Conversation memory: how many recent lines (3 exchanges) go back to Zeref's own model with each message. */
+export const MEMORY_TURNS = 6;
 /** Space the persona line, labels and memory need around the keeper's words. */
 const FRAME_RESERVE = 330;
 const MODEL_TAG = /^[A-Za-z0-9][A-Za-z0-9_.:/-]{0,79}$/;
@@ -153,10 +155,12 @@ export function framePrompt(persona, history, text, limit = GUEST_LIMIT, context
   const opticalText=gameObservationLine(observation);
   const memoryText = context ? "\n" + clean(context, 260) : "";
   let head = personaText + memoryText + (opticalText?'\n'+opticalText:'');
-  const recent = (Array.isArray(history) ? history : []).slice(-2)
+  // 2026-10-31 (Cory): the last few exchanges (up to MEMORY_TURNS lines) ride along so Zeref remembers
+  // the conversation. Oldest lines drop first when the prompt is full; the keeper's words always stay.
+  const recent = (Array.isArray(history) ? history : []).slice(-MEMORY_TURNS)
     .map((turn) => (turn.role === "you" ? "Keeper: " : p.name + ": ") + clean(turn.text, 110));
+  while (recent.length && head.length + libText.length + 1 + recent.join("\n").length + tail.length > limit) recent.shift();
   let body = recent.length ? "\n" + recent.join("\n") : "";
-  if (head.length + libText.length + body.length + tail.length > limit) body = "";
   if (head.length + libText.length + tail.length > limit) {
     const budget = Math.max(0, limit - tail.length - libText.length);
     // Preserve the complete optical limitation. Cutting its disclaimer would
@@ -230,7 +234,10 @@ export async function talkToBeast(input) {
   const text = clean(input?.text, MAX_MESSAGE);
   const fetchImpl = input?.fetchImpl || globalThis.fetch;
   const signal = input?.signal;
-  const history = input?.shareHistory === true && Array.isArray(input?.history) ? input.history : [];
+  // Two separate consents: "share" (any provider, off by default) and "remember" (2026-10-31, Cory: on by
+  // default in the page) which sends the recent conversation ONLY to Zeref's own pinned model (guest-rawrphos).
+  const remember = input?.remember === true && route === "guest-rawrphos";
+  const history = (input?.shareHistory === true || remember) && Array.isArray(input?.history) ? input.history : [];
   const observation = input?.observation;
   const context = clean(input?.context,260);
   // Passages copied verbatim from the owner's uploaded library (RECORDED, never rewritten).
