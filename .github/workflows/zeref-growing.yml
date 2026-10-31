@@ -8,7 +8,7 @@ on:
     - cron: '47 */4 * * *'
   workflow_dispatch:
   pull_request:
-    paths: ['scripts/zeref_growing.py', 'scripts/zeref_lessons.py', '.github/workflows/zeref-growing.yml', 'tests/test_zeref_lessons.py']
+    paths: ['scripts/zeref_growing.py', 'scripts/zeref_lessons.py', 'scripts/zeref_world_rows.py', '.github/workflows/zeref-growing.yml', 'tests/test_zeref_lessons.py']
 permissions:
   contents: write   # only to publish zeref-growing-NNN release assets
 concurrency:
@@ -50,12 +50,24 @@ jobs:
           test -s "$parent/manifest.json"
           printf 'GROW_PARENT=%s\nGROW_SRC=%s\nGROW_N=%s\nGROW_TAG=zeref-growing-%03d\n' "$parent" "$src" "$n" "$n" >> "$GITHUB_ENV"
           echo "GROWING_RESUME_FROM=$src next=$n"
+      - name: Read his world now (public reads only; a failed read is ABSENT and adds no rows)
+        run: |
+          python - <<'PY'
+          import json, urllib.request
+          def get(u):
+              try:
+                  with urllib.request.urlopen(u, timeout=20) as r: return json.loads(r.read(2_000_000))
+              except Exception: return None
+          snap = {"live": get("https://www.beastboxcosmos.xyz/api/world/live"), "diary": get("https://www.beastboxcosmos.xyz/api/zeref/diary")}
+          json.dump(snap, open("build/grow/world.json", "w"))
+          print("WORLD_READ live=%s diary=%s" % (snap["live"] is not None, snap["diary"] is not None))
+          PY
       - name: Train one bounded round (CPU)
         if: github.event_name != 'pull_request'
-        run: python scripts/zeref_growing.py --parent "$GROW_PARENT" --out build/grow/out --number "$GROW_N" --parent-tag "$GROW_SRC"
+        run: python scripts/zeref_growing.py --parent "$GROW_PARENT" --out build/grow/out --number "$GROW_N" --parent-tag "$GROW_SRC" --world build/grow/world.json
       - name: Smoke round on pull requests (8 updates, not published)
         if: github.event_name == 'pull_request'
-        run: python scripts/zeref_growing.py --parent "$GROW_PARENT" --out build/grow/out --number 0 --parent-tag "$GROW_SRC" --updates 8
+        run: python scripts/zeref_growing.py --parent "$GROW_PARENT" --out build/grow/out --number 0 --parent-tag "$GROW_SRC" --world build/grow/world.json --updates 8
       - name: Publish zeref-growing-NNN (never deleted, never the pin)
         if: github.event_name != 'pull_request'
         run: |

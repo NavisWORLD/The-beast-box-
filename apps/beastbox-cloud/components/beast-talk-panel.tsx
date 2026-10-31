@@ -25,6 +25,7 @@ import {useTalkPersona} from './use-talk-target';
 import {RAWRPHOS_PUBLIC_PIN} from '../lib/companion/brain.mjs';
 import ZerefLibraryPanel,{ReadsBox,RecordedNotes,type LibraryState} from './zeref-library-panel';
 import {libraryContext} from '../lib/library/context.mjs';
+import {worldContextLine} from '../lib/zeref/world-context.mjs';
 import {BANK_URL,BANK_CONSENT_KEY,BANK_LABEL,buildBank,loadShardsFor,searchBank,bankContext,provenanceLine,isStillLearningReply,stillLearningNote} from '../lib/knowledge/bank.mjs';
 
 export type TalkState='idle'|'thinking'|'listening'|'speaking'|'replied'|'offline';
@@ -197,7 +198,16 @@ function BeastTalkContent({onState,compact=false,title,gameBridge}:PanelProps){
     }catch{if(controller.signal.aborted)return;}
     if(controller.signal.aborted||personaKey.current!==forKey||privateSelection.current!==forSelection)return;
    }
-   const ask={persona,history:chatOnly(log),text:saying,shareHistory,observation,context:[knownGameContext(session,gameBridge?.key),shareGrowth?growthModelContext(growth):''].filter(Boolean).join('\n'),signal:controller.signal,
+   // His world now (public live + diary reads, labelled; a failed read is ABSENT and simply left out).
+   let worldLine='';
+   if(persona.source==='zeref'){
+    try{
+     const [lv,dy]=await Promise.all(['/api/world/live','/api/zeref/diary'].map(u=>fetch(u,{cache:'no-store',signal:controller.signal}).then(r=>r.ok?r.json():null).catch(()=>null)));
+     worldLine=worldContextLine(lv,dy);
+    }catch{worldLine='';}
+    if(controller.signal.aborted)return;
+   }
+   const ask={persona,history:chatOnly(log),text:saying,shareHistory,observation,context:[worldLine,knownGameContext(session,gameBridge?.key),shareGrowth?growthModelContext(growth):''].filter(Boolean).join('\n'),signal:controller.signal,
     ollama:{url:prefs.ollamaUrl,model:prefs.ollamaModel},hf:{key:hfKey,model:prefs.hfModel,spendConfirmed:spend}};
    // Teacher design: any non-RAWRPHOS brain is a TEACHER. RAWRPHOS still writes the
    // Beast's own reply; the teacher's answer is shown separately and labeled.

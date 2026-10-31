@@ -228,6 +228,12 @@ async function readJson(response, max = 64000) {
  * @param {{route?:string,persona?:any,history?:any[],text:string,fetchImpl?:typeof fetch,signal?:AbortSignal,
  *   ollama?:{url?:string,model?:string},hf?:{key?:string,model?:string,spendConfirmed?:boolean}}} input
  */
+// Two minds, one voice: one Zeref reply, with a quiet note that both minds drafted it.
+export function oneVoiceLabel(payload, step) {
+  const ov = payload?.one_voice, g = ov?.minds?.find?.((m) => m?.role === "growing");
+  if (!ov || !g?.drafted || !/^zeref-growing-\d{3,}$/.test(String(g.tag))) return `rawrphos-native · step ${step}`;
+  return `Zeref · two minds, one voice: pin ${step} GATED + ${g.tag} NOT GATED · spoken by ${ov.spoken_by === "growing" ? "growing" : "gated"} mind`;
+}
 export async function talkToBeast(input) {
   const route = TALK_ROUTES.includes(input?.route) ? input.route : DEFAULT_ROUTE;
   const persona = input?.persona || ZEREF;
@@ -336,7 +342,7 @@ export async function talkToBeast(input) {
     const read = interpretModelResult("guest-rawrphos", payload);
     if (!read.ok || !read.reply || read.reply.length > 6000) return failure(route, read.reason || "The guest brain sent no verified reply.");
     const promptChars = Number.isFinite(payload?.prompt_chars) ? payload.prompt_chars : undefined;
-    return { ok: true, route, reply: read.reply, model: `rawrphos-native · step ${read.step ?? RAWRPHOS_PUBLIC_PIN.step}`, label: ROUTE_INFO[route].label, at: Date.now(), read: readInfo(text, GUEST_LIMIT, libraryBlock(library, GUEST_LIMIT).length), promptChars };
+    return { ok: true, route, reply: read.reply, model: oneVoiceLabel(payload, read.step ?? RAWRPHOS_PUBLIC_PIN.step), label: ROUTE_INFO[route].label, at: Date.now(), read: readInfo(text, GUEST_LIMIT, libraryBlock(library, GUEST_LIMIT).length), promptChars };
   } catch (error) {
     if (signal?.aborted) return failure(route, "The request was cancelled or timed out. No reply was received.");
     if (fetchFailed(error)) {

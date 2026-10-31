@@ -16,7 +16,10 @@ test('growing page and chat say "not the pin" on every reply',()=>{
  assert.match(c,/\$\{r\.label\} · \$\{r\.tag\} · step \$\{r\.step\}/);
  assert.doesNotMatch(c,/\bAI\b/);
 });
-test('the pin guest door is untouched by the growing route',()=>{
+test('the pin guest door still verifies the gated pin; the growing mind only adds a second draft (two minds, one voice, Cory 2026-10-31)',()=>{
  const g=read('app/api/guest/route.ts');
- assert.doesNotMatch(g,/growing/i);
+ assert.match(g,/result\.step!==PIN_STEP\|\|result\.checkpoint_sha256!==PIN_SHA/);
+ assert.match(g,/step:PIN_STEP,checkpoint_sha256:PIN_SHA/);
+ assert.match(g,/r\.checkpoint_sha256===PIN_SHA/);   // a growing draft carrying the pin's sha is refused
+ assert.doesNotMatch(g,/Math\.random|rawrphos-public-pin\.json['"][^;]*write/);
 });

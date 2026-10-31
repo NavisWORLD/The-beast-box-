@@ -16,6 +16,7 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 from rawrphos.training.checkpoint import load_checkpoint, save_checkpoint, rng_state
 from zeref_lessons import lessons
+import zeref_world_rows
 
 ROOT = HERE.parent
 CHAT_FILES = ["evidence/zeref-dad-voice-001/dialogue.jsonl", "evidence/zeref-warm-001/dialogue.jsonl",
@@ -39,7 +40,7 @@ def encode(tok, q, a):
     if len(front) + len(tail) > 256: return None
     return {"input": (front + tail)[:-1], "target": [-100] * (len(front) - 1) + tail}
 
-def load_rows(tok, keep, root=ROOT):
+def load_rows(tok, keep, root=ROOT, world=None):
     chat, read = [], []
     for f in CHAT_FILES:
         p = root / f
@@ -62,6 +63,10 @@ def load_rows(tok, keep, root=ROOT):
         if keep(q, a) and (e := encode(tok, q, a)):
             read.append({**e, "kind": "home-lesson", "source": r["source"], "license": r["license"], "revision_id": None,
                          "row_sha256": sha(json.dumps([q, a]).encode())})
+    for r in zeref_world_rows.load(world):  # his world now (diary RECORDED, signals SIMULATED); ABSENT feed = no rows
+        if keep(r["user"], r["assistant"]) and (e := encode(tok, r["user"], r["assistant"])):
+            read.append({**e, "kind": "world-now", "source": r["source"], "license": r["license"], "revision_id": None,
+                         "row_sha256": sha(json.dumps([r["user"], r["assistant"]]).encode())})
     return chat, read
 
 def collate(rows):
@@ -82,11 +87,11 @@ def gate_sets(tok):
     from zeref_heldout_b import PAIRS_B
     return [encode(tok, q, a) for q, a in PAIRS], [encode(tok, q, a) for q, a in PAIRS_B]
 
-def train(parent_dir, out_dir, updates=UPDATES, root=ROOT, number=1, parent_tag="pin"):
+def train(parent_dir, out_dir, updates=UPDATES, root=ROOT, number=1, parent_tag="pin", world=None):
     parent = load_checkpoint(parent_dir, load_training_state=True)
     model, tok, pmeta = parent["model"], parent["tokenizer"], parent["metadata"]
     psha = pmeta["checkpoint_sha256"]; seed = int(psha[:12], 16)
-    chat, read = load_rows(tok, gate_filter(), root)
+    chat, read = load_rows(tok, gate_filter(), root, world)
     if not chat: raise SystemExit("no chat rows")
     base = model.base_parameters(); hebb = model.hebbian_parameters()
     anchor = [p.detach().clone() for p in base]
@@ -129,7 +134,7 @@ def train(parent_dir, out_dir, updates=UPDATES, root=ROOT, number=1, parent_tag=
     (out / "rows-log.jsonl").write_text("".join(json.dumps(r, sort_keys=True) + "\n" for r in log))
     report = {"schema": "zeref-growing-report-v1", "label": "Growing Zeref · not the pin", "number": number,
               "checkpoint_sha256": saved["checkpoint_sha256"], "parent_checkpoint_sha256": psha, "parent_tag": parent_tag,
-              "training_steps": meta["training_steps"], "updates": updates, "chat_rows": len(chat), "reading_rows": len(read),
+              "training_steps": meta["training_steps"], "updates": updates, "chat_rows": len(chat), "reading_rows": len(read), "world_rows": sum(r["kind"] == "world-now" for r in read),
               "loss_first16": sum(losses[:16]) / max(1, len(losses[:16])), "loss_last16": sum(losses[-16:]) / max(1, len(losses[-16:])),
               "before": before, "after": after, "gate": "NONE: reported only. The pin changes only through the unchanged 006 gate.",
               "optimizer_resume": resumed, "licenses": sorted({r["license"] for r in log})}
@@ -141,6 +146,6 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--parent", required=True); ap.add_argument("--out", required=True)
     ap.add_argument("--updates", type=int, default=UPDATES); ap.add_argument("--number", type=int, default=1)
-    ap.add_argument("--parent-tag", default="pin")
+    ap.add_argument("--parent-tag", default="pin"); ap.add_argument("--world", default=None)
     a = ap.parse_args()
-    train(a.parent, a.out, a.updates, number=a.number, parent_tag=a.parent_tag)
+    train(a.parent, a.out, a.updates, number=a.number, parent_tag=a.parent_tag, world=a.world)
