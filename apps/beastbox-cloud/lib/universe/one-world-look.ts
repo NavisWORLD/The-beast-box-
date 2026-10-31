@@ -69,14 +69,15 @@ export const TERRAIN_GLSL=`uniform vec2 uTOrg,uTSeed;uniform vec3 uTBay;uniform 
 float tHash(vec2 p){vec3 q=fract(vec3(p.xyx)*.1031);q+=dot(q,q.yzx+33.33);return fract((q.x+q.y)*q.z);}
 float tVn(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(tHash(i),tHash(i+vec2(1,0)),f.x),mix(tHash(i+vec2(0,1)),tHash(i+vec2(1,1)),f.x),f.y)*2.0-1.0;}
 float tRaw(vec2 p){p=p/${M.toFixed(6)}+uTSeed;return ${(80*M).toFixed(6)}*tVn(p*.0015)+${(20*M).toFixed(6)}*tVn(p*.005+17.3)+${(5*M).toFixed(6)}*tVn(p*.02+41.7);}
-float tH(vec2 l){if(uTOn<.5)return 0.0;float d=length(l);float a=atan(l.y,l.x)-uTBay.x;a=mod(a+3.14159265,6.2831853)-3.14159265;float bay=uTBay.z>.5?smoothstep(uTBay.y*1.05,uTBay.y*1.6,abs(a)):1.0;
- return max(0.0,tRaw(l+uTOrg)-tRaw(uTOrg))*smoothstep(2.0,25.0,d)*(1.0-smoothstep(uTR*.8,uTR,d))*bay;}`;
+float tH(vec2 l){if(uTOn<.5)return 0.0;float d=length(l);float a=atan(l.y,l.x)-uTBay.x;a=mod(a+3.14159265,6.2831853)-3.14159265;float bay=uTBay.z>.5?smoothstep(uTBay.y*.95,uTBay.y*1.2,abs(a)):1.0;
+/* #756: absolute seeded height (lifted so most land rises), flattened only on a 6-unit spawn pad (FP_RES_CLEAR) */
+ return max(0.0,tRaw(l+uTOrg)+${(45*M).toFixed(6)})*smoothstep(6.0,14.0,d)*(1.0-smoothstep(uTR*.8,uTR,d))*bay;}`;
 const tHashJ=(x:number,y:number)=>{const fr=(v:number)=>v-Math.floor(v);let a=fr(x*.1031),b=fr(y*.1031),c=fr(x*.1031);const d=a*(b+33.33)+b*(c+33.33)+c*(a+33.33);a+=d;b+=d;c+=d;return fr((a+b)*c);};
 const tVnJ=(x:number,y:number)=>{const ix=Math.floor(x),iy=Math.floor(y);let fx=x-ix,fy=y-iy;fx=fx*fx*(3-2*fx);fy=fy*fy*(3-2*fy);const L=(p:number,q:number,t:number)=>p+(q-p)*t;return L(L(tHashJ(ix,iy),tHashJ(ix+1,iy),fx),L(tHashJ(ix,iy+1),tHashJ(ix+1,iy+1),fx),fy)*2-1;};
 const tRawJ=(x:number,y:number,sd:number[])=>{const px=x/M+sd[0],py=y/M+sd[1];return 80*M*tVnJ(px*.0015,py*.0015)+20*M*tVnJ(px*.005+17.3,py*.005+17.3)+5*M*tVnJ(px*.02+41.7,py*.02+41.7);};
 /** CPU mirror of tH (local x,z in ground units). Pure; no random calls. */
-export function terrainHeightAt(x:number,z:number,o:{org:number[];seed:number[];bay:number[];on:boolean;r:number}){if(!o.on)return 0;const d=Math.hypot(x,z);const ss=(e0:number,e1:number,v:number)=>{const t=Math.min(1,Math.max(0,(v-e0)/(e1-e0)));return t*t*(3-2*t);};let a=Math.atan2(z,x)-o.bay[0];a=((a+Math.PI)%(2*Math.PI)+2*Math.PI)%(2*Math.PI)-Math.PI;const bay=o.bay[2]>.5?ss(o.bay[1]*1.05,o.bay[1]*1.6,Math.abs(a)):1;
- return Math.max(0,tRawJ(x+o.org[0],z+o.org[1],o.seed)-tRawJ(o.org[0],o.org[1],o.seed))*ss(2,25,d)*(1-ss(o.r*.8,o.r,d))*bay;}
+export function terrainHeightAt(x:number,z:number,o:{org:number[];seed:number[];bay:number[];on:boolean;r:number}){if(!o.on)return 0;const d=Math.hypot(x,z);const ss=(e0:number,e1:number,v:number)=>{const t=Math.min(1,Math.max(0,(v-e0)/(e1-e0)));return t*t*(3-2*t);};let a=Math.atan2(z,x)-o.bay[0];a=((a+Math.PI)%(2*Math.PI)+2*Math.PI)%(2*Math.PI)-Math.PI;const bay=o.bay[2]>.5?ss(o.bay[1]*.95,o.bay[1]*1.2,Math.abs(a)):1;
+ return Math.max(0,tRawJ(x+o.org[0],z+o.org[1],o.seed)+45*M)*ss(6,14,d)*(1-ss(o.r*.8,o.r,d))*bay;}
 /** First person (target 36): the flat patch starts ~4 m out, just inside where the curved 8-unit planet drops below the 1.6 m eye's horizon (was 14 units, which left a flat below-horizon band and a teal planet rim between near grass and meadow). SEEDED look value. */
 export const FLAT_INNER=1.2;
 /** First person: a flat local ground patch (2.5 km radius) with aerial haze, plus four full 360 deg ridge rings. The 27 m sphere stays for orbit. */
@@ -115,19 +116,20 @@ export function addFlatGround(THREE:T,scene:import('three').Object3D,rand:()=>nu
  (globalThis as any).__lwHorizon={label:HORIZON_LABEL,tier,far:farIds,rings:ridgeMeshes.length,recentres:0}; /* after the old layers, so their seeded shapes keep their stream draws */
  /* GENESIS X #755 terrain: displaced hills over the flat meadow (drawn only where they rise above it, so the meadow, sand and bay stay as they were). Bands by height and slope: wet sand at the shore foot, meadow, forest, rock on steep sides, snow only on high peaks.
     Atmospheric perspective: far land fades toward the LIVE sky horizon colour (blue by day, warm at dusk), lit by the live sun. LOW draws a smaller patch. SIMULATED look, SEEDED shape. */
- const tLow=(tierIn||tier)==='LOW';const tR=(tLow?300:900)*M*3.4;const TU:any={uTOrg:{value:new THREE.Vector2()},uTSeed:{value:new THREE.Vector2(rand()*900,rand()*900)},uTBay:{value:new THREE.Vector3(0,0,0)},uTOn:{value:1},uTR:{value:tR},uTSun:{value:new THREE.Vector3(0,1,0)},uTHor:{value:new THREE.Color(LOOK2.horizonHaze)}};
+ const tLow=(tierIn||tier)==='LOW';const tR=(tLow?300:900)*M*3.4;const TU:any={uTOrg:{value:new THREE.Vector2()},uTSeed:{value:new THREE.Vector2(rand()*900,rand()*900)},uTBay:{value:new THREE.Vector3(0,0,0)},uTOn:{value:1},uTDbg:{value:(typeof location!=='undefined'&&/[?&]terrdbg=1/.test(location.search))?1:0},uTR:{value:tR},uTSun:{value:new THREE.Vector3(0,1,0)},uTHor:{value:new THREE.Color(LOOK2.horizonHaze)}};
  const tGeo=(()=>{const nA=tLow?96:192,nR=tLow?48:96,r0=FLAT_INNER,pos:number[]=[],idx:number[]=[];for(let j=0;j<=nR;j++){const r=r0*Math.pow(tR/r0,j/nR);for(let i=0;i<=nA;i++){const a=i/nA*Math.PI*2;pos.push(Math.cos(a)*r,0,Math.sin(a)*r);}}for(let j=0;j<nR;j++)for(let i=0;i<nA;i++){const a=j*(nA+1)+i,b=a+nA+1;idx.push(a,a+1,b,a+1,b+1,b);}const gg=new THREE.BufferGeometry();gg.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));gg.setIndex(idx);return gg;})(); /* log-spaced rings: fine near, coarse far */
  const tMat=new THREE.ShaderMaterial({uniforms:{...GU,...TU},fog:false,toneMapped:false,
-  vertexShader:`${TERRAIN_GLSL}varying float vD,vH,vSl;varying vec3 vNr;void main(){vec2 l=position.xz;float d=length(l);float h=tH(l);float e=max(.04,d*.01);float hx=tH(l+vec2(e,0.))-h,hz=tH(l+vec2(0.,e))-h;vNr=normalize(vec3(-hx,e,-hz));vSl=1.0-vNr.y;vH=h;vD=d;gl_Position=projectionMatrix*modelViewMatrix*vec4(l.x,h-.02,l.y,1.0);}`,
-  fragmentShader:`uniform float uSunL,uDay,uK;uniform vec3 uBase,uDark,uTip,uAir,uTSun,uTHor;varying float vD,vH,vSl;varying vec3 vNr;${TO_SRGB}${DITHER_GLSL}
-  void main(){if(vH<.012)discard; /* only where the hill rises above the flat meadow */float hm=vH/${M.toFixed(6)}; /* metres */
+  vertexShader:`${TERRAIN_GLSL}varying float vD,vH,vSl;varying vec3 vNr;void main(){vec2 l=position.xz;float d=length(l);float h=tH(l);float e=max(.04,d*.01);float hx=tH(l+vec2(e,0.))-h,hz=tH(l+vec2(0.,e))-h;vNr=normalize(vec3(-hx,e,-hz));vSl=1.0-vNr.y;vH=h;vD=d;gl_Position=projectionMatrix*modelViewMatrix*vec4(l.x,h+.01,l.y,1.0);}`,
+  fragmentShader:`uniform float uSunL,uDay,uK;uniform vec3 uBase,uDark,uTip,uAir,uTSun,uTHor;varying float vD,vH,vSl;uniform float uTDbg;varying vec3 vNr;${TO_SRGB}${DITHER_GLSL}
+  void main(){if(uTDbg>.5){if(vH<.012)discard;gl_FragColor=vec4(1.,0.,1.,1.);return;} /* #756 ?terrdbg=1 magenta check */if(vH<.012)discard; /* only where the hill rises above the flat meadow */float hm=vH/${M.toFixed(6)}; /* metres */
    vec3 sand=vec3(.62,.55,.40),meadow=mix(uDark,uBase,.6),forest=uDark*.62,rock=vec3(.33,.31,.29),snow=vec3(.9,.93,.97);
    vec3 c=mix(sand*.75,meadow,smoothstep(.5,3.0,hm)); /* wet sand at the foot */c=mix(c,forest,smoothstep(12.0,24.0,hm)*(1.0-smoothstep(.35,.6,vSl)));c=mix(c,rock,smoothstep(.32,.55,vSl)+smoothstep(45.0,60.0,hm)*.6);c=mix(c,snow,smoothstep(62.0,74.0,hm)*(1.0-smoothstep(.3,.5,vSl)));
    float dif=max(0.0,dot(vNr,normalize(uTSun)));c*=(.18+.82*uSunL)*(.55+.6*dif)*mix(.15,1.0,uDay);
    float f=1.0-exp(-uK*vD*1.6);vec3 air=mix(uTHor,uAir,.35)*mix(.08,1.0,uDay);c=mix(c,air,min(f,.9)); /* atmospheric perspective toward the live horizon colour */
    gl_FragColor=vec4(dith(toS(c)),1.0);}`});
- const terrain=new THREE.Mesh(tGeo,tMat);terrain.renderOrder=-10;terrain.frustumCulled=false;g.add(terrain);mats.push(tMat);
- (globalThis as any).__lwTerrain={label:'SIMULATED terrain (SEEDED hills 80/20/5 m)',tier:tLow?'LOW':'MED+',radius:+tR.toFixed(1),verts:tGeo.attributes.position.count};
+ const terrain=new THREE.Mesh(tGeo,tMat);terrain.renderOrder=-10;if(TU.uTDbg.value>.5)ground.visible=false; /* #756 debug: hide the old flat disc */terrain.frustumCulled=false;g.add(terrain);mats.push(tMat);
+ const tAt=(x:number,z:number)=>terrainHeightAt(x,z,{org:[TU.uTOrg.value.x,TU.uTOrg.value.y],seed:[TU.uTSeed.value.x,TU.uTSeed.value.y],bay:[TU.uTBay.value.x,TU.uTBay.value.y,TU.uTBay.value.z],on:TU.uTOn.value>.5,r:TU.uTR.value});
+ (globalThis as any).__lwTerrain={label:'Terrain shape · SEEDED',at:tAt,bay:()=>TU.uTBay.value.toArray(),dbg:TU.uTDbg.value>.5,tier:tLow?'LOW':'MED+',radius:+tR.toFixed(1),verts:tGeo.attributes.position.count};
  const life:{sp:any;r:number;a:number;w:number}[]=[];
  /** far creatures: resident sprites walking slow seeded circles on the patch at 25-120 m (mid; target 36: nothing crowds the near frame) and 200-600 m (far); motion follows the clock t. */
  const addLife=(maps:any[])=>{maps.forEach((map,i)=>{for(const band of [0,1]){const sp=new THREE.Sprite(new THREE.SpriteMaterial({map,transparent:true,depthWrite:false,fog:false}));sp.center.set(.5,.02);
