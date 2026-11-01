@@ -241,6 +241,9 @@ def main(date):
     st = state(); wonder = own_curiosity(st, date); picks, key = choose(st, date, wonder)
     from zeref_reader import keep_filter
     keep = keep_filter()
+    # His own sight/reflection rows and teacher rows carry their own honest licence strings, which the outside-reader
+    # licence whitelist doesn't list; they still get the same https, secret and gate-overlap checks.
+    keep_own = lambda r: keep({**r, "license": next(iter(OK_LIC))})
     seen = {json.loads(l)["sha256"] for f in READ.glob("*.jsonl") for l in f.read_text().splitlines() if l}
     got, log, now = [], [], lambda: datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds")
     for topic, reason, h in picks:
@@ -256,11 +259,11 @@ def main(date):
                 break
         else:
             log.append({"at_utc": now(), "topic": topic, "reason": reason, "title": None, "url": None, "license": None, "kind": None, "kept_for_lessons": False})
-    xt = [r for r in x_teacher(date) if r["sha256"] not in seen and keep(r)]
+    xt = [r for r in x_teacher(date) if r["sha256"] not in seen and keep_own(r)]
     for r in xt: log.append({"at_utc": now(), "topic": r["title"], "reason": "curated public post with teacher narration", "title": r["title"],
                              "url": r["source"], "license": r["license"], "kind": "x-teacher", "kept_for_lessons": True})
     READ.mkdir(parents=True, exist_ok=True); LOG.mkdir(parents=True, exist_ok=True)
-    own = [r for r in senses_rows(date, got, load_sight()) if r["sha256"] not in seen and keep(r)]
+    own = [r for r in senses_rows(date, got, load_sight()) if r["sha256"] not in seen and keep_own(r)]
     rows = got + xt + own
     if rows:
         with (READ / f"{date}-chooses.jsonl").open("a") as f: f.write("".join(json.dumps(r, sort_keys=True, ensure_ascii=False) + "\n" for r in rows))
