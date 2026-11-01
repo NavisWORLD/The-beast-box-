@@ -10,30 +10,30 @@
   "source_path": "/spark/ibm-moonwraith-cassette-kit-20261010.json",
   "source_class": "RECORDED_IBM_HARDWARE"
  },
- "tick": 397,
- "xp": 6300,
+ "tick": 398,
+ "xp": 6314,
  "stage": 4,
  "stage_name": "Void Moonwraith",
  "signals": {
-  "energy": 67,
+  "energy": 65,
   "signal": 51,
   "memory": 100,
-  "resonance": 93
+  "resonance": 94
  },
- "bond": 99.25,
+ "bond": 99.5,
  "care_total": 0,
  "places": {
-  "Rift Gate": 370,
-  "Lattice Arch": 170,
-  "Echo Prism": 445,
+  "Rift Gate": 371,
+  "Lattice Arch": 172,
+  "Echo Prism": 446,
   "Tidewell": 185,
-  "Quartz Choir": 151,
+  "Quartz Choir": 152,
   "Violet Shard": 309,
   "Selene Pool": 34
  },
- "last_tick_at": "2026-11-01T21:55:00.483Z",
- "last_entry_hash": "588f1c6a6d8e2409c371df94ab87c1ca9ce14a6b202896c86e19f1af71c0fb28",
- "universe_growth": 295,
+ "last_tick_at": "2026-11-01T22:24:04.635Z",
+ "last_entry_hash": "466c806dae57747676f788af7eee0a845ed66ca7a34c2b4a5ed98124e4efffd2",
+ "universe_growth": 296,
  "combos_total": 376,
  "next_stage": {
   "stage": 5,
@@ -44,18 +44,18 @@
   "cells_visited": 37,
   "cells_total": 40,
   "known_rifts": 3,
-  "moves_succeeded": 5851,
-  "moves_blocked": 336,
+  "moves_succeeded": 5864,
+  "moves_blocked": 337,
   "blocked_rate": 0.054,
   "favorite_spot": "Lattice Arch",
   "favorite_value": 0.619,
   "prefs": {
    "explore": 0.05,
-   "visit": 0.9955,
+   "visit": 1,
    "rest": 0.05,
-   "play": 0.9175
+   "play": 0.9853
   },
-  "decisions": 3609,
+  "decisions": 3617,
   "label": "learned behaviour from its own experience, not consciousness"
  },
  "labels": {
@@ -71,6 +71,97 @@
   "source": "recorded hardware counts (birth seed, never re-run)"
  },
  "recent": [
+  {
+   "schema": "zeref-diary/v1",
+   "beast_id": "bb-7f9c2a03",
+   "tick": 398,
+   "at": "2026-11-01T22:24:04.635Z",
+   "hour_local": 16,
+   "timezone": "America/Chicago",
+   "signals": {
+    "energy": 65,
+    "signal": 51,
+    "memory": 100,
+    "resonance": 94
+   },
+   "bond": 99.5,
+   "mood": "content",
+   "place": "Lattice Arch",
+   "places_visited": [
+    "Echo Prism",
+    "Lattice Arch",
+    "Quartz Choir",
+    "Rift Gate"
+   ],
+   "discovered_combos": [],
+   "new_combo_count": 0,
+   "combos_total": 376,
+   "xp_gain": 14,
+   "xp": 6314,
+   "stage": 4,
+   "stage_name": "Void Moonwraith",
+   "grew": false,
+   "care": 0,
+   "birth_spark": {
+    "provider": "IBM Quantum",
+    "backend": "ibm_marrakesh",
+    "job_id": "db4te7slf4us73c3888g",
+    "source": "recorded hardware counts (birth seed, never re-run)"
+   },
+   "growth_source": {
+    "kind": "rigetti-qvm-simulated",
+    "simulated": true,
+    "provider": "azure-quantum/rigetti",
+    "target": "rigetti.sim.qvm",
+    "job_id": "e5ca0bee-d642-11f1-9a2a-6045bda78a27",
+    "job_name": "zeref-diary-tick-398-bb-7f9c2a03",
+    "shots": 256,
+    "counts": {
+     "100": 2,
+     "101": 105,
+     "110": 92,
+     "111": 2,
+     "000": 1,
+     "001": 23,
+     "010": 31
+    },
+    "counts_sha256": "4e1f41492d502636827077d5b9a68fcb5091fe69a4df82924261be4f82d43f00",
+    "circuit_params": {
+     "energy": 2.104867,
+     "signal": 1.602212,
+     "resonance": 2.921681
+    },
+    "quil_sha256": "3cd2f6dd7c46b70570c9cbc75b6be4af7db05ac6172a212c9c7fe80ffffc9574"
+   },
+   "learning": {
+    "new_cells": 0,
+    "moves_succeeded": 13,
+    "moves_blocked": 1,
+    "goals": {
+     "play": 2,
+     "visit": 6
+    },
+    "cells_visited": 37,
+    "cells_total": 40,
+    "known_rifts": 3,
+    "blocked_rate": 0.054,
+    "favorite_spot": "Lattice Arch",
+    "prefs": {
+     "explore": 0.05,
+     "visit": 1,
+     "rest": 0.05,
+     "play": 0.9853
+    },
+    "label": "learned behaviour from its own experience, not consciousness"
+   },
+   "universe_growth": 296,
+   "thought": {
+    "text": "Purring at nothing in particular. Spent most of the tick at Lattice Arch. Bumped into a void rift. I will remember where it is. The simulator sparks lined up even and calm.",
+    "by": "deterministic-template"
+   },
+   "prev_hash": "588f1c6a6d8e2409c371df94ab87c1ca9ce14a6b202896c86e19f1af71c0fb28",
+   "hash": "466c806dae57747676f788af7eee0a845ed66ca7a34c2b4a5ed98124e4efffd2"
+  },
   {
    "schema": "zeref-diary/v1",
    "beast_id": "bb-7f9c2a03",
@@ -1057,95 +1148,8 @@
    },
    "prev_hash": "c3b2e4c7ee69217971781f2f959af603ebbb6851639cb1cb42d2dae68866954d",
    "hash": "443ec395eecaad352b6f5ace199f66dfa5d1957b97d5f2316da945ba9a9fe2fb"
-  },
-  {
-   "schema": "zeref-diary/v1",
-   "beast_id": "bb-7f9c2a03",
-   "tick": 386,
-   "at": "2026-11-01T14:34:57.287Z",
-   "hour_local": 8,
-   "timezone": "America/Chicago",
-   "signals": {
-    "energy": 94,
-    "signal": 51,
-    "memory": 100,
-    "resonance": 86
-   },
-   "bond": 96.5,
-   "mood": "content",
-   "place": "Lattice Arch",
-   "places_visited": [
-    "Lattice Arch",
-    "Quartz Choir"
-   ],
-   "discovered_combos": [],
-   "new_combo_count": 0,
-   "combos_total": 376,
-   "xp_gain": 13,
-   "xp": 6156,
-   "stage": 4,
-   "stage_name": "Void Moonwraith",
-   "grew": false,
-   "care": 0,
-   "birth_spark": {
-    "provider": "IBM Quantum",
-    "backend": "ibm_marrakesh",
-    "job_id": "db4te7slf4us73c3888g",
-    "source": "recorded hardware counts (birth seed, never re-run)"
-   },
-   "growth_source": {
-    "kind": "rigetti-qvm-simulated",
-    "simulated": true,
-    "provider": "azure-quantum/rigetti",
-    "target": "rigetti.sim.qvm",
-    "job_id": "5b9ebbea-d601-11f1-9a2a-7ced8d7f3b53",
-    "job_name": "zeref-diary-tick-386-bb-7f9c2a03",
-    "shots": 256,
-    "counts": {
-     "100": 7,
-     "101": 117,
-     "110": 122,
-     "111": 10
-    },
-    "counts_sha256": "72381dc98214ee08974ce54e7ccdd00c2ee140ba102536d6b7b3e20dfa50778d",
-    "circuit_params": {
-     "energy": 3.015929,
-     "signal": 1.602212,
-     "resonance": 2.70177
-    },
-    "quil_sha256": "f8e1635034c3618539eade5328f17d07279685192868180ae3c34072025c63f3"
-   },
-   "learning": {
-    "new_cells": 0,
-    "moves_succeeded": 18,
-    "moves_blocked": 0,
-    "goals": {
-     "play": 5,
-     "rest": 1,
-     "visit": 4
-    },
-    "cells_visited": 37,
-    "cells_total": 40,
-    "known_rifts": 3,
-    "blocked_rate": 0.054,
-    "favorite_spot": "Violet Shard",
-    "prefs": {
-     "explore": 0.05,
-     "visit": 1,
-     "rest": 0.05,
-     "play": 1
-    },
-    "label": "learned behaviour from its own experience, not consciousness"
-   },
-   "universe_growth": 284,
-   "thought": {
-    "text": "What Latt was called a? La Laus, Sunday, and Lat Lau.",
-    "by": "rawrphos-native:step-35504 (raw model output, unedited)"
-   },
-   "prev_hash": "0930bd0c54546fc473dc309e72fdc72de3fd9a6b8c66c5af00b25651f6637f4b",
-   "hash": "c3b2e4c7ee69217971781f2f959af603ebbb6851639cb1cb42d2dae68866954d"
   }
  ],
- "generated_at": "2026-11-01T21:55:00.483Z",
+ "generated_at": "2026-11-01T22:24:04.635Z",
  "thought_source_note": "rawrphos-http-502"
 }
