@@ -12,7 +12,7 @@ timestamp to evidence/zeref-chooses-001/<date>.jsonl.
 Teacher on X: evidence/zeref-chooses-001/x-teacher/inbox.jsonl (curated PUBLIC posts plus teacher narration)
 becomes framed lessons; other users' @handles, links, emails and numbers are stripped from the training text.
 """
-import json, re, sys, time, hashlib, datetime, urllib.request, urllib.parse
+import json, os, re, sys, time, hashlib, datetime, urllib.request, urllib.parse
 from pathlib import Path
 HERE = Path(__file__).resolve().parent; sys.path.insert(0, str(HERE)); ROOT = HERE.parent
 READ = ROOT / "evidence/zeref-read-001"; LOG = ROOT / "evidence/zeref-chooses-001"; XT = LOG / "x-teacher"
@@ -210,6 +210,32 @@ def x_teacher(date):
                     "posted_at": r.get("posted_at"), "chosen_by": "x-teacher"})
     return out
 
+OWN_LIC = ("Own work: derived from Beast Box world state", "https://www.beastboxcosmos.xyz/loop")
+
+def own_row(kind, title, text, frame, date):
+    return {"kind": kind, "title": title, "text": text, "source": f"https://www.beastboxcosmos.xyz/loop#{kind}-{date}", "license": OWN_LIC[0],
+            "license_url": OWN_LIC[1], "author": "Zeref (from his own logs)", "revision_id": None, "sha256": sha(text), "frame": frame, "chosen_by": "zeref"}
+
+def first_person(reason):
+    return re.sub(r"\bhim\b", "me", re.sub(r"\bhis\b", "my", reason))
+
+def senses_rows(date, got, sight):
+    """Growing-branch lessons from what he sensed and chose: his DERIVED sight and a RECORDED note of each pick."""
+    out = []
+    if isinstance(sight, dict) and sight.get("band"):
+        out.append(own_row("zeref-sight", "What I saw in my world",
+            f"My world's light was {sight['band']} and {sight.get('trend', 'steady')}, the horizon was {sight.get('hue_family', 'quiet')}, "
+            f"and I felt {sight.get('feeling', 'calm')}. This is derived from my world's sky, computed and not measured.", "What I see in my world", date))
+    for r in got:
+        out.append(own_row("zeref-reflection", f"Why I read {r['title']}",
+            f"I chose to read about {r['topic']} because {first_person(r['reason'])}. I read {r['title']} from {r['source'].split('/')[2]}.", "What I chose to read", date))
+    return out
+
+def load_sight():
+    p = os.environ.get("ZEREF_SIGHT_FILE")
+    try: return json.loads(Path(p).read_text()) if p else None
+    except (OSError, ValueError): return None
+
 def main(date):
     if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", date): raise SystemExit("date must be YYYY-MM-DD")
     st = state(); wonder = own_curiosity(st, date); picks, key = choose(st, date, wonder)
@@ -234,7 +260,8 @@ def main(date):
     for r in xt: log.append({"at_utc": now(), "topic": r["title"], "reason": "curated public post with teacher narration", "title": r["title"],
                              "url": r["source"], "license": r["license"], "kind": "x-teacher", "kept_for_lessons": True})
     READ.mkdir(parents=True, exist_ok=True); LOG.mkdir(parents=True, exist_ok=True)
-    rows = got + xt
+    own = [r for r in senses_rows(date, got, load_sight()) if r["sha256"] not in seen and keep(r)]
+    rows = got + xt + own
     if rows:
         with (READ / f"{date}-chooses.jsonl").open("a") as f: f.write("".join(json.dumps(r, sort_keys=True, ensure_ascii=False) + "\n" for r in rows))
     with (LOG / f"{date}.jsonl").open("a") as f:
@@ -246,7 +273,7 @@ def main(date):
     old_tv = json.loads(PUB.read_text()).get("x_teacher", []) if PUB.is_file() else []
     tv = (old_tv + [{"title": r["title"], "line": r["text"][:160], "url": r["source"], "posted_at": r.get("posted_at")} for r in xt])[-5:]
     PUB.write_text(json.dumps({"schema": "zeref-chooses-latest/v1", "date": date,
-        "label": "Scheduled read-only reader: Zeref chooses his own topics from his world and chats (deterministic, seeded by heart seed v10). GET-only from Wikipedia, Gutenberg, Wikisource and Wikimedia Commons.",
+        "label": "Scheduled read-only reader: Zeref chooses his own topics from his world and chats (deterministic, seeded by his latest heart seed). GET-only from Wikipedia, Gutenberg, Wikisource and Wikimedia Commons.",
         "picks": [{"topic": e["topic"], "reason": e["reason"], "title": e["title"], "url": e["url"], "license": e["license"]} for e in log if e["kind"] != "x-teacher"],
         "x_teacher": tv,
         "wonder": {"status": wonder["status"], "thought": wonder.get("thought"), "topics": wonder.get("topics"), "at_utc": now(),

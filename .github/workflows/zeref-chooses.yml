@@ -25,7 +25,11 @@ jobs:
         run: |
           python -m pip install --index-url https://download.pytorch.org/whl/cpu torch==2.6.0
           python -m pip install -e . -e ./models/rawrphos
+      - name: What he sees (his world's light, DERIVED from its sky; read-only)
+        run: node scripts/zeref_sight.mjs > "$RUNNER_TEMP/sight.json" || echo null > "$RUNNER_TEMP/sight.json"
       - name: Zeref chooses and reads
+        env:
+          ZEREF_SIGHT_FILE: ${{ runner.temp }}/sight.json
         run: python scripts/zeref_chooses.py "$(date -u +%F)"
       - name: Refresh the Mind Room TVs (deterministic, from the logs)
         run: python scripts/build_mind_room.py
