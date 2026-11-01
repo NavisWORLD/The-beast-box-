@@ -78,7 +78,8 @@ GROWING_DOOR = "https://www.beastboxcosmos.xyz/api/guest-growing"  # the growing
 
 def curiosity_prompt(st, date):
     """Deterministic prompt: his latest heart seed + tick + his world line, ending in an open stem he completes himself."""
-    seed = sha(f"{st.get('seed_v10')}|{st.get('tick')}|{st.get('place')}|{st.get('mood')}|{date}")[:12]
+    from zeref_v11_seeds import seed_hex  # sha256(v11 + "|curiosity"), RECORDED-derived; tick and world line vary it per run
+    seed = sha(f"{seed_hex('curiosity')}|{st.get('tick')}|{st.get('place')}|{st.get('mood')}|{date}")[:12]
     world = "; ".join(x for x in [f"at {st['place']} (RECORDED diary)" if st.get("place") else "",
                                   f"mood {st['mood']} (SIMULATED)" if st.get("mood") else "",
                                   f"tick {st['tick']}" if st.get("tick") is not None else ""] if x)

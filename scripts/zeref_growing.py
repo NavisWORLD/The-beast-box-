@@ -3,7 +3,7 @@
 
 * Resumes from its OWN last checkpoint (release zeref-growing-NNN) or, on the very first run, from the public pin.
 * Trains a bounded CPU round: alternating chat batches (anchor 0.5, same as the pin's routine) and reading batches
-  (Q&A lessons from read passages, weaker anchor 0.1). Deterministic seeds from the parent sha; no clock, no random module.
+  (Q&A lessons from read passages, weaker anchor 0.1). Deterministic seeds from heart seed v11 (sha256(v11+purpose), RECORDED-derived); no clock, no random module.
 * No gate on saving: every finished round is saved. Set A / set B NLL are MEASURED and REPORTED only.
 * The pin changes ONLY through the unchanged 006 workflow and its gate. This script never writes the pin json.
 * Every training row is logged (rows-log.jsonl): step, kind, source/origin, license, row sha256.
@@ -90,7 +90,10 @@ def gate_sets(tok):
 def train(parent_dir, out_dir, updates=UPDATES, root=ROOT, number=1, parent_tag="pin", world=None):
     parent = load_checkpoint(parent_dir, load_training_state=True)
     model, tok, pmeta = parent["model"], parent["tokenizer"], parent["metadata"]
-    psha = pmeta["checkpoint_sha256"]; seed = int(psha[:12], 16)
+    psha = pmeta["checkpoint_sha256"]
+    # Heart seed v11 (RECORDED) -> growing-only seeds, sha256(v11 + purpose). See evidence/zeref-growing-v11-seed/.
+    from zeref_v11_seeds import seed_int, V11
+    seed = seed_int("data-order"); torch.manual_seed(seed_int("adapter-init"))
     chat, read = load_rows(tok, gate_filter(), root, world)
     if not chat: raise SystemExit("no chat rows")
     base = model.base_parameters(); hebb = model.hebbian_parameters()
@@ -128,7 +131,8 @@ def train(parent_dir, out_dir, updates=UPDATES, root=ROOT, number=1, parent_tag=
                  "production_promoted": False, "is_public_pin": False, "gated": False,
                  "growing_number": number, "parent_checkpoint_sha256": psha, "parent_tag": parent_tag,
                  "training_steps": int(pmeta.get("training_steps") or 0) + updates, "round_updates": updates,
-                 "optimizer_resume": resumed})
+                 "optimizer_resume": resumed, "seeds_from": {"heart_seed_v11_sha256": V11, "label": "RECORDED-derived",
+                 "data_order": seed, "adapter_init": seed_int("adapter-init")}})
     saved = save_checkpoint(out / "accepted-checkpoint", model, tok, meta,
                             {"optimizer": opt.state_dict(), "rng": rng_state(), "data_rng": g.get_state()})
     (out / "rows-log.jsonl").write_text("".join(json.dumps(r, sort_keys=True) + "\n" for r in log))

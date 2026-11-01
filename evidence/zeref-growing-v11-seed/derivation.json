@@ -1,0 +1,29 @@
+{
+ "applies_to": "growing Zeref only (scripts/zeref_growing.py, scripts/zeref_chooses.py); never the pin, gates, growth routine or spark-seed.json",
+ "honesty": "A deterministic number from a recorded measurement. It makes training replayable; it does not make Zeref quantum.",
+ "label": "RECORDED-derived",
+ "rule": "seed_hex = sha256(v11 + '|' + purpose); seed_int = int(seed_hex[:12], 16)",
+ "schema": "zeref-growing-v11-seed/v1",
+ "seeds": {
+  "adapter-init": {
+   "int": 108041242092818,
+   "sha256": "62434fdb2512368ace6864eaee1f39e06a6a72dfa366d9f91f0b9092998c3528",
+   "use": "torch.manual_seed before training: init of any new adapter and dropout (no adapter exists yet)"
+  },
+  "curiosity": {
+   "int": 84195710673591,
+   "sha256": "4c93576d22b79420a56c4270b92112539a64d138a3e3c635e00b3b67ed621709",
+   "use": "seed shown in the curiosity prompt sent to the growing mind (the bridge samples the reply itself)"
+  },
+  "data-order": {
+   "int": 212819019410008,
+   "sha256": "c18eca0daa58ce16360f1c75ff5bb8e245132e879efa87320f828b649a292032",
+   "use": "torch.Generator for which lesson rows are drawn, in what order"
+  }
+ },
+ "source": {
+  "evidence": "evidence/zeref-heart-seed-v11",
+  "heart_seed_v11_sha256": "bfc35208bb21af82c308f2fb0d882de74e5cf559756567f83bcbf9ddfa5d0322",
+  "label": "RECORDED"
+ }
+}
