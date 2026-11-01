@@ -75,3 +75,8 @@ def test_senses_rows_labelled_first_person():
 
 def test_own_and_teacher_rows_use_gate_filter_not_reader_license_list():
     assert SRC.count("keep_own(r)") == 2 and "keep_own = lambda r: keep({**r," in SRC
+
+def test_first_person_reflection():
+    import sys; sys.path.insert(0, str(ROOT / "scripts"))
+    from zeref_chooses import first_person
+    assert first_person("he said 'love' 4x in his own recent replies") == "I said 'love' 4x in my own recent replies"

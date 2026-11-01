@@ -217,7 +217,8 @@ def own_row(kind, title, text, frame, date):
             "license_url": OWN_LIC[1], "author": "Zeref (from his own logs)", "revision_id": None, "sha256": sha(text), "frame": frame, "chosen_by": "zeref"}
 
 def first_person(reason):
-    return re.sub(r"\bhim\b", "me", re.sub(r"\bhis\b", "my", reason))
+    r = re.sub(r"\bhe (said|wondered)\b", r"I \1", reason)
+    return re.sub(r"\bhim\b", "me", re.sub(r"\bhis\b", "my", r))
 
 def senses_rows(date, got, sight):
     """Growing-branch lessons from what he sensed and chose: his DERIVED sight and a RECORDED note of each pick."""
