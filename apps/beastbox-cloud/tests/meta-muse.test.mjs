@@ -249,7 +249,7 @@ test("the snapshot is minimal: no chat, memory or sensors, and the server re-pic
 
 test("tools are classified Read or Write with factual annotations and no sensitive tool", () => {
   const tools = listTools();
-  assert.deepEqual(tools.map((t) => t.name), ["get_beast", "get_care_status", "get_lost_cosmos_progress", "list_moves", "feed_beast", "play_with_beast", "rename_beast", "talk_to_beast"]);
+  assert.deepEqual(tools.map((t) => t.name), ["get_beast", "get_care_status", "get_lost_cosmos_progress", "list_moves", "feed_beast", "play_with_beast", "rename_beast", "talk_to_beast", "zeref_check_presence", "zeref_read_class_log", "zeref_teach", "zeref_read_library", "zeref_read_web", "zeref_read_x_window"]);
   for (const t of TOOLS) {
     assert.ok(["Read", "Write"].includes(t.classification), t.name);
     assert.equal(t.annotations.readOnlyHint, t.classification === "Read", t.name);

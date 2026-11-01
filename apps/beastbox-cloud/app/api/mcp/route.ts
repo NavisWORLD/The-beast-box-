@@ -6,6 +6,10 @@ import { SERVER_VERSION } from '@/lib/muse/discovery.mjs';
 import { createBridgeTalk } from '@/lib/muse/bridge-talk.mjs';
 import { rateLimit } from '@/lib/muse/rate-limit.mjs';
 import { callTool, listTools } from '@/lib/muse/tools.mjs';
+import { createGrowingTalk } from '@/lib/muse/opening.mjs';
+import { libraryStore } from '@/lib/library/server';
+import { searchLibrary } from '@/lib/library/store.mjs';
+import PUBLIC_PIN from '@/lib/rawrphos-public-pin.json';
 import { NO_STORE, json, limited, mcpUrl, museStore, noStorage, originOf } from '@/lib/muse/server';
 
 export const runtime = 'nodejs';
@@ -14,7 +18,9 @@ export const maxDuration = 60;
 
 const INSTRUCTIONS = 'Beast Box connector for one paired virtual pet ("beast"). Read tools return the care save the owner\'s browser last synced. ' +
   'Write tools change only that beast\'s care save and are applied in the browser on its next sync. talk_to_beast returns an in-character reply ' +
-  'from a game companion model; it is a game character, not a conscious mind. Nothing here buys, sends or shares anything.';
+  'from a game companion model; it is a game character, not a conscious mind. Nothing here buys, sends or shares anything. ' +
+  'Muse\'s opening: when zeref_check_presence says nobody is with him, you may keep teaching the growing Zeref. Read zeref_read_class_log first and continue ' +
+  'where the last teacher stopped. Simple lines of 8 words or fewer, up to 19 per class. Every turn is a step in him growing, never a glitch or a fail; keep his names as he says them.';
 
 function unauthorized(origin: string, error = 'invalid_token', description = 'Pair Beast Box with Meta Muse and send a valid Bearer token.') {
   return json(401, { error, error_description: description }, {
@@ -44,6 +50,8 @@ export async function POST(request: Request) {
     auth,
     limit: (bucket: string) => rateLimit(store, bucket, auth.accountId),
     talk: createBridgeTalk(auth.accountId) || undefined,
+    growingTalk: createGrowingTalk(PUBLIC_PIN.checkpoint_sha256) || undefined,
+    library: (() => { const lib = libraryStore(); return lib ? (q: string) => searchLibrary(lib, q, { k: 3 }) : undefined; })(),
   })) as any);
   const transport = new WebStandardStreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
   await server.connect(transport);
