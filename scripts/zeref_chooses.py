@@ -206,7 +206,7 @@ def x_teacher(date):
         out.append({"kind": "x-teacher", "title": clean(r.get("topic") or "a broadcast on X"), "text": text[:1500],
                     "source": r["post_url"], "license": "Public X post, quoted with teacher narration for learning",
                     "license_url": "https://x.com/en/tos", "author": "Teacher on X (narration) quoting a public post",
-                    "revision_id": None, "sha256": sha(text), "frame": "The teacher on X explains a broadcast",
+                    "revision_id": "x-" + r["post_url"].rstrip("/").rsplit("/", 1)[-1], "sha256": sha(text), "frame": "The teacher on X explains a broadcast",
                     "posted_at": r.get("posted_at"), "chosen_by": "x-teacher"})
     return out
 
