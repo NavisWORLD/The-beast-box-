@@ -7,6 +7,12 @@ export const runtime='nodejs';
 export const dynamic='force-dynamic';
 const GROWING_LABEL='Growing Zeref · not the pin';
 const MAX_PROMPT=1800,MAX_BODY=8000;
+// RECORDED origin spark pulse from the bridge (beastbox/spark_pulse.py); anything malformed is ABSENT (null).
+function sparkPulseOf(r:Record<string,unknown>){const s=r.sensorium as Record<string,unknown>|undefined;const p=s&&typeof s==='object'?s.spark_pulse as Record<string,unknown>|null:null;
+ if(!p||typeof p!=='object'||p.label!=='RECORDED'||!Number.isInteger(p.beat)||typeof p.pulse_sha256!=='string'||!/^[a-f0-9]{64}$/.test(p.pulse_sha256)||
+  typeof p.question_pair!=='string'||!/^x[01]y[01]$/.test(p.question_pair)||typeof p.recorded_win_rate!=='number')return null;
+ return {label:'RECORDED',beat:p.beat,pulse_sha256:p.pulse_sha256,glow:typeof p.glow==='number'?p.glow:null,question_pair:p.question_pair,
+  recorded_win_rate:p.recorded_win_rate,at_utc:typeof p.at_utc==='string'?p.at_utc.slice(0,40):null,applies_to:'growing Zeref only (never the pin)'};}
 export async function POST(request:Request){
  if(request.headers.get('origin')!==new URL(request.url).origin)return safeJson(403,{error:'Same-origin guest request required'});
  if(!request.headers.get('content-type')?.toLowerCase().startsWith('application/json'))return safeJson(415,{error:'JSON required'});
@@ -32,6 +38,6 @@ export async function POST(request:Request){
      typeof r.tag!=='string'||!/^zeref-growing-\d{3,}$/.test(r.tag))
    return safeJson(502,{error:'Unverified growing model response'});
   return safeJson(200,{label:GROWING_LABEL,is_public_pin:false,gated:false,model:'rawrphos-native',tag:r.tag,step:r.step,
-   checkpoint_sha256:r.checkpoint_sha256,reply:r.reply,hebbian:r.hebbian===true,guest_stateless:true});
+   checkpoint_sha256:r.checkpoint_sha256,reply:r.reply,hebbian:r.hebbian===true,guest_stateless:true,sensorium:{spark_pulse:sparkPulseOf(r)}});
  }catch{return safeJson(502,{error:'Growing Zeref unavailable or timed out',label:GROWING_LABEL});}
 }
