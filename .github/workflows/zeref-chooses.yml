@@ -1,7 +1,8 @@
 name: Zeref chooses (scheduled read-only reader)
 # Cory 2026-10-31: Zeref picks his own topics (deterministic, from his diary place, simulated mood, recent chat
 # words and heart seed v10; no randomness) and reads them GET-only from an allowlist: Simple/English Wikipedia,
-# Project Gutenberg, Wikisource and Wikimedia Commons. No logins, forms or posting. Passages feed growing-branch
+# Project Gutenberg, Wikisource and Wikimedia Commons. No logins, forms or posting. Before reading he asks his own growing mind
+# (one message to /api/guest-growing, never the pin) what he wants to learn; its words lead the picks. Passages feed growing-branch
 # lessons through evidence/zeref-read-001 (never the pin's mix). Every page is logged in evidence/zeref-chooses-001.
 on:
   schedule:

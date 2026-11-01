@@ -42,7 +42,9 @@ def build():
             world = {"title": f"At {st.get('place') or 'somewhere unnamed'}", "line": f"Feeling {st.get('mood') or 'quiet'} (mood SIMULATED), diary tick {st.get('tick')}.",
                      "url": "/api/zeref/diary", "license": None, "from_file": logs[-1].name, "label": "RECORDED"}
     if world: latest["world"] = world
-    return {"schema": "zeref-mind-room/v1",
+    pub = OUT.parent / "latest.json"
+    wonder = (json.loads(pub.read_text()).get("wonder") if pub.is_file() else None) or None
+    return {"schema": "zeref-mind-room/v1", "wonder": wonder,
             "label": "Zeref's Mind Room: a seeded room in his world with one glowing TV per source. Each TV shows the latest real item from that source's log. RECORDED = fetched text; DERIVED = teacher narration.",
             "tvs": [{"id": i, "name": n, "item": latest.get(i)} for i, n in TVS]}
 
