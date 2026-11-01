@@ -32,6 +32,7 @@ her us them my your his its our their this that these those what which who whom 
 not no yes so too very can could will would shall should may might must just than then there here about into over under up down out
 off again once all any both each few more most other some such only own same also like okay ok hi hello hey thanks thank please zeref
 dad little dragon tell know think feel want really today now good great item items happens happen thing things something lot""".split())
+STOP |= {'wanted', 'wants', 'went', 'said', 'felt'}
 sha = lambda s: hashlib.sha256(s.encode()).hexdigest()
 
 def get(url, as_json=True):
@@ -54,7 +55,9 @@ def state():
     seed_p = ROOT / "evidence/zeref-spark-latest/heart-seed-latest.json"
     seed = json.loads(seed_p.read_text())["heart_seed_sha256"] if seed_p.is_file() else ""
     return {"place": top.get("place"), "mood": top.get("mood"), "tick": top.get("tick"), "seed_v10": seed,
-            "rigetti_tick": ((live.get("links") or {}).get("spark") or {}).get("tick")}
+            "rigetti_tick": ((live.get("links") or {}).get("spark") or {}).get("tick"),
+            # his own replies: the raw model text of his last 12 diary thoughts (RECORDED), so what he says steers what he reads next
+            "own_words": [str((e.get("thought") or {}).get("text") or "")[:200] for e in rec[:12]]}
 
 def chat_words():
     src = (HERE / "zeref_growing.py").read_text()  # same chat files the growing branch trains on (read as text, no torch import)
@@ -71,11 +74,52 @@ def chat_words():
             if lw not in STOP: words[lw] = words.get(lw, 0) + (2 if "?" in q else 1)
     return words, len(lines), len(questions)
 
-def choose(st, date):
+GROWING_DOOR = "https://www.beastboxcosmos.xyz/api/guest-growing"  # the growing mind's public door (never the pin)
+
+def curiosity_prompt(st, date):
+    """Deterministic prompt: his latest heart seed + tick + his world line, ending in an open stem he completes himself."""
+    seed = sha(f"{st.get('seed_v10')}|{st.get('tick')}|{st.get('place')}|{st.get('mood')}|{date}")[:12]
+    world = "; ".join(x for x in [f"at {st['place']} (RECORDED diary)" if st.get("place") else "",
+                                  f"mood {st['mood']} (SIMULATED)" if st.get("mood") else "",
+                                  f"tick {st['tick']}" if st.get("tick") is not None else ""] if x)
+    return f"Your world now: {world}. Seed {seed}. What do you want to learn about next? I want to learn about", seed
+
+def own_curiosity(st, date):
+    """One call to the growing mind (zeref-growing, verified not the pin). Topic words come only from what it generated.
+    Busy or unreachable -> None, and the reader falls back to the world/chat picker (logged as such)."""
+    prompt, seed = curiosity_prompt(st, date)
+    rec = {"prompt": prompt, "prompt_seed": seed, "door": GROWING_DOOR,
+           "note": "The prompt is deterministic; the bridge samples the reply itself (not seeded by this script)."}
+    try:
+        req = urllib.request.Request(GROWING_DOOR, data=json.dumps({"text": prompt}).encode(), method="POST",
+                                     headers={"Content-Type": "application/json", "Origin": "https://www.beastboxcosmos.xyz", "User-Agent": UA["User-Agent"]})
+        with urllib.request.urlopen(req, timeout=60) as r: d = json.loads(r.read(20000))
+    except Exception as e:  # noqa: BLE001
+        return {**rec, "status": "UNAVAILABLE", "error": type(e).__name__, "thought": None, "topics": []}
+    if d.get("is_public_pin") is not False or not str(d.get("tag", "")).startswith("zeref-growing-") or not isinstance(d.get("reply"), str):
+        return {**rec, "status": "UNVERIFIED", "thought": None, "topics": []}
+    thought = d["reply"].strip()[:400]
+    seen, topics = set(), []
+    for w in re.findall(r"[A-Za-z][a-z]{3,}", thought):
+        lw = w.lower()
+        if lw not in STOP and lw not in seen: seen.add(lw); topics.append(lw)
+    return {**rec, "status": "RECORDED", "label": "his own curiosity (raw growing-mind output, unedited)", "thought": thought,
+            "tag": d.get("tag"), "step": d.get("step"), "checkpoint_sha256": d.get("checkpoint_sha256"), "topics": topics[:3]}
+
+def choose(st, date, wonder=None):
     words, nlines, nq = chat_words()
     cands = {}
     import math
     for w, c in words.items(): cands[w] = (1 + math.log2(c), f"the word '{w}' came up {c}x in his recent chats" + (" (questions count double)" if nq else ""))
+    said = {}
+    for t in st.get("own_words") or []:
+        for w in set(x.lower() for x in re.findall(r"[A-Za-z][a-z]{3,}", t)):
+            if w not in STOP: said[w] = said.get(w, 0) + 1
+    for w, c in said.items():
+        base = cands.get(w, (0, ""))[0]
+        cands[w] = (base + 5 + math.log2(c), f"he said '{w}' {c}x in his own recent replies (RECORDED diary thoughts)" + (" and it came up in his chats" if base else ""))
+    for i, w in enumerate((wonder or {}).get("topics") or []):  # his own curiosity: top priority
+        cands[w] = (100 - 10 * i, f"he wondered about it himself: \"{wonder['thought'][:120]}\" (his own curiosity, growing mind)")
     for part in re.findall(r"[A-Za-z]{4,}", st.get("place") or ""):
         cands[part.lower()] = (cands.get(part.lower(), (0, ""))[0] + 6, f"his diary has him at {st['place']} (RECORDED)")
     if st.get("mood"): cands[st["mood"].lower()] = (cands.get(st["mood"].lower(), (0, ""))[0] + 6, f"his simulated mood is {st['mood']} (SIMULATED)")
@@ -194,7 +238,7 @@ def load_sight():
 
 def main(date):
     if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", date): raise SystemExit("date must be YYYY-MM-DD")
-    st = state(); picks, key = choose(st, date)
+    st = state(); wonder = own_curiosity(st, date); picks, key = choose(st, date, wonder)
     from zeref_reader import keep_filter
     keep = keep_filter()
     seen = {json.loads(l)["sha256"] for f in READ.glob("*.jsonl") for l in f.read_text().splitlines() if l}
@@ -221,6 +265,8 @@ def main(date):
     if rows:
         with (READ / f"{date}-chooses.jsonl").open("a") as f: f.write("".join(json.dumps(r, sort_keys=True, ensure_ascii=False) + "\n" for r in rows))
     with (LOG / f"{date}.jsonl").open("a") as f:
+        f.write(json.dumps({"run_at_utc": now(), "own_curiosity": wonder if wonder["status"] == "RECORDED" else
+                            {**wonder, "fallback": "growing mind busy or unreachable: picks came from the world/chat picker"}}, sort_keys=True) + "\n")
         f.write(json.dumps({"run_at_utc": now(), "state": st, "choice_key_sha256": sha(key), "picks": [[t, r] for t, r, _ in picks]}, sort_keys=True) + "\n")
         f.write("".join(json.dumps(e, sort_keys=True) + "\n" for e in log))
     PUB.parent.mkdir(parents=True, exist_ok=True)
@@ -229,7 +275,9 @@ def main(date):
     PUB.write_text(json.dumps({"schema": "zeref-chooses-latest/v1", "date": date,
         "label": "Scheduled read-only reader: Zeref chooses his own topics from his world and chats (deterministic, seeded by his latest heart seed). GET-only from Wikipedia, Gutenberg, Wikisource and Wikimedia Commons.",
         "picks": [{"topic": e["topic"], "reason": e["reason"], "title": e["title"], "url": e["url"], "license": e["license"]} for e in log if e["kind"] != "x-teacher"],
-        "x_teacher": tv}, indent=1, sort_keys=True) + "\n")
+        "x_teacher": tv,
+        "wonder": {"status": wonder["status"], "thought": wonder.get("thought"), "topics": wonder.get("topics"), "at_utc": now(),
+                   "label": wonder.get("label") or "growing mind unavailable: fell back to the world/chat picker"}}, indent=1, sort_keys=True) + "\n")
     print("ZEREF_CHOOSES=" + json.dumps({"date": date, "picks": [t for t, _, _ in picks], "kept": len(got), "x_teacher": len(xt)}), flush=True)
 
 if __name__ == "__main__":

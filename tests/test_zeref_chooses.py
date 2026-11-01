@@ -5,7 +5,9 @@ SRC = (ROOT / "scripts/zeref_chooses.py").read_text()
 
 def test_no_randomness_and_get_only():
     assert "import random" not in SRC and "Math.random" not in SRC
-    assert 'method="GET"' in SRC and "POST" not in SRC and "data=" not in SRC
+    assert 'method="GET"' in SRC
+    # the only non-GET call is one message to his own growing mind's door (never the pin, never an outside site)
+    assert SRC.count('method="POST"') == 1 and 'GROWING_DOOR = "https://www.beastboxcosmos.xyz/api/guest-growing"' in SRC
 
 def test_allowlist_only():
     allow = re.search(r"ALLOW = \((.*?)\)\n", SRC, re.S).group(1)
@@ -37,6 +39,30 @@ def test_mind_room_tvs_and_labels():
     src = (ROOT / "apps/beastbox-cloud/components/zeref-mind-room.tsx").read_text()
     assert "Math.random" not in src
 
+def test_own_replies_steer_choice():
+    import sys; sys.path.insert(0, str(ROOT / "scripts"))
+    import zeref_chooses as z
+    st = {"place": None, "mood": None, "tick": 1, "seed_v10": "x", "own_words": ["The beautiful flower opened.", "A flower again!"]}
+    picks, _ = z.choose(st, "2026-10-31")
+    assert any(t == "flower" and "own recent replies" in r for t, r, _ in picks)
+    assert picks == z.choose(st, "2026-10-31")[0]  # deterministic
+
+def test_curiosity_topics_come_from_his_words_and_lead(monkeypatch):
+    import sys, io, json as J; sys.path.insert(0, str(ROOT / "scripts"))
+    import zeref_chooses as z
+    st = {"place": "Violet Shard", "mood": "exploring", "tick": 7, "seed_v10": "abc", "own_words": []}
+    assert z.curiosity_prompt(st, "d") == z.curiosity_prompt(st, "d")
+    class R(io.BytesIO):
+        def __enter__(s): return s
+        def __exit__(s, *a): return False
+    body = {"is_public_pin": False, "tag": "zeref-growing-002", "reply": " the ocean and whales at night.", "step": 1, "checkpoint_sha256": "x"}
+    monkeypatch.setattr(z.urllib.request, "urlopen", lambda *a, **k: R(J.dumps(body).encode()))
+    w = z.own_curiosity(st, "d")
+    assert w["status"] == "RECORDED" and w["topics"][:2] == ["ocean", "whales"]
+    assert z.choose(st, "d", w)[0][0][0] == "ocean"
+    def boom(*a, **k): raise OSError("busy")
+    monkeypatch.setattr(z.urllib.request, "urlopen", boom)
+    w2 = z.own_curiosity(st, "d"); assert w2["status"] == "UNAVAILABLE" and w2["topics"] == []
 def test_senses_rows_labelled_first_person():
     import sys; sys.path.insert(0, str(ROOT / "scripts"))
     from zeref_chooses import senses_rows
