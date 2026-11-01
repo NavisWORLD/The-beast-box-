@@ -24,6 +24,13 @@ export function sparkLine(spark){
  const lab=/^(RECORDED|SIMULATED|DERIVED|MEASURED)/.exec(String(h.label||''))?.[1]||'RECORDED';
  return `Your spark: heart seed v${h.version} (${lab}, from a real ${clip(h.ibm_backend,20)||'IBM'} measurement), seed ${String(h.heart_seed_sha256||'').slice(0,12)}.`;
 }
+/** The newest Teacher-on-X item (Cory's public post with short teacher narration), from the same public latest.json. */
+export function tvLine(latest){
+ const tv=Array.isArray(latest?.x_teacher)?latest.x_teacher:[];
+ const t=tv[tv.length-1];
+ if(!t||!t.title||!t.line)return '';
+ return clip(`On your TV (X, Cory's public post): ${clip(t.title,40)}: ${t.line}`,240);
+}
 export function worldSensesLines({live=null,latest=null,spark=null,nowMs=null}={}){
- return [sightLine(live,nowMs),readingLine(latest),sparkLine(spark)].filter(Boolean).join('\n');
+ return [sightLine(live,nowMs),readingLine(latest),sparkLine(spark),tvLine(latest)].filter(Boolean).join('\n');
 }

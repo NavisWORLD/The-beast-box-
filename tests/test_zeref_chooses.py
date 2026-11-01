@@ -80,3 +80,14 @@ def test_first_person_reflection():
     import sys; sys.path.insert(0, str(ROOT / "scripts"))
     from zeref_chooses import first_person
     assert first_person("he said 'love' 4x in his own recent replies") == "I said 'love' 4x in my own recent replies"
+
+def test_x_inbox_rows_public_clean_and_short_narration():
+    import json, sys; sys.path.insert(0, str(ROOT / "scripts"))
+    import zeref_chooses as z
+    rows = [json.loads(l) for l in (ROOT / "evidence/zeref-chooses-001/x-teacher/inbox.jsonl").read_text().splitlines() if l.strip()]
+    assert 0 < len(rows) <= 25
+    for r in rows:
+        assert r["public"] is True and r["post_url"].startswith("https://x.com/phera46334652/status/")
+        assert "@" not in r["post_text"] + r["narration"] and "http" not in r["post_text"]
+    out = z.x_teacher("d")
+    assert len(out) == len(rows) and all(o["revision_id"].startswith("x-") for o in out)
