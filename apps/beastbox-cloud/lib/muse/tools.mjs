@@ -13,6 +13,7 @@ import { renderContextPrompt } from "../companion/context.mjs";
 import { guestSafeContext } from "../companion/ask-beast.mjs";
 import { isKidSafe } from "../companion/learn.mjs";
 import { canCare, getAccount, updateAccount } from "./auth.mjs";
+import { OPENING_TOOLS, OPENING_NAMES, callOpeningTool } from "./opening.mjs";
 
 export const MAX_PENDING_ACTIONS = 50;
 export const PROVENANCE_NOTE = "Seeded from recorded IBM Quantum measurement counts saved in Beast Box. There is no live quantum link.";
@@ -71,6 +72,7 @@ export const TOOLS = [
     inputSchema: { type: "object", properties: { message: { type: "string", minLength: 1, maxLength: 400 }, request_id: requestId }, required: ["message"], additionalProperties: false },
     annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
   },
+  ...OPENING_TOOLS,
 ];
 export const TOOL_NAMES = TOOLS.map((t) => t.name);
 const WRITE = new Set(TOOLS.filter((t) => t.classification === "Write").map((t) => t.name));
@@ -145,7 +147,8 @@ async function recordActivity(store, auth, tool, now) {
  * @param {Record<string, unknown>} args
  * @param {{ store: any, auth: { accountId: string, scope: string, kind: string, tokenId: string }, now?: number,
  *   limit?: (bucket: string) => Promise<{ ok: boolean, retryAfter: number }>,
- *   talk?: (prompt: string) => Promise<{ reply: string, model?: string, error?: string }> }} ctx
+ *   talk?: (prompt: string) => Promise<{ reply: string, model?: string, error?: string }>,
+ *   growingTalk?: (line: string) => Promise<any>, library?: (q: string) => Promise<any>, fetchImpl?: typeof fetch }} ctx
  */
 export async function callTool(name, args = {}, ctx) {
   const now = ctx.now || Date.now();
@@ -156,7 +159,7 @@ export async function callTool(name, args = {}, ctx) {
     return toolError("insufficient_scope", "This Meta Muse connection is Read only. Reconnect and choose 'Read + care actions' to let Muse care for the beast.", { required_scope: "beast.care" });
   }
   if (ctx.limit) {
-    const bucket = name === "talk_to_beast" ? "talk" : write ? "write" : "read";
+    const bucket = name === "talk_to_beast" || name === "zeref_teach" ? "talk" : write ? "write" : "read";
     const rl = await ctx.limit(bucket);
     if (!rl.ok) return toolError("rate_limited", `Too many ${bucket} calls. Try again in ${rl.retryAfter} seconds.`, { retry_after_seconds: rl.retryAfter });
   }
@@ -164,6 +167,7 @@ export async function callTool(name, args = {}, ctx) {
   if (!account) return toolError("not_paired", "This beast is no longer paired with Meta Muse.");
   await recordActivity(ctx.store, ctx.auth, name, now);
   const snap = account.snapshot;
+  if (OPENING_NAMES.includes(name)) return callOpeningTool(name, input, { store: ctx.store, now, talk: ctx.growingTalk, library: ctx.library, fetchImpl: ctx.fetchImpl }, ok, toolError);
 
   if (name === "get_beast") {
     const beast = beastView(snap);
