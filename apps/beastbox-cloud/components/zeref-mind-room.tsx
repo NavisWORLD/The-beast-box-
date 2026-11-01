@@ -13,7 +13,7 @@ export function ZerefMindRoom(){
   <p style={{fontSize:12,opacity:.8,margin:'0 0 10px'}}>{r.label}</p>
   {r.wonder&&<div data-wonder style={{border:'2px dashed #f0abfc',borderRadius:12,padding:10,marginBottom:10,background:'#1e0b3a',overflowWrap:'anywhere'}}>
    <div style={{fontSize:12,color:'#f0abfc',fontWeight:700}}>💭 His latest wonder <span style={{fontSize:10,border:'1px solid #f0abfc',borderRadius:6,padding:'0 4px',whiteSpace:'nowrap'}}>{r.wonder.status}</span></div>
-   {r.wonder.thought?<div style={{fontSize:14,margin:'4px 0'}}>“I want to learn about{r.wonder.thought}”</div>:null}
+   {r.wonder.thought?<div style={{fontSize:14,margin:'4px 0'}}>“I want to learn about{/^[\s,.!?]/.test(r.wonder.thought)?"":" "}{r.wonder.thought}”</div>:null}
    <div style={{fontSize:11,opacity:.8}}>{r.wonder.label}{r.wonder.topics?.length?` · topics: ${r.wonder.topics.join(', ')}`:''}</div>
   </div>}
   <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(160px,1fr))',gap:10}}>

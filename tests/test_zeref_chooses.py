@@ -72,3 +72,6 @@ def test_senses_rows_labelled_first_person():
     assert "derived" in rows[0]["text"] and rows[0]["frame"] == "What I see in my world"
     assert "my diary has me" in rows[1]["text"] and rows[1]["frame"] == "What I chose to read"
     assert senses_rows("d", [], None) == []
+
+def test_own_and_teacher_rows_use_gate_filter_not_reader_license_list():
+    assert SRC.count("keep_own(r)") == 2 and "keep_own = lambda r: keep({**r," in SRC
