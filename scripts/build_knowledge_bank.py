@@ -164,6 +164,8 @@ def reading():
     out = []
     for f in sorted(READ_DIR.glob("*.jsonl")) if READ_DIR.is_dir() else []:
         for r in read_jsonl(f):
+            # His own sight/reflection notes and Teacher-on-X narration are growing-branch lessons, not licensed passages.
+            if r.get("license") not in READ_LICENSES: continue
             out.append(entry(f"read-{len(out)+1:05d}", "world", "passage", r["title"], r["text"], r["source"],
                              license=r["license"], author=r["author"], license_url=r["license_url"],
                              revision_id=r["revision_id"], sha256=r["sha256"], read_on=f.stem))
