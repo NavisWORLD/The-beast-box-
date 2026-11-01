@@ -12,7 +12,7 @@ export function ZerefMindRoom(){
   <p style={{fontSize:12,opacity:.8,margin:'0 0 10px'}}>{r.label}</p>
   <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(160px,1fr))',gap:10}}>
    {r.tvs.map(t=>{const g=GLOW[t.id]||'#a78bfa';return <article key={t.id} data-tv={t.id} style={{border:`2px solid ${g}`,borderRadius:12,padding:10,background:'#140a2e',boxShadow:`0 0 14px ${g}88, inset 0 0 18px ${g}22`,minWidth:0,overflowWrap:'anywhere'}}>
-    <header style={{display:'flex',justifyContent:'space-between',gap:6,fontSize:12,color:g,fontWeight:700}}><span>📺 {t.name}</span>{t.item&&<span data-label style={{fontSize:10,border:`1px solid ${g}`,borderRadius:6,padding:'0 4px'}}>{t.item.label}</span>}</header>
+    <header style={{display:'flex',justifyContent:'space-between',gap:6,fontSize:12,color:g,fontWeight:700}}><span>📺 {t.name}</span>{t.item&&<span data-label style={{fontSize:10,border:`1px solid ${g}`,borderRadius:6,padding:'0 4px',whiteSpace:'nowrap',flexShrink:0}}>{t.item.label}</span>}</header>
     {t.item?<><div style={{fontWeight:700,fontSize:14,margin:'6px 0 2px'}}>{t.item.url?<a href={t.item.url} style={{color:'#fff'}} rel="noopener noreferrer" target="_blank">{t.item.title}</a>:t.item.title}</div>
      <div style={{fontSize:12,lineHeight:1.35,opacity:.9}}>{t.item.line}</div></>:<div style={{fontSize:12,opacity:.6,marginTop:6}}>Static: nothing on this channel yet.</div>}
    </article>;})}
