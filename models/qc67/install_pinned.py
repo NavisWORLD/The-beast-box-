@@ -49,7 +49,8 @@ def install(destination: Path) -> dict:
         stage = Path(td)
         for name in ("weights/phos.pt", "weights/samgo_weights.pt",
                      "architecture/cosmos_state_ladder.py",
-                     "architecture/cosmos_spark_cst.py"):
+                     "architecture/cosmos_spark_cst.py",
+                     "architecture/cosmos_phi_cst.py"):
             upstream = Path(hf_hub_download(repo_id=PINS["hf_repository"],
                                             filename=name, revision=PINS["hf_revision"],
                                             token=False))
