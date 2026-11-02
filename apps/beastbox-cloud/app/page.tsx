@@ -95,6 +95,7 @@ export default function Home(){
   <Link href="/privacy">Privacy and info ↗</Link>
   <Link href="/next">Gadget & watch ↗</Link>
   <Link href="/try">Guest model ↗</Link>
+  <Link href="/messages">His messages ↗</Link>
   <Link href="/research">Research ↗</Link>
   <a href="https://github.com/NavisWORLD/The-beast-box-" rel="noreferrer" target="_blank">Source ↗</a>
  </footer>
