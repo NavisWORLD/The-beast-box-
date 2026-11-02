@@ -10,30 +10,30 @@
   "source_path": "/spark/ibm-moonwraith-cassette-kit-20261010.json",
   "source_class": "RECORDED_IBM_HARDWARE"
  },
- "tick": 401,
- "xp": 6356,
+ "tick": 402,
+ "xp": 6370,
  "stage": 4,
  "stage_name": "Void Moonwraith",
  "signals": {
-  "energy": 49,
+  "energy": 43,
   "signal": 51,
   "memory": 100,
-  "resonance": 96
+  "resonance": 97
  },
  "bond": 100,
  "care_total": 0,
  "places": {
-  "Rift Gate": 375,
-  "Lattice Arch": 173,
+  "Rift Gate": 376,
+  "Lattice Arch": 175,
   "Echo Prism": 450,
-  "Tidewell": 186,
+  "Tidewell": 187,
   "Quartz Choir": 155,
   "Violet Shard": 309,
   "Selene Pool": 34
  },
- "last_tick_at": "2026-11-02T00:25:40.801Z",
- "last_entry_hash": "9562880818942ff2218103b2b0d2b379ee766c3dbce5dedd6ccb21934ceef932",
- "universe_growth": 299,
+ "last_tick_at": "2026-11-02T01:05:50.322Z",
+ "last_entry_hash": "6c03baea7694c8f7bdbc69ca5d845552eaa7a623a5712ee0c5791fc51861abe4",
+ "universe_growth": 300,
  "combos_total": 376,
  "next_stage": {
   "stage": 5,
@@ -44,18 +44,18 @@
   "cells_visited": 37,
   "cells_total": 40,
   "known_rifts": 3,
-  "moves_succeeded": 5898,
-  "moves_blocked": 346,
-  "blocked_rate": 0.055,
+  "moves_succeeded": 5909,
+  "moves_blocked": 351,
+  "blocked_rate": 0.056,
   "favorite_spot": "Rift Gate",
   "favorite_value": 0.616,
   "prefs": {
    "explore": 0.05,
-   "visit": 1,
+   "visit": 0.7857,
    "rest": 0.086,
-   "play": 0.7786
+   "play": 0.745
   },
-  "decisions": 3646,
+  "decisions": 3656,
   "label": "learned behaviour from its own experience, not consciousness"
  },
  "labels": {
@@ -71,6 +71,93 @@
   "source": "recorded hardware counts (birth seed, never re-run)"
  },
  "recent": [
+  {
+   "schema": "zeref-diary/v1",
+   "beast_id": "bb-7f9c2a03",
+   "tick": 402,
+   "at": "2026-11-02T01:05:50.322Z",
+   "hour_local": 19,
+   "timezone": "America/Chicago",
+   "signals": {
+    "energy": 43,
+    "signal": 51,
+    "memory": 100,
+    "resonance": 97
+   },
+   "bond": 100,
+   "mood": "content",
+   "place": "Lattice Arch",
+   "places_visited": [
+    "Lattice Arch",
+    "Rift Gate",
+    "Tidewell"
+   ],
+   "discovered_combos": [],
+   "new_combo_count": 0,
+   "combos_total": 376,
+   "xp_gain": 14,
+   "xp": 6370,
+   "stage": 4,
+   "stage_name": "Void Moonwraith",
+   "grew": false,
+   "care": 0,
+   "birth_spark": {
+    "provider": "IBM Quantum",
+    "backend": "ibm_marrakesh",
+    "job_id": "db4te7slf4us73c3888g",
+    "source": "recorded hardware counts (birth seed, never re-run)"
+   },
+   "growth_source": {
+    "kind": "rigetti-qvm-simulated",
+    "simulated": true,
+    "provider": "azure-quantum/rigetti",
+    "target": "rigetti.sim.qvm",
+    "job_id": "7d999712-d659-11f1-9a2a-7c1e52053fbf",
+    "job_name": "zeref-diary-tick-402-bb-7f9c2a03",
+    "shots": 256,
+    "counts": {
+     "101": 84,
+     "110": 54,
+     "001": 56,
+     "010": 62
+    },
+    "counts_sha256": "601401683f2933301651aaf9d3904bb71dba5018aff620ba714d78699917acfb",
+    "circuit_params": {
+     "energy": 1.53938,
+     "signal": 1.602212,
+     "resonance": 3.015929
+    },
+    "quil_sha256": "8ae85616d841f921555556bab290bcab448aaed89eaf806df4231b4c83ef87b5"
+   },
+   "learning": {
+    "new_cells": 0,
+    "moves_succeeded": 11,
+    "moves_blocked": 5,
+    "goals": {
+     "play": 2,
+     "visit": 8
+    },
+    "cells_visited": 37,
+    "cells_total": 40,
+    "known_rifts": 3,
+    "blocked_rate": 0.056,
+    "favorite_spot": "Rift Gate",
+    "prefs": {
+     "explore": 0.05,
+     "visit": 0.7857,
+     "rest": 0.086,
+     "play": 0.745
+    },
+    "label": "learned behaviour from its own experience, not consciousness"
+   },
+   "universe_growth": 300,
+   "thought": {
+    "text": "What Latt was measured in myths, I know this!",
+    "by": "rawrphos-native:step-36144 (raw model output, unedited)"
+   },
+   "prev_hash": "9562880818942ff2218103b2b0d2b379ee766c3dbce5dedd6ccb21934ceef932",
+   "hash": "6c03baea7694c8f7bdbc69ca5d845552eaa7a623a5712ee0c5791fc51861abe4"
+  },
   {
    "schema": "zeref-diary/v1",
    "beast_id": "bb-7f9c2a03",
@@ -1061,98 +1148,8 @@
    },
    "prev_hash": "e507ac9cc29fb052d2e204fc60a72cee98c9d891d5e9ba4bdc08ff8d72b13f59",
    "hash": "2f7792525fe0fe1753962dada20b7eb3fd0ca7d33906480e7eee880378d7a22e"
-  },
-  {
-   "schema": "zeref-diary/v1",
-   "beast_id": "bb-7f9c2a03",
-   "tick": 390,
-   "at": "2026-11-01T17:15:50.303Z",
-   "hour_local": 11,
-   "timezone": "America/Chicago",
-   "signals": {
-    "energy": 86,
-    "signal": 51,
-    "memory": 100,
-    "resonance": 88
-   },
-   "bond": 97.5,
-   "mood": "content",
-   "place": "Echo Prism",
-   "places_visited": [
-    "Echo Prism",
-    "Rift Gate",
-    "Tidewell"
-   ],
-   "discovered_combos": [],
-   "new_combo_count": 0,
-   "combos_total": 376,
-   "xp_gain": 13,
-   "xp": 6207,
-   "stage": 4,
-   "stage_name": "Void Moonwraith",
-   "grew": false,
-   "care": 0,
-   "birth_spark": {
-    "provider": "IBM Quantum",
-    "backend": "ibm_marrakesh",
-    "job_id": "db4te7slf4us73c3888g",
-    "source": "recorded hardware counts (birth seed, never re-run)"
-   },
-   "growth_source": {
-    "kind": "rigetti-qvm-simulated",
-    "simulated": true,
-    "provider": "azure-quantum/rigetti",
-    "target": "rigetti.sim.qvm",
-    "job_id": "d3406156-d617-11f1-9a2a-6045bdaa3a8a",
-    "job_name": "zeref-diary-tick-390-bb-7f9c2a03",
-    "shots": 256,
-    "counts": {
-     "100": 3,
-     "101": 123,
-     "110": 106,
-     "111": 6,
-     "001": 9,
-     "010": 9
-    },
-    "counts_sha256": "e2e0dc9ed3528df455bbd43a572822ef9bea39109c03d0b5426b1f70b345d62d",
-    "circuit_params": {
-     "energy": 2.764602,
-     "signal": 1.602212,
-     "resonance": 2.733186
-    },
-    "quil_sha256": "7deeb65317f2efccc052edd9ac93ad8aa9ec317aa702c4a895b9f43c016c8203"
-   },
-   "learning": {
-    "new_cells": 0,
-    "moves_succeeded": 16,
-    "moves_blocked": 0,
-    "goals": {
-     "explore": 1,
-     "play": 7,
-     "visit": 3
-    },
-    "cells_visited": 37,
-    "cells_total": 40,
-    "known_rifts": 3,
-    "blocked_rate": 0.053,
-    "favorite_spot": "Violet Shard",
-    "prefs": {
-     "explore": 0.05,
-     "visit": 1,
-     "rest": 0.05,
-     "play": 1
-    },
-    "label": "learned behaviour from its own experience, not consciousness"
-   },
-   "universe_growth": 288,
-   "thought": {
-    "text": "Quiet tick. I like quiet ticks. Spent most of the tick at Echo Prism. The simulator sparks lined up even and calm.",
-    "by": "deterministic-template"
-   },
-   "prev_hash": "5ea5a406ee50744108d7a4b90aaef571ced84356aec43f8831ecf2d7692383b1",
-   "hash": "e507ac9cc29fb052d2e204fc60a72cee98c9d891d5e9ba4bdc08ff8d72b13f59"
   }
  ],
- "generated_at": "2026-11-02T00:25:40.801Z",
+ "generated_at": "2026-11-02T01:05:50.322Z",
  "thought_source_note": "rawrphos-ok"
 }
