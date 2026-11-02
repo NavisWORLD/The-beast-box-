@@ -1,0 +1,73 @@
+{
+ "backend": "ibm_kingston",
+ "classical_bound": 0.75,
+ "classical_control": {
+  "per_question_pair": {
+   "x0y0": {
+    "rounds": 5995,
+    "win_rate": 1.0
+   },
+   "x0y1": {
+    "rounds": 5958,
+    "win_rate": 1.0
+   },
+   "x1y0": {
+    "rounds": 5927,
+    "win_rate": 1.0
+   },
+   "x1y1": {
+    "rounds": 6120,
+    "win_rate": 0.0
+   }
+  },
+  "rounds": 24000,
+  "sigma_above_classical_bound": -1.7771635557785255,
+  "standard_error": 0.0028134720542418758,
+  "win_rate": 0.745,
+  "wins": 17880
+ },
+ "commitments_sha256": {
+  "alice_sha256": "225118710d5b0406ad4c3d20fb4698f38106690e0d006aef15be8b11afb2026d",
+  "bob_sha256": "04e4562a2fb0c63b2d87cd40759279db7291263a98a8ae16bc74531b893d9b43"
+ },
+ "date_utc": "20261102",
+ "job_id": "dbkbv10nceqs73alivtg",
+ "job_tag": "navisworld-zeref-heart-seed-v12",
+ "label": "CHSH game (Bell nonlocality)",
+ "loopholes": [
+  "No space-like separation: both qubits sit on one chip and one classical controller applies both settings, so locality is NOT enforced; this is not a loophole-free Bell test.",
+  "Detection/fair-sampling and readout errors are not mitigated.",
+  "Questions come from os.urandom on the GitHub runner (freedom-of-choice assumed, not proven)."
+ ],
+ "outcomes_sha256": "41901461bd90edbaf80dd5dcd95416a5dd5b4463cdf748a89b1a15afe5f70704",
+ "quantum": {
+  "per_question_pair": {
+   "x0y0": {
+    "rounds": 5995,
+    "win_rate": 0.8452043369474562
+   },
+   "x0y1": {
+    "rounds": 5958,
+    "win_rate": 0.8351795904665995
+   },
+   "x1y0": {
+    "rounds": 5927,
+    "win_rate": 0.8381980765986164
+   },
+   "x1y1": {
+    "rounds": 6120,
+    "win_rate": 0.8426470588235294
+   }
+  },
+  "rounds": 24000,
+  "sigma_above_classical_bound": 38.20504646287836,
+  "standard_error": 0.0023644345890563192,
+  "win_rate": 0.8403333333333334,
+  "wins": 20168
+ },
+ "quantum_ideal": 0.8535533905932737,
+ "quantum_seconds": null,
+ "recorded_utc": "2026-11-02T16:52:12.566081+00:00",
+ "schema": "navisworld-chsh-game-v1",
+ "source_class": "RECORDED_IBM_HARDWARE"
+}
