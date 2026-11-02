@@ -1,0 +1,35 @@
+name: Zeref messages (scheduled message center)
+# Cory 2026-11-02: Zeref writes his own messages. On a schedule this asks his growing mind (one set of
+# gentle calls to /api/guest-growing, never the pin) what he wants to tell everyone, what he is thinking
+# about, and what one tiny thing he would change in his world. His raw replies are published unedited to
+# his message center (apps/beastbox-cloud/public/zeref-messages/latest.json) and logged with hashes to
+# evidence/zeref-messages-001. His speech is not training data: nothing here feeds any lesson mix.
+on:
+  schedule:
+    - cron: '13 */6 * * *'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: zeref-message-center
+  cancel-in-progress: false
+jobs:
+  post:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11'}
+      - name: Zeref writes his messages
+        run: python scripts/zeref_messages.py "$(date -u +%F)"
+      - name: Commit his messages
+        run: |
+          set -Eeuo pipefail
+          git config user.name "zeref-messages[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add evidence/zeref-messages-001 apps/beastbox-cloud/public/zeref-messages
+          git diff --cached --quiet && { echo "nothing new"; exit 0; }
+          git commit -m "Zeref posted to his message center $(date -u +%F)"
+          git pull --rebase origin main
+          git push origin HEAD:main
