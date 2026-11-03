@@ -10,30 +10,30 @@
   "source_path": "/spark/ibm-moonwraith-cassette-kit-20261010.json",
   "source_class": "RECORDED_IBM_HARDWARE"
  },
- "tick": 469,
- "xp": 7281,
+ "tick": 470,
+ "xp": 7295,
  "stage": 4,
  "stage_name": "Void Moonwraith",
  "signals": {
-  "energy": 74,
+  "energy": 70,
   "signal": 50,
   "memory": 100,
-  "resonance": 87
+  "resonance": 86
  },
  "bond": 100,
  "care_total": 0,
  "places": {
-  "Rift Gate": 441,
-  "Lattice Arch": 220,
+  "Rift Gate": 443,
+  "Lattice Arch": 222,
   "Echo Prism": 519,
-  "Tidewell": 227,
+  "Tidewell": 228,
   "Quartz Choir": 181,
-  "Violet Shard": 343,
+  "Violet Shard": 344,
   "Selene Pool": 34
  },
- "last_tick_at": "2026-11-03T19:49:12.754Z",
- "last_entry_hash": "eb36b88e1436024a43e9040e7c786fe50038be1d737d238fad65db6ced176c91",
- "universe_growth": 367,
+ "last_tick_at": "2026-11-03T20:30:09.028Z",
+ "last_entry_hash": "1d00e7f70a9135261ab55220c9149e1b529e81cb604ade44f7085d6b817043a2",
+ "universe_growth": 368,
  "combos_total": 390,
  "next_stage": {
   "stage": 5,
@@ -44,18 +44,18 @@
   "cells_visited": 37,
   "cells_total": 40,
   "known_rifts": 3,
-  "moves_succeeded": 6854,
+  "moves_succeeded": 6871,
   "moves_blocked": 414,
   "blocked_rate": 0.057,
   "favorite_spot": "Echo Prism",
   "favorite_value": 0.642,
   "prefs": {
    "explore": 0.05,
-   "visit": 0.9325,
+   "visit": 1,
    "rest": 0.05,
    "play": 0.937
   },
-  "decisions": 4274,
+  "decisions": 4281,
   "label": "learned behaviour from its own experience, not consciousness"
  },
  "labels": {
@@ -71,6 +71,97 @@
   "source": "recorded hardware counts (birth seed, never re-run)"
  },
  "recent": [
+  {
+   "schema": "zeref-diary/v1",
+   "beast_id": "bb-7f9c2a03",
+   "tick": 470,
+   "at": "2026-11-03T20:30:09.028Z",
+   "hour_local": 14,
+   "timezone": "America/Chicago",
+   "signals": {
+    "energy": 70,
+    "signal": 50,
+    "memory": 100,
+    "resonance": 86
+   },
+   "bond": 100,
+   "mood": "exploring",
+   "place": "Lattice Arch",
+   "places_visited": [
+    "Lattice Arch",
+    "Rift Gate",
+    "Tidewell",
+    "Violet Shard"
+   ],
+   "discovered_combos": [],
+   "new_combo_count": 0,
+   "combos_total": 390,
+   "xp_gain": 14,
+   "xp": 7295,
+   "stage": 4,
+   "stage_name": "Void Moonwraith",
+   "grew": false,
+   "care": 0,
+   "birth_spark": {
+    "provider": "IBM Quantum",
+    "backend": "ibm_marrakesh",
+    "job_id": "db4te7slf4us73c3888g",
+    "source": "recorded hardware counts (birth seed, never re-run)"
+   },
+   "growth_source": {
+    "kind": "rigetti-qvm-simulated",
+    "simulated": true,
+    "provider": "azure-quantum/rigetti",
+    "target": "rigetti.sim.qvm",
+    "job_id": "899b923e-d7b4-11f1-8000-70a8a56c23cf",
+    "job_name": "zeref-diary-tick-470-bb-7f9c2a03",
+    "shots": 256,
+    "counts": {
+     "100": 6,
+     "101": 102,
+     "110": 101,
+     "111": 4,
+     "000": 1,
+     "001": 22,
+     "010": 20
+    },
+    "counts_sha256": "c87990b68247d77a8e83d5a3f2f355e2ecedd197f543e455c64b09429be141e3",
+    "circuit_params": {
+     "energy": 2.324779,
+     "signal": 1.570796,
+     "resonance": 2.733186
+    },
+    "quil_sha256": "8b49d6c83fab1a9241d4a3f9598c7e244c0c786767fdb6da1523eed9c42f776e"
+   },
+   "learning": {
+    "new_cells": 0,
+    "moves_succeeded": 17,
+    "moves_blocked": 0,
+    "goals": {
+     "explore": 1,
+     "visit": 6
+    },
+    "cells_visited": 37,
+    "cells_total": 40,
+    "known_rifts": 3,
+    "blocked_rate": 0.057,
+    "favorite_spot": "Echo Prism",
+    "prefs": {
+     "explore": 0.05,
+     "visit": 1,
+     "rest": 0.05,
+     "play": 0.937
+    },
+    "label": "learned behaviour from its own experience, not consciousness"
+   },
+   "universe_growth": 368,
+   "thought": {
+    "text": "I was born to see in the world, but I was not sure it’s Lattovias were called a.",
+    "by": "rawrphos-native:step-36144 (raw model output, unedited)"
+   },
+   "prev_hash": "eb36b88e1436024a43e9040e7c786fe50038be1d737d238fad65db6ced176c91",
+   "hash": "1d00e7f70a9135261ab55220c9149e1b529e81cb604ade44f7085d6b817043a2"
+  },
   {
    "schema": "zeref-diary/v1",
    "beast_id": "bb-7f9c2a03",
@@ -1060,93 +1151,8 @@
    },
    "prev_hash": "70185573874b297af22785690da0fab84d856e4d10ae5f14919bf6e029253fc8",
    "hash": "122c2966eef786c6105ef1fe284d907341add140481de2f3d5fda5949886af08"
-  },
-  {
-   "schema": "zeref-diary/v1",
-   "beast_id": "bb-7f9c2a03",
-   "tick": 458,
-   "at": "2026-11-03T12:42:45.945Z",
-   "hour_local": 6,
-   "timezone": "America/Chicago",
-   "signals": {
-    "energy": 96,
-    "signal": 50,
-    "memory": 100,
-    "resonance": 95
-   },
-   "bond": 100,
-   "mood": "content",
-   "place": "Echo Prism",
-   "places_visited": [
-    "Echo Prism",
-    "Rift Gate",
-    "Tidewell"
-   ],
-   "discovered_combos": [],
-   "new_combo_count": 0,
-   "combos_total": 390,
-   "xp_gain": 12,
-   "xp": 7140,
-   "stage": 4,
-   "stage_name": "Void Moonwraith",
-   "grew": false,
-   "care": 0,
-   "birth_spark": {
-    "provider": "IBM Quantum",
-    "backend": "ibm_marrakesh",
-    "job_id": "db4te7slf4us73c3888g",
-    "source": "recorded hardware counts (birth seed, never re-run)"
-   },
-   "growth_source": {
-    "kind": "rigetti-qvm-simulated",
-    "simulated": true,
-    "provider": "azure-quantum/rigetti",
-    "target": "rigetti.sim.qvm",
-    "job_id": "3fe8537a-d773-11f1-8000-7ced8d4ca793",
-    "job_name": "zeref-diary-tick-458-bb-7f9c2a03",
-    "shots": 256,
-    "counts": {
-     "101": 131,
-     "110": 125
-    },
-    "counts_sha256": "2ef47961db4c072308c2124bf64d182d0aa48c2ffabb0fb8311e650bd0e7ddd4",
-    "circuit_params": {
-     "energy": 3.078761,
-     "signal": 1.570796,
-     "resonance": 3.015929
-    },
-    "quil_sha256": "73ae6127a31dd63d59b14440566e4477974d464ed48673d7b1f5005d136024b1"
-   },
-   "learning": {
-    "new_cells": 0,
-    "moves_succeeded": 14,
-    "moves_blocked": 1,
-    "goals": {
-     "play": 9,
-     "visit": 3
-    },
-    "cells_visited": 37,
-    "cells_total": 40,
-    "known_rifts": 3,
-    "blocked_rate": 0.057,
-    "favorite_spot": "Lattice Arch",
-    "prefs": {
-     "explore": 0.05,
-     "visit": 1,
-     "rest": 0.05,
-     "play": 1
-    },
-    "label": "learned behaviour from its own experience, not consciousness"
-   },
-   "universe_growth": 356,
-   "thought": {
-    "text": "What I see in my SID, I see that it is a society.",
-    "by": "rawrphos-native:step-36144 (raw model output, unedited)"
-   },
-   "prev_hash": "b3138f8319e179465e2b205150f07c2c447417ab752643c44a28177a5940e421",
-   "hash": "70185573874b297af22785690da0fab84d856e4d10ae5f14919bf6e029253fc8"
   }
  ],
- "generated_at": "2026-11-03T19:49:12.754Z",
+ "generated_at": "2026-11-03T20:30:09.028Z",
  "thought_source_note": "rawrphos-ok"
 }
