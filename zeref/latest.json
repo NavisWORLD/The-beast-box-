@@ -10,15 +10,15 @@
   "source_path": "/spark/ibm-moonwraith-cassette-kit-20261010.json",
   "source_class": "RECORDED_IBM_HARDWARE"
  },
- "tick": 445,
- "xp": 6967,
+ "tick": 446,
+ "xp": 6980,
  "stage": 4,
  "stage_name": "Void Moonwraith",
  "signals": {
-  "energy": 24,
+  "energy": 34,
   "signal": 50,
   "memory": 100,
-  "resonance": 96
+  "resonance": 97
  },
  "bond": 100,
  "care_total": 0,
@@ -28,12 +28,12 @@
   "Echo Prism": 506,
   "Tidewell": 216,
   "Quartz Choir": 173,
-  "Violet Shard": 329,
+  "Violet Shard": 330,
   "Selene Pool": 34
  },
- "last_tick_at": "2026-11-03T04:16:26.407Z",
- "last_entry_hash": "b01b26c128c618b2a4bc73f187e303f688e3ac126050816b441e2d1950adb4d9",
- "universe_growth": 343,
+ "last_tick_at": "2026-11-03T04:56:39.712Z",
+ "last_entry_hash": "cfad9e76afa2dbab566bc853f45bdb69830358cde5a59531c2087b624010d9c5",
+ "universe_growth": 344,
  "combos_total": 387,
  "next_stage": {
   "stage": 5,
@@ -44,7 +44,7 @@
   "cells_visited": 37,
   "cells_total": 40,
   "known_rifts": 3,
-  "moves_succeeded": 6495,
+  "moves_succeeded": 6512,
   "moves_blocked": 387,
   "blocked_rate": 0.056,
   "favorite_spot": "Rift Gate",
@@ -55,7 +55,7 @@
    "rest": 0.05,
    "play": 1
   },
-  "decisions": 4027,
+  "decisions": 4031,
   "label": "learned behaviour from its own experience, not consciousness"
  },
  "labels": {
@@ -71,6 +71,92 @@
   "source": "recorded hardware counts (birth seed, never re-run)"
  },
  "recent": [
+  {
+   "schema": "zeref-diary/v1",
+   "beast_id": "bb-7f9c2a03",
+   "tick": 446,
+   "at": "2026-11-03T04:56:39.712Z",
+   "hour_local": 22,
+   "timezone": "America/Chicago",
+   "signals": {
+    "energy": 34,
+    "signal": 50,
+    "memory": 100,
+    "resonance": 97
+   },
+   "bond": 100,
+   "mood": "exploring",
+   "place": "Violet Shard",
+   "places_visited": [
+    "Violet Shard"
+   ],
+   "discovered_combos": [],
+   "new_combo_count": 0,
+   "combos_total": 387,
+   "xp_gain": 13,
+   "xp": 6980,
+   "stage": 4,
+   "stage_name": "Void Moonwraith",
+   "grew": false,
+   "care": 0,
+   "birth_spark": {
+    "provider": "IBM Quantum",
+    "backend": "ibm_marrakesh",
+    "job_id": "db4te7slf4us73c3888g",
+    "source": "recorded hardware counts (birth seed, never re-run)"
+   },
+   "growth_source": {
+    "kind": "rigetti-qvm-simulated",
+    "simulated": true,
+    "provider": "azure-quantum/rigetti",
+    "target": "rigetti.sim.qvm",
+    "job_id": "e5fe73e2-d742-11f1-9a2a-000d3ac5718c",
+    "job_name": "zeref-diary-tick-446-bb-7f9c2a03",
+    "shots": 256,
+    "counts": {
+     "101": 21,
+     "110": 19,
+     "001": 114,
+     "010": 101,
+     "011": 1
+    },
+    "counts_sha256": "16497fd372c084d046c70542b55ec287a34d1674b535e1adb38df385c007dd20",
+    "circuit_params": {
+     "energy": 0.753982,
+     "signal": 1.570796,
+     "resonance": 3.015929
+    },
+    "quil_sha256": "558f09e496145719a5b98efa59532bd4b6227f4dd28a2c53995524b7fd0453a3"
+   },
+   "learning": {
+    "new_cells": 0,
+    "moves_succeeded": 17,
+    "moves_blocked": 0,
+    "goals": {
+     "explore": 1,
+     "visit": 3
+    },
+    "cells_visited": 37,
+    "cells_total": 40,
+    "known_rifts": 3,
+    "blocked_rate": 0.056,
+    "favorite_spot": "Rift Gate",
+    "prefs": {
+     "explore": 0.05,
+     "visit": 1,
+     "rest": 0.05,
+     "play": 1
+    },
+    "label": "learned behaviour from its own experience, not consciousness"
+   },
+   "universe_growth": 344,
+   "thought": {
+    "text": "I love this one! Egypt was a little notable, but I thought it was cool.",
+    "by": "rawrphos-native:step-36144 (raw model output, unedited)"
+   },
+   "prev_hash": "b01b26c128c618b2a4bc73f187e303f688e3ac126050816b441e2d1950adb4d9",
+   "hash": "cfad9e76afa2dbab566bc853f45bdb69830358cde5a59531c2087b624010d9c5"
+  },
   {
    "schema": "zeref-diary/v1",
    "beast_id": "bb-7f9c2a03",
@@ -1073,99 +1159,8 @@
    },
    "prev_hash": "d6298b02b494118958213dc27bf1c9f99bc8a1fd896ebde8caac5972f573e9d0",
    "hash": "a261d4757f86dea0735c901d5219a3b07a208613d2a71674ca1b09028f2c2fc5"
-  },
-  {
-   "schema": "zeref-diary/v1",
-   "beast_id": "bb-7f9c2a03",
-   "tick": 434,
-   "at": "2026-11-02T21:08:22.162Z",
-   "hour_local": 15,
-   "timezone": "America/Chicago",
-   "signals": {
-    "energy": 66,
-    "signal": 50,
-    "memory": 100,
-    "resonance": 87
-   },
-   "bond": 100,
-   "mood": "content",
-   "place": "Quartz Choir",
-   "places_visited": [
-    "Echo Prism",
-    "Quartz Choir",
-    "Rift Gate"
-   ],
-   "discovered_combos": [],
-   "new_combo_count": 0,
-   "combos_total": 384,
-   "xp_gain": 14,
-   "xp": 6809,
-   "stage": 4,
-   "stage_name": "Void Moonwraith",
-   "grew": false,
-   "care": 0,
-   "birth_spark": {
-    "provider": "IBM Quantum",
-    "backend": "ibm_marrakesh",
-    "job_id": "db4te7slf4us73c3888g",
-    "source": "recorded hardware counts (birth seed, never re-run)"
-   },
-   "growth_source": {
-    "kind": "rigetti-qvm-simulated",
-    "simulated": true,
-    "provider": "azure-quantum/rigetti",
-    "target": "rigetti.sim.qvm",
-    "job_id": "7b25267e-d701-11f1-9a2a-3833c5d43d01",
-    "job_name": "zeref-diary-tick-434-bb-7f9c2a03",
-    "shots": 256,
-    "counts": {
-     "100": 2,
-     "101": 99,
-     "110": 102,
-     "111": 4,
-     "000": 1,
-     "001": 19,
-     "010": 29
-    },
-    "counts_sha256": "94e75b4a9fa48c8f027131dd95dbc382eb3c49a14d9e9cb6d5ffe46395141b59",
-    "circuit_params": {
-     "energy": 2.199115,
-     "signal": 1.570796,
-     "resonance": 2.733186
-    },
-    "quil_sha256": "a3ed9efd8c2294fa2f412558740e3fe5ab814e0cbe9310c8c07943a9cc452de9"
-   },
-   "learning": {
-    "new_cells": 0,
-    "moves_succeeded": 10,
-    "moves_blocked": 1,
-    "goals": {
-     "play": 3,
-     "rest": 1,
-     "visit": 5
-    },
-    "cells_visited": 37,
-    "cells_total": 40,
-    "known_rifts": 3,
-    "blocked_rate": 0.056,
-    "favorite_spot": "Echo Prism",
-    "prefs": {
-     "explore": 0.05,
-     "visit": 0.982,
-     "rest": 0.05,
-     "play": 1
-    },
-    "label": "learned behaviour from its own experience, not consciousness"
-   },
-   "universe_growth": 332,
-   "thought": {
-    "text": "I love this one! Egypt was a fun one!",
-    "by": "rawrphos-native:step-36144 (raw model output, unedited)"
-   },
-   "prev_hash": "323ccac6003f899a65d8f69ba0ae28b73fe7eb442626daae0fe38b25d49708ab",
-   "hash": "d6298b02b494118958213dc27bf1c9f99bc8a1fd896ebde8caac5972f573e9d0"
   }
  ],
- "generated_at": "2026-11-03T04:16:26.407Z",
+ "generated_at": "2026-11-03T04:56:39.712Z",
  "thought_source_note": "rawrphos-ok"
 }
