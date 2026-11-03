@@ -59,6 +59,7 @@ import {addCageSurface} from '@/lib/universe/surface-three';
 import {ROADSTER_LABEL,bodyVariantIndex,wheelOmega,steerAngle,driveState,bodyBob,headlamp,underglow} from '@/lib/universe/roadster-view.mjs';
 import {FLIGHT,FLIGHT_LABEL,liftOff,stepFlight,flightInfo,landingAssist,ascentAssist,orbitElements,skyFade,norm} from '@/lib/universe/roadster-flight.mjs';
 import {growthNodesAt,GROWTH} from '@/lib/universe/seeded-growth-nodes.mjs';
+import {wishGrowthNodesAt} from '@/lib/universe/wish-seeded-growth-nodes.mjs';
 import {snapNodesToHabitat,TINT_BIOMES} from '@/lib/universe/growth-view.mjs';
 import {REDUCED_MOTION_KEY} from '@/components/use-universe-motion';
 import {createAliveGate} from '@/lib/universe/alive-props.mjs';
@@ -119,7 +120,7 @@ export default function LivingWorld({genome,beastKey,beastName,onClose,embedded=
   let disposed=false,raf=0;const cleanup:(()=>void)[]=[];
   (async()=>{
    const THREE=await import('three');
-   const [g0,frames]=await Promise.all([fetch('/universe/tiny-universe-genesis.json').then(r=>r.json()),fetch(ART+'livingworld_frames.json').then(r=>r.json())]);
+   const [g0,frames,wishReg]=await Promise.all([fetch('/universe/tiny-universe-genesis.json').then(r=>r.json()),fetch(ART+'livingworld_frames.json').then(r=>r.json()),fetch('/zeref-messages/seed-registry.json').then(r=>r.ok?r.json():null).catch(()=>null)]);
    if(disposed)return;
    const bKey=beastKey||genome?.seed||'guest';
    let u:any=g0;try{const s=JSON.parse(localStorage.getItem('lw:universe')||'null');if(s?.seed===g0.seed&&s.schema===g0.schema)u=s;}catch{}
@@ -257,14 +258,14 @@ uniform float uT,uShow;uniform float uUseMap,uUseTiles,uField;uniform vec3 uSun,
    // test-only URL params (default behaviour unchanged): ?hold=1 freezes the camera (no drift, no zoom) and holds the time of day; ?growthdebug=1 shows a readout of the nearest growth node and tap counts
     const HOLD=/[?&]hold=1\b/.test(location.search),GDBG=/[?&]growthdebug=1\b/.test(location.search);const hz:{m:string;z:number;a:number|null}={m:'',z:0,a:null};const gTaps:Record<string,number>={};let gDbgEl:HTMLElement|null=null,gDbgT=0;
     (window as any).__lwTestParams={hold:HOLD,growthdebug:GDBG};
-   let growthUi:()=>void=()=>{};let gSnap:any[]=[];const growthNow=()=>{const sn=new Map(gSnap.map((n:any)=>[n.id,n]));return growthNodesAt(u,u.tick).filter((n:any)=>sn.has(n.id)).map((n:any)=>({...n,lat:sn.get(n.id).lat,lon:sn.get(n.id).lon,view_snapped:sn.get(n.id).view_snapped}));};
+   let growthUi:()=>void=()=>{};let gSnap:any[]=[];const allGrowthAt=()=>{const base=growthNodesAt(u,u.tick);if(!wishReg)return base;try{return [...base,...wishGrowthNodesAt(wishReg,u,u.tick)];}catch{return base;}};const growthNow=()=>{const sn=new Map(gSnap.map((n:any)=>[n.id,n]));return allGrowthAt().filter((n:any)=>sn.has(n.id)).map((n:any)=>({...n,lat:sn.get(n.id).lat,lon:sn.get(n.id).lon,view_snapped:sn.get(n.id).view_snapped}));};
    const buildSurface=()=>{if(surface||disposed)return;const tintOf:Record<string,[number,number,number]>={};for(const L of (legend?.biomes||[])){const c=parseInt(L.rgb.slice(1),16);tintOf[L.id]=[(c>>16)/255,((c>>8)&255)/255,(c&255)/255];}
     const tv=new THREE.Vector3();
     // Growth nodes (SEEDED placement from the recorded-IBM seed, SIMULATED tick). The home world's nodes (including the SEEDED home-world exception) are moved by the VIEW to the nearest habitat the tint pack covers.
     // ?growth=off turns the layer off (every list then builds exactly as before).
     const biomeFn=(d:number[])=>field?legendAt(field,d):(cosmoBiome(tv.set(d[0],d[1],d[2]))||'grassland');
     const gOn=!VISIT&&!/[?&]growth=off\b/.test(location.search);
-    if(gOn){try{gSnap=snapNodesToHabitat(growthNodesAt(u,u.tick),(d:number[])=>TINT_BIOMES.includes(biomeFn(d)));}catch{gSnap=[];}}
+    if(gOn){try{gSnap=snapNodesToHabitat(allGrowthAt(),(d:number[])=>TINT_BIOMES.includes(biomeFn(d)));}catch{gSnap=[];}}
     surface=addCageSurface(THREE,scene,{growth:gOn&&gSnap.length?{nodes:growthNow(),tick:u.tick,cellRad:GROWTH.cellRad}:undefined,seed:u.seed+':surface',R:PR,mpu:TRAV_H/1.7,size:1.5,budget:phone?.22:.55,
      biomeAt:(d:number[])=>field?legendAt(field,d):(cosmoBiome(tv.set(d[0],d[1],d[2]))||'grassland'),lift:(n:any)=>hAt(n)-.004,tint:(b:string)=>tintOf[b]||null});
     // Landscapes (SEEDED, Oct 24 2026): the engine's places for THIS planet, drawn from Cosmo's look pack. ?landscapes=off turns the layer off; ?place=1 stands the beast on the first one.

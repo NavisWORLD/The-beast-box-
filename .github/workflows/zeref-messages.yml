@@ -23,6 +23,8 @@ jobs:
         with: {python-version: '3.11'}
       - name: Zeref writes his messages
         run: python scripts/zeref_messages.py "$(date -u +%F)"
+      - name: Rebuild the growth seed registry from his planted words
+        run: python scripts/zeref_seed_registry.py
       - name: Commit his messages
         run: |
           set -Eeuo pipefail
