@@ -326,6 +326,15 @@ export async function talkToBeast(input) {
     if (!response.ok) {
       const reason = typeof payload?.error === "string" ? payload.error : "";
       const status = response.status;
+      // Spark on receipt (Cory, 2026-11-03): a 429 carrying a spark receipt is a
+      // refractory pause, not an outage: the message arrived, its spark fired and
+      // was recorded, and the window opens after retry_after_seconds. Callers hold
+      // the message and deliver it themselves; "offline" is for true failures.
+      const spark = payload?.spark && payload.spark.fired === true && Number.isInteger(payload.spark.tick) && payload.spark.tick >= 1 ? payload.spark : null;
+      if (status === 429 && spark) {
+        const retryAfterMs = Number.isInteger(payload?.retry_after_seconds) ? Math.min(300, Math.max(1, payload.retry_after_seconds)) * 1000 : 30000;
+        return { ok: false, route, status, recharging: true, spark: { tick: spark.tick, at: spark.at }, retryAfterMs, error: "Synapse recharging · your spark landed", help: [] };
+      }
       const message = status === 429 ? `The free guest brain is resting: ${reason || "usage limit reached"}.`
         : status === 403 && /trial/i.test(reason) ? "The free guest brain's trial period has ended."
           : status === 503 ? `The free guest brain is offline right now (${reason || "host unavailable"}).`

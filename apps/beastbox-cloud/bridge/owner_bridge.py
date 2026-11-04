@@ -14,6 +14,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 import urllib.parse
 import threading
+import time
 
 from dataclasses import asdict
 from beastbox.cosmic_web import CosmicApp, ProviderProfile
@@ -38,7 +39,7 @@ from beastbox.rawrphos_hf import (MODEL as HF_NATIVE_MODEL, SPACE_URL as HF_NATI
                                   WEIGHT_SHA as HF_NATIVE_SHA, STEP as HF_NATIVE_STEP,
                                   profile as hosted_native_profile, PrivateSpaceProvider)
 from beastbox.chat_jobs import ChatJobs
-from beastbox.guest_local import guest_local_infer
+from beastbox.guest_local import SPARK_LABEL, guest_local_infer, record_guest_spark
 from beastbox.growing import growing_infer
 from beastbox.private_features import FeatureStore, extract_numeric, make_source, AUDIO_KINDS
 from beastbox.cns_model_probe import cns_model_probe
@@ -781,7 +782,17 @@ class OwnerBridge:
                 return self.chat_jobs.run_when_idle(lambda: signal_model_probe(data))
         if name == "guest-local":
             if not self.chat_jobs.acquire_guest():
-                return 429, {"error": "Owner inference or local guest slot is busy"}
+                # Spark on receipt (Cory, 2026-11-03): the message arrived; its
+                # spark is recorded even though the guest slot is busy, and the
+                # 429 carries the receipt so the client can hold and resend.
+                body = {"error": "Owner inference or local guest slot is busy",
+                        "retry_after_seconds": 5}
+                tick = record_guest_spark(self.root, data.get("guest_identity")) \
+                    if isinstance(data, dict) else None
+                if tick is not None:
+                    body["spark"] = {"fired": True, "tick": tick,
+                                     "at": int(time.time()), "label": SPARK_LABEL}
+                return 429, body
             try:
                 return guest_local_infer(self.root, data)
             finally:

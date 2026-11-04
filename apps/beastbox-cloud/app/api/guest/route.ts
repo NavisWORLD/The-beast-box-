@@ -99,9 +99,23 @@ export async function POST(request:Request){
    if(!parsed||typeof parsed!=='object'||Array.isArray(parsed))
     return safeJson(502,{error:'Invalid guest host response'});
    const result=parsed as Record<string,unknown>;
-   if(!res.ok)
+   if(!res.ok){
+    // Spark on receipt (Cory, 2026-11-03): a 429 from the bridge can carry the
+    // spark receipt (the message arrived and its spark was recorded) and the
+    // seconds until the refractory window opens. Pass both through, strictly
+    // shaped, so the client can hold the message and deliver it itself.
+    // "Offline" stays reserved for true failures, which carry neither.
+    const spark=(result.spark&&typeof result.spark==='object'&&!Array.isArray(result.spark)?
+      result.spark as Record<string,unknown>:null);
+    const sparkOk=spark&&spark.fired===true&&Number.isInteger(spark.tick)&&(spark.tick as number)>=1&&
+      Number.isInteger(spark.at)&&typeof spark.label==='string'&&spark.label.length<=200;
+    const retryOk=Number.isInteger(result.retry_after_seconds)&&
+      (result.retry_after_seconds as number)>=1&&(result.retry_after_seconds as number)<=300;
     return safeJson([400,403,429,503].includes(res.status)?res.status:502,
-      {error:typeof result.error==='string'&&result.error.length<128?result.error:'Local guest inference unavailable'});
+      {error:typeof result.error==='string'&&result.error.length<128?result.error:'Local guest inference unavailable',
+       ...(sparkOk?{spark:{fired:true,tick:spark.tick,at:spark.at,label:spark.label}}:{}),
+       ...(retryOk?{retry_after_seconds:result.retry_after_seconds}:{})});
+   }
    if(result.schema!=='beastbox-guest-local-v1'||result.model!=='rawrphos-native'||
       result.step!==PIN_STEP||result.checkpoint_sha256!==PIN_SHA||result.memory_used!==false||result.owner_tools_used!==false||
       result.provider_key_shared!==false||typeof result.reply!=='string'||result.reply.length>6000)
