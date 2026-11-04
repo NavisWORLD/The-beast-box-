@@ -22,6 +22,7 @@ export function createSparkChatPopup({getBeast,getAvatar,onVerified,onPattern}){
  const device=optionalStorage('localStorage'),tab=optionalStorage('sessionStorage');
  let prefs=readPrefs(device),retention=readTalkRetention(device),persona=null,log=[],pending=null,offline=null,verified=null,pattern='',open=false,opener=trigger,locked=null,inertNodes=[],visitorId=null,growth=null;
  let shareHistory=false,shareGrowth=false;
+ let outbox=[],draining=false,rechargeTimer=0,rechargeDisplay=false,rechargeTick=0;
  let cloudState=null,cloudEnabled=false,cloudPending=null,cloudMode=null,cloudMessage='Private cloud is optional. Restore this creature’s conversation to check ownership and consent.';
  const cloudQueues=new Map(),historyMarker=crypto.randomUUID();
  let historyOwned=false,historyLeaving=false,reopenAfterHistory=null;
@@ -41,10 +42,10 @@ export function createSparkChatPopup({getBeast,getAvatar,onVerified,onPattern}){
   const route=prefs.route,info=ROUTE_INFO[route],model=route==='local-ollama'?prefs.ollamaModel:route==='hf-byok'?prefs.hfModel:info.model;
   $('talk-source').textContent=`Teacher: ${TEACHER_LABEL[route]||info.label}`;
   $('talk-source').title=`Advanced · Brain: ${info.label} · ${model}`;
-  $('talk-reply').textContent=pending?'Asking the selected model…':offline?'Model offline · no reply received':verified?`Reply · came from the real model ${time(verified.at)}`:'Not connected yet · each model reply is checked';
-  $('talk-brain-bar').dataset.tone=pending?'busy':offline?'offline':verified?'verified':'ready';
-  dialog.dataset.talkState=pending?'thinking':offline?'offline':verified?'replied':'idle';dialog.dataset.talkRoute=route;
-  $('talk-send').disabled=!!pending||cloudMode==='restore'||!input.value.trim();$('talk-cancel').hidden=!pending;input.readOnly=!!pending||cloudMode==='restore';
+  $('talk-reply').textContent=pending?'Asking the selected model…':offline?'Model offline · no reply received':rechargeDisplay?`Synapse recharging · your spark landed${rechargeTick?` (spark ${rechargeTick})`:''} · held messages send themselves`:verified?`Reply · came from the real model ${time(verified.at)}`:'Not connected yet · each model reply is checked';
+  $('talk-brain-bar').dataset.tone=pending?'busy':offline?'offline':rechargeDisplay?'recharging':verified?'verified':'ready';
+  dialog.dataset.talkState=pending?'thinking':offline?'offline':rechargeDisplay?'recharging':verified?'replied':'idle';dialog.dataset.talkRoute=route;
+  $('talk-send').disabled=cloudMode==='restore'||!input.value.trim();$('talk-cancel').hidden=!pending&&!outbox.length;input.readOnly=cloudMode==='restore';
   $('talk-pattern').disabled=!!pending||cloudMode==='restore'||!input.value.trim();$('talk-clear').disabled=!!pending||cloudMode==='restore'||!log.length;
   $('talk-count').textContent=`${input.value.length}/${MAX_MESSAGE}`;
   $('talk-resume-label').textContent=pending?`${persona?.name||'Beast'} is thinking…`:`Talk to ${persona?.name||'your Beast'}`;
@@ -136,8 +137,8 @@ export function createSparkChatPopup({getBeast,getAvatar,onVerified,onPattern}){
   $('talk-growth').textContent=growth?`${growth.exchanges} verified exchanges · curiosity ${growth.curiosity} · resonance ${growth.resonance}`:'Local experience is unavailable in this browser.';
  }
  function editDraft(value){input.value=String(value||'').slice(0,MAX_MESSAGE);writeTalkDraft(storage(),persona.key,input.value);status();}
- function cancel(){pending?.abort();}
- function abandon(){pending?.abort();pending=null;offline=null;verified=null;pattern='';status();renderError();}
+ function cancel(){pending?.abort();clearTimeout(rechargeTimer);rechargeTimer=0;outbox=[];rechargeDisplay=false;renderHeld();}
+ function abandon(){pending?.abort();pending=null;offline=null;verified=null;pattern='';clearTimeout(rechargeTimer);rechargeTimer=0;outbox=[];rechargeDisplay=false;renderHeld();status();renderError();}
  function savePrefs(next){
   abandon();prefs={...prefs,...next};try{device?.setItem(PREFS_KEY,JSON.stringify(prefs));}catch{}
   renderBrain();
@@ -192,8 +193,30 @@ export function createSparkChatPopup({getBeast,getAvatar,onVerified,onPattern}){
   if(!fromHistory&&historyOwned&&history.state?.beastboxChat===historyMarker){historyLeaving=true;try{history.back();}catch{historyLeaving=false;}}
   historyOwned=false;
  }
+ function renderHeld(){
+  const note=$('talk-save-note');if(!note||!outbox.length)return;
+  note.textContent=outbox.length===1?`Held: \u201c${outbox[0].text.slice(0,40)}\u201d · it sends itself when the synapse recharges`:`${outbox.length} messages held · they send themselves in order`;
+ }
+ // Spark on receipt (Cory, 2026-11-03): sends join a held queue and drain in
+ // order. A message that lands inside the refractory window is NOT lost and
+ // NOT an outage: its spark fired, the card says the synapse is recharging,
+ // and the queue delivers it by itself when the window opens. "Offline" is
+ // only for true failures, and a failed message returns to the input.
  async function send(event){
-  event?.preventDefault();syncPersona();const text=input.value.trim();if(pending||cloudMode==='restore'||!text)return;
+  event?.preventDefault();syncPersona();const text=input.value.trim();if(cloudMode==='restore'||!text)return;
+  outbox.push({text});editDraft('');renderHeld();void drain();
+ }
+ async function drain(){
+  if(draining)return;draining=true;
+  while(outbox.length){
+   const outcome=await attempt(outbox[0]);
+   if(outcome!=='done'){draining=false;renderHeld();return;}
+   outbox.shift();renderHeld();
+  }
+  draining=false;renderHeld();
+ }
+ async function attempt(item){
+  const text=item.text;
   const forKey=persona.key,forPersona={...persona,traits:persona.traits.slice()},forRetention=retention,forStorage=storage(),forLog=log.slice(),forBeast=structuredClone(getBeast()),forCloud=cloudEnabled&&cloudState?.consented?{...cloudState}:null,controller=new AbortController();
   pending=controller;offline=null;pattern='';status();renderError();
   const timeout=window.setTimeout(()=>controller.abort(),prefs.route==='local-ollama'?180000:65000);
@@ -202,16 +225,19 @@ export function createSparkChatPopup({getBeast,getAvatar,onVerified,onPattern}){
     ollama:{url:prefs.ollamaUrl,model:prefs.ollamaModel},hf:{key:$('talk-hf-key').value.trim(),model:prefs.hfModel,spendConfirmed:$('talk-hf-spend').checked}};
    // Non-RAWRPHOS brains are TEACHERS: RAWRPHOS still writes the Beast's own reply.
    // Cory (2026-10-16): chat is ALWAYS the Beast's own RAWRPHOS voice; teachers only make background lessons.
-   const [teacherResult,result]=await Promise.all([isTeacherRoute(prefs.route)?talkToBeast({...ask,route:prefs.route}).catch(()=>null):Promise.resolve(null),talkToBeast({...ask,route:'guest-rawrphos'})]);
-   if(pending!==controller||persona.key!==forKey)return;
+   const [teacherResult,result]=await Promise.all([item.teacherResult!==undefined?Promise.resolve(item.teacherResult):isTeacherRoute(prefs.route)?talkToBeast({...ask,route:prefs.route}).catch(()=>null):Promise.resolve(null),talkToBeast({...ask,route:'guest-rawrphos'})]);
+   if(pending!==controller||persona.key!==forKey)return 'failed';
+   if(item.teacherResult===undefined)item.teacherResult=teacherResult;
    const teacher=teacherResult&&teacherResult.ok?{label:ROUTE_INFO[teacherResult.route]?.label||teacherResult.label,route:teacherResult.route}:null;
-   if(teacher&&teacherResult.route!=='shared-ollama'){const local=optionalStorage('localStorage'),pair=makePair({prompt:text,reply:teacherResult.reply,route:teacher.route,model:teacherResult.model,beast:forPersona.name});rememberPair(local,pair);
+   if(teacher&&teacherResult.route!=='shared-ollama'&&!item.teacherHandled){item.teacherHandled=true;const local=optionalStorage('localStorage'),pair=makePair({prompt:text,reply:teacherResult.reply,route:teacher.route,model:teacherResult.model,beast:forPersona.name});rememberPair(local,pair);
     const body=(readContribute(local)||teacher.route==='connected-brain-bay')?contributionBody(pair):null;
     if(body)fetch('/api/teacher-pairs',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).catch(()=>{});}
    const teacherDown=teacherResult&&!teacherResult.ok?teacherResult:null;
-   if(!result.ok){offline={...result,error:`${forPersona.name} is resting, try again.`+(teacherDown?' Teacher not connected: '+teacherDown.error:''),help:teacherDown?.help||[]};renderError();if(open)scroll.scrollTop=scroll.scrollHeight;return;}
+   if(!result.ok){
+    if(result.recharging){rechargeDisplay=true;rechargeTick=result.spark?.tick||0;rechargeTimer=window.setTimeout(()=>{rechargeTimer=0;void drain();},result.retryAfterMs||30000);status();if(open)scroll.scrollTop=scroll.scrollHeight;return 'recharging';}
+    offline={...result,error:result.error+` No reply was shown as ${forPersona.name}.`+(teacherDown?' Teacher not connected: '+teacherDown.error:''),help:teacherDown?.help||result.help||[]};renderError();editDraft(text);if(open)scroll.scrollTop=scroll.scrollHeight;return 'failed';}
    let careError='';try{await onVerified?.({persona:forPersona,text,reply:result.reply,retention:forRetention,model:result.model});}catch(error){careError=error.message||'The creature care save was not confirmed.';}
-   if(pending!==controller||persona.key!==forKey)return;
+   if(pending!==controller||persona.key!==forKey)return 'failed';
    const exchangeId=crypto.randomUUID(),at=result.at||Date.now();
    log=[...forLog,{id:exchangeId+'-you',role:'you',text,at},{id:exchangeId+'-beast',role:'beast',text:result.reply,route:result.route,model:result.model,at,...(teacher?{coachedBy:teacher.label}:{})}].slice(-MAX_LOG);
    const saved=writeTalkLog(forStorage,forKey,log);verified=result;editDraft('');
@@ -219,6 +245,7 @@ export function createSparkChatPopup({getBeast,getAvatar,onVerified,onPattern}){
    $('talk-save-note').textContent=careError||(!saved?'The model replied, but this browser could not save the conversation.':'');
    renderHistory();if(teacherDown){offline={...teacherDown,error:'Teacher not connected: '+teacherDown.error};renderError();}if(open)scroll.scrollTop=scroll.scrollHeight;
    if(forCloud&&cloudEnabled&&cloudState?.consented&&cloudState.owner===forCloud.owner)queueCloudExchange(forKey,forBeast,{eventId:exchangeId,text,reply:result.reply,provider:result.route,model:result.model,at},forCloud.owner);
+   rechargeDisplay=false;return 'done';
   }finally{window.clearTimeout(timeout);if(pending===controller){pending=null;status();}}
  }
  trigger.setAttribute('aria-haspopup','dialog');trigger.setAttribute('aria-controls','talk-dialog');trigger.setAttribute('aria-expanded','false');

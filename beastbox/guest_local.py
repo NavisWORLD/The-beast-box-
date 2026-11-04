@@ -1,5 +1,14 @@
 """Separate, burst-guarded (no daily cap) PUBLIC guest path for pinned stable RAWRPHOS CPU.
 
+Spark on receipt (Cory, 2026-11-03): a message IS a synaptic event. When a
+guest's message arrives inside the refractory window (the one-at-a-time slot
+is busy, or a per-minute burst cap is hit), the bridge records a spark for
+that guest on their own ledger in the quota DB and answers 429 with the
+spark receipt and the seconds until the window opens, so the client can
+hold the message and deliver it itself when the window passes. A refractory
+pause is not an outage and is never the model's voice failing; "offline"
+stays reserved for true failures (503/502), which carry no spark.
+
 Never opens the owner's COSMOS runtime, key vault, cloud provider, memory or tools.
 Only called *after* the Vercel BFF authenticates to the existing private host bridge.
 """
@@ -17,7 +26,8 @@ import urllib.error
 import urllib.request
 
 from .guest_hebbian import (MAX_TEXT_WITH_CONTEXT, GuestHebbianStore,
-                            assemble_messages, persist_enabled, validate_context)
+                            assemble_messages, guest_key, persist_enabled,
+                            validate_context)
 from .providers import _local_opener
 from .rawrphos_local import MODEL, SHA, STEP, status as native_status
 
@@ -119,6 +129,70 @@ def _guest_router(root: Path):
     return _ROUTER["r"]
 
 
+SPARK_LABEL = ("SIMULATED synaptic event: the message was received and its spark "
+               "recorded on the guest's own ledger; the model answers when the window opens")
+
+
+def record_guest_spark(root: Path, identity: str, now: int | None = None) -> int | None:
+    """Record one spark for a guest whose message arrived inside the refractory
+    window, on the guest's own ledger in the quota DB (guest_spark table,
+    keyed by the sha256 guest key; the identity itself is never stored).
+
+    Best-effort by design: returns the guest's spark count including this
+    one, or None when the ledger cannot be written. A missing ledger never
+    changes the answer the guest gets; it only means no receipt rides it.
+    """
+    if not isinstance(identity, str) or not _GUEST_ID.fullmatch(identity):
+        return None
+    path = Path(root) / "guest-access.sqlite3"
+    if Path(root).is_symlink() or path.is_symlink():
+        return None
+    clock = int(time.time()) if now is None else now
+    try:
+        with sqlite3.connect(path, isolation_level=None, timeout=2) as db:
+            db.execute("PRAGMA busy_timeout=2000")
+            db.execute("""CREATE TABLE IF NOT EXISTS guest_spark
+                (guest_key TEXT PRIMARY KEY, sparks INTEGER NOT NULL, last_at INTEGER NOT NULL)""")
+            db.execute("BEGIN IMMEDIATE")
+            db.execute("""INSERT INTO guest_spark(guest_key,sparks,last_at) VALUES(?,1,?)
+                ON CONFLICT(guest_key) DO UPDATE SET
+                sparks=sparks+1, last_at=excluded.last_at""",
+                       (guest_key(identity), clock))
+            count = db.execute("SELECT sparks FROM guest_spark WHERE guest_key=?",
+                               (guest_key(identity),)).fetchone()[0]
+            db.execute("COMMIT")
+            os.chmod(path, 0o600)
+            return count
+    except (OSError, sqlite3.Error):
+        return None
+
+
+def _busy_retry_after(root: Path, now: int) -> int:
+    """Seconds until the one-at-a-time inference slot frees, read from the
+    quota DB's active window (1..180). Falls back to a short pause."""
+    try:
+        with sqlite3.connect(Path(root) / "guest-access.sqlite3", timeout=2) as db:
+            row = db.execute("SELECT active_until FROM guest_burst WHERE id=1").fetchone()
+        if row:
+            return max(1, min(180, int(row[0]) - now))
+    except (OSError, sqlite3.Error):
+        pass
+    return 5
+
+
+def _recharging(root: Path, identity: str, message: str, retry_after: int,
+                now: int | None = None) -> dict:
+    """The 429 body for a received message inside the refractory window: the
+    plain error (unchanged), when the window opens, and the spark receipt
+    when the ledger recorded one."""
+    clock = int(time.time()) if now is None else now
+    body = {"error": message, "retry_after_seconds": max(1, int(retry_after))}
+    tick = record_guest_spark(root, identity, clock)
+    if tick is not None:
+        body["spark"] = {"fired": True, "tick": tick, "at": clock, "label": SPARK_LABEL}
+    return body
+
+
 def guest_local_infer(root: Path, payload: dict, *, owner_jobs_busy: bool = False) -> tuple[int, dict]:
     """Exactly one native inference. No owner-provider selection or fallback.
 
@@ -150,7 +224,8 @@ def guest_local_infer(root: Path, payload: dict, *, owner_jobs_busy: bool = Fals
             or any(ord(c) < 32 and c not in "\n\t" for c in payload["text"])):
         return 400, {"error": "Invalid bounded guest request"}
     if owner_jobs_busy:
-        return 429, {"error": "Owner inference has priority; try again"}
+        return 429, _recharging(root, payload["guest_identity"],
+                                "Owner inference has priority; try again", 5)
     ready = native_status()
     if (ready.get("readiness") != "INSTALLED_AND_READY" or ready.get("loaded_step") != STEP
             or not hmac.compare_digest(str(ready.get("checkpoint_sha256")), SHA)):
@@ -158,6 +233,11 @@ def guest_local_infer(root: Path, payload: dict, *, owner_jobs_busy: bool = Fals
     quota = GuestQuota(root)
     code, token, message = quota.reserve(payload["guest_identity"])
     if code != 200:
+        if code == 429:
+            now = int(time.time())
+            retry = (_busy_retry_after(root, now) if "busy" in message
+                     else max(1, 60 - (now % 60)))
+            return 429, _recharging(root, payload["guest_identity"], message, retry, now)
         return code, {"error": message}
     # Persisted Hebbian thread (W7): only on the context contract, only when
     # enabled. Any store failure degrades this request to in-context; the
