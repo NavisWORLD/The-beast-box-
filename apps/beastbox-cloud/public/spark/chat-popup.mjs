@@ -235,7 +235,7 @@ export function createSparkChatPopup({getBeast,getAvatar,onVerified,onPattern}){
    const teacherDown=teacherResult&&!teacherResult.ok?teacherResult:null;
    if(!result.ok){
     if(result.recharging){rechargeDisplay=true;rechargeTick=result.spark?.tick||0;rechargeTimer=window.setTimeout(()=>{rechargeTimer=0;void drain();},result.retryAfterMs||30000);status();if(open)scroll.scrollTop=scroll.scrollHeight;return 'recharging';}
-    offline={...result,error:result.error+(teacherDown?' Teacher not connected: '+teacherDown.error:''),help:teacherDown?.help||result.help||[]};renderError();editDraft(text);if(open)scroll.scrollTop=scroll.scrollHeight;return 'failed';}
+    offline={...result,error:result.error+` No reply was shown as ${forPersona.name}.`+(teacherDown?' Teacher not connected: '+teacherDown.error:''),help:teacherDown?.help||result.help||[]};renderError();editDraft(text);if(open)scroll.scrollTop=scroll.scrollHeight;return 'failed';}
    let careError='';try{await onVerified?.({persona:forPersona,text,reply:result.reply,retention:forRetention,model:result.model});}catch(error){careError=error.message||'The creature care save was not confirmed.';}
    if(pending!==controller||persona.key!==forKey)return 'failed';
    const exchangeId=crypto.randomUUID(),at=result.at||Date.now();
