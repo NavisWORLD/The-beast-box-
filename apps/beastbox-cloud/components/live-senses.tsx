@@ -51,6 +51,7 @@ export default function LiveSenses({canSend,visible,onDraft,onContext,onActivity
  const speechRetries=useRef(0),speechTimer=useRef<ReturnType<typeof setTimeout>|null>(null);
  const alive=useRef(false);
  const [cameraOn,setCameraOn]=useState(false),[speechOn,setSpeechOn]=useState(false);
+ const [facing,setFacing]=useState<'user'|'environment'>('user');const facingRef=useRef<'user'|'environment'>('user');
  const [starting,setStarting]=useState(false),[observations,setObservations]=useState<Observation[]>([]);
  const [allowBrowserSpeech,setAllowBrowserSpeech]=useState(false);
  const [onDeviceOnly,setOnDeviceOnly]=useState(false);
@@ -146,7 +147,7 @@ export default function LiveSenses({canSend,visible,onDraft,onContext,onActivity
    if(!window.isSecureContext||!navigator.mediaDevices?.getUserMedia)
     throw new Error('Camera needs HTTPS and a supported browser.');
    // Ask permission directly within the button gesture; do not load a model first.
-   stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:320},height:{ideal:240}},audio:false});
+   stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:facingRef.current},width:{ideal:320},height:{ideal:240}},audio:false});
    if(!alive.current||document.hidden||requestEpoch!==cameraEpoch.current){
     stream.getTracks().forEach(t=>t.stop());return;
    }
@@ -290,6 +291,7 @@ export default function LiveSenses({canSend,visible,onDraft,onContext,onActivity
     <div className="cloud-connect-actions">
      <button type="button" disabled={starting} title={starting?'Waiting for camera permission and the local model…':undefined} onClick={()=>cameraOn?stopCamera():void startCamera()}>
       {cameraOn?<Square size={15}/>:<Camera size={15}/>} {cameraOn?'Stop vision':'Start vision'}</button>
+     <button type="button" data-senses-flip onClick={()=>{const next=facing==='user'?'environment':'user';facingRef.current=next;setFacing(next);if(cameraOn){stopCamera();setTimeout(()=>void startCamera(),60);}}} title="Flip camera">🔄 {facing==='user'?'front':'rear'}</button>
     </div>
     <details className="senses-more"><summary>About vision</summary><p>Foreground sensing only. Raw camera frames stay on-device; MediaPipe may send usage metrics.</p></details>
    </section>

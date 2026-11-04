@@ -3,6 +3,7 @@ import {useActiveBeastName} from './use-active-beast-name';
 import {useEffect,useRef,useState} from 'react';
 import {talkToBeast} from '../lib/companion/beast-talk.mjs';
 import {analyzeFrame,analyzeAudio,notice,noticePrompt,experience,LOG_KEY} from '../lib/companion/field-perception.mjs';
+import {faceProxies} from '../lib/companion/face-channel.mjs';
 
 const W=32,H=24,TALK_GAP=75000,MAX_LOG=300;
 type Exp=ReturnType<typeof experience>;
@@ -13,7 +14,8 @@ export default function FieldPerception(){
  const nmRaw=useActiveBeastName();const nm=nmRaw&&nmRaw!=='your beast'?nmRaw:'Zeref';
  const [on,setOn]=useState(false),[err,setErr]=useState(''),[mood,setMood]=useState('calm'),[seen,setSeen]=useState(''),[line,setLine]=useState<{text:string;by:string}|null>(null);
  const [p,setP]=useState<any>(null),[count,setCount]=useState(0),[share,setShare]=useState(false),[shareMsg,setShareMsg]=useState('');
- const stream=useRef<MediaStream|null>(null),video=useRef<HTMLVideoElement|null>(null),ctx=useRef<AudioContext|null>(null),timer=useRef<any>(null),lastTalk=useRef(0),prev=useRef<any>(null),gray=useRef<Float32Array|null>(null);
+ const stream=useRef<MediaStream|null>(null),video=useRef<HTMLVideoElement|null>(null),ctx=useRef<AudioContext|null>(null),timer=useRef<any>(null),lastTalk=useRef(0),prev=useRef<any>(null),gray=useRef<Float32Array|null>(null),prevEye=useRef<number|null>(null),facingRef=useRef<'user'|'environment'>('user');
+ const [facing,setFacing]=useState<'user'|'environment'>('user');
  useEffect(()=>{setCount(readLog().length);const stopAll=()=>stop();window.addEventListener('pagehide',stopAll);document.addEventListener('visibilitychange',()=>{if(document.hidden)stop();});return()=>{window.removeEventListener('pagehide',stopAll);stop();};
  // eslint-disable-next-line react-hooks/exhaustive-deps
  },[]);
@@ -22,16 +24,17 @@ export default function FieldPerception(){
   setErr('');
   if(!window.isSecureContext||!navigator.mediaDevices?.getUserMedia){setErr('Senses need a secure page with camera/mic access.');return;}
   try{
-   const s=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:160}},audio:{echoCancellation:true,noiseSuppression:true}});
+   const s=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:facingRef.current},width:{ideal:160}},audio:{echoCancellation:true,noiseSuppression:true}});
    stream.current=s;const v=video.current!;v.setAttribute('playsinline','');v.muted=true;v.srcObject=s;await v.play().catch(()=>{});
    const AC=(window as any).AudioContext||(window as any).webkitAudioContext;let an:AnalyserNode|null=null;
    if(AC&&s.getAudioTracks().length){const c:AudioContext=new AC();ctx.current=c;await c.resume().catch(()=>{});an=c.createAnalyser();an.fftSize=2048;c.createMediaStreamSource(s).connect(an);}
    const cv=document.createElement('canvas');cv.width=W;cv.height=H;const g=cv.getContext('2d',{willReadFrequently:true})!;
    const buf=new Float32Array(2048);
    timer.current=setInterval(()=>{
-    if(!v.videoWidth)return;g.drawImage(v,0,0,W,H);const f=analyzeFrame(g.getImageData(0,0,W,H).data,gray.current,W,H);gray.current=f.gray;
+    if(!v.videoWidth)return;g.drawImage(v,0,0,W,H);const data=g.getImageData(0,0,W,H).data;const f=analyzeFrame(data,gray.current,W,H);gray.current=f.gray;
     let a={loudness:0,pitchHz:0};if(an&&ctx.current){an.getFloatTimeDomainData(buf);a=analyzeAudio(buf,ctx.current.sampleRate);}
-    const cur={brightness:f.brightness,hue:f.hue,motion:f.motion,gazeX:f.gazeX,gazeY:f.gazeY,...a};setP(cur);
+    const fp=facingRef.current==='user'?faceProxies(data,W,H,prevEye.current):null;if(fp)prevEye.current=fp.eye;
+    const cur={brightness:f.brightness,hue:f.hue,motion:f.motion,gazeX:f.gazeX,gazeY:f.gazeY,...a,...(fp?{facePresent:fp.facePresent,faceScale:fp.faceScale,faceX:fp.faceX,faceY:fp.faceY,faceBlink:fp.faceBlink}:{})};setP(cur);
     const n=notice(cur,prev.current);prev.current=cur;
     if(n){setMood(n.emotion);setSeen(n.event);
      const log=[...readLog(),experience(cur,Date.now())].slice(-MAX_LOG);try{localStorage.setItem(LOG_KEY,JSON.stringify(log));}catch{}setCount(log.length);
@@ -59,8 +62,9 @@ export default function FieldPerception(){
   <video ref={video} playsInline muted style={{width:96,height:72,borderRadius:8,background:'#000',display:on?'inline-block':'none',verticalAlign:'middle'}}/>
   <span aria-hidden style={{display:'inline-flex',gap:10,margin:'0 12px',verticalAlign:'middle'}}>{[0,1].map(i=><span key={i} style={{width:26,height:26,borderRadius:13,background:'#ffd34d',display:'inline-flex',alignItems:'center',justifyContent:'center'}}><span style={{width:8,height:14,borderRadius:4,background:'#111',...eye}}/></span>)}</span>
   {on?<button type="button" onClick={stop} data-senses-stop>Stop senses</button>:<button type="button" onClick={()=>void start()} data-senses-start>👁️👂 Let {nm} see &amp; hear</button>}
+  <button type="button" data-senses-flip onClick={()=>{const next=facing==='user'?'environment':'user';facingRef.current=next;setFacing(next);if(on){stop();setTimeout(()=>void start(),60);}}} title="Flip camera">🔄 {facing==='user'?'front':'rear'}</button>
   {err?<p role="status">{err}</p>:null}
-  {on&&p?<p style={{margin:'6px 0'}}>Mood: <b>{mood}</b>{seen?<> · noticed {seen}</>:null}<br/><small>light {p.brightness} · motion {p.motion} · sound {p.loudness}{p.pitchHz?` · ~${p.pitchHz} Hz`:''}</small></p>:null}
+  {on&&p?<p style={{margin:'6px 0'}}>Mood: <b>{mood}</b>{seen?<> · noticed {seen}</>:null}<br/><small>light {p.brightness} · motion {p.motion} · sound {p.loudness}{p.pitchHz?` · ~${p.pitchHz} Hz`:''}{p.facePresent!==undefined?` · face ${p.facePresent?'present':'not seen'} (estimate)`:''}</small></p>:null}
   {line?<p data-field-line style={{background:'#171d44',borderRadius:10,padding:8}}><small style={{opacity:.75}}>{nm}, in {nm==='Zeref'?'his':'their'} own words ({line.by}, synthetic voice if sound is on):</small><br/>{line.text}</p>:null}
   <p style={{margin:'8px 0 4px'}}><small>{count} numeric experiences saved on this device for {nm==='Zeref'?'his':'their'} learning.</small></p>
   <label style={{display:'block'}}><input type="checkbox" checked={share} onChange={e=>setShare(e.target.checked)}/> Opt in: share these numeric experiences (no images/audio) to help train {nm}'s brain, built on Zeref (RAWRPHØS). Off by default.</label>
