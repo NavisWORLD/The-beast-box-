@@ -3,6 +3,8 @@
 export const PERCEPTION_SCHEMA='beastbox-field-perception-v1';
 export const LOG_KEY='beastbox.fieldPerception.v1';
 export const NUMERIC_KEYS=['t','brightness','hue','motion','gazeX','gazeY','loudness','pitchHz'];
+// Face-channel keys (face-channel.mjs): carried only when a sample actually has them, so older records stay byte-identical.
+export const FACE_KEYS=['facePresent','faceScale','faceX','faceY','faceBlink'];
 const r2=n=>Math.round((Number.isFinite(n)?n:0)*100)/100;
 /** rgba pixels (w*h*4) -> brightness 0..1, dominant hue 0..360, motion 0..1 vs prev, motion centroid -1..1 */
 export function analyzeFrame(px,prev,w,h){
@@ -30,11 +32,13 @@ export function notice(p,prev){
  if(p.pitchHz>150&&p.pitchHz<1000&&p.loudness>.15&&p.loudness<.6)return {event:'someone humming or talking',emotion:'joy'};
  return null;
 }
-/** Compact numeric-only experience record. Anything non-numeric is dropped. */
+/** Compact numeric-only experience record. Anything non-numeric is dropped. Face keys ride only when present. */
 export function experience(p,now){
- const o={t:Math.floor(Number(now)||0)};for(const k of NUMERIC_KEYS.slice(1))o[k]=r2(Number(p?.[k]));return o;
+ const o={t:Math.floor(Number(now)||0)};for(const k of NUMERIC_KEYS.slice(1))o[k]=r2(Number(p?.[k]));
+ for(const k of FACE_KEYS)if(Number.isFinite(p?.[k]))o[k]=r2(p[k]);
+ return o;
 }
 export function isNumericExperience(o){
- return !!o&&typeof o==='object'&&!Array.isArray(o)&&Object.keys(o).every(k=>NUMERIC_KEYS.includes(k))&&Object.values(o).every(v=>typeof v==='number'&&Number.isFinite(v)&&Math.abs(v)<1e13);
+ return !!o&&typeof o==='object'&&!Array.isArray(o)&&Object.keys(o).every(k=>NUMERIC_KEYS.includes(k)||FACE_KEYS.includes(k))&&Object.values(o).every(v=>typeof v==='number'&&Number.isFinite(v)&&Math.abs(v)<1e13);
 }
 export function noticePrompt(n){return `You just noticed ${n.event} in the real room through the Open Field sensors. React in your own words.`.slice(0,380);}

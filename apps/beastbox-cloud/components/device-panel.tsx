@@ -21,6 +21,7 @@ export default function DevicePanel({canSend,onDraft}:Props){
  const [level,setLevel]=useState(0),[sample,setSample]=useState<Reading>({});
  const [consent,setConsent]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState('');
  const [working,setWorking]=useState(false);
+ const [facing,setFacing]=useState<'user'|'environment'>('user');const facingRef=useRef<'user'|'environment'>('user');
  const stopCamera=useCallback(()=>{
   cameraEpoch.current++;
   camera.current?.getTracks().forEach(track=>track.stop());camera.current=null;
@@ -66,7 +67,7 @@ export default function DevicePanel({canSend,onDraft}:Props){
   try{
    if(!window.isSecureContext||!navigator.mediaDevices?.getUserMedia)
     throw new Error('Camera requires browser support and a secure HTTPS page.');
-   stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}},audio:false});
+   stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:facingRef.current}},audio:false});
    if(!alive.current||document.hidden||requestEpoch!==cameraEpoch.current){
     stream.getTracks().forEach(track=>track.stop());return;
    }
@@ -158,6 +159,7 @@ export default function DevicePanel({canSend,onDraft}:Props){
   <p>Use your device camera and mic to generate small numerical summaries locally. The current text-only SmolLM2 cannot identify objects in images or transcribe speech. No video, photos or raw sound go to COSMOS.</p>
   <div className="cloud-connect-actions">
    <button type="button" disabled={working} onClick={()=>cameraOn?stopCamera():void startCamera()}>{cameraOn?<Square size={15}/>:<Camera size={15}/>} {cameraOn?'Stop camera':'Start camera'}</button>
+   <button type="button" data-senses-flip onClick={()=>{const next=facing==='user'?'environment':'user';facingRef.current=next;setFacing(next);if(cameraOn){stopCamera();setTimeout(()=>void startCamera(),60);}}} title="Flip camera">🔄 {facing==='user'?'front':'rear'}</button>
    <button type="button" disabled={working} onClick={()=>micOn?stopMic():void startMic()}>{micOn?<Square size={15}/>:<Mic size={15}/>} {micOn?'Stop microphone':'Start microphone'}</button>
   </div>
   <video ref={video} muted playsInline autoPlay aria-label="Local camera preview" style={{display:cameraOn?'block':'none',width:'100%',maxHeight:260,objectFit:'contain',borderRadius:12,background:'#0d1220'}}/>
