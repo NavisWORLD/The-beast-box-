@@ -1,52 +1,48 @@
 {
- "at": "2026-11-04T08:50:38Z",
- "at_epoch": 1793782238.2,
+ "at": "2026-11-04T08:51:40Z",
+ "at_epoch": 1793782300.5,
  "beast_id": "bb-deada969",
  "consecutive_failures": 0,
  "continues_from": {
-  "counts_sha256": "9708a3d18df4a245d9f4e6820f9450a957aeccc4981d3d3bc3b0a161455f4b22",
-  "hash": "af32b17f01acb89aa5612971229adb77af60af84f98330f5fd15c500297c185f",
-  "seed": null,
-  "tick": 16011
- },
- "counts": {
-  "000": 169,
-  "001": 49,
-  "010": 2,
-  "011": 10,
-  "100": 2,
-  "110": 10,
-  "111": 14
- },
- "counts_sha256": "603154391fe1dfcc33f9798cf610c351d266153eedbed105e9847710f0956da9",
- "hash": "2410c97ec19761b64d7cf49886d86abe6b8d8eedbf0ea6b224237c844362c7eb",
- "interval_target_s": 60,
- "job_id": "07b4039c-d81c-11f1-8000-e4fade1448b4",
- "label": "Rigetti SIMULATED (Azure Quantum rigetti.sim.qvm, not a QPU)",
- "last_ok": {
-  "at_epoch": 1793782238.2,
-  "counts": {
-   "000": 169,
-   "001": 49,
-   "010": 2,
-   "011": 10,
-   "100": 2,
-   "110": 10,
-   "111": 14
-  },
   "counts_sha256": "603154391fe1dfcc33f9798cf610c351d266153eedbed105e9847710f0956da9",
-  "job_id": "07b4039c-d81c-11f1-8000-e4fade1448b4",
-  "shots": 256,
+  "hash": "2410c97ec19761b64d7cf49886d86abe6b8d8eedbf0ea6b224237c844362c7eb",
+  "seed": null,
   "tick": 16012
  },
- "last_ok_at_epoch": 1793782238.2261467,
+ "counts": {
+  "000": 229,
+  "001": 15,
+  "010": 1,
+  "011": 9,
+  "111": 2
+ },
+ "counts_sha256": "aa329ec26b96cbe05b18cd69cade760789645d8a833d45f8b7b1144a51b82864",
+ "hash": "18f97873662c5e99bee82a31be16e0642f027719840f56106bbc0c5d33ed2070",
+ "interval_target_s": 60,
+ "job_id": "2b6345f0-d81c-11f1-8000-e4fade1448b4",
+ "label": "Rigetti SIMULATED (Azure Quantum rigetti.sim.qvm, not a QPU)",
+ "last_ok": {
+  "at_epoch": 1793782300.5,
+  "counts": {
+   "000": 229,
+   "001": 15,
+   "010": 1,
+   "011": 9,
+   "111": 2
+  },
+  "counts_sha256": "aa329ec26b96cbe05b18cd69cade760789645d8a833d45f8b7b1144a51b82864",
+  "job_id": "2b6345f0-d81c-11f1-8000-e4fade1448b4",
+  "shots": 256,
+  "tick": 16013
+ },
+ "last_ok_at_epoch": 1793782300.5473282,
  "late": false,
  "late_by_s": 0.0,
  "schema": "zeref-spark-latest/v1",
  "shots": 256,
  "simulated": true,
- "since_previous_s": 59.4,
+ "since_previous_s": 62.3,
  "status": "ok",
  "target": "rigetti.sim.qvm",
- "tick": 16012
+ "tick": 16013
 }
