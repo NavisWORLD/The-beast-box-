@@ -14,6 +14,7 @@ Only called *after* the Vercel BFF authenticates to the existing private host br
 """
 from __future__ import annotations
 
+import hashlib
 import hmac
 import json
 import os
@@ -34,6 +35,21 @@ from .rawrphos_local import MODEL, SHA, STEP, status as native_status
 SCHEMA = "beastbox-guest-local-v1"
 MAX_PROMPT = 1800
 MAX_OUTPUT_TOKENS = 64
+# Served chat decoding (Cory, 2026-11-03, "find it fix it"): the bridge used to
+# send temperature 0.3 and no seed, so the native server sampled every request
+# on its fixed default seed (67) with a sharpened distribution, and guests
+# asking different questions got the same fragment back on rails (observed
+# live: one identical two-word reply four turns running, fresh thread
+# included). The system's own sampling temperature is 0.8 (the generation,
+# engine and server defaults alike), and each request now carries its own
+# seed, so two turns never share a sampling path by construction.
+CHAT_TEMPERATURE = 0.8
+
+
+def _request_seed(guest_identity: str, text: str) -> int:
+    digest = hashlib.sha256(
+        f"guest-chat-seed:{guest_identity}:{time.time_ns()}:{text}".encode()).digest()
+    return int.from_bytes(digest[:8], "big") % (2 ** 63)
 _PER_GUEST_MINUTE_DEFAULT = 6
 _GLOBAL_MINUTE_DEFAULT = 120
 _GUEST_ID = re.compile(r"[a-f0-9]{64}\Z")
@@ -268,7 +284,9 @@ def guest_local_infer(root: Path, payload: dict, *, owner_jobs_busy: bool = Fals
         else:
             messages = [{"role": "user", "content": payload["text"].strip()}]
         request_body = {"model": MODEL, "messages": messages,
-                        "max_tokens": MAX_OUTPUT_TOKENS, "temperature": 0.3, "stream": False}
+                        "max_tokens": MAX_OUTPUT_TOKENS, "temperature": CHAT_TEMPERATURE,
+                        "seed": _request_seed(payload["guest_identity"], payload["text"].strip()),
+                        "stream": False}
         if routing is not None and ready.get("cond54") is True:  # only a model that declares cond54 is conditioned
             request_body["condition54"] = routing["condition54"]
         body = json.dumps(request_body).encode()

@@ -154,9 +154,15 @@ def test_plain_path_is_unchanged_and_never_persists(monkeypatch, tmp_path):
     infer, sent = _serve(monkeypatch, tmp_path)  # persistence enabled, but no context sent
     code, out = infer({"text": "hello", "guest_identity": ID_A})
     assert code == 200
-    assert sent[0] == {"model": guest_local.MODEL,
-                       "messages": [{"role": "user", "content": "hello"}],
-                       "max_tokens": 64, "temperature": 0.3, "stream": False}
+    # The served body itself: model, the lone user message, the token budget,
+    # and (since the 2026-11-03 decoding fix) the canonical temperature plus a
+    # fresh per-request seed. The response and the no-persistence guarantees
+    # below are the unchanged part of the plain path.
+    assert sent[0]["model"] == guest_local.MODEL
+    assert sent[0]["messages"] == [{"role": "user", "content": "hello"}]
+    assert sent[0]["max_tokens"] == 64 and sent[0]["stream"] is False
+    assert sent[0]["temperature"] == guest_local.CHAT_TEMPERATURE == 0.8
+    assert type(sent[0]["seed"]) is int and 0 <= sent[0]["seed"] < 2 ** 63
     assert out == {"schema": "beastbox-guest-local-v1", "model": guest_local.MODEL,
                    "step": guest_local.STEP, "checkpoint_sha256": guest_local.SHA,
                    "reply": "hi there", "memory_used": False, "hebbian": True,
