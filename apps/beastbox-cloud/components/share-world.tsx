@@ -110,12 +110,12 @@ export default function ShareWorld() {
     : state === 'denied' ? 'Camera permission was not given, so sharing is off.'
     : state === 'unavailable' ? 'This browser cannot share a camera here (needs a secure page).'
     : 'Off. Turn it on once and it stays on across the whole site.';
-  return <aside data-share-world style={{ position: 'fixed', left: 10, bottom: 10, zIndex: 40, maxWidth: 240, padding: 10, border: '1px solid #3b3f78', borderRadius: 12, background: 'rgba(13,18,48,.92)', color: '#e8ecff', font: '12px system-ui' }}>
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+  return <aside data-share-world style={{ position: 'fixed', left: 10, bottom: 10, zIndex: 40, maxWidth: 240, padding: 10, border: '1px solid #3b3f78', borderRadius: 12, background: 'rgba(13,18,48,.92)', color: '#e8ecff', font: '12px system-ui', pointerEvents: 'none' }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, pointerEvents: 'auto' }}>
       <button type="button" role="switch" aria-checked={state === 'live'} data-share-toggle onClick={() => void toggle()}>{state === 'live' ? 'Sharing ✓' : 'Share my world with Zeref'}</button>
       {state === 'live' ? <button type="button" data-share-flip onClick={() => void flip()} title="Flip camera">🔄 {facing === 'user' ? 'front' : 'rear'}</button> : null}
     </div>
-    <div ref={pip} data-share-pip style={{ marginTop: state === 'live' ? 8 : 0 }} />
+    <div ref={pip} data-share-pip style={{ marginTop: state === 'live' ? 8 : 0, pointerEvents: 'auto' }} />
     <p style={{ margin: '6px 0 0', opacity: .85 }}>{status}</p>
     {state === 'live' && line ? <p style={{ margin: '4px 0 0' }}><small>{line}{estLine ? <><br />{estLine}</> : null}</small></p> : null}
   </aside>;
