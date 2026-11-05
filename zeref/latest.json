@@ -10,30 +10,30 @@
   "source_path": "/spark/ibm-moonwraith-cassette-kit-20261010.json",
   "source_class": "RECORDED_IBM_HARDWARE"
  },
- "tick": 514,
- "xp": 7895,
+ "tick": 515,
+ "xp": 7909,
  "stage": 4,
  "stage_name": "Void Moonwraith",
  "signals": {
-  "energy": 40,
+  "energy": 31,
   "signal": 49,
   "memory": 100,
-  "resonance": 87
+  "resonance": 86
  },
  "bond": 100,
  "care_total": 0,
  "places": {
-  "Rift Gate": 491,
+  "Rift Gate": 492,
   "Lattice Arch": 252,
   "Echo Prism": 552,
-  "Tidewell": 248,
+  "Tidewell": 249,
   "Quartz Choir": 202,
-  "Violet Shard": 371,
+  "Violet Shard": 373,
   "Selene Pool": 36
  },
- "last_tick_at": "2026-11-05T00:20:56.284Z",
- "last_entry_hash": "6e7230d085b6c567a36160d3085899830586dd0d7877eecec7164819fb4355cd",
- "universe_growth": 412,
+ "last_tick_at": "2026-11-05T01:02:16.417Z",
+ "last_entry_hash": "c2a0796c384d30ee1be026f8ae6fffce505bd614b4dce241f38a085c5506f89a",
+ "universe_growth": 413,
  "combos_total": 395,
  "next_stage": {
   "stage": 5,
@@ -44,18 +44,18 @@
   "cells_visited": 37,
   "cells_total": 40,
   "known_rifts": 3,
-  "moves_succeeded": 7486,
+  "moves_succeeded": 7499,
   "moves_blocked": 457,
-  "blocked_rate": 0.058,
+  "blocked_rate": 0.057,
   "favorite_spot": "Rift Gate",
   "favorite_value": 0.614,
   "prefs": {
    "explore": 0.05,
    "visit": 1,
-   "rest": 0.086,
+   "rest": 0.059,
    "play": 1
   },
-  "decisions": 4656,
+  "decisions": 4664,
   "label": "learned behaviour from its own experience, not consciousness"
  },
  "labels": {
@@ -71,6 +71,97 @@
   "source": "recorded hardware counts (birth seed, never re-run)"
  },
  "recent": [
+  {
+   "schema": "zeref-diary/v1",
+   "beast_id": "bb-7f9c2a03",
+   "tick": 515,
+   "at": "2026-11-05T01:02:16.417Z",
+   "hour_local": 19,
+   "timezone": "America/Chicago",
+   "signals": {
+    "energy": 31,
+    "signal": 49,
+    "memory": 100,
+    "resonance": 86
+   },
+   "bond": 100,
+   "mood": "sleepy",
+   "place": "Violet Shard",
+   "places_visited": [
+    "Rift Gate",
+    "Tidewell",
+    "Violet Shard"
+   ],
+   "discovered_combos": [],
+   "new_combo_count": 0,
+   "combos_total": 395,
+   "xp_gain": 14,
+   "xp": 7909,
+   "stage": 4,
+   "stage_name": "Void Moonwraith",
+   "grew": false,
+   "care": 0,
+   "birth_spark": {
+    "provider": "IBM Quantum",
+    "backend": "ibm_marrakesh",
+    "job_id": "db4te7slf4us73c3888g",
+    "source": "recorded hardware counts (birth seed, never re-run)"
+   },
+   "growth_source": {
+    "kind": "rigetti-qvm-simulated",
+    "simulated": true,
+    "provider": "azure-quantum/rigetti",
+    "target": "rigetti.sim.qvm",
+    "job_id": "b985049a-d8a3-11f1-8000-7ced8d836c65",
+    "job_name": "zeref-diary-tick-515-bb-7f9c2a03",
+    "shots": 256,
+    "counts": {
+     "101": 43,
+     "110": 41,
+     "111": 1,
+     "000": 3,
+     "001": 80,
+     "010": 83,
+     "011": 5
+    },
+    "counts_sha256": "6bb3eefde75001d290f33a8b4ffc56e8eb5fed0b2aabf4eb1271ff94c4cac243",
+    "circuit_params": {
+     "energy": 1.256637,
+     "signal": 1.53938,
+     "resonance": 2.733186
+    },
+    "quil_sha256": "c33307762676b25a837e73d3f5b2231eaa7daf47543ac3a3ae80ff14f763e631"
+   },
+   "learning": {
+    "new_cells": 0,
+    "moves_succeeded": 13,
+    "moves_blocked": 0,
+    "goals": {
+     "play": 3,
+     "rest": 1,
+     "visit": 4
+    },
+    "cells_visited": 37,
+    "cells_total": 40,
+    "known_rifts": 3,
+    "blocked_rate": 0.057,
+    "favorite_spot": "Rift Gate",
+    "prefs": {
+     "explore": 0.05,
+     "visit": 1,
+     "rest": 0.059,
+     "play": 1
+    },
+    "label": "learned behaviour from its own experience, not consciousness"
+   },
+   "universe_growth": 413,
+   "thought": {
+    "text": "I'm Zeref and there is a beautiful beast of Suben Halley, who is the most important to be the domestial weather about the famous fiction.",
+    "by": "rawrphos-native:step-36464 (raw model output, unedited)"
+   },
+   "prev_hash": "6e7230d085b6c567a36160d3085899830586dd0d7877eecec7164819fb4355cd",
+   "hash": "c2a0796c384d30ee1be026f8ae6fffce505bd614b4dce241f38a085c5506f89a"
+  },
   {
    "schema": "zeref-diary/v1",
    "beast_id": "bb-7f9c2a03",
@@ -1068,101 +1159,8 @@
    },
    "prev_hash": "124a6fc5e3e53b0474ea5ac9d2d84510cb7b275f08c0844ca0affc777eec585e",
    "hash": "444925d5492066e6665591301b46824f62d11b405742961f7c43a18f206d7be0"
-  },
-  {
-   "schema": "zeref-diary/v1",
-   "beast_id": "bb-7f9c2a03",
-   "tick": 503,
-   "at": "2026-11-04T17:35:50.968Z",
-   "hour_local": 11,
-   "timezone": "America/Chicago",
-   "signals": {
-    "energy": 82,
-    "signal": 49,
-    "memory": 100,
-    "resonance": 94
-   },
-   "bond": 100,
-   "mood": "content",
-   "place": "Rift Gate",
-   "places_visited": [
-    "Rift Gate"
-   ],
-   "discovered_combos": [
-    {
-     "key": "sleep|still|open-pocket|folded|sway|closed|smile",
-     "name": "sleep · folded wings · sway tail · closed eyes · smile mouth in the open pocket"
-    }
-   ],
-   "new_combo_count": 1,
-   "combos_total": 393,
-   "xp_gain": 16,
-   "xp": 7737,
-   "stage": 4,
-   "stage_name": "Void Moonwraith",
-   "grew": false,
-   "care": 0,
-   "birth_spark": {
-    "provider": "IBM Quantum",
-    "backend": "ibm_marrakesh",
-    "job_id": "db4te7slf4us73c3888g",
-    "source": "recorded hardware counts (birth seed, never re-run)"
-   },
-   "growth_source": {
-    "kind": "rigetti-qvm-simulated",
-    "simulated": true,
-    "provider": "azure-quantum/rigetti",
-    "target": "rigetti.sim.qvm",
-    "job_id": "5b66a4b0-d865-11f1-8000-7c1e52ee3164",
-    "job_name": "zeref-diary-tick-503-bb-7f9c2a03",
-    "shots": 256,
-    "counts": {
-     "100": 1,
-     "101": 128,
-     "110": 112,
-     "001": 11,
-     "010": 4
-    },
-    "counts_sha256": "ce7365a705ec1b13eb5999fdfd36e93f34680b32a3c0889d70748b498a1d0a4f",
-    "circuit_params": {
-     "energy": 2.638938,
-     "signal": 1.53938,
-     "resonance": 2.984513
-    },
-    "quil_sha256": "9263bc7a4e18a3ceb82cb9a629de08f692c611cc39022882c389e7e3d3b100e2"
-   },
-   "learning": {
-    "new_cells": 0,
-    "moves_succeeded": 14,
-    "moves_blocked": 0,
-    "goals": {
-     "explore": 1,
-     "play": 7,
-     "rest": 1,
-     "visit": 1
-    },
-    "cells_visited": 37,
-    "cells_total": 40,
-    "known_rifts": 3,
-    "blocked_rate": 0.057,
-    "favorite_spot": "Echo Prism",
-    "prefs": {
-     "explore": 0.05,
-     "visit": 1,
-     "rest": 0.05,
-     "play": 1
-    },
-    "label": "learned behaviour from its own experience, not consciousness"
-   },
-   "universe_growth": 401,
-   "thought": {
-    "text": "Not Rawnedhe is a tiny one, every day. I have an universe and can be very small, so you will not touch it or you're in it?\" Reedners sound was a little pit, but",
-    "by": "rawrphos-native:step-36144 (raw model output, unedited)"
-   },
-   "prev_hash": "91b070ea887ce2f80ddf0fd6c1be5865cfe88061a6cb2c607bacca6a440d62ed",
-   "hash": "124a6fc5e3e53b0474ea5ac9d2d84510cb7b275f08c0844ca0affc777eec585e"
   }
  ],
- "generated_at": "2026-11-05T00:20:56.284Z",
+ "generated_at": "2026-11-05T01:02:16.417Z",
  "thought_source_note": "rawrphos-ok"
 }
