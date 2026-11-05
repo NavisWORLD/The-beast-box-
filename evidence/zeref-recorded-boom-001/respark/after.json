@@ -1,0 +1,120 @@
+{
+ "captured_at": "2026-10-31T17:44:35.901451-05:00",
+ "site": "https://www.beastboxcosmos.xyz",
+ "spark": {
+  "heart_seed_v9_sha256": "dafd7608647cc187cd0fbe39bacbe1ced91bc22cf271a03f7e4c14c261219786",
+  "heart_seed_latest": {
+   "evidence": "evidence/zeref-recorded-boom-001",
+   "heart_seed_sha256": "7ef858c5a2e194c829b6eddf74275bbe925f14cdf07ee54c62be66e7bbd79154",
+   "jobs_per_device": {
+    "ibm_fez": 1479,
+    "ibm_kingston": 295,
+    "ibm_marrakesh": 322,
+    "ibm_torino": 6
+   },
+   "label": "RECORDED-derived (offline, from already-recorded IBM hardware results; not a new quantum measurement)",
+   "previous_heart_seed_v9_sha256": "dafd7608647cc187cd0fbe39bacbe1ced91bc22cf271a03f7e4c14c261219786",
+   "recorded_ibm_unique_jobs": 2102,
+   "version": 10
+  },
+  "ibm_job": "dbffvhvgdj9s73bbj940"
+ },
+ "world_live": {
+  "ok": true,
+  "schema": "beast-world-live/v1",
+  "at_ms": 1793486675510,
+  "links": {
+   "spark": {
+    "state": "CONNECTED",
+    "label": "Rigetti SIMULATED (rigetti.sim.qvm, not a QPU)",
+    "tick": 11116,
+    "age_s": 35,
+    "last_ok_tick": 11116,
+    "last_ok_age_s": 35,
+    "status": "ok",
+    "late": false,
+    "consecutive_failures": 0,
+    "interval_target_s": 60,
+    "counts_sha256": "d9579d6005a67d93bed16296aaedfb6a9bf250f506760b01b6949b60b94729ce",
+    "features": {
+     "p0": 0.0234,
+     "p1": 0.0547,
+     "p2": 0.1289,
+     "odd": 0.1211,
+     "entropy": 0.2684,
+     "shots": 256
+    },
+    "stale_after_s": 180
+   },
+   "liveTick": {
+    "state": "CONNECTED",
+    "label": "SIMULATED (per-second tick, deterministic)",
+    "recorded_tick": 361,
+    "seconds_since_recorded": 1198,
+    "xp_live": 5822.4945,
+    "signals": {
+     "energy": 56.48,
+     "signal": 53.59,
+     "memory": 100,
+     "resonance": 97.14
+    },
+    "batch_age_s": 325,
+    "batch_s": 600,
+    "stale_after_s": 1500
+   },
+   "diary": {
+    "state": "CONNECTED",
+    "label": "RECORDED (hash-chained diary; its growth circuit is Rigetti SIMULATED)",
+    "tick": 361,
+    "age_s": 1523,
+    "cadence_s": 1800,
+    "stale_after_s": 5400
+   },
+   "brain": {
+    "state": "CONNECTED",
+    "label": "RAWRPHØS pinned checkpoint (a 12D model simulation; not a claim of awareness)",
+    "step": 35504,
+    "checkpoint_sha256_prefix": "badfe6bd918b",
+    "source": "PIN (reviewed promotion PR; the host reports the same step to /api/guest)",
+    "changes_only_by": "a reviewed promotion that passes Gate v2"
+   }
+  },
+  "drive": {
+   "source": "spark",
+   "label": "SIMULATED",
+   "tick": 11116,
+   "p0": 0.0234,
+   "p1": 0.0547,
+   "p2": 0.1289,
+   "odd": 0.1211,
+   "entropy": 0.2684
+  },
+  "all_connected": true,
+  "labels": {
+   "spark": "SIMULATED",
+   "liveTick": "SIMULATED",
+   "diary": "RECORDED",
+   "brain": "PINNED"
+  }
+ },
+ "diary_head": {
+  "ok": true,
+  "source": "zeref-diary branch (GitHub Actions loop)",
+  "verified": true,
+  "schema": "zeref-diary/v1",
+  "identity": {
+   "beast_id": "bb-7f9c2a03",
+   "name": "Zeref",
+   "title": "Moonwraith",
+   "recorded_digest": "2b46bb2e3594ae7c3bd562fe37419bd893234f7e54a0300e53599e6b7a96c3e4",
+   "backend": "ibm_marrakesh",
+   "job_id": "db4te7slf4us73c3888g",
+   "source_path": "/spark/ibm-moonwraith-cassette-kit-20261010.json",
+   "source_class": "RECORDED_IBM_HARDWARE"
+  },
+  "tick": 361,
+  "xp": 5817,
+  "stage": 4
+ },
+ "world_line": "Your world now: at Echo Prism (RECORDED diary); mood exploring (SIMULATED); energy 56 resonance 97 (SIMULATED); Rigetti tick 11116 entropy 0.27 (SIMULATED); stage Void Moonwraith."
+}
