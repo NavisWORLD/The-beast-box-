@@ -1,5 +1,5 @@
 import test from 'node:test';import assert from 'node:assert/strict';import {readFileSync} from 'node:fs';
-import {buildWorldLive,countsFeatures,linkState,ageSeconds,STALE_AFTER_S,WORLD_LIVE_LABELS} from '../lib/zeref/world-live.mjs';
+import {buildWorldLive,countsFeatures,linkState,ageSeconds,STALE_AFTER_S,WORLD_LIVE_LABELS,branchRelPath,tipRelPath,parseTipSha,pickFresherSpark,sparkNeedsTipReread,WORLD_LIVE_PATHS} from '../lib/zeref/world-live.mjs';
 const NOW=Date.parse('2026-10-25T17:34:00Z');
 const spark=(over={})=>({beast_id:'bb-deada969',simulated:true,tick:2272,status:'ok',late:false,consecutive_failures:0,interval_target_s:60,at_epoch:(NOW-55000)/1000,
  counts_sha256:'a'.repeat(64),last_ok:{tick:2272,at_epoch:(NOW-55000)/1000,counts:{'000':199,'001':40,'010':3,'011':9,'100':1,'110':1,'111':3}},...over});
@@ -14,10 +14,12 @@ test('every loop fresh -> all CONNECTED, labels stay SIMULATED / RECORDED / pinn
  assert.match(WORLD_LIVE_LABELS.spark,/not a QPU/);assert.equal(w.links.brain.step,32304);assert.equal(w.links.brain.checkpoint_sha256_prefix,'e60c84cd4673');
  assert.equal(w.drive.label,'SIMULATED');assert.equal(w.drive.tick,2272);
  for(const k of ['p0','p1','p2','odd','entropy']){assert.ok(w.drive[k]>=0&&w.drive[k]<=1,k);}
+ assert.equal(w.stalls,null);
 });
 test('a 3-hour-old recorded diary is STALE (what the audit found), not CONNECTED; the rest are unaffected',()=>{
  const w=buildWorldLive({spark:spark(),liveTick:live,liveHead:head,diary:{...diary,last_tick_at:'2026-10-25T14:22:44Z'},pin,nowMs:NOW});
  assert.equal(w.links.diary.state,'STALE');assert.equal(w.links.spark.state,'CONNECTED');assert.equal(w.all_connected,false);
+ assert.equal(w.links.diary.stall.cause,'source_age');
 });
 test('a stale or failing spark stops driving the world and is never refilled',()=>{
  const old=buildWorldLive({spark:spark({at_epoch:(NOW-600000)/1000}),liveTick:live,liveHead:head,diary,pin,nowMs:NOW});
@@ -54,4 +56,66 @@ test('UI: polls only while visible, shows STALE/DOWN honestly, broadcasts the sp
  assert.match(ui,/if\(!document\.hidden\)void load\(\)/);assert.match(ui,/beastbox:world-live/);assert.match(ui,/SIMULATED/);assert.match(ui,/RECORDED/);assert.doesNotMatch(ui,/Math\.random/);
  assert.match(readFileSync(new URL('../components/zeref-diary-panel.tsx',import.meta.url),'utf8'),/<WorldLiveLinks\/>/);
  const arena=readFileSync(new URL('../components/spark-beast-arena.tsx',import.meta.url),'utf8');assert.match(arena,/addEventListener\('beastbox:world-live'/);assert.match(arena,/removeEventListener\('beastbox:world-live'/);
+});
+
+test('STALE/DOWN spark carries a stall receipt (age + cause); CONNECTED has none',()=>{
+ const stale=buildWorldLive({spark:spark({at_epoch:(NOW-600000)/1000}),liveTick:live,liveHead:head,diary:{...diary,last_tick_at:'2026-10-25T17:10:00Z'},pin,nowMs:NOW});
+ assert.equal(stale.links.spark.state,'STALE');
+ assert.equal(stale.links.spark.stall.cause,'source_age');
+ assert.equal(stale.links.spark.stall.stale_after_s,STALE_AFTER_S.spark);
+ assert.ok(stale.links.spark.stall.age_s>STALE_AFTER_S.spark);
+ assert.equal(stale.stalls.spark.cause,'source_age');
+ assert.equal(stale.all_connected,false);
+ const down=buildWorldLive({spark:null,liveTick:live,liveHead:head,diary:{...diary,last_tick_at:'2026-10-25T17:10:00Z'},pin,nowMs:NOW});
+ assert.equal(down.links.spark.state,'DOWN');assert.equal(down.links.spark.stall.cause,'missing');
+ const failed=buildWorldLive({spark:spark({status:'failed',at_epoch:(NOW-600000)/1000,consecutive_failures:2,last_ok:{tick:2269,at_epoch:(NOW-3600000)/1000,counts:{'000':256}}}),liveTick:live,liveHead:head,diary:{...diary,last_tick_at:'2026-10-25T17:10:00Z'},pin,nowMs:NOW});
+ assert.equal(failed.links.spark.stall.cause,'failed_status');
+ const ok=buildWorldLive({spark:spark(),liveTick:live,liveHead:head,diary:{...diary,last_tick_at:'2026-10-25T17:10:00Z'},pin,nowMs:NOW});
+ assert.equal(ok.links.spark.stall,undefined);assert.equal(ok.stalls,null);
+});
+
+test('sparkNeedsTipReread: past one interval (or missing) asks for tip; fresh does not',()=>{
+ assert.equal(sparkNeedsTipReread(null,NOW),true);
+ assert.equal(sparkNeedsTipReread(spark({at_epoch:(NOW-55000)/1000}),NOW),false);
+ assert.equal(sparkNeedsTipReread(spark({at_epoch:(NOW-90000)/1000}),NOW),true);
+ assert.equal(sparkNeedsTipReread(spark({interval_target_s:60,at_epoch:(NOW-61000)/1000}),NOW),true);
+});
+
+test('tip path helpers + parseTipSha: only real 40-char shas; branch paths stay exact',()=>{
+ assert.equal(branchRelPath('zeref-spark','zeref/latest.json'),'zeref-spark/zeref/latest.json');
+ assert.equal(tipRelPath('deadbeef','zeref/latest.json'),null);
+ const sha='a'.repeat(40);
+ assert.equal(tipRelPath(sha,'zeref/latest.json'),sha+'/zeref/latest.json');
+ assert.equal(parseTipSha([{sha}]),sha);
+ assert.equal(parseTipSha({sha}),sha);
+ assert.equal(parseTipSha([{sha:'nope'}]),null);
+ assert.equal(parseTipSha(null),null);
+ assert.equal(WORLD_LIVE_PATHS.spark.file,'zeref/latest.json');
+});
+
+test('pickFresherSpark: chain continuity across a stall — prefers the younger REAL record, never invents ticks',()=>{
+ const older=spark({tick:19346,at_epoch:(NOW-200000)/1000});
+ const newer=spark({tick:19350,at_epoch:(NOW-30000)/1000,last_ok:{tick:19350,at_epoch:(NOW-30000)/1000,counts:{'000':256}}});
+ assert.equal(pickFresherSpark(older,newer,NOW).tick,19350);
+ assert.equal(pickFresherSpark(newer,older,NOW).tick,19350);
+ assert.equal(pickFresherSpark(older,null,NOW).tick,19346);
+ assert.equal(pickFresherSpark(null,newer,NOW).tick,19350);
+ assert.equal(pickFresherSpark(null,null,NOW),null);
+ assert.equal(pickFresherSpark({...newer,beast_id:'bb-7f9c2a03'},older,NOW).tick,19346);
+ assert.equal(pickFresherSpark({...newer,simulated:false},null,NOW),null);
+ const a=spark({tick:10,at_epoch:(NOW-10000)/1000});
+ const b=spark({tick:11,at_epoch:(NOW-10000)/1000});
+ assert.equal(pickFresherSpark(a,b,NOW).tick,11);
+});
+
+test('route recovery: tip refetch + stall log + no secrets; UI shows stall cause',()=>{
+ const strip=f=>readFileSync(new URL(f,import.meta.url),'utf8').replace(/\/\*[^]*?\*\//g,'').replace(/\/\/.*$/gm,'');
+ const route=strip('../app/api/world/live/route.ts');
+ assert.match(route,/sparkNeedsTipReread/);assert.match(route,/pickFresherSpark/);assert.match(route,/tipRelPath|tipJson/);
+ assert.match(route,/\[world-live\] stall/);
+ assert.match(route,/export const dynamic='force-dynamic'/);assert.match(route,/no-store/);
+ assert.doesNotMatch(route,/process\.env|Authorization|token/i);
+ for(const b of ['zeref-spark/zeref/latest.json','zeref-live-tick/live/latest.json','zeref-live-tick/live/head.json','zeref-diary/zeref/latest.json'])assert.ok(route.includes(b),b);
+ const ui=readFileSync(new URL('../components/world-live-links.tsx',import.meta.url),'utf8');
+ assert.match(ui,/stall \$\{spark\.stall\.cause\}/);
 });

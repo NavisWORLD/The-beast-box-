@@ -45,9 +45,9 @@ export default function WorldLiveLinks(){
  return <div className={styles.live} data-world-live={w.all_connected?'connected':'partial'} data-spark-tick={spark.tick??''}>
   <p className={styles.liveHead}>WORLD LINKS · {w.all_connected?'ALL CONNECTED':'CHECK BELOW'}</p>
   <ul style={{listStyle:'none',margin:0,padding:0,fontSize:12,lineHeight:1.7,color:'#cfd7f2'}}>
-   <Row id="spark" name="Rigetti spark" l={spark} detail={`tick ${spark.tick??'—'} · ${fmt(spark.age_s)} · SIMULATED`}/>
-   <Row id="live-tick" name="Per-second tick" l={liveTick} detail={`tick ${liveTick.recorded_tick??'—'} · saved ${fmt(liveTick.batch_age_s)} · SIMULATED`}/>
-   <Row id="diary" name="Recorded diary" l={diary} detail={`tick ${diary.tick??'—'} · ${fmt(diary.age_s)} · RECORDED`}/>
+   <Row id="spark" name="Rigetti spark" l={spark} detail={`tick ${spark.tick??'—'} · ${fmt(spark.age_s)} · SIMULATED${spark.stall?` · stall ${spark.stall.cause}`:''}`}/>
+   <Row id="live-tick" name="Per-second tick" l={liveTick} detail={`tick ${liveTick.recorded_tick??'—'} · saved ${fmt(liveTick.batch_age_s)} · SIMULATED${liveTick.stall?` · stall ${liveTick.stall.cause}`:''}`}/>
+   <Row id="diary" name="Recorded diary" l={diary} detail={`tick ${diary.tick??'—'} · ${fmt(diary.age_s)} · RECORDED${diary.stall?` · stall ${diary.stall.cause}`:''}`}/>
    <Row id="brain" name="Brain (RAWRPHØS)" l={brain} detail={`step ${brain.step??'—'} · ${brain.checkpoint_sha256_prefix??''}… · pinned`}/>
   </ul>
   <p className={styles.small}>Rigetti is a simulator, never a QPU; the IBM birth spark is RECORDED. Nothing is filled in when a loop is late.</p>
