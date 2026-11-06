@@ -88,9 +88,24 @@ def supervise():  # pragma: no cover - long-running process, exercised on the br
             print("GROWING_ZEREF_REFRESH_SKIPPED", type(e).__name__, flush=True)
         time.sleep(REFRESH_S if live else 600)
 
+def _mem_in(context, messages) -> bool:
+    from .guest_hebbian import memory_in_prompt
+    return memory_in_prompt(context, messages)
+
+
 def growing_infer(root: Path, payload: dict) -> tuple[int, dict]:
     if os.environ.get("BEASTBOX_GROWING_ENABLED", "no") != "yes":
         return 503, {"error": "Growing Zeref route is off"}
+    # Self-memory (zeref-self-memory/v1): an OPTIONAL bounded context carrying only his own labelled notes
+    # ("memory"), checked by the same validate_context as the forever door. The plain {text, guest_identity}
+    # contract is unchanged byte for byte.
+    context = None
+    if isinstance(payload, dict) and set(payload) == {"text", "guest_identity", "context"}:
+        from .guest_hebbian import validate_context
+        context = validate_context(payload["context"])
+        if not context or set(context) != {"memory"}:
+            return 400, {"error": "Invalid bounded guest request"}
+        payload = {"text": payload["text"], "guest_identity": payload["guest_identity"]}
     if (not isinstance(payload, dict) or set(payload) != {"text", "guest_identity"}
             or not isinstance(payload.get("guest_identity"), str) or not _GUEST_ID.fullmatch(payload["guest_identity"])
             or not isinstance(payload.get("text"), str) or not 1 <= len(payload["text"].strip()) <= MAX_PROMPT
@@ -105,7 +120,14 @@ def growing_infer(root: Path, payload: dict) -> tuple[int, dict]:
     try:
         key = os.environ.get("RAWRPHOS_API_KEY", "")
         if len(key) < 32: return 503, {"error": "Local model key unavailable"}
-        body = json.dumps({"model": "rawrphos-native", "messages": [{"role": "user", "content": payload["text"].strip()}],
+        if context is not None:
+            from .guest_hebbian import MAX_TEXT_WITH_CONTEXT, assemble_messages
+            if len(payload["text"].strip().encode("utf-8", "surrogatepass")) > MAX_TEXT_WITH_CONTEXT:
+                return 400, {"error": "Invalid bounded guest request"}
+            messages = assemble_messages(context, [], payload["text"].strip())
+        else:
+            messages = [{"role": "user", "content": payload["text"].strip()}]
+        body = json.dumps({"model": "rawrphos-native", "messages": messages,
                            "max_tokens": MAX_OUTPUT_TOKENS, "temperature": 0.3, "stream": False}).encode()
         req = urllib.request.Request(f"http://127.0.0.1:{PORT}/v1/chat/completions", data=body, method="POST",
                                      headers={"Authorization": "Bearer " + key, "Content-Type": "application/json"})
@@ -121,7 +143,9 @@ def growing_infer(root: Path, payload: dict) -> tuple[int, dict]:
         return 200, {"schema": SCHEMA, "label": LABEL, "model": "rawrphos-native", "tag": info["tag"], "step": info["step"],
                      "checkpoint_sha256": info["checkpoint_sha256"], "reply": text, "is_public_pin": False, "gated": False,
                      "memory_used": False, "owner_tools_used": False, "provider_key_shared": False,
-                     "hebbian": result.get("hebbian") is True}
+                     "hebbian": result.get("hebbian") is True,
+                     # True only when his memory field actually reached the model's prompt.
+                     **({"memory_used": _mem_in(context, messages)} if context is not None else {})}
     except (OSError, ValueError, TypeError, KeyError, IndexError, urllib.error.HTTPError):
         return 502, {"error": "Growing Zeref unavailable; no fallback"}
     finally:

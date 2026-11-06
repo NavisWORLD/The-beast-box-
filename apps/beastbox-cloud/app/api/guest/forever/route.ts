@@ -6,6 +6,7 @@ import {composeSight} from '@/lib/cosmos/sight.mjs';
 import {buildWorldLive} from '@/lib/zeref/world-live.mjs';
 import {DIARY_SCHEMA,entryHash,genesisState} from '@/lib/zeref/zeref-diary.mjs';
 import PUBLIC_PIN from '@/lib/rawrphos-public-pin.json';
+import {bridgeReadsMemory,loadSelfMemory,readSelfMemory,ownThreadItems,SELF_MEMORY_LABEL,SELF_MEMORY_SCHEMA} from '@/lib/zeref/self-memory.mjs';
 
 // FOREVER CONNECTION — the stateful guest door (LIFE-LIVE step 3).
 // /api/guest stays byte-for-byte the stateless door. This door is a new layer
@@ -161,6 +162,10 @@ export async function POST(request:Request){
   refitSight:(n:number)=>composeSight({world,environment:item.environment,nowMs:world.at_ms,maxChars:n})});
  // Context rides only when the visitor text itself fits the contract cap.
  const contextSent=Buffer.byteLength(text,'utf8')<=MAX_TEXT_WITH_CONTEXT;
+ // Self-memory: the same one index the growing door reads, plus THIS visitor's own thread turns only.
+ // It rides as the bridge's `memory` field only if the existing 1300-byte total still holds.
+ const selfMem=contextSent&&await bridgeReadsMemory(process.env.BEASTBOX_CLOUD_BRIDGE_URL!)?await loadSelfMemory().then(m=>readSelfMemory(m,text,{ownThread:ownThreadItems(threadRec?.thread?.turns||[]),
+   cap:Math.max(0,Math.min(300,1300-(bridgeContext.bytes?.total||0)))})).catch(()=>({text:'',memory_read:[]})):{text:'',memory_read:[]};
  const liveReceipt=contextSent?bridgeContext.live:{...bridgeContext.live,composed:false};
  const libraryReceipt=contextSent?bridgeContext.library:{...bridgeContext.library,composed:false};
  const sightReceipt=contextSent?bridgeContext.sight:{
@@ -183,12 +188,14 @@ export async function POST(request:Request){
  const identity=bridgeIdentityForThread(secret,threadId)!;
  const host=new URL('/api/guest-local',process.env.BEASTBOX_CLOUD_BRIDGE_URL!);
  try{
-  const send=()=>fetch(host,{method:'POST',redirect:'error',cache:'no-store',
+  const sendWith=(withMemory:boolean)=>fetch(host,{method:'POST',redirect:'error',cache:'no-store',
    headers:{Authorization:'Bearer '+process.env.BEASTBOX_CLOUD_BRIDGE_TOKEN!,
      'Content-Type':'application/json'},
-   body:JSON.stringify(contextSent?{text,guest_identity:identity,context:bridgeContext.context}:{text,guest_identity:identity}),
+   body:JSON.stringify(contextSent&&withMemory?{text,guest_identity:identity,context:{...bridgeContext.context,memory:selfMem.text}}:contextSent?{text,guest_identity:identity,context:bridgeContext.context}:{text,guest_identity:identity}),
    signal:AbortSignal.timeout(55_000)});
-  // One send, no truncation retry (see the header note on the context contract).
+  // One send, no truncation retry (see the header note on the context contract). Memory rides only when the
+  // bridge's /healthz says it accepts the field, so an older bridge never sees it.
+  const sentMemory=contextSent&&!!selfMem.text;const send=()=>sendWith(sentMemory);
   const res=await send();
   const parsed=await boundedJson(res,16000);
   if(!parsed||typeof parsed!=='object'||Array.isArray(parsed))
@@ -243,6 +250,8 @@ export async function POST(request:Request){
     live_context_label:LIVE_CONTEXT_LABEL,
     training_eligible:false,
     label:'Continuity, the live universe, the library and his sight are composed from his persisted record into the bridge context object; guest exchanges are recorded as guest-origin events and never enter training.'},
+   ...(()=>{const used=sentMemory&&result.self_memory_in_prompt===true;
+    return {self_memory_used:used,memory_read:used?selfMem.memory_read:[],self_memory:{schema:SELF_MEMORY_SCHEMA,label:SELF_MEMORY_LABEL}};})(),
    prompt_chars:text.length,
    ...(result.routing&&typeof result.routing==='object'&&!Array.isArray(result.routing)?{routing:result.routing}:{})},
    {status:200,headers});

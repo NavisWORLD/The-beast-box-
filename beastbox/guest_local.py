@@ -27,8 +27,8 @@ import urllib.error
 import urllib.request
 
 from .guest_hebbian import (MAX_TEXT_WITH_CONTEXT, GuestHebbianStore,
-                            assemble_messages, guest_key, persist_enabled,
-                            validate_context)
+                            assemble_messages, guest_key, memory_in_prompt,
+                            persist_enabled, validate_context)
 from .providers import _local_opener
 from .rawrphos_local import MODEL, SHA, STEP, status as native_status
 
@@ -330,7 +330,10 @@ def guest_local_infer(root: Path, payload: dict, *, owner_jobs_busy: bool = Fals
                                           "stored_turns": stored_turns if stored_turns is not None else len(history),
                                           "training_eligible": False}} if persisted else {}),
                      "state_mode": result.get("state_mode") if result.get("state_mode") in ("dyn12", "tri") else None,
-                     "owner_tools_used": False, "provider_key_shared": False}
+                     "owner_tools_used": False, "provider_key_shared": False,
+                     # Self-memory receipt: present only when the site sent a memory field (others unchanged).
+                     **({"self_memory_in_prompt": memory_in_prompt(context, messages)}
+                        if context and context.get("memory") else {})}
     except (OSError, TimeoutError, ValueError, TypeError, KeyError, IndexError, urllib.error.HTTPError):
         return 502, {"error": "Native guest inference unavailable; no fallback"}
     finally:
