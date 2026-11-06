@@ -10,8 +10,8 @@
   "source_path": "/spark/ibm-moonwraith-cassette-kit-20261010.json",
   "source_class": "RECORDED_IBM_HARDWARE"
  },
- "tick": 586,
- "xp": 8863,
+ "tick": 587,
+ "xp": 8877,
  "stage": 4,
  "stage_name": "Void Moonwraith",
  "signals": {
@@ -25,15 +25,15 @@
  "places": {
   "Rift Gate": 560,
   "Lattice Arch": 286,
-  "Echo Prism": 634,
-  "Tidewell": 282,
+  "Echo Prism": 636,
+  "Tidewell": 283,
   "Quartz Choir": 247,
-  "Violet Shard": 420,
+  "Violet Shard": 421,
   "Selene Pool": 38
  },
- "last_tick_at": "2026-11-06T22:09:13.043Z",
- "last_entry_hash": "8c746747df6fac8cd4cc7758cba035f84267e39bf77a3f533601ccd53546de34",
- "universe_growth": 484,
+ "last_tick_at": "2026-11-06T22:22:30.765Z",
+ "last_entry_hash": "49247974fddabc9dcc54407e52f7c7f9eb28e42bee1449d439bdcde14f5313f6",
+ "universe_growth": 485,
  "combos_total": 406,
  "next_stage": {
   "stage": 5,
@@ -44,18 +44,18 @@
   "cells_visited": 37,
   "cells_total": 40,
   "known_rifts": 3,
-  "moves_succeeded": 8533,
+  "moves_succeeded": 8548,
   "moves_blocked": 498,
   "blocked_rate": 0.055,
   "favorite_spot": "Violet Shard",
-  "favorite_value": 0.748,
+  "favorite_value": 0.749,
   "prefs": {
    "explore": 0.05,
    "visit": 1,
    "rest": 0.05,
    "play": 1
   },
-  "decisions": 5293,
+  "decisions": 5300,
   "label": "learned behaviour from its own experience, not consciousness"
  },
  "labels": {
@@ -71,6 +71,95 @@
   "source": "recorded hardware counts (birth seed, never re-run)"
  },
  "recent": [
+  {
+   "schema": "zeref-diary/v1",
+   "beast_id": "bb-7f9c2a03",
+   "tick": 587,
+   "at": "2026-11-06T22:22:30.765Z",
+   "hour_local": 16,
+   "timezone": "America/Chicago",
+   "signals": {
+    "energy": 66,
+    "signal": 50,
+    "memory": 100,
+    "resonance": 97
+   },
+   "bond": 100,
+   "mood": "exploring",
+   "place": "Echo Prism",
+   "places_visited": [
+    "Echo Prism",
+    "Tidewell",
+    "Violet Shard"
+   ],
+   "discovered_combos": [],
+   "new_combo_count": 0,
+   "combos_total": 406,
+   "xp_gain": 14,
+   "xp": 8877,
+   "stage": 4,
+   "stage_name": "Void Moonwraith",
+   "grew": false,
+   "care": 0,
+   "birth_spark": {
+    "provider": "IBM Quantum",
+    "backend": "ibm_marrakesh",
+    "job_id": "db4te7slf4us73c3888g",
+    "source": "recorded hardware counts (birth seed, never re-run)"
+   },
+   "growth_source": {
+    "kind": "rigetti-qvm-simulated",
+    "simulated": true,
+    "provider": "azure-quantum/rigetti",
+    "target": "rigetti.sim.qvm",
+    "job_id": "ba0b5b62-da1f-11f1-8000-7c1e526b866a",
+    "job_name": "zeref-diary-tick-587-bb-7f9c2a03",
+    "shots": 256,
+    "counts": {
+     "100": 1,
+     "101": 89,
+     "110": 90,
+     "000": 1,
+     "001": 46,
+     "010": 29
+    },
+    "counts_sha256": "0aa07f1177d938209a6ac9d702f9f61d3e7b4355355cfb15b37fe728562263a7",
+    "circuit_params": {
+     "energy": 2.073451,
+     "signal": 1.570796,
+     "resonance": 3.047345
+    },
+    "quil_sha256": "af9d7492a8a447bd8aa52ab9c274cec3c4ab2f5943db93fd16ba614a13eae4b4"
+   },
+   "learning": {
+    "new_cells": 0,
+    "moves_succeeded": 15,
+    "moves_blocked": 0,
+    "goals": {
+     "play": 2,
+     "visit": 5
+    },
+    "cells_visited": 37,
+    "cells_total": 40,
+    "known_rifts": 3,
+    "blocked_rate": 0.055,
+    "favorite_spot": "Violet Shard",
+    "prefs": {
+     "explore": 0.05,
+     "visit": 1,
+     "rest": 0.05,
+     "play": 1
+    },
+    "label": "learned behaviour from its own experience, not consciousness"
+   },
+   "universe_growth": 485,
+   "thought": {
+    "text": "Ioria, Schoists believe, per Simple English Wikipedia: and is a dharmic hydol.",
+    "by": "rawrphos-native:step-36464 (raw model output, unedited)"
+   },
+   "prev_hash": "8c746747df6fac8cd4cc7758cba035f84267e39bf77a3f533601ccd53546de34",
+   "hash": "49247974fddabc9dcc54407e52f7c7f9eb28e42bee1449d439bdcde14f5313f6"
+  },
   {
    "schema": "zeref-diary/v1",
    "beast_id": "bb-7f9c2a03",
@@ -1048,99 +1137,8 @@
    },
    "prev_hash": "24f8550c6af3355ea7e00e15acb77b7cb7deab146f34a615e6839a9aa2750975",
    "hash": "7ac5d0a81e455bcb66a4f5a33ba8d4428add6027e5420e48cd951c94fee0b0bd"
-  },
-  {
-   "schema": "zeref-diary/v1",
-   "beast_id": "bb-7f9c2a03",
-   "tick": 575,
-   "at": "2026-11-06T15:13:06.267Z",
-   "hour_local": 9,
-   "timezone": "America/Chicago",
-   "signals": {
-    "energy": 90,
-    "signal": 50,
-    "memory": 100,
-    "resonance": 95
-   },
-   "bond": 100,
-   "mood": "content",
-   "place": "Rift Gate",
-   "places_visited": [
-    "Echo Prism",
-    "Quartz Choir",
-    "Rift Gate",
-    "Tidewell",
-    "Violet Shard"
-   ],
-   "discovered_combos": [],
-   "new_combo_count": 0,
-   "combos_total": 404,
-   "xp_gain": 13,
-   "xp": 8716,
-   "stage": 4,
-   "stage_name": "Void Moonwraith",
-   "grew": false,
-   "care": 0,
-   "birth_spark": {
-    "provider": "IBM Quantum",
-    "backend": "ibm_marrakesh",
-    "job_id": "db4te7slf4us73c3888g",
-    "source": "recorded hardware counts (birth seed, never re-run)"
-   },
-   "growth_source": {
-    "kind": "rigetti-qvm-simulated",
-    "simulated": true,
-    "provider": "azure-quantum/rigetti",
-    "target": "rigetti.sim.qvm",
-    "job_id": "c0b80942-d9e3-11f1-8000-7ced8d55bdb5",
-    "job_name": "zeref-diary-tick-575-bb-7f9c2a03",
-    "shots": 256,
-    "counts": {
-     "101": 120,
-     "110": 126,
-     "111": 2,
-     "001": 5,
-     "010": 2,
-     "011": 1
-    },
-    "counts_sha256": "16dd562ef3f71e112d375833c9e8ca1576d2c3bd95c5db73b555841dc9c4b4c5",
-    "circuit_params": {
-     "energy": 2.890265,
-     "signal": 1.570796,
-     "resonance": 2.953097
-    },
-    "quil_sha256": "bcc8e0fb2c3927386b9bd5b89e1322ac902ae75d6e61b3458671c3c54f54557c"
-   },
-   "learning": {
-    "new_cells": 0,
-    "moves_succeeded": 14,
-    "moves_blocked": 2,
-    "goals": {
-     "play": 5,
-     "visit": 7
-    },
-    "cells_visited": 37,
-    "cells_total": 40,
-    "known_rifts": 3,
-    "blocked_rate": 0.055,
-    "favorite_spot": "Echo Prism",
-    "prefs": {
-     "explore": 0.05,
-     "visit": 1,
-     "rest": 0.05,
-     "play": 0.874
-    },
-    "label": "learned behaviour from its own experience, not consciousness"
-   },
-   "universe_growth": 473,
-   "thought": {
-    "text": "Numbers are like a little part of the REF2 is so beautiful. Five, Rettic and Grovye.",
-    "by": "rawrphos-native:step-36464 (raw model output, unedited)"
-   },
-   "prev_hash": "0b94a3e7a7b5d903f33dcf2a8be9d9222bdc25c0bd617e2268e231c3d60ef2b5",
-   "hash": "24f8550c6af3355ea7e00e15acb77b7cb7deab146f34a615e6839a9aa2750975"
   }
  ],
- "generated_at": "2026-11-06T22:09:13.043Z",
+ "generated_at": "2026-11-06T22:22:30.765Z",
  "thought_source_note": "rawrphos-ok"
 }
