@@ -34,6 +34,8 @@ const {createWorldField,stepWorldField,legendAt,fieldRGBA,createCreatureLoop,ste
 import {addVolcanoIsland,addCosmoSky,sheet as lfSheet,LF as LANDF} from '@/lib/universe/landforms-three';
 import {createWorldCues,stepWorldCues} from '@/lib/universe/world-mechanics.mjs';
 import {isSoftwareGL} from '@/lib/three/soft-gl';
+import {safeGlBudget,pageGlBudget,tryCreateGl} from '@/lib/three/gl-budget';
+import SeededLand2D from './seeded-land-2d';
 import {addBeachShore} from '@/lib/universe/beach-shore-three';
 import {addOceanLife} from '@/lib/universe/ocean-life-three';
 import {noticeLine,noticeGate} from '@/lib/universe/zoom-lines.mjs';
@@ -98,6 +100,7 @@ type Traits={curiosity:number;sociality:number;calm:number;joy:number;experience
 export default function LivingWorld({genome,beastKey,beastName,onClose,embedded=false,onExpand,door=false,onOrbitOut,menuHost=null,infoHost=null}:{menuHost?:HTMLElement|null;infoHost?:HTMLElement|null;genome?:PlushGenome|null;beastKey?:string|null;beastName?:string|null;onClose?:()=>void;embedded?:boolean;onExpand?:()=>void;door?:boolean;onOrbitOut?:()=>void}){
  // door: mounted inside /universe as the pocket world's end of the one continuous zoom (orbit view, no storage, no full-screen takeover)
  const [viewMode,setViewMode]=useState<string>('first');const viewRef=useRef('first');viewRef.current=viewMode;useEffect(()=>{try{setViewMode(readViewMode(localStorage));}catch{}},[]);
+ const [land2d,setLand2d]=useState<string|null>(null); /* P0: per-view 2D fallback seed when this view's WebGL is unavailable or lost */
  const [qTier,setQTier]=useState<string|null>(null);const qTierRef=useRef<string|null>(null);qTierRef.current=qTier;
  const [creatureOn]=useCageCreature();const creatureRef=useRef(creatureOn);creatureRef.current=creatureOn;
  const orbitOutRef=useRef(onOrbitOut);orbitOutRef.current=onOrbitOut;const [beachCam,setBeachCam]=useState(false);const seaJump=useRef(0);const beachCamRef=useRef(false);beachCamRef.current=beachCam;
@@ -132,7 +135,14 @@ export default function LivingWorld({genome,beastKey,beastName,onClose,embedded=
    let traits:Traits=(()=>{try{const t=JSON.parse(localStorage.getItem('lw:traits:'+bKey)||'null');if(t&&typeof t.calm==='number')return t;}catch{}return initialTraits(u,bKey);})();
    const canvas=canvasRef.current!;
    const phone=matchMedia('(max-width: 820px)').matches||/iPhone|iPad|Android/.test(navigator.userAgent);
-   const renderer=new THREE.WebGLRenderer({canvas,antialias:!phone,powerPreference:'high-performance'});
+   // P0 (ONE UNIVERSE r2): phones and CPU rasterisers get the 'default' power preference and no antialias; desktop GPUs keep today's options.
+   // Creation is guarded PER VIEW: if it fails this view draws its 2D seeded land instead of an error wall, and nothing propagates to a neighbour.
+   const softP=(()=>{try{return isSoftwareGL();}catch{return false;}})();const lean=phone||softP;
+   const glMade=tryCreateGl(()=>{if(/[?&]glfail=(living-world|all)\b/.test(location.search))throw new Error('forced by ?glfail (receipt test)');return new THREE.WebGLRenderer({canvas,antialias:!lean,powerPreference:lean?'default':'high-performance'});});
+   if(!glMade.ok){(window as any).__lwGlFail=glMade.error;setLand2d(String(u.seed||'tiny'));return;}
+   const renderer=glMade.value;
+   {const gb=safeGlBudget(pageGlBudget).acquire('living-world',{soft:softP});const onLost=()=>{gb.lost(true);setLand2d(String(u.seed||'tiny'));};const onRestored=()=>{gb.lost(false);setLand2d(null);};
+    canvas.addEventListener('webglcontextlost',onLost);canvas.addEventListener('webglcontextrestored',onRestored);cleanup.push(()=>{canvas.removeEventListener('webglcontextlost',onLost);canvas.removeEventListener('webglcontextrestored',onRestored);gb.release();});}
    renderer.setPixelRatio(Math.min(devicePixelRatio||1,phone?2:2));renderer.outputColorSpace=THREE.SRGBColorSpace;
    const scene=new THREE.Scene();(window as any).__lwScene=scene;scene.background=new THREE.Color(0x05030f);
    const aliveGate=createAliveGate();const camera=new THREE.PerspectiveCamera(55,1,.05,400);(window as any).__lwCam=camera;
@@ -954,7 +964,8 @@ uniform vec3 uPlay[8];uniform vec3 uPlayT[8];uniform float uWindK;uniform float 
   const provBlock=<details data-lw-vl-provenance style={{width:'100%',fontSize:11,color:'#d9ccff'}} onToggle={(e:any)=>{if(e.currentTarget.open)setProv(vlProvenance((window as any).__lwVisualLife));}}><summary style={{cursor:'pointer'}}>How this look is made</summary><div data-lw-gx-labels style={{marginTop:4}}>{GX_LOOK_LABELS.map(t=><p key={t} data-lw-gx-label style={{margin:'2px 0'}}>{t}</p>)}{gxReducedMotion()?<p data-lw-gx-reduced style={{margin:'2px 0'}}>{GX_REDUCED_LABEL}</p>:null}</div>{prov?<div data-lw-vl-provenance-body style={{marginTop:4}}>{prov.rows.map((r:any)=><p key={r.key} data-lw-vl-row={r.key} data-on={r.on?'1':'0'} style={{margin:'2px 0',opacity:r.on?1:.55}}>{r.text} · {r.label} · {r.on?'on':'not in view'} · from {r.driver}</p>)}<p style={{margin:'2px 0'}}>Look pack v{prov.pack.version} · {prov.pack.label} · sha256 {prov.pack.sha256.slice(0,12)}</p><p style={{margin:'2px 0'}}>{prov.seed.text} · {prov.seed.label}</p></div>:null}</details>;
  return <div ref={host} className="lw-root" data-living-world={spawned?'spawned':'orbit'} data-lw-embedded={embedded?'':undefined} style={{pointerEvents:'auto',position:embedded||door?'absolute':'fixed',inset:0,zIndex:embedded||door?1:2147483000,borderRadius:embedded?18:0,overflow:'hidden',background:'#05030f',touchAction:embedded&&!spawned?'pan-y':'none',fontSize:embedded?11:13,color:'#efeaff',font:'13px/1.35 system-ui,sans-serif'}}>
   <canvas ref={canvasRef} style={{position:'absolute',inset:0,width:'100%',height:'100%',display:'block',touchAction:'none'}}/>
-  {!booted&&!err?<div role="status" aria-live="polite" data-lw-loading style={{position:'absolute',inset:0,zIndex:4,display:'grid',placeItems:'center',background:'#05030f',color:'#d9ccff',fontWeight:600,pointerEvents:'none'}}>Opening your tiny world…</div>:null}
+  {land2d!=null?<div data-lw-land2d style={{position:'absolute',inset:0,zIndex:0,pointerEvents:'none',background:'#05030f'}}><SeededLand2D seed={land2d} fill/></div>:null}
+  {!booted&&!err&&land2d==null?<div role="status" aria-live="polite" data-lw-loading style={{position:'absolute',inset:0,zIndex:4,display:'grid',placeItems:'center',background:'#05030f',color:'#d9ccff',fontWeight:600,pointerEvents:'none'}}>Opening your tiny world…</div>:null}
   {embedded&&infoHost?createPortal(<details data-lw-chips data-lw-info data-lw-in-menu style={{maxWidth:'100%'}}>
    <summary aria-label="About this world: what is recorded, simulated or modelled" style={{listStyle:'none',cursor:'pointer',width:30,height:30,borderRadius:'50%',display:'grid',placeItems:'center',background:'rgba(10,6,30,.78)',border:'1px solid rgba(190,170,255,.6)',color:'#efeaff',font:'700 15px system-ui'}}>ⓘ</summary>
    <div style={{display:'flex',flexWrap:'wrap',gap:6,marginTop:6,padding:8,borderRadius:12,background:'rgba(10,6,30,.86)'}}>
