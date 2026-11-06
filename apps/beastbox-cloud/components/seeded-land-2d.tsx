@@ -7,7 +7,7 @@ const RIDGES=[{crest:1.99,hex:'#A7B6C1'},{crest:2.07,hex:'#8FA1A7'},{crest:2.24,
 const s8=(l:number)=>Math.round(255*Math.max(0,Math.min(1,l<=.0031308?12.92*l:1.055*Math.pow(l,1/2.4)-.055)));
 const css=(c:number[])=>`rgb(${s8(c[0])},${s8(c[1])},${s8(c[2])})`;
 const hash=(s:string)=>{let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619);}return (h>>>0)/4294967296;};
-export default function SeededLand2D({seed}:{seed:string}){const ref=useRef<HTMLCanvasElement>(null);
+export default function SeededLand2D({seed,fill}:{seed:string;fill?:boolean}){const ref=useRef<HTMLCanvasElement>(null);
  useEffect(()=>{const cv=ref.current;if(!cv)return;const x=cv.getContext('2d');if(!x)return;let id=0;
   const draw=()=>{const W=cv.width,H=cv.height,hz=H*.62;const o=oneSunAt(Date.now()/1000,[0,1,0]);const sk=skyAtElevation(o.elevationDeg);const day=o.day;
    const g=x.createLinearGradient(0,0,0,hz);g.addColorStop(0,day>0?'#437E9E':css(sk.zenith));g.addColorStop(.45,css(sk.zenith.map((z:number,i:number)=>(z+sk.horizon[i])/2)));g.addColorStop(1,css(sk.horizon));x.fillStyle=g;x.fillRect(0,0,W,hz);
@@ -22,6 +22,6 @@ export default function SeededLand2D({seed}:{seed:string}){const ref=useRef<HTML
    const vg=x.createRadialGradient(W/2,H/2,Math.min(W,H)*0.45,W/2,H/2,Math.max(W,H)*0.75);vg.addColorStop(0,'rgba(0,0,0,0)');vg.addColorStop(1,'rgba(0,0,0,0.20)');x.fillStyle=vg;x.fillRect(0,0,W,H);
    id=window.setTimeout(()=>requestAnimationFrame(draw),400);};
   draw();return ()=>clearTimeout(id);},[seed]);
- return <figure data-seeded-land-2d style={{position:'absolute',top:64,right:10,width:'min(46vw,300px)',margin:0,zIndex:2,borderRadius:10,overflow:'hidden',boxShadow:'0 4px 18px rgba(0,0,0,.4)'}}>
+ return <figure data-seeded-land-2d data-seeded-land-2d-fill={fill?'':undefined} style={fill?{position:'absolute',inset:0,margin:0,display:'flex',flexDirection:'column',justifyContent:'center',background:'#05030f'}:{position:'absolute',top:64,right:10,width:'min(46vw,300px)',margin:0,zIndex:2,borderRadius:10,overflow:'hidden',boxShadow:'0 4px 18px rgba(0,0,0,.4)'}}>
   <canvas ref={ref} width={300} height={170} style={{width:'100%',display:'block'}}/>
   <figcaption style={{fontSize:11,padding:'4px 8px',background:'rgba(15,23,42,.85)',color:'#e2e8f0'}}>2D drawing · SEEDED, same seed and sun clock as /beast-cage/world (no GPU here, so no 3D)</figcaption></figure>;}
