@@ -14,9 +14,10 @@ const SRC={
  liveHead:RAW+'zeref-live-tick/live/head.json',
  diary:RAW+'zeref-diary/zeref/latest.json'
 };
-const NO_CACHE={cache:'no-store' as const,headers:{'Cache-Control':'no-cache','Pragma':'no-cache'},signal:AbortSignal.timeout(5000)};
+const NO_CACHE_HEADERS={'Cache-Control':'no-cache','Pragma':'no-cache'} as const;
 async function get(url:string){
- try{const r=await fetch(url,NO_CACHE);return r.ok?await r.json():null;}catch{return null;}
+ // Fresh AbortSignal per call: a module-scoped timeout signal aborts forever after first fire (warm isolate stall).
+ try{const r=await fetch(url,{cache:'no-store',headers:NO_CACHE_HEADERS,signal:AbortSignal.timeout(5000)});return r.ok?await r.json():null;}catch{return null;}
 }
 /** Resolve the real tip sha and read the immutable raw URL (no secrets, no invented ticks). */
 async function tipJson(branch:string,file:string){

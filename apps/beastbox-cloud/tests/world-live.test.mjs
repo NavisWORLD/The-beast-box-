@@ -112,6 +112,10 @@ test('route recovery: tip refetch + stall log + no secrets; UI shows stall cause
  const strip=f=>readFileSync(new URL(f,import.meta.url),'utf8').replace(/\/\*[^]*?\*\//g,'').replace(/\/\/.*$/gm,'');
  const route=strip('../app/api/world/live/route.ts');
  assert.match(route,/sparkNeedsTipReread/);assert.match(route,/pickFresherSpark/);assert.match(route,/tipRelPath|tipJson/);
+ assert.match(route,/async function get[\s\S]*AbortSignal\.timeout\(5000\)/);
+ // Must NOT pin one AbortSignal on a module const (warm isolates would abort every fetch after 5s).
+ assert.doesNotMatch(route,/const NO_CACHE\s*=\s*\{[^}]*signal:AbortSignal/);
+
  assert.match(route,/\[world-live\] stall/);
  assert.match(route,/export const dynamic='force-dynamic'/);assert.match(route,/no-store/);
  assert.doesNotMatch(route,/process\.env|Authorization|token/i);
