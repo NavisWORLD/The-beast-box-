@@ -923,6 +923,11 @@ def served_pin_health() -> dict:
             "pin_step": PIN_STEP, "pin_checkpoint_sha256": PIN_SHA,
             "served_step": None, "served_checkpoint_sha256": None,
             "served_readiness": "UNKNOWN", "serving_pin": False}
+    try:  # additive: which bounded context fields this bridge accepts (lets the site send self-memory only when known)
+        from beastbox.guest_hebbian import CONTEXT_CAPS
+        body["context_fields"] = sorted(CONTEXT_CAPS)
+    except Exception:
+        pass
     try:
         ready = native_pin_status()
         body["served_readiness"] = str(ready.get("readiness"))

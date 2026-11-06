@@ -1,6 +1,7 @@
 import {createHmac} from 'node:crypto';
 import {bridgeConfigured,safeJson} from '@/lib/security';
 import PUBLIC_PIN from '@/lib/rawrphos-public-pin.json';
+import {bridgeReadsMemory,loadSelfMemory,readSelfMemory,SELF_MEMORY_LABEL,SELF_MEMORY_SCHEMA} from '@/lib/zeref/self-memory.mjs';
 // Growing Zeref (Cory, 2026-10-31): the always-learning side branch, served on its own bridge door
 // (/api/guest-growing). It is NOT the pin: every reply says so, and a reply carrying the pin's sha is refused.
 export const runtime='nodejs';
@@ -12,7 +13,10 @@ export async function POST(request:Request){
  if(!request.headers.get('content-type')?.toLowerCase().startsWith('application/json'))return safeJson(415,{error:'JSON required'});
  let item:Record<string,unknown>;
  try{const raw=await request.text();if(raw.length>MAX_BODY)return safeJson(413,{error:'Too large'});item=JSON.parse(raw);}catch{return safeJson(400,{error:'Invalid JSON'});}
- if(!item||typeof item!=='object'||Array.isArray(item)||Object.keys(item).join(',')!=='text')return safeJson(400,{error:'Only a message is accepted'});
+ const keys=item&&typeof item==='object'&&!Array.isArray(item)?Object.keys(item).sort().join(','):'';
+ // {text} as before; {text, memory:false} lets a reader (the A/B report) ask the same door with self-memory off.
+ if(!(keys==='text'||(keys==='memory,text'&&item.memory===false)))return safeJson(400,{error:'Only a message is accepted'});
+ const memoryOff=item.memory===false;
  if(typeof item.text!=='string'||item.text.trim().length<1||item.text.length>MAX_PROMPT||/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/.test(item.text))
   return safeJson(400,{error:'Message must contain 1–1800 characters'});
  if(!bridgeConfigured())return safeJson(503,{error:'Model host is not configured'});
@@ -21,9 +25,15 @@ export async function POST(request:Request){
  const forwarded=request.headers.get('x-vercel-forwarded-for')||request.headers.get('x-forwarded-for')||'unknown';
  const identity=createHmac('sha256',secret).update(forwarded.slice(0,256)).digest('hex');
  try{
-  const res=await fetch(new URL('/api/guest-growing',process.env.BEASTBOX_CLOUD_BRIDGE_URL!),{method:'POST',redirect:'error',cache:'no-store',
+  // Self-memory: he reads his own notes (one shared index, same as the forever door) before he speaks.
+  // Any failure reads nothing and the plain contract is sent, exactly as before (one send, no retry).
+  const text=item.text.trim();
+  const mem=!memoryOff&&Buffer.byteLength(text,'utf8')<=1200&&await bridgeReadsMemory(process.env.BEASTBOX_CLOUD_BRIDGE_URL!)?await loadSelfMemory().then(m=>readSelfMemory(m,text)).catch(()=>({text:'',memory_read:[]})):{text:'',memory_read:[]};
+  const send=(withMemory:boolean)=>fetch(new URL('/api/guest-growing',process.env.BEASTBOX_CLOUD_BRIDGE_URL!),{method:'POST',redirect:'error',cache:'no-store',
    headers:{Authorization:'Bearer '+process.env.BEASTBOX_CLOUD_BRIDGE_TOKEN!,'Content-Type':'application/json'},
-   body:JSON.stringify({text:item.text.trim(),guest_identity:identity}),signal:AbortSignal.timeout(55_000)});
+   body:JSON.stringify(withMemory?{text,guest_identity:identity,context:{memory:mem.text}}:{text,guest_identity:identity}),signal:AbortSignal.timeout(55_000)});
+  // Memory rides only when the bridge's /healthz lists the field; otherwise the plain contract, as before.
+  const sentMemory=!!mem.text;const res=await send(sentMemory);
   const raw=await res.text();if(raw.length>16000)return safeJson(502,{error:'Response too large'});
   const r=JSON.parse(raw) as Record<string,unknown>;
   if(!res.ok)return safeJson([400,403,429,503].includes(res.status)?res.status:502,{error:typeof r.error==='string'&&r.error.length<128?r.error:'Growing Zeref unavailable',label:GROWING_LABEL});
@@ -32,6 +42,10 @@ export async function POST(request:Request){
      typeof r.tag!=='string'||!/^zeref-growing-\d{3,}$/.test(r.tag))
    return safeJson(502,{error:'Unverified growing model response'});
   return safeJson(200,{label:GROWING_LABEL,is_public_pin:false,gated:false,model:'rawrphos-native',tag:r.tag,step:r.step,
-   checkpoint_sha256:r.checkpoint_sha256,reply:r.reply,hebbian:r.hebbian===true,guest_stateless:true});
+   checkpoint_sha256:r.checkpoint_sha256,reply:r.reply,hebbian:r.hebbian===true,guest_stateless:true,
+   ...selfMemoryReceipt(sentMemory&&r.memory_used===true,mem.memory_read)});
  }catch{return safeJson(502,{error:'Growing Zeref unavailable or timed out',label:GROWING_LABEL});}
 }
+/** memory_used is true ONLY when the bridge confirms his memory reached the prompt; memory_read lists exactly those items. */
+function selfMemoryReceipt(used:boolean,read:{id:string,label:string,sha256:string}[]){
+ return {memory_used:used,memory_read:used?read:[],self_memory:{schema:SELF_MEMORY_SCHEMA,label:SELF_MEMORY_LABEL}};}

@@ -31,8 +31,11 @@ SCHEMA = "beastbox-guest-hebbian-v1"
 # The sight field (the door's fourth piece: his world's light DERIVED, a
 # visitor's light MEASURED, each labelled) carries its own cap, and the
 # total rose by exactly that cap; no other field's cap changed.
-CONTEXT_CAPS = {"continuity": 600, "universe": 300, "library": 300, "sight": 300}
-CONTEXT_ORDER = ("continuity", "universe", "sight", "library")
+CONTEXT_CAPS = {"continuity": 600, "universe": 300, "library": 300, "sight": 300,
+                # Self-memory (zeref-self-memory/v1): his own labelled notes, read before he speaks. Its own
+                # 300-byte cap INSIDE the unchanged 1300 total; it is the first field cut under pressure.
+                "memory": 300}
+CONTEXT_ORDER = ("continuity", "universe", "sight", "library", "memory")
 MAX_CONTEXT_TOTAL = 1300
 MAX_TEXT_WITH_CONTEXT = 1200
 # Assembled prompt ceiling: 1900 bytes + BOS + the 64-token reply budget stays
@@ -239,3 +242,9 @@ class GuestHebbianStore:
                 return len(turns)
         except (OSError, sqlite3.Error):
             return None
+
+
+def memory_in_prompt(context: dict | None, messages: list[dict]) -> bool:
+    """True only when the context's memory field survived assembly into the system message."""
+    mem = (context or {}).get("memory")
+    return bool(mem) and any(m.get("role") == "system" and mem in m.get("content", "") for m in messages)
