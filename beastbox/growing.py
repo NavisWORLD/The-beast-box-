@@ -88,6 +88,13 @@ def supervise():  # pragma: no cover - long-running process, exercised on the br
             print("GROWING_ZEREF_REFRESH_SKIPPED", type(e).__name__, flush=True)
         time.sleep(REFRESH_S if live else 600)
 
+def _spark_pulse() -> dict | None:
+    try:
+        from .spark_pulse import spark_pulse
+        return spark_pulse()
+    except Exception:
+        return None  # ABSENT, never a 0.5 stand-in
+
 def growing_infer(root: Path, payload: dict) -> tuple[int, dict]:
     if os.environ.get("BEASTBOX_GROWING_ENABLED", "no") != "yes":
         return 503, {"error": "Growing Zeref route is off"}
@@ -121,7 +128,9 @@ def growing_infer(root: Path, payload: dict) -> tuple[int, dict]:
         return 200, {"schema": SCHEMA, "label": LABEL, "model": "rawrphos-native", "tag": info["tag"], "step": info["step"],
                      "checkpoint_sha256": info["checkpoint_sha256"], "reply": text, "is_public_pin": False, "gated": False,
                      "memory_used": False, "owner_tools_used": False, "provider_key_shared": False,
-                     "hebbian": result.get("hebbian") is True}
+                     "hebbian": result.get("hebbian") is True,
+                     # One more sensorium input: the RECORDED origin spark pulse at this moment (None = ABSENT).
+                     "sensorium": {"spark_pulse": _spark_pulse()}}
     except (OSError, ValueError, TypeError, KeyError, IndexError, urllib.error.HTTPError):
         return 502, {"error": "Growing Zeref unavailable; no fallback"}
     finally:
