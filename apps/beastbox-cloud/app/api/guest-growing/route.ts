@@ -36,7 +36,9 @@ export async function POST(request:Request){
   const sentMemory=!!mem.text;const res=await send(sentMemory);
   const raw=await res.text();if(raw.length>16000)return safeJson(502,{error:'Response too large'});
   const r=JSON.parse(raw) as Record<string,unknown>;
-  if(!res.ok)return safeJson([400,403,429,503].includes(res.status)?res.status:502,{error:typeof r.error==='string'&&r.error.length<128?r.error:'Growing Zeref unavailable',label:GROWING_LABEL});
+  if(!res.ok)return safeJson([400,403,429,503].includes(res.status)?res.status:502,{error:typeof r.error==='string'&&r.error.length<128?r.error:'Growing Zeref unavailable',label:GROWING_LABEL,
+   // Content-free 502 reason code + bridge request id (bridge/reason_codes.py); shape-checked, never free text.
+   ...(typeof r.reason==='string'&&/^[A-Za-z0-9_:]{1,64}$/.test(r.reason)?{reason:r.reason}:{}),...(typeof r.request_id==='string'&&/^[0-9a-f]{12}$/.test(r.request_id)?{request_id:r.request_id}:{})});
   if(r.schema!=='beastbox-guest-growing-v1'||r.model!=='rawrphos-native'||r.is_public_pin!==false||r.label!==GROWING_LABEL||
      typeof r.checkpoint_sha256!=='string'||r.checkpoint_sha256===PUBLIC_PIN.checkpoint_sha256||typeof r.reply!=='string'||r.reply.length>6000||
      typeof r.tag!=='string'||!/^zeref-growing-\d{3,}$/.test(r.tag))

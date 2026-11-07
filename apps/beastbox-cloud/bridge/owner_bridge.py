@@ -794,14 +794,16 @@ class OwnerBridge:
                                      "at": int(time.time()), "label": SPARK_LABEL}
                 return 429, body
             try:
-                return guest_local_infer(self.root, data)
+                from beastbox.reason_codes import timed_guest_call
+                return timed_guest_call("guest-local", lambda: guest_local_infer(self.root, data))
             finally:
                 self.chat_jobs.release_guest()
         if name == "guest-growing":  # Growing Zeref, not the pin (beastbox/growing.py); same guest slot
             if not self.chat_jobs.acquire_guest():
                 return 429, {"error": "Owner inference or local guest slot is busy"}
             try:
-                return growing_infer(self.root, data)
+                from beastbox.reason_codes import timed_guest_call
+                return timed_guest_call("guest-growing", lambda: growing_infer(self.root, data))
             finally:
                 self.chat_jobs.release_guest()
         if name == "chat-start":
