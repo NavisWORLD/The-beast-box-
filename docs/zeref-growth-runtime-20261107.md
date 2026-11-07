@@ -68,4 +68,8 @@ Proposed follow-up, NOT implemented: Emeth-authored gate-disjoint identity/name 
 
 ## Verification status
 
-Local: six checkpoint/training-equivalence regressions, thirteen Node contracts, sixteen existing architecture/training regressions. Controlled full recovery tests used the real pin both as a zero-update baseline and as a two-update changed-weight fixture. The latter was copied through the same transcript-free recovery bundle, reloaded in a separate process, passed all eight unchanged training comparisons, and scored 48 OK / 0 leaks / ref_nll 3.6581028843 in the unchanged public chat evaluator. Neither test produced an approval file. These fixtures are NOT growth rounds and are never parents. Post-merge actual growth scoring is pending.
+Local: six checkpoint/training-equivalence regressions, fourteen Node contracts, sixteen existing architecture/training regressions. Controlled full recovery tests used the real pin both as a zero-update baseline and as a two-update changed-weight fixture. The latter was copied through the same transcript-free recovery bundle, reloaded in a separate process, passed all eight unchanged training comparisons, and scored 48 OK / 0 leaks / ref_nll 3.6581028843 in the unchanged public chat evaluator. Neither test produced an approval file. These fixtures are NOT growth rounds and are never parents. Post-merge actual growth scoring is pending.
+
+## Verification environment repair
+
+PR checks exposed a separate deterministic browser-infrastructure failure: `python -m playwright install --with-deps chromium` reports `Playwright does not support chromium on ubuntu26.04-x64` after `ubuntu-latest` advanced. The required single rerun was requested. Pin only the existing `cosmic-browser` job in `product-ci.yml` to supported `ubuntu-24.04`; no test, assertion, dependency, gate, or threshold changes. This repair is included so no red code or browser check is waved through.

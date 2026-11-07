@@ -23,3 +23,7 @@ test('only training owns the global lineage lock; contract and recovery scoring 
  assert.doesNotMatch(w,/^concurrency:/m);
  assert.match(w,/    concurrency:\n      group: zeref-006-single-approved-learning-lineage\n      cancel-in-progress: false/);
 });
+test('browser verification runs on a Playwright-supported pinned runner',()=>{
+ const ci=fs.readFileSync('.github/workflows/product-ci.yml','utf8');
+ assert.match(ci,/  cosmic-browser:\n    runs-on: ubuntu-24.04/);
+});
