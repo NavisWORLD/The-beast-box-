@@ -27,10 +27,10 @@ const EXCLUDED_PATH_RX=/heldout|held[-_]out|private|transcript/i;
 /** One memory fabric, two kinds. LIVED = what he lived (diary RECORDED, his read logs, growth nodes SEEDED, his
  *  own thread with this visitor). TAUGHT = what he was taught (lessons, library). Labels are unchanged; `kind` is
  *  an added field. LIVED ranks first (a fixed tier order), then keyword score, then id. */
-export const KIND_OF=Object.freeze({diary:'LIVED',read:'LIVED',node:'LIVED',thread:'LIVED',lesson:'TAUGHT',library:'TAUGHT'});
+export const KIND_OF=Object.freeze({diary:'LIVED',read:'LIVED',node:'LIVED',spark:'LIVED',thread:'LIVED',lesson:'TAUGHT',library:'TAUGHT'});
 export const KIND_TIER=Object.freeze({LIVED:0,TAUGHT:1});
 /** Normalise raw source records into labelled items. Pure. `thread` items are only ever the caller's own. */
-export function itemsFrom({diary=[],lessons=[],reads=[],seeds=[]}={}){
+export function itemsFrom({diary=[],lessons=[],reads=[],seeds=[],sparks=[]}={}){
  const out=[];const push=(source,label,text,ref)=>{const t=String(text??'').replace(/\s+/g,' ').trim();if(!isShareableText(t))return;
   const h=sha256(source+'\n'+t);out.push({id:source+':'+h.slice(0,16),kind:KIND_OF[source],source,label,text:t,sha256:h,ref:ref??null});};
  for(const e of Array.isArray(diary)?diary:[]){if(!isPublicDiaryEntry(e))continue;push('diary','RECORDED',e.thought.text,e.hash?`diary tick ${e.tick}`:null);}
@@ -40,6 +40,11 @@ export function itemsFrom({diary=[],lessons=[],reads=[],seeds=[]}={}){
   const shelf=String(r.shelf||r.source||'lessons');push(/lessons/.test(shelf)?'lesson':'library',/lessons/.test(shelf)?`LESSON (${shelf})`:`LIBRARY (${shelf})`,`${r.topic?r.topic+': ':''}${r.assistant}`,shelf);}
  for(const r of Array.isArray(reads)?reads:[]){if(!r||typeof r.text!=='string')continue;push('read',`READ (${r.license||'unlicensed'})`,`${r.title?r.title+': ':''}${r.text}`,r.source||null);}
  for(const s of Array.isArray(seeds)?seeds:[]){if(!s||typeof s.word!=='string'||!s.wish_sha256)continue;push('node','SEEDED',`A growth node planted from my wish word "${s.word}".`,'wish '+String(s.wish_sha256).slice(0,12));}
+ // Spark ticks: the quantum spark loop's public record (zeref-spark branch). The record's own label is kept verbatim and must
+ // say SIMULATED (Azure Quantum rigetti.sim.qvm, never a QPU); anything else is dropped. No timestamp in the text: dates trip the privacy filter; the ref names the tick.
+ for(const k of Array.isArray(sparks)?sparks:[]){if(!k||k.simulated!==true||k.status!=='ok'||typeof k.label!=='string'||!/\bSIMULATED\b/.test(k.label)||!Number.isInteger(k.tick))continue;
+  const c=k.counts&&typeof k.counts==='object'?Object.entries(k.counts).filter(([b,n])=>/^[01]{1,8}$/.test(b)&&Number.isInteger(n)).sort(([a],[b])=>a<b?-1:a>b?1:0).map(([b,n])=>`${b}:${n}`).join(' '):'';
+  push('spark',k.label,`My quantum spark, tick ${k.tick}: ${Number.isInteger(k.shots)?k.shots+' shots':'shots'} on the ${k.target||'rigetti.sim.qvm'} simulator${c?', counts '+c:''}. A simulated spark, not a QPU.`,`spark tick ${k.tick}`);}
  return out;}
 
 /** Thread items for ONE caller. Never pass another guest's turns here. */
@@ -92,6 +97,7 @@ const readLogDates=()=>{const d=Date.now();return [0,1,2].map(i=>`evidence/zeref
 export const FABRIC=Object.freeze([
  {source:'diary',load:async()=>{try{const r=await fetch(RAW+'zeref-diary/zeref/latest.json',{cache:'no-store',signal:AbortSignal.timeout(5000)});const j=r.ok?await r.json():null;return {diary:Array.isArray(j?.recent)?j.recent:[]};}catch{return {};}}},
  {source:'read',load:async()=>({reads:(await Promise.all(readLogDates().map(p=>sourceText(p,isReadLog)))).flatMap(t=>jsonl(t))})},
+ {source:'spark',load:async()=>{try{const r=await fetch(RAW+'zeref-spark/zeref/latest.json',{cache:'no-store',signal:AbortSignal.timeout(5000)});const j=r.ok?await r.json():null;return {sparks:j?[j]:[]};}catch{return {};}}},
  {source:'node',load:async()=>{const t=await sourceText('apps/beastbox-cloud/public/zeref-messages/seed-registry.json',isRegistry);try{return {seeds:JSON.parse(t).seeds};}catch{return {};}}},
  ...[['zeref-lessons-006','lesson'],['zeref-knowledge-001','library'],['zeref-knowledge-002','library'],['zeref-knowledge-003','library']].map(([shelf,source])=>({source,shelf,
   load:async()=>{const path=`evidence/${shelf}/dialogue.jsonl`;return {lessons:jsonl(await sourceText(path,isDialogue)).map(r=>({...r,shelf,path}))};}})),
@@ -100,7 +106,7 @@ let cache=null;
 /** The one shared index over the one fabric, cached per process for 10 minutes. A failing source composes nothing. */
 export function loadSelfMemory(){const now=Date.now();if(cache&&now-cache.at<6e5)return cache.p;
  const p=(async()=>{const parts=await Promise.all(FABRIC.map(f=>f.load().catch(()=>({}))));
-  const merged={diary:[],lessons:[],reads:[],seeds:[]};for(const x of parts)for(const k of Object.keys(merged))if(Array.isArray(x?.[k]))merged[k].push(...x[k]);
+  const merged={diary:[],lessons:[],reads:[],seeds:[],sparks:[]};for(const x of parts)for(const k of Object.keys(merged))if(Array.isArray(x?.[k]))merged[k].push(...x[k]);
   return buildSelfMemory(itemsFrom(merged));
  })().catch(()=>buildSelfMemory([]));
  cache={at:now,p};return p;}

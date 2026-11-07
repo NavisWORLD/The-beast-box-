@@ -82,7 +82,7 @@ test('one fabric, two kinds: LIVED = diary, read, node, thread; TAUGHT = lesson,
   const m = mem();
   const want = {RECORDED: 'LIVED', SEEDED: 'LIVED', 'READ (CC BY-SA 4.0)': 'LIVED', 'LESSON (zeref-lessons-006)': 'TAUGHT', 'LIBRARY (zeref-knowledge-002)': 'TAUGHT'};
   for (const i of m.items) { assert.equal(i.kind, KIND_OF[i.source]); if (want[i.label]) assert.equal(i.kind, want[i.label], i.label); }
-  assert.deepEqual([...new Set(FABRIC.map(f => f.source))].sort(), ['diary', 'lesson', 'library', 'node', 'read']);
+  assert.deepEqual([...new Set(FABRIC.map(f => f.source))].sort(), ['diary', 'lesson', 'library', 'node', 'read', 'spark']);
   assert.equal(ownThreadItems([{from: 'guest', text: 'hello moon'}])[0].kind, 'LIVED');
 });
 
@@ -102,4 +102,14 @@ test('production bundling: no template-literal URLs; every bundled source is a l
     for (const [, rel] of src.matchAll(/new URL\('([^']+)',import\.meta\.url\)/g))
       assert.ok(existsSync(new URL(rel, new URL(f, import.meta.url))), rel);
   }
+});
+
+test('spark ticks join the fabric as LIVED with the SIMULATED label verbatim; non-simulated records are dropped', () => {
+  const L = 'Rigetti SIMULATED (Azure Quantum rigetti.sim.qvm, not a QPU)';
+  const ok = {tick: 7, at: '2026-11-07T04:02:15Z', status: 'ok', simulated: true, label: L, shots: 256, target: 'rigetti.sim.qvm', counts: {'000': 200, '111': 56}};
+  const items = itemsFrom({sparks: [ok, {...ok, tick: 8, simulated: false}, {...ok, tick: 9, label: 'Rigetti QPU'}, {...ok, tick: 10, status: 'failed'}]});
+  assert.equal(items.length, 1);
+  assert.equal(items[0].label, L); assert.equal(items[0].kind, 'LIVED'); assert.equal(items[0].source, 'spark');
+  assert.match(items[0].text, /tick 7: 256 shots .*000:200 111:56.*not a QPU/);
+  assert.doesNotMatch(items[0].text, /sig=|AccountKey|SharedAccess/);
 });
