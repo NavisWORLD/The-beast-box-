@@ -123,3 +123,16 @@ test('route recovery: tip refetch + stall log + no secrets; UI shows stall cause
  const ui=readFileSync(new URL('../components/world-live-links.tsx',import.meta.url),'utf8');
  assert.match(ui,/stall \$\{spark\.stall\.cause\}/);
 });
+
+import {parseRefsTipSha} from '../lib/zeref/world-live.mjs';
+test('git ref advertisement fallback: exact branch only, real 40-char sha only, never invented', () => {
+  const a = 'a'.repeat(40), b = 'b'.repeat(40), c = 'c'.repeat(40);
+  const adv = `001e# service=git-upload-pack\n0000015b${a} HEAD\u0000multi_ack thin-pack\n003f${b} refs/heads/zeref-spark\n0044${c} refs/heads/zeref-spark-old\n0000`;
+  assert.equal(parseRefsTipSha(adv, 'zeref-spark'), b);
+  assert.equal(parseRefsTipSha(adv, 'zeref-spark-old'), c);
+  assert.equal(parseRefsTipSha(adv, 'zeref-diary'), null);
+  assert.equal(parseRefsTipSha(null, 'zeref-spark'), null);
+  assert.equal(parseRefsTipSha(adv, 'bad branch;'), null);
+  const src = readFileSync(new URL('../app/api/world/live/route.ts', import.meta.url), 'utf8');
+  assert.match(src, /parseRefsTipSha\(await getText\(REFS\),branch\)/);
+});
