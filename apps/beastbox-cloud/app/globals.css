@@ -1072,7 +1072,7 @@ body[data-one-dock][data-dock-home] .qd-home-row{display:none}
  body[data-brain-chat]{padding-bottom:0!important}
  body[data-brain-chat] :is(.phone-bar,.quick-dock,[data-share-world],.site-dock,aside[data-sound-room],[data-zeref-voice-dock],[data-beast-chat-launcher],aside.cosmic-support,[data-spark-player][data-player-mode=minimized],[data-companion-overlay]){display:none!important}
  body[data-brain-chat] .brain-layout{display:block;min-height:0}
- body[data-brain-chat] .chat-panel{position:fixed;z-index:30;left:max(8px,env(safe-area-inset-left,0px));right:max(8px,env(safe-area-inset-right,0px));top:calc(var(--vvtop,0px) + 84px);height:calc(var(--vvh,100dvh) - 90px);min-height:0;max-height:none;border-radius:16px}
+ body[data-brain-chat] .chat-panel{position:fixed;z-index:10;left:max(8px,env(safe-area-inset-left,0px));right:max(8px,env(safe-area-inset-right,0px));top:calc(var(--vvtop,0px) + 84px);height:calc(var(--vvh,100dvh) - 90px);min-height:0;max-height:none;border-radius:16px}
  body[data-brain-chat] .chat-top{padding:10px 14px}
  body[data-brain-chat] .chat-panel>.composer-area{order:3}
  body[data-brain-chat] .chat-panel>article{order:2;flex:0 0 auto;max-height:22%;overflow-y:auto;overscroll-behavior:contain;margin:0;border-radius:0;border-left:0;border-right:0}

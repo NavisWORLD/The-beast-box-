@@ -108,6 +108,11 @@ def main():
             assert ov in ("auto", "scroll"), ov
             for s in ("[data-share-world]", ".qd-toggle", "[data-phone-bar]", "#quick-dock-panel"):
                 assert not page.locator(s).first.is_visible(), f"brain chat: {s} still covers the chat"
+            # the workstation menu still opens over the chat (it must not be covered by the pinned chat panel)
+            page.get_by_role("button", name="Open navigation").click()
+            page.get_by_role("button", name="SETTINGS").click(timeout=8000)
+            page.wait_for_timeout(500)
+            assert page.evaluate("()=>!document.body.dataset.brainChat"), "brain chat mode must end when leaving Brain"
             print("PASS brain chat")
         b.close()
 
