@@ -3,7 +3,8 @@ import { useEffect, useRef, useState } from 'react';
 import { catalogRoster, STAGE_MARK } from '../lib/companion/field-roster.mjs';
 import { expandCompactRun } from '../lib/companion/spark-machine.mjs';
 import { blit, renderBeast, SPRITE } from '../public/spark/draw.mjs';
-import { paintConceptThumb, conceptCatalogueGenomes } from '../public/spark/concept-sprites.mjs';
+import { paintConceptThumb } from '../public/spark/concept-sprites.mjs';
+import { conceptCatalogueGenomes } from '../public/spark/concept-catalogue.mjs';
 import css from './spark-field.module.css';
 
 type StageCard = { stage: number; mark: string; name: string };

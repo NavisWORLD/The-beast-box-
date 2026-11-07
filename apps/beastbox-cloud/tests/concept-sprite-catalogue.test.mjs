@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {conceptCatalogueGenomes,CONCEPT_CATALOGUE,CONCEPT_SPRITES,resolveConceptSprite} from '../public/spark/concept-sprites.mjs';
+import {CONCEPT_CATALOGUE,CONCEPT_SPRITES,resolveConceptSprite} from '../public/spark/concept-sprites.mjs';
+import {conceptCatalogueGenomes} from '../public/spark/concept-catalogue.mjs';
 import {expandCompactRun} from '../lib/companion/spark-machine.mjs';
 const runs=JSON.parse(readFileSync(new URL('../public/spark/runs.json',import.meta.url),'utf8')).runs.map(expandCompactRun);
 test('five catalogue recipes reproduce the pack seeds exactly and resolve to their own art',()=>{

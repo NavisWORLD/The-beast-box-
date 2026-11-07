@@ -4,8 +4,6 @@
  * the original procedural renderer. No random source: idle phase comes from the pack's
  * SHA-256 phase seed. Reduced motion always shows frame 0.
  */
-import {buildGenome} from './genome.mjs';
-import {simulateStable} from './signal.mjs';
 export const CONCEPT_FRAME = 64, CONCEPT_FRAMES = 4;
 export const CONCEPT_DURATIONS_MS = Object.freeze([1800, 300, 120, 300]);
 export const CONCEPT_CYCLE_MS = CONCEPT_DURATIONS_MS.reduce((a, b) => a + b, 0);
@@ -156,14 +154,3 @@ export const CONCEPT_CATALOGUE = Object.freeze([
  Object.freeze({ slug: 'tidefin', runKey: 'ibm_kingston:da680fk86m6s738vgm00#pub14' }),
  Object.freeze({ slug: 'fernling', runKey: 'ibm_fez:d6rfjubopkic73fj4g8g' })
 ]);
-export function conceptCatalogueTraits() { const t = simulateStable('balanced'); return { focus: t.focus, calm: t.calm, spark: t.spark }; }
-/** Build verified genomes from expanded runs; entries whose seed does not reproduce are dropped. */
-export function conceptCatalogueGenomes(runs = []) {
- const byKey = new Map((runs || []).map(r => [r?.key, r])), traits = conceptCatalogueTraits(), out = [];
- for (const c of CONCEPT_CATALOGUE) {
-  const run = byKey.get(c.runKey), entry = CONCEPT_SPRITES.find(e => e.slug === c.slug);
-  if (!run || !entry) continue;
-  try { const genome = buildGenome(traits, run, null, 10); if (genome.seed === entry.seed) out.push({ slug: c.slug, key: c.runKey, name: genome.names?.[1] || c.slug, genome }); } catch {}
- }
- return out;
-}
