@@ -20,3 +20,5 @@ export const ARCHIVE_SCHEMA:string;
 export const MAX_ARCHIVE_READ_BYTES:number;
 export function readArchive(cfg:StorageConfig,id:string):Promise<any[]>;
 export function appendArchive(cfg:StorageConfig,id:string,o:{guestText:string,reply:string,step:number|null,at:string,exchange_id?:string,windowTurns?:any[]}):Promise<{archived:boolean,turns:number}>;
+export function monthShard(dir:string,stem:string,at:unknown):string;
+export function appendShardLine(cfg:StorageConfig,name:string,line:string,dedupe?:string|null):Promise<boolean>;

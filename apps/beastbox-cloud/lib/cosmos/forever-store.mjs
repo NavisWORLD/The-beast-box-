@@ -147,6 +147,27 @@ export async function appendArchive(cfg,id,{guestText,reply,step,at,exchange_id,
  return {archived:false,turns:0};
 }
 
+/**
+ * Append-only monthly shard (archive first, then window): every line written to a bounded
+ * tail log is ALSO appended here, never trimmed. Existing body is kept as an exact prefix
+ * (etag guard); a line whose dedupe key is already present is a no-op. -> boolean
+ */
+export const monthShard=(dir,stem,at)=>`${dir}/archive/${stem}-${/^\d{4}-\d{2}/.test(String(at))?String(at).slice(0,7):'undated'}.jsonl`;
+export async function appendShardLine(cfg,name,line,dedupe){
+ for(let attempt=0;attempt<2;attempt++){
+  const cur=await getBlob(cfg,name);const old=cur?.text||'';
+  if(dedupe&&old.includes(dedupe))return true;
+  const body=old+line+'\n';
+  if(!body.startsWith(old))return false;
+  try{
+   if(cur)await putBlob(cfg,name,body,{contentType:'application/x-ndjson',ifMatch:cur.etag});
+   else await putBlob(cfg,name,body,{contentType:'application/x-ndjson',ifNoneMatch:'*'});
+   return true;
+  }catch(e){if((e.status===409||e.status===412)&&attempt===0)continue;throw e;}
+ }
+ return false;
+}
+
 /** Append one guest-origin event (counts only, never guest text). Best-effort by contract: callers treat false as "not recorded". */
 export async function appendGuestEvent(cfg,event){
  const line=JSON.stringify({schema:'beastbook-guest-event/v1',kind:'guest_exchange',origin:'guest',source_kind:'public',
@@ -158,6 +179,8 @@ export async function appendGuestEvent(cfg,event){
   const lines=(cur?.text||'').split('\n').filter(Boolean);
   // Never count one exchange twice: a retried append with the same exchange_id is a no-op.
   if(event.exchange_id&&lines.some(l=>l.includes(`"exchange_id":"${event.exchange_id}"`)))return true;
+  // Archive first (append-only, monthly shard), then the bounded tail below.
+  if(!await appendShardLine(cfg,monthShard(GUESTBOOK_DIR,'events',event.at),line,event.exchange_id?`"exchange_id":"${event.exchange_id}"`:null))return false;
   lines.push(line);
   const body=lines.slice(-MAX_GUEST_EVENTS).join('\n')+'\n';
   try{

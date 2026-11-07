@@ -156,7 +156,24 @@ class GuestHebbianStore:
             (guest_key TEXT PRIMARY KEY, turns TEXT NOT NULL,
              updated_at INTEGER NOT NULL, created_at INTEGER NOT NULL,
              exchanges INTEGER NOT NULL)""")
+        # Archive first, then window (2026-11-07, Cory: memory is never lost). guest_thread above is the
+        # bounded replay window (MAX_TURNS, MAX_THREAD_CHARS, TTL, max_guests) and may trim or evict;
+        # guest_archive is insert-only: this module never UPDATEs or DELETEs it.
+        db.execute("""CREATE TABLE IF NOT EXISTS guest_archive
+            (seq INTEGER PRIMARY KEY AUTOINCREMENT, guest_key TEXT NOT NULL, at INTEGER NOT NULL,
+             role TEXT NOT NULL, text TEXT NOT NULL, training_eligible INTEGER NOT NULL DEFAULT 0)""")
         return db
+
+    def archived(self, identity: str) -> list[dict]:
+        """Every archived turn for THIS guest only, oldest first."""
+        key = guest_key(identity)
+        try:
+            with self._connect() as db:
+                rows = db.execute("SELECT at, role, text FROM guest_archive WHERE guest_key=? ORDER BY seq",
+                                  (key,)).fetchall()
+        except (OSError, sqlite3.Error):
+            return []
+        return [{"at": a, "r": r, "t": t} for a, r, t in rows]
 
     @staticmethod
     def _parse(raw) -> list[dict]:
@@ -225,6 +242,8 @@ class GuestHebbianStore:
                 turns = self._live(self._parse(row[0]), now) if row else []
                 created = row[1] if row else now
                 exchanges = (row[2] if row else 0) + 1
+                db.executemany("INSERT INTO guest_archive(guest_key,at,role,text) VALUES(?,?,?,?)",
+                               [(key, now, "u", user_text), (key, now, "a", reply_text)])
                 turns = (turns + fresh)[-MAX_TURNS:]
                 while sum(len(t["t"]) for t in turns) > MAX_THREAD_CHARS and len(turns) > 2:
                     turns = turns[1:]

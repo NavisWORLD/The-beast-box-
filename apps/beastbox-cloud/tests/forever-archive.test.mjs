@@ -72,3 +72,24 @@ test('route reads and writes the archive keyed by its own thread id only',()=>{
  const src=readFileSync(new URL('../app/api/guest/forever/route.ts',import.meta.url),'utf8');
  assert.match(src,/readArchive\(cfg,threadId\)/);assert.match(src,/appendArchive\(cfg,threadId,/);
 });
+
+test('events and classroom tails archive every line first (append-only shards), tails stay bounded',async()=>{
+ const {blobs,fetch}=fakeBlobFetch();const real=globalThis.fetch;globalThis.fetch=fetch;
+ try{
+  const cfg=sasCfg();
+  const {appendGuestEvent,MAX_GUEST_EVENTS}=await import('../lib/cosmos/forever-store.mjs');
+  const n=MAX_GUEST_EVENTS+25;
+  for(let i=0;i<n;i++){const prev=blobs.get(`${GUESTBOOK_DIR}/archive/events-2026-11.jsonl`)?.text||'';
+   assert.equal(await appendGuestEvent(cfg,{at:AT,thread:newThreadId(),step:36464,exchange_id:String(i).padStart(64,'0')}),true);
+   assert.ok(blobs.get(`${GUESTBOOK_DIR}/archive/events-2026-11.jsonl`).text.startsWith(prev));}
+  assert.equal(blobs.get(`${GUESTBOOK_DIR}/archive/events-2026-11.jsonl`).text.split('\n').filter(Boolean).length,n);
+  assert.equal(blobs.get(`${GUESTBOOK_DIR}/events.jsonl`).text.split('\n').filter(Boolean).length,MAX_GUEST_EVENTS);
+  await appendGuestEvent(cfg,{at:AT,thread:newThreadId(),step:36464,exchange_id:'0'.padStart(64,'0')});
+  assert.equal(blobs.get(`${GUESTBOOK_DIR}/archive/events-2026-11.jsonl`).text.split('\n').filter(Boolean).length,n,'dedupe');
+ }finally{globalThis.fetch=real;}
+});
+
+test('classroom store archives before its 2000-record tail',()=>{
+ const src=readFileSync(new URL('../lib/cosmos/classroom-store.mjs',import.meta.url),'utf8');
+ assert.ok(src.indexOf('appendShardLine(cfg,monthShard(CLASSROOM_DIR')<src.indexOf('lines.slice(-MAX_CLASS_RECORDS)'));
+});
