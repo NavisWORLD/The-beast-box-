@@ -105,6 +105,9 @@ export const FABRIC=Object.freeze([
   load:async()=>{const path=`evidence/${shelf}/dialogue.jsonl`;return {lessons:jsonl(await sourceText(path,isDialogue)).map(r=>({...r,shelf,path})),from:'repo'};}})),
 ]);
 let cache=null;
+let teacherPending=Promise.resolve();
+/** The in-flight teacher-lesson join, for a route's after() so a serverless instance is not frozen mid-read. */
+export function teacherJoinPending(){return teacherPending;}
 /** The one shared index over the one fabric, cached per process for 10 minutes. A failing source composes nothing. */
 export function loadSelfMemory(){const now=Date.now();if(cache&&now-cache.at<6e5)return cache.p;
  const p=(async()=>{const parts=await Promise.all(FABRIC.map(f=>f.load().catch(()=>({}))));
@@ -113,7 +116,7 @@ export function loadSelfMemory(){const now=Date.now();if(cache&&now-cache.at<6e5
   // Receipt: where each source was read from this process ('azure' | 'github'); names only, never a URL or credential.
   m.origins=Object.freeze(Object.fromEntries(FABRIC.map((f,i)=>[f.shelf||f.source,parts[i]?.from||null]).filter(([,v])=>v)));
   // Azure teacher lessons join in the background once the whole screen has run (never blocks a reply; fail closed).
-  teacherJoin(m).then(t=>{if(t&&cache&&cache.p===p)cache={at:cache.at,p:Promise.resolve(t)};}).catch(()=>{});
+  teacherPending=teacherJoin(m).then(t=>{if(t&&cache&&cache.p===p)cache={at:cache.at,p:Promise.resolve(t)};}).catch(()=>{});
   return m;
  })().catch(()=>buildSelfMemory([]));
  cache={at:now,p};return p;}
@@ -121,10 +124,10 @@ export function loadSelfMemory(){const now=Date.now();if(cache&&now-cache.at<6e5
 /** Screen the Azure teacher lessons against the held-out set, the sources already in, and the excludes; then
  *  rebuild the one index with the survivors (TAUGHT, label APPROVED_TEACHER_LESSON). Unreadable -> none go in. */
 export async function teacherJoin(m,io={storageConfig,listBlobs,getBlob}){
- const [records,heldout]=await Promise.all([readTeacherRecords(io).catch(()=>null),loadHeldoutScreen()]);
+ const why={};const [records,heldout]=await Promise.all([readTeacherRecords({...io,why}).catch(()=>{why.cause=why.cause||'read_failed';return null;}),loadHeldoutScreen()]);
  const existingTexts=m.items.flatMap(i=>[i.text,i.text.includes(': ')?i.text.slice(i.text.indexOf(': ')+2):i.text]);
  const {items,report}=records?screenTeacherLessons(records,{heldout,existingTexts,isShareable:isShareableText})
-  :{items:[],report:{total:null,in:0,screen_ran:false,excluded:{azure_unreadable:'all'}}};
+  :{items:[],report:{total:why.listed??null,in:0,screen_ran:false,excluded:{azure_unreadable:'all'},cause:why.cause||'unknown',ms:why.ms??null}};
  const extra=[];for(const t of items){const text=`${t.prompt} - ${t.reply}`.replace(/\s+/g,' ').trim();if(!isShareableText(text))continue;
   const hh=sha256('teacher\n'+text);extra.push({id:'teacher:'+hh.slice(0,16),kind:KIND_OF.teacher,source:'teacher',label:TEACHER_LABEL,text,sha256:hh,ref:'lesson '+t.id});}
  const out=buildSelfMemory([...m.items,...extra]);
