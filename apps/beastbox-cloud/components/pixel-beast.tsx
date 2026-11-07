@@ -4,14 +4,28 @@ import { eyesFor } from '../lib/companion/adventure.mjs';
 import {renderBeast} from '../public/spark/draw.mjs';
 import { renderSprite } from '../lib/companion/spark/render.mjs';
 import { drawPixelCompanion } from '../lib/companions/pixel-companion.mjs';
+import { resolveConceptSprite, conceptFrameAt, drawConceptFrame } from '../public/spark/concept-sprites.mjs';
 
 type Pose = 'idle' | 'walk' | 'follow' | 'react' | 'emote' | string;
-type Genome = { seed?: string; facing?: string };
+type Genome = { seed?: string; facing?: string; id?: string };
 
 // Reuse a bounded set of actual rendered frames. Per-frame scratch canvases
 // retained graphics buffers on phones during long care/adventure sessions.
 const sheets=new Map<string,HTMLCanvasElement>();
-function paint(canvas: HTMLCanvasElement, genome: Genome, stage: number, eyes: string, facing: string, dx: number, dy: number, flash: number, publicSpark: boolean) {
+function paint(canvas: HTMLCanvasElement, genome: Genome, stage: number, eyes: string, facing: string, dx: number, dy: number, flash: number, publicSpark: boolean, now = 0, reduced = false, onReady?: () => void) {
+  // Approved concept art first (exact id/seed only); any miss or load failure keeps the original renderer below.
+  const concept = resolveConceptSprite({ genome });
+  if (concept) {
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      if (drawConceptFrame(ctx, concept, conceptFrameAt(concept, now, reduced), 16 + dx, 8 + dy, 256, { hd: true, flip: facing !== 'left' && genome.facing !== 'left', onReady })) {
+        if (flash > 0) { ctx.fillStyle = `rgba(184,238,255,${flash})`; ctx.fillRect(0, 0, canvas.width, canvas.height); }
+        try { drawPixelCompanion(ctx, String(genome.seed || 'beast'), performance.now() / 1000, { w: canvas.width, h: canvas.height }); } catch {}
+        return;
+      }
+    }
+  }
   const key=[genome.seed,stage,eyes,facing,publicSpark].join('|');
   let sheet=sheets.get(key);
   if(!sheet){
@@ -56,7 +70,9 @@ export default function PixelBeast({
     if (!node || !current) return;
     const eyes = eyesFor({ emote, pose });
     if (reduced) {
-      paint(node, current, stage, eyes, facing, 0, 0, 0, publicSpark);
+      // Reduced motion: frame 0, repainted once if the concept sheet finishes loading.
+      const still = () => paint(node, current, stage, eyes, facing, 0, 0, 0, publicSpark, 0, true);
+      paint(node, current, stage, eyes, facing, 0, 0, 0, publicSpark, 0, true, still);
       return;
     }
     let frame = 0;
@@ -68,7 +84,7 @@ export default function PixelBeast({
       const dx = walking ? Math.sin(phase) * 10 : pose === 'react' ? Math.sin(phase * 3) * 3 : 0;
       const dy = pose === 'idle' || pose === 'emote' ? Math.sin(phase) * 3 : walking ? Math.abs(Math.sin(phase * 2)) * -4 : 0;
       const flash = emote === 'evolve' ? (Math.sin(phase * 2) + 1) / 5 : 0;
-      paint(node, live, stage, eyesFor({ emote, pose }), facing, dx, dy, flash, publicSpark);
+      paint(node, live, stage, eyesFor({ emote, pose }), facing, dx, dy, flash, publicSpark, now, false);
       frame = requestAnimationFrame(tick);
     };
     frame = requestAnimationFrame(tick);

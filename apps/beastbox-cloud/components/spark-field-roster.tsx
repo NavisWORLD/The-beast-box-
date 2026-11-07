@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { catalogRoster, STAGE_MARK } from '../lib/companion/field-roster.mjs';
 import { expandCompactRun } from '../lib/companion/spark-machine.mjs';
 import { blit, renderBeast, SPRITE } from '../public/spark/draw.mjs';
+import { paintConceptThumb } from '../public/spark/concept-sprites.mjs';
 import css from './spark-field.module.css';
 
 type StageCard = { stage: number; mark: string; name: string };
@@ -47,6 +48,11 @@ export default function SparkFieldRoster({ onChoose }: { onChoose: (choice: Choi
     canvas.width = SPRITE * scale;
     canvas.height = SPRITE * scale;
     blit(ctx, renderBeast(genome, stage, 'open'), 0, 0, scale);
+    // Approved concept art for exact id/seed matches; the original stays if it is unmatched or fails to load.
+    let live = true;
+    const concept = () => { if (live) paintConceptThumb(ctx, genome, SPRITE * scale); };
+    paintConceptThumb(ctx, genome, SPRITE * scale, { onReady: concept });
+    return () => { live = false; };
   }, [picked, stage]);
 
   return <section className={css.block} aria-label="Spark Beast roster">

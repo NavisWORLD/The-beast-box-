@@ -6,6 +6,7 @@ import {getBeastAudio} from '../lib/companion/beast-audio-engine.mjs';
 import {Volume2,VolumeX} from 'lucide-react';
 import {generateCreature,type BaseLook,type CreatureProfile} from '../lib/creature-profile';
 import {blit,renderBeast,SPRITE} from '../public/spark/draw.mjs';
+import {resolveConceptSprite,conceptFrameAt,paintConceptThumb} from '../public/spark/concept-sprites.mjs';
 import {buildGenome} from '../public/spark/genome.mjs';
 import {SHOWN_KEY,activeBeastName} from '../lib/companion/beast-name.mjs';
 import {Voice} from '../public/spark/voice.mjs';
@@ -148,6 +149,7 @@ export default function SparkBeastCompanion({
   canvas.current.width=SPRITE*scale;canvas.current.height=SPRITE*scale;
   const start=performance.now();
   let previous=start;
+  const concept=resolveConceptSprite({genome:gen as any});let lastConcept=-1;
   const behavior=gen.behavior;
   const mood=moodFor(state);
   const loop=(now:number)=>{
@@ -159,9 +161,13 @@ export default function SparkBeastCompanion({
    else if(mood==='spark')eye='sparkle';
    else if((t%blink)<.12)eye='closed';
    else if(mood==='calm')eye='sleepy';
-   if(eye!==lastEye.current){
-    blit(ctx,renderBeast(gen,stage,eye),0,0,scale);
-    lastEye.current=eye;
+   // Approved concept art (exact id/seed only): seeded idle frames, frame 0 when reduced/paused/halted.
+   const cframe=concept?conceptFrameAt(concept,now,paused||reduced||state==='halted'):-1;
+   if(eye!==lastEye.current||(concept&&cframe!==lastConcept)){
+    if(!(concept&&paintConceptThumb(ctx,gen,SPRITE*scale,{frame:cframe,onReady:()=>{lastConcept=-1;}}))){
+     blit(ctx,renderBeast(gen,stage,eye),0,0,scale);
+    }
+    lastEye.current=eye;lastConcept=concept?cframe:-1;
    }
    const node=mover.current;
    if(node){
