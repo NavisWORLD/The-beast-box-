@@ -411,7 +411,7 @@ jobs:
           python -m pip install --index-url https://download.pytorch.org/whl/cpu torch==2.6.0
           python -m pip install -e . -e ./models/rawrphos
       - run: |
-          node --test tests/zeref_continuation_006_contract.test.cjs tests/zeref_round_recovery_contract.test.cjs
+          node --test tests/zeref_continuation_006_contract.test.cjs tests/zeref_round_recovery_contract.test.cjs tests/zeref_recovery_decision_contract.test.cjs
           PYTHONPATH=.:models python -m unittest discover -s models/rawrphos/tests -p test_round_recovery.py
           python -m py_compile scripts/zeref_continuation_006.py scripts/zeref_round_recovery.py
   score-interrupted:
@@ -457,6 +457,21 @@ jobs:
           python -u scripts/rawrphos_chat_eval.py build/public-14k build/zeref-006/unreviewed-candidate build/zeref-006/recovery-chat-eval.json
           test -s build/zeref-006/recovery-score.json
           test ! -f build/zeref-006/approval.json
+      - name: Same promotion rule on the recovered checkpoint (numbers only; never promotes)
+        run: |
+          set -Eeuo pipefail
+          # Byte-identical rule to the training job's promotion step (contract-tested); report-only here.
+          python - <<'PY'
+          import json
+          pin=json.load(open('apps/beastbox-cloud/lib/rawrphos-public-pin.json'));ev=json.load(open('build/zeref-006/recovery-chat-eval.json'))
+          rep=json.load(open('build/zeref-006/report.json'));g=rep.get('recipe') or {}
+          bar=g.get('chat_before_nll') or (pin.get('promotion') or {}).get('candidate_ref_nll') or ev['baseline']['ref_nll']
+          c=ev['candidate']['ref_nll'];tol=0.005;ok=bool(ev['chat_not_worse'] and c<=bar*(1+tol))  # 2026-10-22: 0.5% tolerance on the selection set; the strict check is fresh set B in the training gate
+          d={'schema':'zeref-promotion-decision-v1','candidate_ref_nll':c,'pin_ref_nll_bar':bar,'tolerance':tol,'rule':'within 0.5% of pin on set A AND fresh held-out set B not worse (training gate)','chat_not_worse_vs_14000':ev['chat_not_worse'],'promote':ok}
+          d.update({'report_only':True,'publication_performed':False,'source':'interrupted-round recovery'})
+          json.dump(d,open('build/zeref-006/recovery-promotion-decision.json','w'),indent=1)
+          print('ZEREF_RECOVERY_PROMOTION_DECISION='+json.dumps(d),flush=True)
+          PY
       - name: Persist independent interrupted-round scores or honest failure
         if: always()
         uses: actions/upload-artifact@v4
@@ -465,6 +480,7 @@ jobs:
           path: |
             build/zeref-006/recovery-score.json
             build/zeref-006/recovery-chat-eval.json
+            build/zeref-006/recovery-promotion-decision.json
             build/zeref-006/recovery-progress.json
             build/zeref-006/character-check.json
             build/zeref-006/identity-probe.json
