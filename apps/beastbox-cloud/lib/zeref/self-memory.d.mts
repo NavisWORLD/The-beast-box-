@@ -7,7 +7,7 @@ export function sha256(s:unknown):string;
 export function itemsFrom(src?:{diary?:any[];lessons?:any[];reads?:any[];seeds?:any[]}):MemoryItem[];
 export function ownThreadItems(turns:any[]):MemoryItem[];
 export function buildSelfMemory(items:MemoryItem[]):SelfMemory;
-export function readSelfMemory(mem:SelfMemory,query:string,o?:{ownThread?:MemoryItem[];k?:number;cap?:number;minScore?:number}):{text:string;memory_read:MemoryRead[];origins?:Record<string,string>};
+export function readSelfMemory(mem:SelfMemory,query:string,o?:{ownThread?:MemoryItem[];k?:number;cap?:number;minScore?:number}):{text:string;memory_read:MemoryRead[];origins?:Record<string,string>;screens?:Record<string,unknown>};
 export function loadSelfMemory():Promise<SelfMemory>;
 export function bridgeReadsMemory(bridgeUrl:string):Promise<boolean>;
 export const KIND_OF:Readonly<Record<string,'LIVED'|'TAUGHT'>>;export const KIND_TIER:Readonly<Record<string,number>>;export const FABRIC:ReadonlyArray<{source:string;load:()=>Promise<any>}>;
