@@ -43,6 +43,12 @@ export const SHELF_SOURCES=Object.freeze([
  {id:'zeref-knowledge-002',path:'evidence/zeref-knowledge-002/dialogue.jsonl'},
  {id:'zeref-knowledge-003',path:'evidence/zeref-knowledge-003/dialogue.jsonl'},
 ]);
+const SHELF_URLS=Object.freeze({
+ 'evidence/zeref-lessons-006/dialogue.jsonl':()=>new URL('../../../../evidence/zeref-lessons-006/dialogue.jsonl',import.meta.url),
+ 'evidence/zeref-knowledge-001/dialogue.jsonl':()=>new URL('../../../../evidence/zeref-knowledge-001/dialogue.jsonl',import.meta.url),
+ 'evidence/zeref-knowledge-002/dialogue.jsonl':()=>new URL('../../../../evidence/zeref-knowledge-002/dialogue.jsonl',import.meta.url),
+ 'evidence/zeref-knowledge-003/dialogue.jsonl':()=>new URL('../../../../evidence/zeref-knowledge-003/dialogue.jsonl',import.meta.url),
+});
 const SHELF_MIN_SCORE=1.2;
 const SHELF_COVERAGE=0.5;
 const clip=(s,n)=>{s=String(s??'');return s.length>n?s.slice(0,n):s;};
@@ -183,7 +189,10 @@ export function loadShelfIndex(){
   const rows=[];
   for(const src of SHELF_SOURCES){
    let text=null;
-   try{text=await readFile(new URL(`../../../../${src.path}`,import.meta.url),'utf8');}catch{/* fall through to fetch */}
+   // Literal URLs only: a template-literal URL relative to import.meta.url is rewritten by Turbopack into a repo-wide glob that
+   // resolved to the wrong bundled file in production (0 shelf rows). A local read that parses to no rows
+   // falls through to the fetch, exactly like a missing file.
+   try{const u=SHELF_URLS[src.path];if(u){const t=await readFile(u(),'utf8');if(parseShelfDialogue(t,src.id).length)text=t;}}catch{/* fall through to fetch */}
    if(text===null){
     try{
      const r=await fetch(`https://raw.githubusercontent.com/NavisWORLD/The-beast-box-/main/${src.path}`,

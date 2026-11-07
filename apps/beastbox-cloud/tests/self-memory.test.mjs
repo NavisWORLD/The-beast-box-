@@ -62,7 +62,7 @@ test('cross-guest isolation: another guest\'s thread never enters the shared ind
   assert.ok(forA.memory_read.some(x => x.label === 'THREAD (your own)'));
   const forB = readSelfMemory(m, 'purple submarine Ollie', {ownThread: [], minScore: 0.1});
   assert.ok(!forB.text.includes('Ollie'));
-  assert.ok(!m.items.some(i => i.kind === 'thread'));
+  assert.ok(!m.items.some(i => i.source === 'thread'));
 });
 
 test('routes: both doors read the ONE index; pin door untouched; gate eval never imports retrieval', () => {
@@ -73,4 +73,33 @@ test('routes: both doors read the ONE index; pin door untouched; gate eval never
   assert.doesNotMatch(p, /self-memory/);
   const ev = readFileSync(new URL('../../../scripts/rawrphos_chat_eval.py', import.meta.url), 'utf8');
   assert.doesNotMatch(ev, /self.memory|retriev|guest_hebbian|growing/i);
+});
+
+import {KIND_OF, FABRIC} from '../lib/zeref/self-memory.mjs';
+import {existsSync} from 'node:fs';
+
+test('one fabric, two kinds: LIVED = diary, read, node, thread; TAUGHT = lesson, library; labels unchanged', () => {
+  const m = mem();
+  const want = {RECORDED: 'LIVED', SEEDED: 'LIVED', 'READ (CC BY-SA 4.0)': 'LIVED', 'LESSON (zeref-lessons-006)': 'TAUGHT', 'LIBRARY (zeref-knowledge-002)': 'TAUGHT'};
+  for (const i of m.items) { assert.equal(i.kind, KIND_OF[i.source]); if (want[i.label]) assert.equal(i.kind, want[i.label], i.label); }
+  assert.deepEqual([...new Set(FABRIC.map(f => f.source))].sort(), ['diary', 'lesson', 'library', 'node', 'read']);
+  assert.equal(ownThreadItems([{from: 'guest', text: 'hello moon'}])[0].kind, 'LIVED');
+});
+
+test('LIVED ranks first: tier, then keyword score, then id', () => {
+  const items = [
+    {id: 'library:a', kind: 'TAUGHT', source: 'library', label: 'LIBRARY (x)', text: 'moon moon moon moon orbit', sha256: 'a'.repeat(64)},
+    {id: 'diary:z', kind: 'LIVED', source: 'diary', label: 'RECORDED', text: 'I saw the moon once tonight over a long quiet field', sha256: 'z'.repeat(64)},
+  ];
+  const r = readSelfMemory(buildSelfMemory(items), 'moon', {minScore: 0});
+  assert.deepEqual(r.memory_read.map(x => x.id), ['diary:z', 'library:a']);
+});
+
+test('production bundling: no template-literal URLs; every bundled source is a literal path that exists', () => {
+  for (const f of ['../lib/zeref/self-memory.mjs', '../lib/cosmos/live-context.mjs']) {
+    const src = readFileSync(new URL(f, import.meta.url), 'utf8');
+    assert.doesNotMatch(src, /new URL\(`/, f);
+    for (const [, rel] of src.matchAll(/new URL\('([^']+)',import\.meta\.url\)/g))
+      assert.ok(existsSync(new URL(rel, new URL(f, import.meta.url))), rel);
+  }
 });
