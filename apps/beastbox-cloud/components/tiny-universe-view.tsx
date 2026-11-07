@@ -3,7 +3,8 @@
 import {allStorms} from '@/lib/universe/seeded-storms.mjs';
 import {starName,planetName,ageWords} from '@/lib/universe/friendly-names.mjs';
 import {useEffect,useRef,useState,useCallback} from 'react';
-import {grow} from '@/lib/universe/tiny-universe.mjs';
+import {useOneWorld} from './use-one-world';
+import {whenWorldClock,currentWorldClock} from '@/lib/world/one-world-clock.mjs';
 import {biomeOf,BIOMES,starClass,lifeStage,entangledPairs,homeOf,hearthOf,zerefStar,planetFrame,starFrame,lifeFrame,stormFrame,threadFrame,hearthFrame,GENESIS_LABEL,GROWTH_LABEL,ZEREF_LINES,beastLine} from '@/lib/universe/tiny-universe-view.mjs'
 import {useActiveBeastName} from './use-active-beast-name';;
 import s from './tiny-universe-view.module.css';
@@ -33,10 +34,13 @@ export default function TinyUniverseView(){
  const [doorV,setDoorV]=useState(0);const [doorMount,setDoorMount]=useState(false);const [doorOk,setDoorOk]=useState(false);useEffect(()=>{const q=new URLSearchParams(location.search).get('door');setDoorOk(q==='1'||(q!=='0'&&!isSoftwareGL()));},[]);
  const leaveDoor=useCallback(()=>{window.dispatchEvent(new Event('u3d-door-leave'));},[]);
  useEffect(()=>{fetch('/universe/atlas.json').then(r=>r.json()).then((a:Atlas)=>{SPR.atlas=a;for(const[k,v]of Object.entries(a.sheets)){const im=new Image();im.decoding='async';if(v.fallback){const fb=v.fallback;im.onerror=()=>{im.onerror=null;im.src=fb;};}im.src=v.image;SPR.img[k]=im;}}).catch(()=>{});},[]);
- useEffect(()=>{fetch('/universe/tiny-universe-genesis.json').then(r=>r.json()).then(j=>{g0.current=j;uRef.current=j;setU(j);}).catch(e=>setErr(String(e)));},[]);
- useEffect(()=>{if(!run||!u)return;const id=setInterval(()=>{const cur=uRef.current;if(!cur||cur.tick>=2000)return;const n=grow(cur,1);const ev=n.history[n.history.length-1]?.events||[];
-  if(ev.some((e:any)=>e.kind==='supernova'))setLine(beastLine(ZEREF_LINES.supernova,nameRef.current));else if(ev.some((e:any)=>e.kind==='abiogenesis'))setLine(beastLine(ZEREF_LINES.abiogenesis,nameRef.current));else if(n.storms.length>cur.storms.length)setLine(beastLine(ZEREF_LINES.storm,nameRef.current));
-  uRef.current=n;setU(n);},450);return()=>clearInterval(id);},[run,u!==null]);// eslint-disable-line react-hooks/exhaustive-deps
+ // ONE world: no private genesis copy and no private growth loop; this view reads the root clock (lib/world/one-world-clock.mjs).
+ useOneWorld((n:any,cur:any)=>{const ev=n.history[n.history.length-1]?.events||[];
+  if(ev.some((e:any)=>e.kind==='supernova'))setLine(beastLine(ZEREF_LINES.supernova,nameRef.current));else if(ev.some((e:any)=>e.kind==='abiogenesis'))setLine(beastLine(ZEREF_LINES.abiogenesis,nameRef.current));else if(cur&&n.storms.length>cur.storms.length)setLine(beastLine(ZEREF_LINES.storm,nameRef.current));
+  if(runRef.current){uRef.current=n;setU(n);}});
+ useEffect(()=>{let live=true;whenWorldClock().then(c=>{if(!live)return;const j=c.get();g0.current=j;uRef.current=j;setU(j);});const t=setTimeout(()=>{if(live&&!uRef.current)fetch('/universe/tiny-universe-genesis.json').then(r=>{if(!r.ok)setErr('genesis '+r.status);}).catch(e=>setErr(String(e)));},8000);return()=>{live=false;clearTimeout(t);};},[]);
+ // Pause freezes this view's picture only; the one world keeps its clock (other views must not disagree).
+ const runRef=useRef(true);runRef.current=run;useEffect(()=>{if(run){const c=currentWorldClock();if(c){uRef.current=c.get();setU(c.get());}}},[run]);
  useEffect(()=>{const c=cv.current;if(!c)return;let raf=0;const ctx=c.getContext('2d')!;const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
   const draw=(ms:number)=>{const U=uRef.current;const dpr=Math.min(2,devicePixelRatio||1);const W=c.clientWidth,H=c.clientHeight;if(c.width!==W*dpr){c.width=W*dpr;c.height=H*dpr;}
    ctx.setTransform(dpr,0,0,dpr,0,0);const bg=ctx.createRadialGradient(W*0.5,H*0.34,0,W*0.5,H*0.5,Math.max(W,H)*0.85);bg.addColorStop(0,'#0d0724');bg.addColorStop(0.55,'#070418');bg.addColorStop(1,'#030209');ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);if(!U){raf=requestAnimationFrame(draw);return;}
