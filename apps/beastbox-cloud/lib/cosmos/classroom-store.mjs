@@ -21,7 +21,7 @@
 import {createHash,createHmac} from 'node:crypto';
 import {getBlob,putBlob} from './azure-blob.mjs';
 import {ZEREF_DIR} from './zeref-cloud.mjs';
-import {exchangeId} from './forever-store.mjs';
+import {exchangeId,appendShardLine,monthShard} from './forever-store.mjs';
 
 export const CLASSROOM_DIR=`${ZEREF_DIR}/classroom`;
 export const SOURCE_KINDS=Object.freeze(['public','classroom']);
@@ -71,6 +71,8 @@ async function appendLine(cfg,rec){
   const cur=await getBlob(cfg,recordsName());
   const lines=(cur?.text||'').split('\n').filter(Boolean);
   if(lines.some(l=>l.includes(`"exchange_id":"${rec.exchange_id}"`)))return {recorded:true,duplicate:true};
+  // Archive first (append-only monthly shard; the classroom thread window is a view of these same exchanges), then the bounded tail.
+  if(!await appendShardLine(cfg,monthShard(CLASSROOM_DIR,'experiences',rec.at),line,`"exchange_id":"${rec.exchange_id}"`))return {recorded:false,duplicate:false};
   lines.push(line);
   const body=lines.slice(-MAX_CLASS_RECORDS).join('\n')+'\n';
   try{
