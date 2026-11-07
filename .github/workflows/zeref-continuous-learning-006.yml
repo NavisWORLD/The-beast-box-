@@ -16,12 +16,13 @@ on:
 permissions:
   contents: write   # only to publish approved Zeref checkpoints as durable release assets
   actions: read
-# Manual CPU training uses the existing frozen lineage and same global serialized runner.
-concurrency:
-  group: zeref-006-single-approved-learning-lineage
-  cancel-in-progress: false
 jobs:
   train-zeref:
+    # Same global lineage lock, scoped to training so contract/recovery scoring
+    # cannot wait behind an unrelated running training job.
+    concurrency:
+      group: zeref-006-single-approved-learning-lineage
+      cancel-in-progress: false
     if: ${{ github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && (github.head_ref == 'feature/zeref-resumable-continuous-learning-006-20261011' || startsWith(github.head_ref, 'feature/zeref-manual-cpu-'))) }}
     runs-on: ubuntu-24.04
     # A round includes a control AND multiple 320-attempt variants, not one 64-step run.

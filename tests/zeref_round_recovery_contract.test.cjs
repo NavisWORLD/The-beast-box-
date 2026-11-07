@@ -19,3 +19,7 @@ test('recovery reuses unchanged scoring, never trains or publishes partial check
  assert.match(t,/if accepted and not recovery:/);
  assert.match(t,/recovery-score.json/);
 });
+test('only training owns the global lineage lock; contract and recovery scoring are independent',()=>{
+ assert.doesNotMatch(w,/^concurrency:/m);
+ assert.match(w,/    concurrency:\n      group: zeref-006-single-approved-learning-lineage\n      cancel-in-progress: false/);
+});

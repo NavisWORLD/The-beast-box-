@@ -654,7 +654,8 @@ def main(recovery=False):
   else:opt=torch.optim.AdamW(model.parameters(),lr=LR)
   opt.load_state_dict(recovered["state"]["optimizer"])
   torch_generator=torch.Generator();torch_generator.set_state(recovered["state"]["data_rng"])
-  logs=[recovery_progress];sel_i=0;SEL_LR=LR;SEL={"lr_min_fraction":LR_MIN_FRACTION}
+  logs=[recovery_progress];sel_i=recovery_progress["candidate"] or 0
+  mult,floor=CAND_SPECS[sel_i];SEL_LR=LR*mult;SEL={"lr_min_fraction":floor}
   cands=[];control={"unavailable_in_recovery":True,"not_fabricated":True}
   print("ZEREF_ROUND_RECOVERY="+json.dumps(recovery_progress,sort_keys=True),flush=True)
  else:
