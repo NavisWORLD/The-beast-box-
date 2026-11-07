@@ -6,7 +6,8 @@ import {composeSight} from '@/lib/cosmos/sight.mjs';
 import {buildWorldLive} from '@/lib/zeref/world-live.mjs';
 import {DIARY_SCHEMA,entryHash,genesisState} from '@/lib/zeref/zeref-diary.mjs';
 import PUBLIC_PIN from '@/lib/rawrphos-public-pin.json';
-import {bridgeReadsMemory,loadSelfMemory,readSelfMemory,ownThreadItems,SELF_MEMORY_LABEL,SELF_MEMORY_SCHEMA} from '@/lib/zeref/self-memory.mjs';
+import {bridgeReadsMemory,loadSelfMemory,readSelfMemory,ownThreadItems,SELF_MEMORY_LABEL,SELF_MEMORY_SCHEMA,teacherJoinPending} from '@/lib/zeref/self-memory.mjs';
+import {after} from 'next/server';
 
 // FOREVER CONNECTION — the stateful guest door (LIFE-LIVE step 3).
 // /api/guest stays byte-for-byte the stateless door. This door is a new layer
@@ -166,6 +167,7 @@ export async function POST(request:Request){
  // It rides as the bridge's `memory` field only if the existing 1300-byte total still holds.
  const selfMem=contextSent&&await bridgeReadsMemory(process.env.BEASTBOX_CLOUD_BRIDGE_URL!)?await loadSelfMemory().then(m=>readSelfMemory(m,text,{ownThread:ownThreadItems(threadRec?.thread?.turns||[]),
    cap:Math.max(0,Math.min(300,1300-(bridgeContext.bytes?.total||0)))})).catch(()=>({text:'',memory_read:[]})):{text:'',memory_read:[]};
+ try{after(()=>teacherJoinPending());}catch{/* outside a request scope (tests): nothing to keep alive */}
  const liveReceipt=contextSent?bridgeContext.live:{...bridgeContext.live,composed:false};
  const libraryReceipt=contextSent?bridgeContext.library:{...bridgeContext.library,composed:false};
  const sightReceipt=contextSent?bridgeContext.sight:{

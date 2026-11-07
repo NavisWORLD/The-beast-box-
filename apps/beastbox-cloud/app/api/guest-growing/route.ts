@@ -1,7 +1,8 @@
 import {createHmac} from 'node:crypto';
 import {bridgeConfigured,safeJson} from '@/lib/security';
 import PUBLIC_PIN from '@/lib/rawrphos-public-pin.json';
-import {bridgeReadsMemory,loadSelfMemory,readSelfMemory,SELF_MEMORY_LABEL,SELF_MEMORY_SCHEMA} from '@/lib/zeref/self-memory.mjs';
+import {bridgeReadsMemory,loadSelfMemory,readSelfMemory,SELF_MEMORY_LABEL,SELF_MEMORY_SCHEMA,teacherJoinPending} from '@/lib/zeref/self-memory.mjs';
+import {after} from 'next/server';
 // Growing Zeref (Cory, 2026-10-31): the always-learning side branch, served on its own bridge door
 // (/api/guest-growing). It is NOT the pin: every reply says so, and a reply carrying the pin's sha is refused.
 export const runtime='nodejs';
@@ -29,6 +30,7 @@ export async function POST(request:Request){
   // Any failure reads nothing and the plain contract is sent, exactly as before (one send, no retry).
   const text=item.text.trim();
   const mem=!memoryOff&&Buffer.byteLength(text,'utf8')<=1200&&await bridgeReadsMemory(process.env.BEASTBOX_CLOUD_BRIDGE_URL!)?await loadSelfMemory().then(m=>readSelfMemory(m,text)).catch(()=>({text:'',memory_read:[]})):{text:'',memory_read:[]};
+  try{after(()=>teacherJoinPending());}catch{/* outside a request scope (tests): nothing to keep alive */}
   const send=(withMemory:boolean)=>fetch(new URL('/api/guest-growing',process.env.BEASTBOX_CLOUD_BRIDGE_URL!),{method:'POST',redirect:'error',cache:'no-store',
    headers:{Authorization:'Bearer '+process.env.BEASTBOX_CLOUD_BRIDGE_TOKEN!,'Content-Type':'application/json'},
    body:JSON.stringify(withMemory?{text,guest_identity:identity,context:{memory:mem.text}}:{text,guest_identity:identity}),signal:AbortSignal.timeout(55_000)});

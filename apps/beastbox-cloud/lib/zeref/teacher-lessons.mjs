@@ -55,13 +55,16 @@ export function screenTeacherLessons(records,{heldout,existingTexts=[],isShareab
 const HELDOUT_URL=()=>new URL('./heldout-screen.json',import.meta.url);
 export async function loadHeldoutScreen(){try{return JSON.parse(await readFile(HELDOUT_URL(),'utf8'));}catch{return null;}}
 
-/** Read every lesson blob (bounded concurrency, hard deadline). Any failure -> null (fail closed: none go in). */
-export async function readTeacherRecords({storageConfig,listBlobs,getBlob,deadlineMs=20000,concurrency=24}){
- const cfg=storageConfig();if(!cfg)return null;
+/** Read every lesson blob (bounded concurrency, hard deadline). Any failure -> null (fail closed: none go in).
+ *  `why` (optional object) receives a content-free cause: no_storage | list_failed | read_failed | deadline. */
+export async function readTeacherRecords({storageConfig,listBlobs,getBlob,deadlineMs=45000,concurrency=32,why={}}){
+ const cfg=storageConfig();if(!cfg){why.cause='no_storage';return null;}
  const t0=Date.now();
- const names=(await listBlobs(cfg,TEACHER_PREFIX,{max:20000})).filter(n=>n.endsWith('.json')).sort();
- const recs=new Array(names.length);let i=0,failed=false;
- const worker=async()=>{while(!failed&&i<names.length){const k=i++;if(Date.now()-t0>deadlineMs){failed=true;return;}
-  try{const b=await getBlob(cfg,names[k]);recs[k]=b?JSON.parse(b.text):null;}catch{failed=true;}}};
+ let names;try{names=(await listBlobs(cfg,TEACHER_PREFIX,{max:20000})).filter(n=>n.endsWith('.json')).sort();}catch{why.cause='list_failed';return null;}
+ const recs=new Array(names.length);let i=0,failed=null;
+ const worker=async()=>{while(!failed&&i<names.length){const k=i++;if(Date.now()-t0>deadlineMs){failed='deadline';return;}
+  try{const b=await getBlob(cfg,names[k]);recs[k]=b?JSON.parse(b.text):null;}catch{failed='read_failed';}}};
  await Promise.all(Array.from({length:Math.min(concurrency,names.length)},worker));
- return failed?null:recs;}
+ why.listed=names.length;why.ms=Date.now()-t0;
+ if(failed){why.cause=failed;return null;}
+ return recs;}
