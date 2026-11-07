@@ -7,6 +7,9 @@ on:
       - 'scripts/zeref_continuation_006.py'
       - '.github/workflows/zeref-continuous-learning-006.yml'
       - 'tests/zeref_continuation_006_contract.test.cjs'
+      - 'scripts/zeref_round_recovery.py'
+      - 'tests/test_zeref_round_recovery.py'
+      - 'tests/zeref_round_recovery_contract.test.cjs'
   schedule:
     - cron: '17 */6 * * *'
   workflow_dispatch:
@@ -21,7 +24,10 @@ jobs:
   train-zeref:
     if: ${{ github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && (github.head_ref == 'feature/zeref-resumable-continuous-learning-006-20261011' || startsWith(github.head_ref, 'feature/zeref-manual-cpu-'))) }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 90
+    # A round includes a control AND multiple 320-attempt variants, not one 64-step run.
+    # Existing per-variant 2700s and candidate-start 2400s bounds can consume almost
+    # 7800s together. 90 minutes killed slow-runner rounds before any gate score.
+    timeout-minutes: 180
     env:
       GH_TOKEN: ${{ github.token }}
       OMP_NUM_THREADS: '2'
@@ -40,6 +46,14 @@ jobs:
           echo 'ZEREF_QUANTUM_PROVIDER_JOBS_SUBMITTED=0'
           echo 'ZEREF_011_REJECTED_CANDIDATE=NOT_PARENT_OR_PROMOTED'
           echo 'ZEREF_PREVIOUS_APPROVED_CHECKPOINT=MANDATORY_SHA_VERIFICATION'
+          python - <<'PY'
+          import os,platform
+          from pathlib import Path
+          cpu=next((line.split(':',1)[1].strip() for line in Path('/proc/cpuinfo').read_text().splitlines() if line.startswith('model name')), 'unknown')
+          print('ZEREF_RUNNER_CPU='+cpu)
+          print('ZEREF_RUNNER_LOGICAL_CPUS='+str(os.cpu_count()))
+          print('ZEREF_RUNNER_PLATFORM='+platform.platform())
+          PY
       - uses: actions/checkout@v4
         with: {persist-credentials: false}
       - uses: actions/setup-node@v4
@@ -252,7 +266,11 @@ jobs:
           curl -fsSL --max-time 60 https://raw.githubusercontent.com/${{ github.repository }}/zeref-spark/zeref/ticks.jsonl -o build/zeref-006/spark-ticks.jsonl \
             && echo "ZEREF_SPARK_TICKS=$(wc -l < build/zeref-006/spark-ticks.jsonl) lines (SIMULATED, bb-deada969)" \
             || { echo 'ZEREF_SPARK_TICKS_UNAVAILABLE (training continues unconditioned)'; : > build/zeref-006/spark-ticks.jsonl; }
-      - name: Resume exact AdamW state, perform up to 64 new CPU updates and test heldout/retention
+      - name: Resume exact AdamW state, train 320-attempt variants and score unchanged gates
+        id: continuation
+        # Leave setup/upload reserve inside the 180-minute job; an independent
+        # 30-minute scoring job handles a saved partial candidate if this expires.
+        timeout-minutes: 145
         env:
           ZEREF_COND54: '1'  # routed 54D conditioning with learnable zero-init gain; gate scoring stays unconditioned
           ZEREF_SPARK_TICKS: build/zeref-006/spark-ticks.jsonl
@@ -267,12 +285,23 @@ jobs:
           # 2026-10-25 multi-candidate rounds: 4 candidates (seed/lr/lr-floor variants) resume from the SAME live pin;
           # the best on set A goes to the UNCHANGED Gate v2 (set B strict, pin re-scored). Rounds are 320 updates from cycle 45.
           ZEREF_006_CANDIDATES: '4'
-          ZEREF_006_CANDIDATE_BUDGET_S: '2400'  # stop STARTING new candidates after 40 min so the 90-min job still finishes
-          ZEREF_006_TIME_BUDGET_S: '2700'  # physical limit: 90-min job; stop training at 45 min, save WIP, continue next round
+          ZEREF_006_CANDIDATE_BUDGET_S: '2400'  # existing candidate-start window; excludes control (not a whole-job budget)
+          ZEREF_006_TIME_BUDGET_S: '2700'  # existing per-variant window; immutable snapshots also support independent scoring
         run: |
           set -Eeuo pipefail
           python -u scripts/zeref_continuation_006.py
           test -s build/zeref-006/report.json
+      - name: Prepare latest complete checkpoint for independent interruption scoring
+        id: prepare-recovery
+        if: always() && steps.continuation.outcome != 'success' && hashFiles('build/zeref-006/recovery-progress.json') != ''
+        run: python scripts/zeref_round_recovery.py --prepare-bundle
+      - name: Persist interrupted-round recovery inputs (no private chat or teacher text)
+        if: always() && steps.prepare-recovery.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: zeref-006-recovery-${{ github.run_id }}
+          path: build/zeref-recovery-bundle/
+          if-no-files-found: error
       - name: Persist fresh actual frame evidence, training results or honest failure
         if: always()
         uses: actions/upload-artifact@v4
@@ -311,6 +340,19 @@ jobs:
           json.dump(d,open('build/zeref-006/promotion-decision.json','w'),indent=1)
           print('ZEREF_PROMOTION_DECISION='+json.dumps(d),flush=True)
           PY
+      - name: Persist final scored evidence (after chat evaluation, including honest rejection)
+        if: always() && hashFiles('build/zeref-006/report.json') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: zeref-006-scored-report-${{ github.run_id }}
+          path: |
+            build/zeref-006/report.json
+            build/zeref-006/chat-eval.json
+            build/zeref-006/promotion-decision.json
+            build/zeref-006/character-check.json
+            build/zeref-006/identity-probe.json
+            build/zeref-006/recovery-progress.json
+          if-no-files-found: error
       - name: Persist ONLY the approved model and optimizer to resume on next six-hour cycle
         if: success()
         uses: actions/upload-artifact@v4
@@ -350,3 +392,80 @@ jobs:
               --title "Zeref 006 approved cycle $cyc (CPU, not production-promoted)" \
               --notes "Approved Zeref (bb-deada969) RAWRPHOS checkpoint ${sha}. CPU-only behavioral cloning on real native-game observations; batch order seeded from RECORDED Rigetti SIMULATOR counts (rigetti.sim.qvm, not QPU). Not production-promoted. Run ${{ github.run_id }}." \
               "build/$tag.tar.gz" "build/$tag.tar.gz.sha256"
+
+  recovery-contract:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@v4
+        with: {node-version: '24'}
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11'}
+      - run: |
+          python -m pip install --index-url https://download.pytorch.org/whl/cpu torch==2.6.0
+          python -m pip install -e . -e ./models/rawrphos
+      - run: |
+          node --test tests/zeref_continuation_006_contract.test.cjs tests/zeref_round_recovery_contract.test.cjs
+          PYTHONPATH=.:models python -m unittest discover -s tests -p test_zeref_round_recovery.py
+          python -m py_compile scripts/zeref_continuation_006.py scripts/zeref_round_recovery.py
+  score-interrupted:
+    # Independent runner/timeout: job cancellation cannot consume the scoring reserve.
+    # Never publishes weights or approval; the pin and every numeric gate stay untouched.
+    needs: train-zeref
+    if: always() && needs.train-zeref.result != 'success' && needs.train-zeref.result != 'skipped'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      actions: read
+    env:
+      OMP_NUM_THREADS: '2'
+      MKL_NUM_THREADS: '2'
+      TOKENIZERS_PARALLELISM: 'false'
+      NAVISWORLD_NATIVE_TRAINING_BEAST: zeref
+      NAVISWORLD_NATIVE_TRAINING_CYCLE: ${{ github.run_id }}
+      BEAST_006_PARENT_PATH: build/zeref-006/previous/accepted-checkpoint
+      ZEREF_006_PUBLIC_REF_DIR: build/public-14k
+      ZEREF_COND54: '1'
+      ZEREF_SPARK_TICKS: build/zeref-006/spark-ticks.jsonl
+      ZEREF_HEBBIAN: '1'
+      ZEREF_TRINITY: '1'
+      ZEREF_006_LR: '0.00005'
+    steps:
+      - uses: actions/checkout@v4
+        with: {persist-credentials: false}
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11'}
+      - uses: actions/download-artifact@v4
+        with:
+          name: zeref-006-recovery-${{ github.run_id }}
+          path: build/
+      - name: Install the same CPU scoring runtime
+        run: |
+          python -m pip install --index-url https://download.pytorch.org/whl/cpu torch==2.6.0
+          python -m pip install -e . -e ./models/rawrphos
+      - name: Score latest saved raw checkpoint against the same unchanged gates
+        run: |
+          set -Eeuo pipefail
+          python -u scripts/zeref_continuation_006.py --score-recovery
+          python -u scripts/rawrphos_chat_eval.py build/public-14k build/zeref-006/unreviewed-candidate build/zeref-006/recovery-chat-eval.json
+          test -s build/zeref-006/recovery-score.json
+          test ! -f build/zeref-006/approval.json
+      - name: Persist independent interrupted-round scores or honest failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zeref-006-interrupted-scores-${{ github.run_id }}
+          path: |
+            build/zeref-006/recovery-score.json
+            build/zeref-006/recovery-chat-eval.json
+            build/zeref-006/recovery-progress.json
+            build/zeref-006/character-check.json
+            build/zeref-006/identity-probe.json
+            build/zeref-006/failure.json
+          if-no-files-found: error

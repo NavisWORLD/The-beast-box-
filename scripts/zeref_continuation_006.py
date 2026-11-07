@@ -353,8 +353,8 @@ def identity_probe(path):
  for kind in("identity","controls"):out[kind+"_hits"]=sum(x["hit"] for x in out[kind])
  out["hebbian"]=bool(e.model.config.hebbian);del e
  return out
-def train_variant(parent_path,tokenizer,pool,seed,chat_pool=(),chat_eval=None,lr=None,min_frac=None):
- """64 bounded AdamW updates with action-balanced sampling and parent anchor."""
+def train_variant(parent_path,tokenizer,pool,seed,chat_pool=(),chat_eval=None,lr=None,min_frac=None,recovery_candidate=None):
+ """Configured bounded AdamW attempts with action-balanced sampling and parent anchor."""
  from collections import defaultdict
  parent=load_checkpoint(parent_path,load_training_state=True)
  model=parent["model"];cond54_bank()
@@ -400,13 +400,17 @@ def train_variant(parent_path,tokenizer,pool,seed,chat_pool=(),chat_eval=None,lr
  gc=torch.Generator().manual_seed(seed^0xC054)  # separate stream: data order (g) is unchanged by conditioning
  logs=[];best=None;gnorms=[];SKIPPED.clear()
  ema={k:v.detach().clone() for k,v in model.state_dict().items()} if EMA_DECAY>0 else None  # 008 running average
- t0=time.perf_counter()
+ t0=time.perf_counter();applied=0;attempted=0
  for n in range(UPDATES):
+  if recovery_candidate is not None and n%EVAL_EVERY==0:
+   from zeref_round_recovery import save_snapshot
+   save_snapshot(ROOT,model,tokenizer,parent["metadata"],opt,g,candidate=recovery_candidate,attempted=attempted,applied=applied)
   if TIME_BUDGET_S and time.perf_counter()-t0>TIME_BUDGET_S:
    LIMITS_HIT.append({"limit":"time","at_step":n,"budget_s":TIME_BUDGET_S})
    torch.save({"model":{k:v.detach().clone() for k,v in model.state_dict().items()},"n_layers":model.config.n_layers,
     "parent_checkpoint_sha256":parent["metadata"]["checkpoint_sha256"],"steps_done":n},WIP_OUT)
    print("ZEREF_GROWTH_LIMIT_HIT="+json.dumps(LIMITS_HIT[-1]),flush=True);break
+  attempted=n+1
   for gi,group in enumerate(opt.param_groups):group["lr"]=(HEBBIAN_LR if gi==1 else lr)*(min_frac+(1-min_frac)*.5*(1+math.cos(math.pi*n/UPDATES)))
   opt.zero_grad(set_to_none=True)
   idx=[];src=defaultdict(int)
@@ -454,7 +458,7 @@ def train_variant(parent_path,tokenizer,pool,seed,chat_pool=(),chat_eval=None,lr
    print("ZEREF_006_SKIPPED_BATCH="+json.dumps(SKIPPED[-1],sort_keys=True),flush=True)
    opt.zero_grad(set_to_none=True);continue
   gnorms.append(gn)
-  opt.step()
+  opt.step();applied+=1
   if ema is not None:
    with torch.no_grad():
     for k,v in model.state_dict().items():
@@ -472,6 +476,12 @@ def train_variant(parent_path,tokenizer,pool,seed,chat_pool=(),chat_eval=None,lr
     if ce<best[0]:best=(ce,n+1,{k:v.clone() for k,v in ema.items()})
     model.load_state_dict(live)
    print("ZEREF_006_INCYCLE_CHAT="+json.dumps({"step":n+1,"chat_nll":c,"lr":opt.param_groups[0]["lr"]}),flush=True)
+ if recovery_candidate is not None:
+  from zeref_round_recovery import save_snapshot
+  # Save raw latest weights before the existing best-on-A selection restores an earlier state.
+  path=ROOT/f"recovery/candidate-{recovery_candidate}-{attempted:06d}"
+  if not path.exists():save_snapshot(ROOT,model,tokenizer,parent["metadata"],opt,g,candidate=recovery_candidate,attempted=attempted,applied=applied)
+ logs.append({"attempted_updates":attempted,"applied_optimizer_steps":applied,"elapsed_s":round(time.perf_counter()-t0,3)})
  if best is not None:
   model.load_state_dict(best[2]);logs.append({"best_in_cycle_step":best[1],"best_in_cycle_chat_nll":best[0]})
  logs.append({"skipped_batches":list(SKIPPED),"spike_x":SPIKE_X,"grad_norm_median":statistics.median(gnorms) if gnorms else None})
@@ -537,7 +547,7 @@ def parent_proof():
 CAND_SPECS=[(1.0,.1),(.6,.1),(1.6,.3),(1.0,.5),(2.0,.5),(.8,.4)]
 N_CANDIDATES=max(1,min(len(CAND_SPECS),int(os.environ.get("ZEREF_006_CANDIDATES","1"))))
 CAND_BUDGET_S=float(os.environ.get("ZEREF_006_CANDIDATE_BUDGET_S","0"))  # 0 = no extra cap; else stop starting new candidates after this
-def main():
+def main(recovery=False):
  global UPDATES
  now=time.perf_counter()
  torch.set_num_threads(2)
@@ -629,34 +639,55 @@ def main():
  # On/off comparison: identical recipe, only the batch-order seed differs.
  # The Rigetti-ordered model is ALWAYS the candidate (no cherry-picking).
  ce=lambda m:pair_nll(m,chat_t)  # best-in-cycle picked on the SAME yardstick as the gate
- ctrl,_,_,_=train_variant(PARENT,tokenizer,pool,control_seed,chat_pool,ce)
- ctrl_dir=ROOT/"control-off";meta_c={"schema":"control-not-a-candidate","production_promoted":False,"training_steps":1}
- save_checkpoint(ctrl_dir,ctrl,tokenizer,meta_c,{})
- control_out=exact_model_replies(ctrl_dir,heldout)
- control={"heldout_nll":nll(ctrl,held_t),"chat_nll":pair_nll(ctrl,chat_t),"retention_nll":nll(ctrl,retention),**counts(control_out),
-   "unique_actions":len({r["legal_action"] for r in control_out if r["legal_action"]})}
- import shutil;shutil.rmtree(ctrl_dir);del ctrl
- cands=[];best_c=None;c_t0=time.perf_counter()
- for ci in range(N_CANDIDATES):
-  if ci>0 and CAND_BUDGET_S and time.perf_counter()-c_t0>CAND_BUDGET_S:
-   print("ZEREF_006_CANDIDATE_SKIPPED="+json.dumps({"index":ci,"reason":"candidate time budget","budget_s":CAND_BUDGET_S}),flush=True);break
-  mult,floor=CAND_SPECS[ci]
-  cseed=order_seed if ci==0 else int(sha(f"{order_seed}:cand:{ci}".encode())[:12],16)%(2**62)
-  t_c=time.perf_counter()
-  m_c,o_c,g_c,l_c=train_variant(PARENT,tokenizer,pool,cseed,chat_pool,ce,lr=LR*mult,min_frac=floor)
-  a_c=pair_nll(m_c,chat_t)
-  rec={"index":ci,"seed":cseed,"lr":LR*mult,"lr_min_fraction":floor,"chat_a_nll":a_c,"best_in_cycle":next((x for x in l_c if "best_in_cycle_step" in x),None),
-   "skipped_batches":len(SKIPPED),"elapsed_s":round(time.perf_counter()-t_c,1)}
-  cands.append(rec);print("ZEREF_006_CANDIDATE="+json.dumps(rec,sort_keys=True),flush=True)
-  if best_c is None or a_c<best_c[0]:
-   best_c=(a_c,ci,m_c,o_c,g_c,l_c,list(SKIPPED),OPT_RESUME[-1] if OPT_RESUME else None)
-  del m_c,o_c
- _,sel_i,model,opt,torch_generator,logs,_sk,_ol=best_c
- SKIPPED[:]=_sk
- if _ol is not None:OPT_RESUME.append(_ol)
- SEL=cands[sel_i];SEL_LR=SEL["lr"]
- print("ZEREF_006_CANDIDATE_SELECTED="+json.dumps({"index":sel_i,"chat_a_nll":SEL["chat_a_nll"],"of":len(cands),"rule":"lowest set A NLL; set B never used to select; unchanged Gate v2 applies to the selected candidate only"}),flush=True)
- if parameter_hash(model)==before_hash:raise AssertionError("Zeref weights never changed")
+ from zeref_round_recovery import save_snapshot,load_snapshot
+ recovery_progress=None
+ if recovery:
+  recovered,recovery_progress=load_snapshot(ROOT)
+  if recovery_progress["parent_checkpoint_sha256"]!=parent["metadata"]["checkpoint_sha256"]:
+   raise ValueError("Recovery candidate does not descend from this verified pin")
+  if recovered["metadata"]["training_steps"]!=parent["metadata"]["training_steps"]+recovery_progress["applied_optimizer_steps"]:
+   raise ValueError("Recovery applied-step receipt disagrees with checkpoint")
+  model=recovered["model"]
+  named=dict(model.named_parameters());group_names=recovered["metadata"].get("optimizer_group_param_names")
+  if group_names:
+   opt=torch.optim.AdamW([{"params":[named[k] for k in group]} for group in group_names],lr=LR)
+  else:opt=torch.optim.AdamW(model.parameters(),lr=LR)
+  opt.load_state_dict(recovered["state"]["optimizer"])
+  torch_generator=torch.Generator();torch_generator.set_state(recovered["state"]["data_rng"])
+  logs=[recovery_progress];sel_i=0;SEL_LR=LR;SEL={"lr_min_fraction":LR_MIN_FRACTION}
+  cands=[];control={"unavailable_in_recovery":True,"not_fabricated":True}
+  print("ZEREF_ROUND_RECOVERY="+json.dumps(recovery_progress,sort_keys=True),flush=True)
+ else:
+  # Before the report-only control starts, preserve an honest zero-candidate-update baseline.
+  save_snapshot(ROOT,model,tokenizer,parent["metadata"],None,None,candidate=None,attempted=0,applied=0,state=parent["state"])
+  ctrl,_,_,_=train_variant(PARENT,tokenizer,pool,control_seed,chat_pool,ce)
+  ctrl_dir=ROOT/"control-off";meta_c={"schema":"control-not-a-candidate","production_promoted":False,"training_steps":1}
+  save_checkpoint(ctrl_dir,ctrl,tokenizer,meta_c,{})
+  control_out=exact_model_replies(ctrl_dir,heldout)
+  control={"heldout_nll":nll(ctrl,held_t),"chat_nll":pair_nll(ctrl,chat_t),"retention_nll":nll(ctrl,retention),**counts(control_out),
+    "unique_actions":len({r["legal_action"] for r in control_out if r["legal_action"]})}
+  import shutil;shutil.rmtree(ctrl_dir);del ctrl
+  cands=[];best_c=None;c_t0=time.perf_counter()
+  for ci in range(N_CANDIDATES):
+   if ci>0 and CAND_BUDGET_S and time.perf_counter()-c_t0>CAND_BUDGET_S:
+    print("ZEREF_006_CANDIDATE_SKIPPED="+json.dumps({"index":ci,"reason":"candidate time budget","budget_s":CAND_BUDGET_S}),flush=True);break
+   mult,floor=CAND_SPECS[ci]
+   cseed=order_seed if ci==0 else int(sha(f"{order_seed}:cand:{ci}".encode())[:12],16)%(2**62)
+   t_c=time.perf_counter()
+   m_c,o_c,g_c,l_c=train_variant(PARENT,tokenizer,pool,cseed,chat_pool,ce,lr=LR*mult,min_frac=floor,recovery_candidate=ci)
+   a_c=pair_nll(m_c,chat_t)
+   rec={"index":ci,"seed":cseed,"lr":LR*mult,"lr_min_fraction":floor,"chat_a_nll":a_c,"best_in_cycle":next((x for x in l_c if "best_in_cycle_step" in x),None),
+    "skipped_batches":len(SKIPPED),"elapsed_s":round(time.perf_counter()-t_c,1)}
+   cands.append(rec);print("ZEREF_006_CANDIDATE="+json.dumps(rec,sort_keys=True),flush=True)
+   if best_c is None or a_c<best_c[0]:
+    best_c=(a_c,ci,m_c,o_c,g_c,l_c,list(SKIPPED),OPT_RESUME[-1] if OPT_RESUME else None)
+   del m_c,o_c
+  _,sel_i,model,opt,torch_generator,logs,_sk,_ol=best_c
+  SKIPPED[:]=_sk
+  if _ol is not None:OPT_RESUME.append(_ol)
+  SEL=cands[sel_i];SEL_LR=SEL["lr"]
+  print("ZEREF_006_CANDIDATE_SELECTED="+json.dumps({"index":sel_i,"chat_a_nll":SEL["chat_a_nll"],"of":len(cands),"rule":"lowest set A NLL; set B never used to select; unchanged Gate v2 applies to the selected candidate only"}),flush=True)
+ if not recovery and parameter_hash(model)==before_hash:raise AssertionError("Zeref weights never changed")
  new_held=nll(model,held_t)
  new_ret=nll(model,retention)
  new_chat=pair_nll(model,chat_t)
@@ -669,8 +700,8 @@ def main():
   "parent_checkpoint_sha256":parent["metadata"]["checkpoint_sha256"],
   "canonical_lineage_root_sha256":CANONICAL_APPROVED_ROOT,
   "approved_cycle_count":cycle+1,
-  "training_steps":parent["metadata"]["training_steps"]+UPDATES,
-  "cycle_optimizer_updates":UPDATES,
+  "training_steps":parent["metadata"]["training_steps"]+(recovery_progress["applied_optimizer_steps"] if recovery else UPDATES),
+  "cycle_optimizer_updates":recovery_progress["applied_optimizer_steps"] if recovery else UPDATES,
   # resume fix: exact parameter names per optimizer group, so the next round maps state by name
   "optimizer_group_param_names":[[{id(p):k for k,p in model.named_parameters()}[id(q)] for q in g["params"]] for g in opt.param_groups],
   "optimizer_resume":OPT_RESUME[-1] if OPT_RESUME else None,
@@ -729,7 +760,7 @@ def main():
   "parent_training_steps":parent["metadata"]["training_steps"],
   "candidate_training_steps":saved["training_steps"],
   "approved_cycle_number_if_accepted":cycle+1,
-  "real_cpu_optimizer_steps_this_run":UPDATES,"new_ibm_qpu_jobs":0,
+  "real_cpu_optimizer_steps_this_run":recovery_progress["applied_optimizer_steps"] if recovery else UPDATES,"new_ibm_qpu_jobs":0,
   "heldout_before_nll":original_held,"heldout_after_nll":new_held,
   "retention_before_nll":original_ret,"retention_after_nll":new_ret,
   "parent_heldout":baseline,"candidate_heldout":trial,
@@ -752,12 +783,16 @@ def main():
   "teacher_is_scripted_not_human":True,
   "candidate_action_diversity_not_navigation_progress":True,
   "growth_limits_hit":LIMITS_HIT,"skipped_batches":list(SKIPPED),"training_logs":logs,"elapsed_seconds":round(time.perf_counter()-now,3)}
+ if recovery:
+  report["recovery"]={**recovery_progress,"scored_raw_latest_weights":True,"publication_performed":False,
+   "planned_updates_per_variant":UPDATES,"note":"Independent interrupted-round measurement only; no approval or pin mutation."}
+  save_json(ROOT/"recovery-score.json",report)
  save_json(ROOT/"report.json",report)
  print("ZEREF_006_REAL_TRAINING_GATE="+json.dumps({"approved":accepted,"cycle":cycle+1,
    "canonical_root":CANONICAL_APPROVED_ROOT,
    "parent":report["parent_checkpoint_sha256"],"candidate":saved["checkpoint_sha256"],
    "baseline":baseline,"trial":trial,"gate":guard}),flush=True)
- if accepted:
+ if accepted and not recovery:
   approved=ROOT/"accepted-checkpoint"
   temp.rename(approved)
   save_json(ROOT/"approval.json",{"schema":"zeref-native-approved-cycle-v1",
@@ -767,7 +802,7 @@ def main():
    "canonical_lineage_root_sha256":CANONICAL_APPROVED_ROOT,
    "dataset_sha256":source_digest,
    "approved_cycle_count":cycle+1,"production_promoted":False})
- else:
+ elif not recovery:
   # Keep exact report but do not hand rejected weights to any next scheduled run.
   import shutil
   shutil.rmtree(temp)
@@ -775,9 +810,10 @@ def main():
     "candidate_sha256":saved["checkpoint_sha256"],"reuse_last_accepted_parent":True})
  print("ZEREF_006_OBSERVATION_DIAGNOSTICS="+json.dumps(report["native_observation_diagnostics"]),flush=True)
  print("ZEREF_006_NEXT_PARENT="+json.dumps({"accepted":accepted,
-       "optimizer_steps_completed":UPDATES,"checkpoint_preserved":accepted}),flush=True)
+       "optimizer_steps_completed":recovery_progress["applied_optimizer_steps"] if recovery else UPDATES,"checkpoint_preserved":accepted and not recovery}),flush=True)
 if __name__=="__main__":
- try:main()
+ import sys
+ try:main(recovery="--score-recovery" in sys.argv)
  except Exception as exc:
   save_json(ROOT/"failure.json",{"error_type":type(exc).__name__,
     "message":str(exc)[:350],"no_new_qpu_job":True,"no_fabricated_results":True,
