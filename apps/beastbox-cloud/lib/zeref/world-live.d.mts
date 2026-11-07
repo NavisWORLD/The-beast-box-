@@ -13,6 +13,7 @@ export function linkState(age:number|null|undefined,staleAfter:number):LinkState
 export function countsFeatures(counts:unknown):{p0:number;p1:number;p2:number;odd:number;entropy:number;shots:number}|null;
 export function branchRelPath(branch:string,file:string):string|null;
 export function tipRelPath(sha:string,file:string):string|null;
+export function parseRefsTipSha(text:string|null|undefined,branch:string):string|null;
 export function parseTipSha(apiJson:unknown):string|null;
 export function pickFresherSpark(a:unknown,b:unknown,nowMs:number):unknown;
 export function sparkNeedsTipReread(spark:unknown,nowMs:number):boolean;
