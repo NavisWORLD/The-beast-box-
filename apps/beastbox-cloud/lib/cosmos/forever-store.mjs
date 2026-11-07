@@ -97,6 +97,56 @@ export async function appendExchange(cfg,id,{guestText,reply,step,at}){
  return {persisted:false,turns:0};
 }
 
+/**
+ * FULL THREAD ARCHIVE (2026-11-06, Cory: memory is never lost; his memory of a
+ * guest accumulates). threads/<id>.json above stays the short rolling window
+ * (MAX_THREAD_TURNS) that feeds the prompt; this is the complete record of the
+ * same thread, append-only: one JSON line per turn, existing lines are never
+ * rewritten, reordered or removed (every write is verified to keep the old
+ * body as an exact prefix, under an etag guard). Same guest-origin labels,
+ * training_eligible:false, outside diary/lessons/experiences.
+ */
+export const ARCHIVE_SCHEMA='beastbook-guest-thread-archive/v1';
+export const MAX_ARCHIVE_READ_BYTES=8_000_000;
+const archiveName=id=>`${GUESTBOOK_DIR}/archive/${id}.jsonl`;
+const archiveLine=(id,t,extra={})=>JSON.stringify({schema:ARCHIVE_SCHEMA,thread:id,origin:'guest',source_kind:'public',training_eligible:false,
+ at:t.at??null,from:t.from==='zeref'?'zeref':'guest',text:String(t.text??''),...(Number.isInteger(t.step)?{step:t.step}:{}),...extra});
+
+/** -> array of archived turns for THIS thread id only ([] when none / unreadable / foreign lines). */
+export async function readArchive(cfg,id){
+ if(!isThreadId(id))return [];
+ const b=await getBlob(cfg,archiveName(id));
+ if(!b||b.text.length>MAX_ARCHIVE_READ_BYTES)return [];
+ const out=[];
+ for(const l of b.text.split('\n')){if(!l)continue;try{const r=JSON.parse(l);if(r?.schema===ARCHIVE_SCHEMA&&r.thread===id&&typeof r.text==='string')out.push(r);}catch{}}
+ return out;
+}
+
+/**
+ * Append one verified exchange to the archive. On the archive's first write,
+ * the turns still in the rolling window are carried in first (marked
+ * carried_from:'thread-window', their original timestamps kept) so nothing
+ * that still exists is left out. Idempotent per exchange_id. -> {archived, turns}
+ */
+export async function appendArchive(cfg,id,{guestText,reply,step,at,exchange_id,windowTurns=[]}){
+ if(!isThreadId(id))return {archived:false,turns:0};
+ const fresh=[archiveLine(id,{at,from:'guest',text:guestText},{exchange_id}),archiveLine(id,{at,from:'zeref',text:reply,step},{exchange_id})];
+ for(let attempt=0;attempt<2;attempt++){
+  const cur=await getBlob(cfg,archiveName(id));
+  const old=cur?.text||'';
+  if(exchange_id&&old.includes(`"exchange_id":"${exchange_id}"`))return {archived:true,turns:old.split('\n').filter(Boolean).length};
+  const carried=cur?[]:(Array.isArray(windowTurns)?windowTurns:[]).filter(t=>t&&typeof t.text==='string').map(t=>archiveLine(id,t,{carried_from:'thread-window'}));
+  const body=old+[...carried,...fresh].join('\n')+'\n';
+  if(!body.startsWith(old))return {archived:false,turns:0}; // append-only invariant
+  try{
+   if(cur)await putBlob(cfg,archiveName(id),body,{contentType:'application/x-ndjson',ifMatch:cur.etag});
+   else await putBlob(cfg,archiveName(id),body,{contentType:'application/x-ndjson',ifNoneMatch:'*'});
+   return {archived:true,turns:body.split('\n').filter(Boolean).length};
+  }catch(e){if((e.status===409||e.status===412)&&attempt===0)continue;throw e;}
+ }
+ return {archived:false,turns:0};
+}
+
 /** Append one guest-origin event (counts only, never guest text). Best-effort by contract: callers treat false as "not recorded". */
 export async function appendGuestEvent(cfg,event){
  const line=JSON.stringify({schema:'beastbook-guest-event/v1',kind:'guest_exchange',origin:'guest',source_kind:'public',

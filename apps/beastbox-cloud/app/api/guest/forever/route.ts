@@ -1,6 +1,6 @@
 import {bridgeConfigured,safeJson} from '@/lib/security';
 import {storageConfig} from '@/lib/cosmos/azure-blob.mjs';
-import {appendExchange,appendGuestEvent,exchangeId,bridgeIdentityForThread,composeContinuityPreface,isThreadId,newThreadId,readThread} from '@/lib/cosmos/forever-store.mjs';
+import {appendArchive,readArchive,appendExchange,appendGuestEvent,exchangeId,bridgeIdentityForThread,composeContinuityPreface,isThreadId,newThreadId,readThread} from '@/lib/cosmos/forever-store.mjs';
 import {assembleBridgeContext,loadShelfIndex,matchShelf,LIVE_CONTEXT_LABEL} from '@/lib/cosmos/live-context.mjs';
 import {composeSight} from '@/lib/cosmos/sight.mjs';
 import {buildWorldLive} from '@/lib/zeref/world-live.mjs';
@@ -142,6 +142,9 @@ export async function POST(request:Request){
   cfg?readThread(cfg,threadId).catch(()=>null):Promise.resolve(null),
   loadWorldRaw(),
  ]);
+ // The full append-only archive of THIS thread (never another guest's): it feeds only the
+ // own-thread retrieval pool below; the prompt window stays the rolling thread.
+ const archiveTurns:any[]=cfg?await readArchive(cfg,threadId).catch(()=>[]):[];
  // His live universe (world-live channels, labels intact) and his library
  // (approved shelves, read-only topic lookup on the visitor's own words).
  const world=buildWorldLive({spark:worldRaw.spark,liveTick:worldRaw.liveTick,liveHead:worldRaw.liveHead,
@@ -165,7 +168,7 @@ export async function POST(request:Request){
  const contextSent=Buffer.byteLength(text,'utf8')<=MAX_TEXT_WITH_CONTEXT;
  // Self-memory: the same one index the growing door reads, plus THIS visitor's own thread turns only.
  // It rides as the bridge's `memory` field only if the existing 1300-byte total still holds.
- const selfMem=contextSent&&await bridgeReadsMemory(process.env.BEASTBOX_CLOUD_BRIDGE_URL!)?await loadSelfMemory().then(m=>readSelfMemory(m,text,{ownThread:ownThreadItems(threadRec?.thread?.turns||[]),
+ const selfMem=contextSent&&await bridgeReadsMemory(process.env.BEASTBOX_CLOUD_BRIDGE_URL!)?await loadSelfMemory().then(m=>readSelfMemory(m,text,{ownThread:ownThreadItems([...archiveTurns,...(threadRec?.thread?.turns||[])]),
    cap:Math.max(0,Math.min(300,1300-(bridgeContext.bytes?.total||0)))})).catch(()=>({text:'',memory_read:[]})):{text:'',memory_read:[]};
  try{after(()=>teacherJoinPending());}catch{/* outside a request scope (tests): nothing to keep alive */}
  const liveReceipt=contextSent?bridgeContext.live:{...bridgeContext.live,composed:false};
@@ -223,13 +226,18 @@ export async function POST(request:Request){
    training_eligible:rawThread.training_eligible===true}:null;
   // System-written record of the exchange, AFTER verification. Best-effort:
   // a storage failure never eats a verified reply, it only marks the receipt.
-  let persisted=false,recorded=false;
+  let persisted=false,recorded=false,archived=false,archivedTurns=0;
   if(cfg){
    const at=new Date().toISOString();
    try{
     const w=await appendExchange(cfg,threadId,{guestText:text,reply,step:PIN_STEP,at});
     persisted=w.persisted;
    }catch{/* receipt marks persisted:false */}
+   try{
+    const a=await appendArchive(cfg,threadId,{guestText:text,reply,step:PIN_STEP,at,
+     exchange_id:exchangeId('public',threadId,at,text,reply),windowTurns:threadRec?.thread?.turns||[]});
+    archived=a.archived;archivedTurns=a.turns;
+   }catch{/* receipt marks archived:false */}
    try{
     recorded=await appendGuestEvent(cfg,{at,thread:threadId,step:PIN_STEP,checkpoint_sha256:PIN_SHA,
      guest_chars:text.length,reply_chars:reply.length,exchange_id:exchangeId('public',threadId,at,text,reply)});
@@ -241,7 +249,7 @@ export async function POST(request:Request){
    step:PIN_STEP,checkpoint_sha256:PIN_SHA,reply,
    hebbian:result.hebbian===true,hebbian_mode:hebbianMode,guest_thread:guestThread,
    state_mode:result.state_mode==='tri'||result.state_mode==='dyn12'?result.state_mode:null,
-   guest_stateless:false,continuity:{thread_id:threadId,identity_source:'thread',persisted,recorded,
+   guest_stateless:false,continuity:{thread_id:threadId,identity_source:'thread',persisted,recorded,archive:{archived,turns:archivedTurns,read_turns:archiveTurns.length,window_turns:threadRec?.thread?.turns?.length??0},
     diary:diary?{tick:diary.tick,xp:diary.xp??null,bond:diary.bond??null,stage_name:diary.stage_name??null,verified}:null,
     source:'zeref-diary branch + Azure guestbook (beasts/bb-deada969/guestbook)',
     live_universe:liveReceipt,
