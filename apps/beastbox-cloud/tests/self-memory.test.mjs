@@ -103,3 +103,23 @@ test('production bundling: no template-literal URLs; every bundled source is a l
       assert.ok(existsSync(new URL(rel, new URL(f, import.meta.url))), rel);
   }
 });
+
+test('the one loader reads the diary where it lives: Azure first (no credential in any receipt), then the zeref-diary branch', async () => {
+  const {loadSelfMemory: load} = await import('../lib/zeref/self-memory.mjs?azure');
+  const saved = {sas: process.env.AZURE_STORAGE_CONTAINER_SAS_URL, fetch: globalThis.fetch};
+  process.env.AZURE_STORAGE_CONTAINER_SAS_URL = 'https://fixture.blob.core.windows.net/beast-cosmos?sv=x&sig=SECRETSIG';
+  const seen = [];
+  globalThis.fetch = async (u) => { u = String(u); seen.push(u);
+    if (u.startsWith('https://fixture.blob.core.windows.net/beast-cosmos/beasts/') && u.includes('/latest.json'))
+      return new Response(JSON.stringify({recent: [{tick: 3, hash: 'h', thought: {text: 'I watched the silver comet cross my sky tonight'}}]}), {status: 200});
+    return new Response('', {status: 404}); };
+  try {
+    const m = await load();
+    assert.equal(m.origins.diary, 'azure');
+    const r = readSelfMemory(m, 'silver comet sky');
+    assert.equal(r.memory_read[0].label, 'RECORDED');
+    assert.ok(seen.some(u => u.includes('/beasts/')));
+    assert.doesNotMatch(JSON.stringify({origins: m.origins, r}), /SECRETSIG|sig=|blob\.core/);
+    assert.ok(!m.items.some(i => /SIMULATED/.test(i.label)));
+  } finally { process.env.AZURE_STORAGE_CONTAINER_SAS_URL = saved.sas ?? ''; if (saved.sas === undefined) delete process.env.AZURE_STORAGE_CONTAINER_SAS_URL; globalThis.fetch = saved.fetch; }
+});

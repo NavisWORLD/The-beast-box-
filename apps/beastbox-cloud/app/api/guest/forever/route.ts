@@ -251,7 +251,7 @@ export async function POST(request:Request){
     training_eligible:false,
     label:'Continuity, the live universe, the library and his sight are composed from his persisted record into the bridge context object; guest exchanges are recorded as guest-origin events and never enter training.'},
    ...(()=>{const used=sentMemory&&result.self_memory_in_prompt===true;
-    return {self_memory_used:used,memory_read:used?selfMem.memory_read:[],self_memory:{schema:SELF_MEMORY_SCHEMA,label:SELF_MEMORY_LABEL}};})(),
+    return {self_memory_used:used,memory_read:used?selfMem.memory_read:[],self_memory:{schema:SELF_MEMORY_SCHEMA,label:SELF_MEMORY_LABEL,...(used&&(selfMem as any).origins?{origins:(selfMem as any).origins}:{})}};})(),
    prompt_chars:text.length,
    ...(result.routing&&typeof result.routing==='object'&&!Array.isArray(result.routing)?{routing:result.routing}:{})},
    {status:200,headers});

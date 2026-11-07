@@ -43,9 +43,9 @@ export async function POST(request:Request){
    return safeJson(502,{error:'Unverified growing model response'});
   return safeJson(200,{label:GROWING_LABEL,is_public_pin:false,gated:false,model:'rawrphos-native',tag:r.tag,step:r.step,
    checkpoint_sha256:r.checkpoint_sha256,reply:r.reply,hebbian:r.hebbian===true,guest_stateless:true,
-   ...selfMemoryReceipt(sentMemory&&r.memory_used===true,mem.memory_read)});
+   ...selfMemoryReceipt(sentMemory&&r.memory_used===true,mem.memory_read,(mem as any).origins)});
  }catch{return safeJson(502,{error:'Growing Zeref unavailable or timed out',label:GROWING_LABEL});}
 }
 /** memory_used is true ONLY when the bridge confirms his memory reached the prompt; memory_read lists exactly those items. */
-function selfMemoryReceipt(used:boolean,read:{id:string,label:string,sha256:string}[]){
- return {memory_used:used,memory_read:used?read:[],self_memory:{schema:SELF_MEMORY_SCHEMA,label:SELF_MEMORY_LABEL}};}
+function selfMemoryReceipt(used:boolean,read:{id:string,label:string,sha256:string}[],origins?:Record<string,string>){
+ return {memory_used:used,memory_read:used?read:[],self_memory:{schema:SELF_MEMORY_SCHEMA,label:SELF_MEMORY_LABEL,...(used&&origins?{origins}:{})}};}
