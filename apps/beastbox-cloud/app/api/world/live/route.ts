@@ -1,4 +1,4 @@
-import {buildWorldLive,branchRelPath,tipRelPath,parseTipSha,pickFresherSpark,sparkNeedsTipReread,WORLD_LIVE_PATHS} from '@/lib/zeref/world-live.mjs';
+import {buildWorldLive,branchRelPath,tipRelPath,parseTipSha,parseRefsTipSha,pickFresherSpark,sparkNeedsTipReread,WORLD_LIVE_PATHS} from '@/lib/zeref/world-live.mjs';
 import {genesisState,DIARY_SCHEMA} from '@/lib/zeref/zeref-diary.mjs';
 import PIN from '@/lib/rawrphos-public-pin.json';
 
@@ -20,9 +20,16 @@ async function get(url:string){
  try{const r=await fetch(url,{cache:'no-store',headers:NO_CACHE_HEADERS,signal:AbortSignal.timeout(5000)});return r.ok?await r.json():null;}catch{return null;}
 }
 /** Resolve the real tip sha and read the immutable raw URL (no secrets, no invented ticks). */
+const REFS='https://github.com/NavisWORLD/The-beast-box-.git/info/refs?service=git-upload-pack';
+async function getText(url:string){
+ try{const r=await fetch(url,{cache:'no-store',headers:NO_CACHE_HEADERS,signal:AbortSignal.timeout(5000)});return r.ok?await r.text():null;}catch{return null;}
+}
 async function tipJson(branch:string,file:string){
- const tip=await get(API+'commits/'+branch+'?per_page=1');
- const sha=parseTipSha(tip);if(!sha)return null;
+ // The REST API is unauthenticated (60 req/h per egress IP, shared on serverless): when it refuses, fall back to the
+ // public git ref advertisement for the same exact tip sha. Either way the file is then read by immutable sha.
+ let sha=parseTipSha(await get(API+'commits/'+branch+'?per_page=1'));
+ if(!sha){sha=parseRefsTipSha(await getText(REFS),branch);if(sha)console.warn('[world-live] tip via git refs (API unavailable)',branch);}
+ if(!sha)return null;
  const rel=tipRelPath(sha,file);if(!rel)return null;
  return get(RAW+rel);
 }

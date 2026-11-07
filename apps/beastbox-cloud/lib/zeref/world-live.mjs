@@ -63,6 +63,15 @@ export function tipRelPath(sha,file){
  if(!SHA1.test(sha)||typeof file!=='string'||!file)return null;
  return sha+'/'+file;
 }
+/** Tip sha from git's public smart-HTTP ref advertisement (github.com/<repo>.git/info/refs?service=git-upload-pack).
+ *  Fallback for when the unauthenticated REST API is rate-limited (60 req/h per shared egress IP). Exact ref only;
+ *  null when absent (never invent). */
+export function parseRefsTipSha(text,branch){
+ if(typeof text!=='string'||typeof branch!=='string'||!/^[A-Za-z0-9._/-]{1,100}$/.test(branch))return null;
+ const esc=branch.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+ const m=new RegExp('([0-9a-f]{40}) refs/heads/'+esc+'(?:\\u0000|\\n|$)').exec(text);
+ return m&&SHA1.test(m[1])?m[1]:null;
+}
 /** Accept list-or-object commits API JSON; return the 40-char tip sha or null (never invent). */
 export function parseTipSha(apiJson){
  const row=Array.isArray(apiJson)?apiJson[0]:apiJson;
