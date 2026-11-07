@@ -164,6 +164,15 @@ class GuestHebbianStore:
              role TEXT NOT NULL, text TEXT NOT NULL, training_eligible INTEGER NOT NULL DEFAULT 0)""")
         return db
 
+    def archived_count(self, identity: str) -> int | None:
+        """Number of archived turns for THIS guest, or None when the store cannot be read."""
+        try:
+            with self._connect() as db:
+                return db.execute("SELECT COUNT(*) FROM guest_archive WHERE guest_key=?",
+                                  (guest_key(identity),)).fetchone()[0]
+        except (OSError, sqlite3.Error):
+            return None
+
     def archived(self, identity: str) -> list[dict]:
         """Every archived turn for THIS guest only, oldest first."""
         key = guest_key(identity)

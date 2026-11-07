@@ -126,7 +126,8 @@ def test_thread_is_restored_into_the_next_request(monkeypatch, tmp_path):
     infer, sent = _serve(monkeypatch, tmp_path)
     code, out = infer({"text": "hello", "guest_identity": ID_A, "context": CONTEXT})
     assert code == 200 and out["hebbian_mode"] == "persisted" and out["memory_used"] is False
-    assert out["guest_thread"] == {"loaded_turns": 0, "stored_turns": 2, "training_eligible": False}
+    assert out["guest_thread"] == {"loaded_turns": 0, "stored_turns": 2, "training_eligible": False,
+                                   "save_ok": True, "archive_ok": True, "archived_turns": 2}
     assert sent[0]["messages"] == [{"role": "system", "content": CONTEXT["continuity"]},
                                    {"role": "user", "content": "hello"}]
     code, out = infer({"text": "me again", "guest_identity": ID_A, "context": CONTEXT})
@@ -309,3 +310,19 @@ def test_assembly_cuts_library_then_sight_before_universe():
     system = msgs[0]["content"]
     assert "s" * 300 not in system and "u" * 300 in system and "c" * 100 in system
     assert msgs[-1] == {"role": "user", "content": "t" * 1200}
+
+
+def test_receipt_archived_count_grows_and_failed_save_is_not_success(monkeypatch, tmp_path):
+    infer, _ = _serve(monkeypatch, tmp_path)
+    # Test-only: lift the per-minute burst guard so one guest can pass the 40-turn window quickly.
+    monkeypatch.setattr(guest_local.GuestQuota, "reserve", lambda self, identity, now=None: (200, "t", ""))
+    monkeypatch.setattr(guest_local.GuestQuota, "release", lambda self, token: None)
+    for i in range(guest_hebbian.MAX_TURNS):  # past the 40-turn window
+        code, out = infer({"text": f"hi {i}", "guest_identity": ID_A, "context": CONTEXT})
+        assert code == 200 and out["guest_thread"]["archive_ok"] is True
+    assert out["guest_thread"]["archived_turns"] == 2 * guest_hebbian.MAX_TURNS
+    assert out["guest_thread"]["stored_turns"] <= guest_hebbian.MAX_TURNS
+    monkeypatch.setattr(GuestHebbianStore, "save", lambda self, *a, **k: None)
+    code, out = infer({"text": "one more", "guest_identity": ID_A, "context": CONTEXT})
+    assert code == 200 and out["guest_thread"]["save_ok"] is False and out["guest_thread"]["archive_ok"] is False
+    assert out["guest_thread"]["archived_turns"] == 2 * guest_hebbian.MAX_TURNS
