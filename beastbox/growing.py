@@ -133,21 +133,22 @@ def growing_infer(root: Path, payload: dict) -> tuple[int, dict]:
                                      headers={"Authorization": "Bearer " + key, "Content-Type": "application/json"})
         with _local_opener().open(req, timeout=45) as r:
             raw = r.read(16001)
-        if len(raw) > 16000: return 502, {"error": "Native response too large"}
+        if len(raw) > 16000: return 502, {"error": "Native response too large", "reason": "oversize"}
         result = json.loads(raw)
         if result.get("model") != "rawrphos-native" or result.get("checkpoint_sha256") != info["checkpoint_sha256"]:
-            return 502, {"error": "Growing model identity check failed"}
+            return 502, {"error": "Growing model identity check failed", "reason": "identity_fail"}
         text = result["choices"][0]["message"]["content"]
         if not isinstance(text, str) or not text.strip() or len(text) > 6000:
-            return 502, {"error": "Native response was empty or invalid"}
+            return 502, {"error": "Native response was empty or invalid", "reason": "empty_reply"}
         return 200, {"schema": SCHEMA, "label": LABEL, "model": "rawrphos-native", "tag": info["tag"], "step": info["step"],
                      "checkpoint_sha256": info["checkpoint_sha256"], "reply": text, "is_public_pin": False, "gated": False,
                      "memory_used": False, "owner_tools_used": False, "provider_key_shared": False,
                      "hebbian": result.get("hebbian") is True,
                      # True only when his memory field actually reached the model's prompt.
                      **({"memory_used": _mem_in(context, messages)} if context is not None else {})}
-    except (OSError, ValueError, TypeError, KeyError, IndexError, urllib.error.HTTPError):
-        return 502, {"error": "Growing Zeref unavailable; no fallback"}
+    except (OSError, ValueError, TypeError, KeyError, IndexError, urllib.error.HTTPError) as exc:
+        from .reason_codes import reason_for
+        return 502, {"error": "Growing Zeref unavailable; no fallback", "reason": reason_for(exc)}
     finally:
         quota.release(token)
 

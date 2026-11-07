@@ -294,18 +294,18 @@ def guest_local_infer(root: Path, payload: dict, *, owner_jobs_busy: bool = Fals
             method="POST", headers={"Authorization": "Bearer " + api_key, "Content-Type": "application/json"})
         with _local_opener().open(req, timeout=45) as response:
             if response.status != 200 or int(response.headers.get("Content-Length", "0") or 0) > 16000:
-                return 502, {"error": "Native model returned invalid response"}
+                return 502, {"error": "Native model returned invalid response", "reason": "model_error:BadStatus"}
             raw = response.read(16001)
         if len(raw) > 16000:
-            return 502, {"error": "Native model response too large"}
+            return 502, {"error": "Native model response too large", "reason": "oversize"}
         result = json.loads(raw)
         if (not isinstance(result, dict) or result.get("model") != MODEL
                 or result.get("checkpoint_sha256") != SHA
                 or not isinstance(result.get("choices"), list) or not result["choices"]):
-            return 502, {"error": "Native model identity check failed"}
+            return 502, {"error": "Native model identity check failed", "reason": "identity_fail"}
         text = result["choices"][0]["message"]["content"]
         if not isinstance(text, str) or not text.strip() or len(text) > 6000:
-            return 502, {"error": "Native response was empty or invalid"}
+            return 502, {"error": "Native response was empty or invalid", "reason": "empty_reply"}
         used = result.get("condition54_used") is True
         public_routing = None if routing is None else {
             "receipt_sha256": routing["summary"]["receipt_sha256"], "tally": routing["summary"]["tally"],
@@ -334,7 +334,8 @@ def guest_local_infer(root: Path, payload: dict, *, owner_jobs_busy: bool = Fals
                      # Self-memory receipt: present only when the site sent a memory field (others unchanged).
                      **({"self_memory_in_prompt": memory_in_prompt(context, messages)}
                         if context and context.get("memory") else {})}
-    except (OSError, TimeoutError, ValueError, TypeError, KeyError, IndexError, urllib.error.HTTPError):
-        return 502, {"error": "Native guest inference unavailable; no fallback"}
+    except (OSError, TimeoutError, ValueError, TypeError, KeyError, IndexError, urllib.error.HTTPError) as exc:
+        from .reason_codes import reason_for
+        return 502, {"error": "Native guest inference unavailable; no fallback", "reason": reason_for(exc)}
     finally:
         quota.release(token)
