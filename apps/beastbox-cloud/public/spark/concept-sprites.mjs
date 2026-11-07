@@ -141,3 +141,5 @@ export function paintConceptThumb(ctx, genome, size, { frame = 0, onReady } = {}
  ctx.clearRect(0, 0, size, size);
  return drawConceptFrame(ctx, entry, frame, 0, 0, size, { hd: size > CONCEPT_FRAME, flip: genome?.facing !== 'left' });
 }
+/** Static /spark page: eye state -> concept frame (blink = frame 2). Reduced motion always frame 0. */
+export function conceptEyeFrame(eye, reduced = false) { return !reduced && eye === 'closed' ? 2 : 0; }

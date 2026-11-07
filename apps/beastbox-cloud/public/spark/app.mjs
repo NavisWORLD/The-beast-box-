@@ -1,5 +1,6 @@
 import {personalRecipeLabel} from './personal-genesis.mjs';
 import {blit,renderBeast,SPRITE} from './draw.mjs';
+import {resolveConceptSprite,paintConceptThumb,drawConceptFrame,conceptEyeFrame} from './concept-sprites.mjs';
 import {BODIES,buildGenome,bucketTraits} from './genome.mjs';
 import {expandQvmReceipt,growthFromQvmBatch,scenarioRuns} from './qvm-growth.mjs';
 import {bluetoothNote,connectMuse} from './muse.mjs';
@@ -35,8 +36,20 @@ function fillRunSelect(list){const sel=$('run');sel.replaceChildren(...list.map(
 function selectedRun(){return byKey.get($('run').value)||runs[0];}
 function searchRuns(){const q=$('q').value.trim().toLowerCase(),list=runs.filter(r=>r.key.toLowerCase().includes(q)).slice(0,40);fillRunSelect(list.length?list:runs.slice(0,12));}
 function surpriseRun(){const a=new Uint32Array(1);crypto.getRandomValues(a);const run=runs[a[0]%runs.length];fillRunSelect([run,...runs.slice(0,8).filter(r=>r.key!==run.key)]);$('run').value=run.key;}
-function paintStage(canvas,gen,which,eye='open'){canvas.width=SPRITE*2;canvas.height=SPRITE*2;blit(canvas.getContext('2d'),renderBeast(gen,which,eye),0,0,2);}
+function paintStage(canvas,gen,which,eye='open'){canvas.width=SPRITE*2;canvas.height=SPRITE*2;blit(canvas.getContext('2d'),renderBeast(gen,which,eye),0,0,2);
+ // Approved concept art (exact id/seed only); the original stays on a miss or load failure.
+ const ctx=canvas.getContext('2d');paintConceptThumb(ctx,gen,SPRITE*2,{onReady:()=>paintConceptThumb(ctx,gen,SPRITE*2)});
+}
+
+function conceptEyes(gen){
+ const entry=resolveConceptSprite({genome:gen});if(!entry)return false;
+ const built={};
+ for(const which of [1,2,3]){built[which]={};for(const eye of ['open','sleepy','closed','sparkle']){const c=document.createElement('canvas');c.width=c.height=256;
+  if(!drawConceptFrame(c.getContext('2d'),entry,conceptEyeFrame(eye,reduceMotion),15,15,226,{hd:true,flip:gen.facing!=='left',onReady:()=>{if(current?.gen?.seed===gen.seed)conceptEyes(gen);}}))return false;built[which][eye]=c;}}
+ cache=built;return true;
+}
 function cacheEyes(gen){
+ if(conceptEyes(gen))return;
  cache={};
  for(const which of [1,2,3]){
   cache[which]={};const open=renderBeast(gen,which,'open');
