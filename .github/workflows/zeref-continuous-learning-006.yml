@@ -8,7 +8,7 @@ on:
       - '.github/workflows/zeref-continuous-learning-006.yml'
       - 'tests/zeref_continuation_006_contract.test.cjs'
       - 'scripts/zeref_round_recovery.py'
-      - 'tests/test_zeref_round_recovery.py'
+      - 'models/rawrphos/tests/test_round_recovery.py'
       - 'tests/zeref_round_recovery_contract.test.cjs'
   schedule:
     - cron: '17 */6 * * *'
@@ -412,7 +412,7 @@ jobs:
           python -m pip install -e . -e ./models/rawrphos
       - run: |
           node --test tests/zeref_continuation_006_contract.test.cjs tests/zeref_round_recovery_contract.test.cjs
-          PYTHONPATH=.:models python -m unittest discover -s tests -p test_zeref_round_recovery.py
+          PYTHONPATH=.:models python -m unittest discover -s models/rawrphos/tests -p test_round_recovery.py
           python -m py_compile scripts/zeref_continuation_006.py scripts/zeref_round_recovery.py
   score-interrupted:
     # Independent runner/timeout: job cancellation cannot consume the scoring reserve.

@@ -66,4 +66,4 @@ Proposed follow-up, NOT implemented: Emeth-authored gate-disjoint identity/name 
 
 ## Verification status
 
-Local: six checkpoint/training-equivalence regressions, twelve Node contracts, sixteen existing architecture/training regressions. A controlled full scorer test used real pinned weights with zero new updates and no approval file; this fixture is NOT a growth round. Post-merge actual growth scoring is pending.
+Local: six checkpoint/training-equivalence regressions, thirteen Node contracts, sixteen existing architecture/training regressions. A controlled full scorer test used real pinned weights with zero new updates and no approval file; this fixture is NOT a growth round. Post-merge actual growth scoring is pending.

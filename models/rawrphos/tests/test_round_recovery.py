@@ -70,7 +70,7 @@ class RecoveryTests(unittest.TestCase):
     def test_snapshots_do_not_change_training_weights_or_data_order(self):
         import sys
         from unittest.mock import patch
-        sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
+        sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "scripts"))
         import zeref_continuation_006 as trainer
         parent = self.root / "parent"
         state = {"optimizer":self.opt.state_dict(), "rng":rng_state(), "data_rng":self.gen.get_state()}
