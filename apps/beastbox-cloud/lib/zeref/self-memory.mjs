@@ -11,7 +11,8 @@ import {buildIndex,search} from '../library/bm25.mjs';
 import {tokenize} from '../library/text.mjs';
 import {isPublicDiaryEntry} from './diary-privacy.mjs';
 import {ZEREF_PROFILE} from './zeref-mind.mjs';
-import {storageConfig,getBlob} from '../cosmos/azure-blob.mjs';
+import {storageConfig,getBlob,listBlobs} from '../cosmos/azure-blob.mjs';
+import {TEACHER_LABEL,screenTeacherLessons,loadHeldoutScreen,readTeacherRecords} from './teacher-lessons.mjs';
 
 export const SELF_MEMORY_SCHEMA='zeref-self-memory/v1';
 /** Bytes of the bridge context's `memory` field (inside the existing 1300 total; he trained on 128-token windows). */
@@ -29,7 +30,7 @@ const EXCLUDED_PATH_RX=/heldout|held[-_]out|private|transcript/i;
 /** One memory fabric, two kinds. LIVED = what he lived (diary RECORDED, his read logs, growth nodes SEEDED, his
  *  own thread with this visitor). TAUGHT = what he was taught (lessons, library). Labels are unchanged; `kind` is
  *  an added field. LIVED ranks first (a fixed tier order), then keyword score, then id. */
-export const KIND_OF=Object.freeze({diary:'LIVED',read:'LIVED',node:'LIVED',thread:'LIVED',lesson:'TAUGHT',library:'TAUGHT'});
+export const KIND_OF=Object.freeze({diary:'LIVED',read:'LIVED',node:'LIVED',thread:'LIVED',lesson:'TAUGHT',library:'TAUGHT',teacher:'TAUGHT'});
 export const KIND_TIER=Object.freeze({LIVED:0,TAUGHT:1});
 /** Normalise raw source records into labelled items. Pure. `thread` items are only ever the caller's own. */
 export function itemsFrom({diary=[],lessons=[],reads=[],seeds=[]}={}){
@@ -65,7 +66,7 @@ export function readSelfMemory(mem,query,{ownThread=[],k=2,cap=SELF_MEMORY_CAP,m
   const room=cap-Buffer.byteLength(text,'utf8');if(room<40)break;
   let piece=line;while(Buffer.byteLength(piece,'utf8')>room)piece=piece.slice(0,-1);
   text+=piece;read.push({id:item.id,label:item.label,sha256:item.sha256});}
- return read.length?{text,memory_read:read,...(mem?.origins?{origins:mem.origins}:{})}:empty;}
+ return read.length?{text,memory_read:read,...(mem?.origins?{origins:mem.origins}:{}),...(mem?.screens?{screens:mem.screens}:{})}:empty;}
 
 /* ---------------- loaders: the one loader (network/fs; never inside the ranking) ---------------- */
 // Root cause fixed here (and in live-context.mjs): Turbopack rewrites a TEMPLATE-literal URL relative to import.meta.url
@@ -111,9 +112,25 @@ export function loadSelfMemory(){const now=Date.now();if(cache&&now-cache.at<6e5
   const m=buildSelfMemory(itemsFrom(merged));
   // Receipt: where each source was read from this process ('azure' | 'github'); names only, never a URL or credential.
   m.origins=Object.freeze(Object.fromEntries(FABRIC.map((f,i)=>[f.shelf||f.source,parts[i]?.from||null]).filter(([,v])=>v)));
+  // Azure teacher lessons join in the background once the whole screen has run (never blocks a reply; fail closed).
+  teacherJoin(m).then(t=>{if(t&&cache&&cache.p===p)cache={at:cache.at,p:Promise.resolve(t)};}).catch(()=>{});
   return m;
  })().catch(()=>buildSelfMemory([]));
  cache={at:now,p};return p;}
+
+/** Screen the Azure teacher lessons against the held-out set, the sources already in, and the excludes; then
+ *  rebuild the one index with the survivors (TAUGHT, label APPROVED_TEACHER_LESSON). Unreadable -> none go in. */
+export async function teacherJoin(m,io={storageConfig,listBlobs,getBlob}){
+ const [records,heldout]=await Promise.all([readTeacherRecords(io).catch(()=>null),loadHeldoutScreen()]);
+ const existingTexts=m.items.flatMap(i=>[i.text,i.text.includes(': ')?i.text.slice(i.text.indexOf(': ')+2):i.text]);
+ const {items,report}=records?screenTeacherLessons(records,{heldout,existingTexts,isShareable:isShareableText})
+  :{items:[],report:{total:null,in:0,screen_ran:false,excluded:{azure_unreadable:'all'}}};
+ const extra=[];for(const t of items){const text=`${t.prompt} - ${t.reply}`.replace(/\s+/g,' ').trim();if(!isShareableText(text))continue;
+  const hh=sha256('teacher\n'+text);extra.push({id:'teacher:'+hh.slice(0,16),kind:KIND_OF.teacher,source:'teacher',label:TEACHER_LABEL,text,sha256:hh,ref:'lesson '+t.id});}
+ const out=buildSelfMemory([...m.items,...extra]);
+ out.origins=Object.freeze({...m.origins,...(records?{teacher:'azure'}:{})});
+ out.screens=Object.freeze({teacher:{...report,in:extra.length}});
+ return out;}
 
 let capCache=null;
 /** True only when the bridge's /healthz lists the `memory` context field (cached 5 min). An older bridge, or any
