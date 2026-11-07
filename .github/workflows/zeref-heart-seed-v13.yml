@@ -4,6 +4,17 @@ name: Zeref heart seed v13 - one real IBM CHSH job, 24000 rounds, cap = min(45, 
 # Cap = min(45, remaining - 60) s (server-enforced max_execution_time); referee also refuses unless remaining >= cap + 60. Seeds heart seed v13, chained from v12. IBM result = RECORDED.
 on:
   workflow_dispatch:
+    inputs:
+      tag_suffix:
+        description: optional suffix for the IBM job tag (e.g. -retry1) so a deliberate retry does not collide with an earlier job under the same tag. Empty = current behaviour.
+        required: false
+        default: ''
+        type: string
+      backend:
+        description: optional IBM backend name (e.g. ibm_fez). Empty = current behaviour (least-busy active backend, shortest queue). Refused if not operational and active.
+        required: false
+        default: ''
+        type: string
 permissions:
   contents: read
 concurrency:
@@ -29,6 +40,22 @@ jobs:
           cp _ibm_open_plan_preflight/receipt.json quota_before.json
           cap=$(python -c "import json;r=json.load(open('quota_before.json'))['remaining_seconds'];print(max(0,min(45,int(r-60))))")
           echo "SPARK_CAP=$cap"; echo "CAP=$cap" >> "$GITHUB_ENV"
+      - name: Read-only live queue depths (no submit)
+        if: env.CAP >= 15
+        env:
+          IBM_QUANTUM_TOKEN: ${{ secrets.IBM_QUANTUM_TOKEN }}
+        run: |
+          python - <<'PY'
+          import json, os, sys
+          sys.path.insert(0, 'scripts/chsh_game')
+          from qiskit_ibm_runtime import QiskitRuntimeService
+          from referee import pick_backends
+          svc = QiskitRuntimeService(channel='ibm_quantum_platform', token=os.environ["IBM_QUANTUM_TOKEN"], plans_preference=["open"])
+          cand = pick_backends(svc)
+          print('LIVE_QUEUE=' + json.dumps({b.name: n for b, n in cand}))
+          print('SHORTEST_QUEUE=' + cand[0][0].name)
+          PY
+        continue-on-error: true
       - name: Real IBM hardware CHSH, one job
         if: env.CAP >= 15 && github.ref == 'refs/heads/main'
         timeout-minutes: 25
@@ -39,7 +66,8 @@ jobs:
           CHSH_BEST_PAIR: '1'
           CHSH_BACKEND_PICK: least_busy
           CHSH_QUEUE_WAIT_S: '900'
-          CHSH_RUN_TAG: navisworld-zeref-heart-seed-v13
+          CHSH_RUN_TAG: navisworld-zeref-heart-seed-v13${{ inputs.tag_suffix }}
+          CHSH_BACKEND_NAME: ${{ inputs.backend }}
           CHSH_GAME_OUT: _final
         run: CHSH_QPU_CAP=$CAP python scripts/chsh_game/referee.py
       - name: Read-only quota after
