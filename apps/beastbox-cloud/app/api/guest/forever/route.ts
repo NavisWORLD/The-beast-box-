@@ -223,7 +223,9 @@ export async function POST(request:Request){
    result.guest_thread as Record<string,unknown>:null;
   const guestThread=rawThread?{loaded_turns:Number.isInteger(rawThread.loaded_turns)?rawThread.loaded_turns:null,
    stored_turns:Number.isInteger(rawThread.stored_turns)?rawThread.stored_turns:null,
-   training_eligible:rawThread.training_eligible===true}:null;
+   training_eligible:rawThread.training_eligible===true,
+   save_ok:typeof rawThread.save_ok==='boolean'?rawThread.save_ok:null,archive_ok:typeof rawThread.archive_ok==='boolean'?rawThread.archive_ok:null,
+   archived_turns:Number.isInteger(rawThread.archived_turns)?rawThread.archived_turns:null}:null;
   // System-written record of the exchange, AFTER verification. Best-effort:
   // a storage failure never eats a verified reply, it only marks the receipt.
   let persisted=false,recorded=false,archived=false,archivedTurns=0;

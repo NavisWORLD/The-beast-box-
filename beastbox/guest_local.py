@@ -314,7 +314,13 @@ def guest_local_infer(root: Path, payload: dict, *, owner_jobs_busy: bool = Fals
         # The exchange joins the guest's own thread only after the reply has
         # passed every identity check above. A failed save never eats a good
         # reply; it only shows up as stored_turns not growing.
+        archived_before = store.archived_count(payload["guest_identity"]) if store else None
         stored_turns = store.save(payload["guest_identity"], payload["text"].strip(), text) if store else None
+        archived_after = store.archived_count(payload["guest_identity"]) if store else None
+        save_ok = stored_turns is not None
+        # The exchange's two turns are in the insert-only archive (one transaction with the window save).
+        archive_ok = (save_ok and archived_before is not None and archived_after is not None
+                      and archived_after == archived_before + 2)
         persisted = store is not None
         return 200, {"schema": SCHEMA, "model": MODEL, "step": STEP,
                      "checkpoint_sha256": SHA, "reply": text,
@@ -328,7 +334,9 @@ def guest_local_infer(root: Path, payload: dict, *, owner_jobs_busy: bool = Fals
                      "hebbian_mode": "persisted" if persisted else "in-context",
                      **({"guest_thread": {"loaded_turns": len(history),
                                           "stored_turns": stored_turns if stored_turns is not None else len(history),
-                                          "training_eligible": False}} if persisted else {}),
+                                          "training_eligible": False,
+                                          "save_ok": save_ok, "archive_ok": archive_ok,
+                                          "archived_turns": archived_after}} if persisted else {}),
                      "state_mode": result.get("state_mode") if result.get("state_mode") in ("dyn12", "tri") else None,
                      "owner_tools_used": False, "provider_key_shared": False,
                      # Self-memory receipt: present only when the site sent a memory field (others unchanged).
