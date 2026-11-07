@@ -6,7 +6,7 @@ import shutil
 from pathlib import Path
 
 
-def save_snapshot(root, model, tokenizer, parent, optimizer, generator, *, candidate, attempted, applied, state=None):
+def save_snapshot(root, model, tokenizer, parent, optimizer, generator, *, candidate, attempted, applied, state=None, data_summary=None):
     from rawrphos.training.checkpoint import save_checkpoint, rng_state
     root = Path(root)
     label = "baseline" if candidate is None else f"candidate-{candidate}"
@@ -17,7 +17,8 @@ def save_snapshot(root, model, tokenizer, parent, optimizer, generator, *, candi
     metadata = {"schema": "zeref-measurement-recovery-v1", "qbeast_id": "bb-deada969",
                 "parent_checkpoint_sha256": parent["checkpoint_sha256"],
                 "training_steps": parent["training_steps"] + applied,
-                "production_promoted": False, "optimizer_group_param_names": groups}
+                "production_promoted": False, "optimizer_group_param_names": groups,
+                "training_data_summary": data_summary}
     if state is None:
         state = {"optimizer": optimizer.state_dict(), "rng": rng_state(), "data_rng": generator.get_state()}
     saved = save_checkpoint(root / relative, model, tokenizer, metadata, state)
@@ -25,6 +26,7 @@ def save_snapshot(root, model, tokenizer, parent, optimizer, generator, *, candi
                 "checkpoint_sha256": saved["checkpoint_sha256"], "candidate": candidate,
                 "attempted_updates": attempted, "applied_optimizer_steps": applied,
                 "parent_checkpoint_sha256": parent["checkpoint_sha256"],
+                "training_data_summary": data_summary,
                 "status": "candidate_not_started" if candidate is None else "candidate_in_progress"}
     # Publish the pointer only after checkpoint fsync + atomic rename has completed.
     temporary = root / "recovery-progress.json.tmp"
@@ -52,6 +54,8 @@ def load_snapshot(root):
                                  load_training_state=True)
     if checkpoint["metadata"].get("parent_checkpoint_sha256") != progress["parent_checkpoint_sha256"]:
         raise ValueError("recovery parent mismatch")
+    if checkpoint["metadata"].get("training_data_summary") != progress.get("training_data_summary"):
+        raise ValueError("recovery training-source receipt mismatch")
     return checkpoint, progress
 
 

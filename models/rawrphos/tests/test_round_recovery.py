@@ -58,6 +58,19 @@ class RecoveryTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             load_snapshot(self.root)
 
+    def test_source_summary_is_preserved_without_corpus_text_and_tampering_is_refused(self):
+        summary = {"chat_rows":8119, "chat_mix_sha256":"b"*64, "pretrain_rows":1500}
+        save_snapshot(self.root,self.model,self.tok,self.parent,self.opt,self.gen,
+                      candidate=0,attempted=32,applied=29,data_summary=summary)
+        c, progress = load_snapshot(self.root)
+        self.assertEqual(progress["training_data_summary"],summary)
+        self.assertEqual(c["metadata"]["training_data_summary"],summary)
+        p = self.root / "recovery-progress.json"
+        progress["training_data_summary"]["chat_rows"] = 1
+        p.write_text(json.dumps(progress))
+        with self.assertRaises(ValueError):
+            load_snapshot(self.root)
+
     def test_progress_cannot_claim_more_applied_steps_than_attempts(self):
         self.snapshot()
         p = self.root / "recovery-progress.json"

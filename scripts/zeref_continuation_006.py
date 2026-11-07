@@ -404,11 +404,15 @@ def train_variant(parent_path,tokenizer,pool,seed,chat_pool=(),chat_eval=None,lr
  gc=torch.Generator().manual_seed(seed^0xC054)  # separate stream: data order (g) is unchanged by conditioning
  logs=[];best=None;gnorms=[];SKIPPED.clear()
  ema={k:v.detach().clone() for k,v in model.state_dict().items()} if EMA_DECAY>0 else None  # 008 running average
+ data_summary={"chat_rows":len(chat_pool),"chat_mix_sha256":hash_file(CHAT_MIX) if CHAT_MIX.is_file() else None,
+  "pretrain_rows":len(PRETRAIN_POOL),"pretrain_sha256":hash_file(PRETRAIN) if PRETRAIN.is_file() else None,
+  "batch":BATCH,"chat_per_batch":CHAT_PER_BATCH if chat_pool else 0,
+  "pretrain_per_batch":PRETRAIN_PER_BATCH if PRETRAIN_POOL else 0,"game_pool_rows":len(pool)}
  t0=time.perf_counter();applied=0;attempted=0
  for n in range(UPDATES):
   if recovery_candidate is not None and n%EVAL_EVERY==0:
    from zeref_round_recovery import save_snapshot
-   save_snapshot(ROOT,model,tokenizer,parent["metadata"],opt,g,candidate=recovery_candidate,attempted=attempted,applied=applied)
+   save_snapshot(ROOT,model,tokenizer,parent["metadata"],opt,g,candidate=recovery_candidate,attempted=attempted,applied=applied,data_summary=data_summary)
   if TIME_BUDGET_S and time.perf_counter()-t0>TIME_BUDGET_S:
    LIMITS_HIT.append({"limit":"time","at_step":n,"budget_s":TIME_BUDGET_S})
    torch.save({"model":{k:v.detach().clone() for k,v in model.state_dict().items()},"n_layers":model.config.n_layers,
@@ -484,7 +488,7 @@ def train_variant(parent_path,tokenizer,pool,seed,chat_pool=(),chat_eval=None,lr
   from zeref_round_recovery import save_snapshot
   # Save raw latest weights before the existing best-on-A selection restores an earlier state.
   path=ROOT/f"recovery/candidate-{recovery_candidate}-{attempted:06d}"
-  if not path.exists():save_snapshot(ROOT,model,tokenizer,parent["metadata"],opt,g,candidate=recovery_candidate,attempted=attempted,applied=applied)
+  if not path.exists():save_snapshot(ROOT,model,tokenizer,parent["metadata"],opt,g,candidate=recovery_candidate,attempted=attempted,applied=applied,data_summary=data_summary)
  logs.append({"attempted_updates":attempted,"applied_optimizer_steps":applied,"elapsed_s":round(time.perf_counter()-t0,3)})
  if best is not None:
   model.load_state_dict(best[2]);logs.append({"best_in_cycle_step":best[1],"best_in_cycle_chat_nll":best[0]})
@@ -789,6 +793,12 @@ def main(recovery=False):
   "candidate_action_diversity_not_navigation_progress":True,
   "growth_limits_hit":LIMITS_HIT,"skipped_batches":list(SKIPPED),"training_logs":logs,"elapsed_seconds":round(time.perf_counter()-now,3)}
  if recovery:
+  # Recovery never needs private training text; retain verified counts/hashes instead.
+  source_summary=recovery_progress.get("training_data_summary") or {}
+  for key in ("chat_rows","chat_mix_sha256","pretrain_rows","pretrain_sha256","pretrain_per_batch","chat_per_batch","batch"):
+   report["recipe"][key]=source_summary.get(key)  # absent is unknown, never a fabricated zero
+  report["recipe"]["replay_rows"]=None
+  report["recipe"]["replay_datasets"]=None
   report["recovery"]={**recovery_progress,"scored_raw_latest_weights":True,"publication_performed":False,
    "planned_updates_per_variant":UPDATES,"note":"Independent interrupted-round measurement only; no approval or pin mutation."}
   save_json(ROOT/"recovery-score.json",report)

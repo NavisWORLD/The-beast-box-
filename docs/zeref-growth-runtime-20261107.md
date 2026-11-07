@@ -49,7 +49,7 @@ Run links are the timing receipts. Train+gate includes control, candidate traini
 
 1. CI job 90 -> 180 minutes; continuation step 145 minutes leaves upload reserve. Existing per-variant/start timers, all training data, sampling, recipes, selection logic, and numerical gates stay unchanged. Their combined bound can approach 7800s before setup/final evaluation, not 2700s.
 2. Immutable, hash-verified raw-weight/AdamW/RNG snapshots at the existing 32-attempt evaluation boundaries and variant exit, with attempted versus actual applied counts. A zero-candidate-update baseline is saved before the control starts.
-3. Failure/timeout uploads only latest complete checkpoint, verified parent, public native observations, public fixed reference and public SIMULATED spark input. Private chat/teacher training text is excluded. Independent 30-minute job reuses unchanged raw-weight gates and public chat evaluator. Recovery reports scores only, never approval publication or pin mutation. If no candidate started, it says so and scores the saved baseline.
+3. Failure/timeout uploads only latest complete checkpoint, verified parent, public native observations, public fixed reference and public SIMULATED spark input. Private chat/teacher training text is excluded; verified source counts/hashes travel with snapshots, and any unavailable provenance is reported as null, never invented zero rows. Independent 30-minute job reuses unchanged raw-weight gates and public chat evaluator. Recovery reports scores only, never approval publication or pin mutation. If no candidate started, it says so and scores the saved baseline.
 4. Final evidence now uploads after external chat scoring. Previously report upload preceded that test, omitting chat-eval/promotion files. Exact leak replies below were recovered from durable approved-cycle releases.
 
 ## Leak diagnosis — report only
@@ -68,7 +68,7 @@ Proposed follow-up, NOT implemented: Emeth-authored gate-disjoint identity/name 
 
 ## Verification status
 
-Local: six checkpoint/training-equivalence regressions, fourteen Node contracts, sixteen existing architecture/training regressions. Controlled full recovery tests used the real pin both as a zero-update baseline and as a two-update changed-weight fixture. The latter was copied through the same transcript-free recovery bundle, reloaded in a separate process, passed all eight unchanged training comparisons, and scored 48 OK / 0 leaks / ref_nll 3.6581028843 in the unchanged public chat evaluator. Neither test produced an approval file. These fixtures are NOT growth rounds and are never parents. Post-merge actual growth scoring is pending.
+Local: seven checkpoint/training-equivalence regressions, fourteen Node contracts, sixteen existing architecture/training regressions. Controlled full recovery tests used the real pin both as a zero-update baseline and as a two-update changed-weight fixture. The latter was copied through the same transcript-free recovery bundle, reloaded in a separate process, passed all eight unchanged training comparisons, and scored 48 OK / 0 leaks / ref_nll 3.6581028843 in the unchanged public chat evaluator. Neither test produced an approval file. These fixtures are NOT growth rounds and are never parents. Post-merge actual growth scoring is pending.
 
 ## Verification environment repair
 
