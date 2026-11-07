@@ -50,10 +50,15 @@ def ask(site: str, text: str, memory: bool) -> dict:
                 return json.loads(r.read())
         except urllib.error.HTTPError as e:
             if e.code == 429: time.sleep(8 * (attempt + 1)); continue
-            return {"error": f"HTTP {e.code}"}
+            try: msg = json.loads(e.read(2000)).get("error")
+            except (ValueError, AttributeError, OSError): msg = None
+            return {"error": f"HTTP {e.code}", "error_message": msg if isinstance(msg, str) else None}
         except (OSError, ValueError) as e:
             return {"error": type(e).__name__}
     return {"error": "rate limited"}
+
+
+STARTED = None
 
 
 def main() -> None:
@@ -62,6 +67,7 @@ def main() -> None:
     ap.add_argument("--repeats", type=int, default=2)
     ap.add_argument("--pause", type=float, default=3.0)
     a = ap.parse_args()
+    global STARTED; STARTED = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
     qs = load_questions(); scanned = assert_not_in_eval_sets(qs)
     rows = []
     for rep in range(a.repeats):
@@ -71,18 +77,19 @@ def main() -> None:
                 reply = r.get("reply") if isinstance(r.get("reply"), str) else None
                 rows.append({"q": q["id"], "rep": rep, "arm": arm, "ok": reply is not None,
                              "on_topic": bool(reply and re.search(q["on_topic_regex"], reply, re.I)),
-                             "reply": reply, "error": r.get("error"), "step": r.get("step"), "tag": r.get("tag"),
+                             "reply": reply, "error": r.get("error"), "error_message": r.get("error_message"), "step": r.get("step"), "tag": r.get("tag"),
                              "memory_used": r.get("memory_used"), "memory_read": r.get("memory_read") or []})
                 time.sleep(a.pause)
     def rate(arm):
         ok = [x for x in rows if x["arm"] == arm and x["ok"]]
         return {"answered": len(ok), "asked": sum(1 for x in rows if x["arm"] == arm),
                 "on_topic": sum(x["on_topic"] for x in ok), "on_topic_rate": round(sum(x["on_topic"] for x in ok) / len(ok), 4) if ok else None,
-                "memory_used_true": sum(1 for x in ok if x["memory_used"] is True)}
+                "memory_used_true": sum(1 for x in ok if x["memory_used"] is True),
+                "http_502": sum(1 for x in rows if x["arm"] == arm and x["error"] == "HTTP 502")}
     report = {"schema": "zeref-retrieval-ab/v1", "label": "REPORT ONLY. Self-memory on vs off on the live growing door. Not a gate; changes nothing.",
               "site": a.site, "questions_sha256": QUESTIONS_SHA256, "eval_overlap_check": {"jsonl_files_scanned": scanned, "overlaps": 0},
               "repeats": a.repeats, "seed_note": "The live growing door takes no seed; repeats show the spread.",
-              "started_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+              "started_utc": STARTED, "finished_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
               "on": rate("on"), "off": rate("off"), "rows": rows}
     (DIR / "report.json").write_text(json.dumps(report, indent=1) + "\n")
     print(json.dumps({k: report[k] for k in ("on", "off")}))
