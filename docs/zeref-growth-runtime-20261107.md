@@ -4,19 +4,21 @@
 
 The 90-minute CI job budget does not cover the established multi-variant measurement on slower runners. The displayed “64 updates” title was stale: commit `4e59c7db0` (#591, October 25) introduced **320 attempted batches per variant**, one full report-only control, and up to four candidates. The 2400-second candidate-start clock begins **after** the control and only checks **before** the next candidate; the 2700-second clock restarts inside each variant. Neither is a whole-job budget. Ordinary candidate updates had no saved recovery checkpoint, so timeout discarded the measurement before final scoring.
 
-Matched runs have unchanged trainer/workflow and corpus sizes. Run 42373309873 completed with candidate durations 1411.5s / 1421.5s and batch medians 4.43 / 4.16 / 4.29s (control / candidates). Run 42376132236 took 2185.9s for candidate 0, still below the candidate-start window, then started another full candidate and was killed at its batch 81. Its medians were 6.28 / 6.44 / 6.24s. Run 42364164606 died at candidate 1 batch 295; 42354530897 at batch 60. Historical CPU hardware model/frequency/contention were not logged and remain **unverified**; throughput variation is measured, its host-level cause is not. New rounds log CPU/platform facts.
+**Legitimate measured work also grew:** the persisted growth target rose from **32 layers** in scored runs 41958413638 / 42003914558 / 42016631254, to **34** in 42029236324, **36** in the November 6 runs, and **38** in recent rounds. The verified pinned release itself has **14,800,840 parameters, 28 layers, max_seq_len 2048**, not the brief's older 3,909,956 / 128-token description. Recent approved-cycle candidate releases 42373309873 / 42332074461 contain **19,700,370 parameters, 38 layers**. The pin SHA and step 36464 did not move. Training admits chat rows up to 256 tokens and pretraining rows up to 256 input tokens. No dimensions or token limits are changed by this fix.
+
+Within the recent 38-layer matched pair, trainer/workflow and corpus sizes are unchanged; throughput still varies substantially by runner. Run 42373309873 completed with candidate durations 1411.5s / 1421.5s and batch medians 4.43 / 4.16 / 4.29s (control / candidates). Run 42376132236 took 2185.9s for candidate 0, still below the candidate-start window, then started another full candidate and was killed at its batch 81. Its medians were 6.28 / 6.44 / 6.24s. Run 42364164606 died at candidate 1 batch 295; 42354530897 at batch 60. Historical CPU hardware model/frequency/contention were not logged and remain **unverified**; throughput variation is measured, its host-level cause is not. New rounds log CPU/platform facts.
 
 ## Stage durations (seconds)
 
 Run links are the timing receipts. Train+gate includes control, candidate training, in-cycle evaluation, and final training gates. An external-chat value of zero may mean skipped after an honestly scored training-gate rejection.
 
-| Run | Result | App | Browser/ROM | Capture | Replay | CPU install | Teacher | Dolly | TinyStories | Train+gate | External chat | Median s/batch |
-|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|
-| [41958413638](https://github.com/NavisWORLD/The-beast-box-/actions/runs/41958413638) | success | 30 | 42 | 105 | 11 | 20 | 372 | 3 | 1 | 3959 | 17 | 3.86, 3.89, 4.06 |
+| Run | Result | Target layers | App | Browser/ROM | Capture | Replay | CPU install | Teacher | Dolly | TinyStories | Train+gate | External chat | Median s/batch |
+|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|
+| [41958413638](https://github.com/NavisWORLD/The-beast-box-/actions/runs/41958413638) | success | 38 | 38 | 38 | 36 | 36 | 36 | 34 | 32 | 32 | 32 | 30 | 42 | 105 | 11 | 20 | 372 | 3 | 1 | 3959 | 17 | 3.86, 3.89, 4.06 |
 | [42003914558](https://github.com/NavisWORLD/The-beast-box-/actions/runs/42003914558) | success | 26 | 36 | 102 | 8 | 18 | 151 | 4 | 1 | 4630 | 14 | 3.54, 3.55, 3.39, 3.47 |
 | [42016631254](https://github.com/NavisWORLD/The-beast-box-/actions/runs/42016631254) | success | 28 | 36 | 108 | 11 | 19 | 374 | 3 | 1 | 3646 | 15 | 3.53, 3.58, 3.56 |
 | [42029236324](https://github.com/NavisWORLD/The-beast-box-/actions/runs/42029236324) | success | 30 | 29 | 110 | 9 | 20 | 261 | 4 | 0 | 4244 | 16 | 4.49, 4.3, 4.27 |
-| [42177749650](https://github.com/NavisWORLD/The-beast-box-/actions/runs/42177749650) | cancelled | 44 | 65 | 304 | 13 | 27 | 478 | 4 | 1 | 4461 | 0 | 5.6, 5.53, 5.94 |
+| [42177749650](https://github.com/NavisWORLD/The-beast-box-/actions/runs/42177749650) | cancelled | 38 | 38 | 38 | 38 | 38 | 38 | 36 | 36 | 36 | 36 | 36 | 36 | 44 | 65 | 304 | 13 | 27 | 478 | 4 | 1 | 4461 | 0 | 5.6, 5.53, 5.94 |
 | [42202392001](https://github.com/NavisWORLD/The-beast-box-/actions/runs/42202392001) | success | 31 | 33 | 110 | 9 | 20 | 225 | 3 | 1 | 4499 | 0 | 4.63, 4.47, 4.56 |
 | [42214737507](https://github.com/NavisWORLD/The-beast-box-/actions/runs/42214737507) | cancelled | 45 | 35 | 308 | 7 | 27 | 39 | 5 | 1 | 4933 | 0 | 5.89, 5.86, 5.82 |
 | [42228802273](https://github.com/NavisWORLD/The-beast-box-/actions/runs/42228802273) | cancelled | 35 | 449 | 131 | 12 | 24 | 453 | 5 | 1 | 4292 | 0 | 5.15, 5.38, 5.31 |
@@ -66,4 +68,4 @@ Proposed follow-up, NOT implemented: Emeth-authored gate-disjoint identity/name 
 
 ## Verification status
 
-Local: six checkpoint/training-equivalence regressions, thirteen Node contracts, sixteen existing architecture/training regressions. A controlled full scorer test used real pinned weights with zero new updates and no approval file; this fixture is NOT a growth round. Post-merge actual growth scoring is pending.
+Local: six checkpoint/training-equivalence regressions, thirteen Node contracts, sixteen existing architecture/training regressions. Controlled full recovery tests used the real pin both as a zero-update baseline and as a two-update changed-weight fixture. The latter was copied through the same transcript-free recovery bundle, reloaded in a separate process, passed all eight unchanged training comparisons, and scored 48 OK / 0 leaks / ref_nll 3.6581028843 in the unchanged public chat evaluator. Neither test produced an approval file. These fixtures are NOT growth rounds and are never parents. Post-merge actual growth scoring is pending.

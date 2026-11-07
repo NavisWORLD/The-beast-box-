@@ -383,6 +383,10 @@ def train_variant(parent_path,tokenizer,pool,seed,chat_pool=(),chat_eval=None,lr
   if w.get("parent_checkpoint_sha256")==parent["metadata"]["checkpoint_sha256"] and w.get("n_layers")==model.config.n_layers:
    model.load_state_dict(w["model"]);print("ZEREF_GROWTH_WIP_RESUMED="+json.dumps({"n_layers":w["n_layers"],"steps_done":w.get("steps_done")}),flush=True)
   else:print("ZEREF_GROWTH_WIP_IGNORED (different parent or shape)",flush=True)
+ print("ZEREF_006_VARIANT_WORKLOAD="+json.dumps({"candidate":recovery_candidate,"role":"report_only_control" if recovery_candidate is None else "candidate",
+  "parameters":model.parameter_count(),"layers":model.config.n_layers,"model_max_seq_len":model.config.max_seq_len,
+  "planned_batch_attempts":UPDATES,"batch":BATCH,"chat_per_batch":CHAT_PER_BATCH if chat_pool else 0,
+  "pretrain_per_batch":PRETRAIN_PER_BATCH if PRETRAIN_POOL else 0,"torch_threads":torch.get_num_threads()}),flush=True)
  anchor=[p.detach().clone() for p in base]  # L2 anchor on the approved parent's weights only
  groups=[{"params":base}]+([{"params":hebb}] if hebb else [])
  lr=LR if lr is None else lr;min_frac=LR_MIN_FRACTION if min_frac is None else min_frac
