@@ -1,6 +1,7 @@
 import {motionPersona,createActor,stepActor} from '../lib/companion/film-motion.mjs';
 import {UNIVERSE_R} from '../lib/living-core/roam-brain.mjs';
 import {renderBeast,blit,SPRITE} from '../public/spark/draw.mjs';
+import {paintConceptThumb} from '../public/spark/concept-sprites.mjs';
 import {depthFar,type Creation} from '../lib/companion/creations.mjs';
 type Three=typeof import('three');
 /** Every beast saved to this device's bestiary roams the pocket as its own pixel sprite (SEEDED: drawn from its saved genome).
@@ -10,7 +11,9 @@ export function addSavedBeastSprites(THREE:Three,scene:import('three').Scene,lis
  const items=list.map((c,i)=>{
   const cv=document.createElement('canvas');cv.width=cv.height=SPRITE*2;const ctx=cv.getContext('2d');
   if(ctx){try{blit(ctx,renderBeast(c.genome,Number(c.genome?.stage)||2,'open'),0,0,2);}catch{}}
-  const tex=new THREE.CanvasTexture(cv);tex.colorSpace=THREE.SRGBColorSpace;tex.magFilter=THREE.NearestFilter;texes.push(tex);
+  const tex=new THREE.CanvasTexture(cv);
+  // Approved concept art (exact id/seed only), still frame; the original sprite stays on a miss or load failure.
+  if(ctx){const concept=()=>{if(paintConceptThumb(ctx,c.genome,SPRITE*2))tex.needsUpdate=true;};paintConceptThumb(ctx,c.genome,SPRITE*2,{onReady:concept});}tex.colorSpace=THREE.SRGBColorSpace;tex.magFilter=THREE.NearestFilter;texes.push(tex);
   const mat=new THREE.SpriteMaterial({map:tex,transparent:true,depthWrite:false});mats.push(mat);
   const h=.8,sprite=new THREE.Sprite(mat);sprite.scale.set(h,h,1);sprite.name=c.id;scene.add(sprite);
   const smat=new THREE.MeshBasicMaterial({color:0x000000,transparent:true,opacity:.32,depthWrite:false});mats.push(smat);
