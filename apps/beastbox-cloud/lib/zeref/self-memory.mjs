@@ -10,6 +10,8 @@ import {readFile} from 'node:fs/promises';
 import {buildIndex,search} from '../library/bm25.mjs';
 import {tokenize} from '../library/text.mjs';
 import {isPublicDiaryEntry} from './diary-privacy.mjs';
+import {ZEREF_PROFILE} from './zeref-mind.mjs';
+import {storageConfig,getBlob} from '../cosmos/azure-blob.mjs';
 
 export const SELF_MEMORY_SCHEMA='zeref-self-memory/v1';
 /** Bytes of the bridge context's `memory` field (inside the existing 1300 total; he trained on 128-token windows). */
@@ -63,7 +65,7 @@ export function readSelfMemory(mem,query,{ownThread=[],k=2,cap=SELF_MEMORY_CAP,m
   const room=cap-Buffer.byteLength(text,'utf8');if(room<40)break;
   let piece=line;while(Buffer.byteLength(piece,'utf8')>room)piece=piece.slice(0,-1);
   text+=piece;read.push({id:item.id,label:item.label,sha256:item.sha256});}
- return read.length?{text,memory_read:read}:empty;}
+ return read.length?{text,memory_read:read,...(mem?.origins?{origins:mem.origins}:{})}:empty;}
 
 /* ---------------- loaders: the one loader (network/fs; never inside the ranking) ---------------- */
 // Root cause fixed here (and in live-context.mjs): Turbopack rewrites a TEMPLATE-literal URL relative to import.meta.url
@@ -90,18 +92,26 @@ const isRegistry=t=>{try{return Array.isArray(JSON.parse(t)?.seeds);}catch{retur
 const readLogDates=()=>{const d=Date.now();return [0,1,2].map(i=>`evidence/zeref-read-001/${new Date(d-i*864e5).toISOString().slice(0,10)}.jsonl`);};
 /** The fabric: every source in one table, one loop, one item schema. kind comes from KIND_OF[source]. */
 export const FABRIC=Object.freeze([
- {source:'diary',load:async()=>{try{const r=await fetch(RAW+'zeref-diary/zeref/latest.json',{cache:'no-store',signal:AbortSignal.timeout(5000)});const j=r.ok?await r.json():null;return {diary:Array.isArray(j?.recent)?j.recent:[]};}catch{return {};}}},
- {source:'read',load:async()=>({reads:(await Promise.all(readLogDates().map(p=>sourceText(p,isReadLog)))).flatMap(t=>jsonl(t))})},
- {source:'node',load:async()=>{const t=await sourceText('apps/beastbox-cloud/public/zeref-messages/seed-registry.json',isRegistry);try{return {seeds:JSON.parse(t).seeds};}catch{return {};}}},
+ // Diary: where it lives live first — his Azure storage of record (beasts/<zeref>/latest.json, mirrored there by the
+ // diary loop through lib/cosmos/cosmos-store.mjs mirrorZeref), read through the same azure-blob client the site uses;
+ // then the zeref-diary branch. Credentials stay inside azure-blob (env only, never logged or returned).
+ {source:'diary',load:async()=>{const recent=j=>Array.isArray(j?.recent)&&j.recent.length?j.recent:null;
+  try{const cfg=storageConfig();if(cfg){const b=await getBlob(cfg,`beasts/${ZEREF_PROFILE.id}/latest.json`);const r=b?recent(JSON.parse(b.text)):null;if(r)return {diary:r,from:'azure'};}}catch{/* fall through */}
+  try{const r=await fetch(RAW+'zeref-diary/zeref/latest.json',{cache:'no-store',signal:AbortSignal.timeout(5000)});const j=r.ok?await r.json():null;return {diary:recent(j)||[],from:'github'};}catch{return {};}}},
+ {source:'read',load:async()=>({reads:(await Promise.all(readLogDates().map(p=>sourceText(p,isReadLog)))).flatMap(t=>jsonl(t)),from:'repo'})},
+ {source:'node',load:async()=>{const t=await sourceText('apps/beastbox-cloud/public/zeref-messages/seed-registry.json',isRegistry);try{return {seeds:JSON.parse(t).seeds,from:'repo'};}catch{return {};}}},
  ...[['zeref-lessons-006','lesson'],['zeref-knowledge-001','library'],['zeref-knowledge-002','library'],['zeref-knowledge-003','library']].map(([shelf,source])=>({source,shelf,
-  load:async()=>{const path=`evidence/${shelf}/dialogue.jsonl`;return {lessons:jsonl(await sourceText(path,isDialogue)).map(r=>({...r,shelf,path}))};}})),
+  load:async()=>{const path=`evidence/${shelf}/dialogue.jsonl`;return {lessons:jsonl(await sourceText(path,isDialogue)).map(r=>({...r,shelf,path})),from:'repo'};}})),
 ]);
 let cache=null;
 /** The one shared index over the one fabric, cached per process for 10 minutes. A failing source composes nothing. */
 export function loadSelfMemory(){const now=Date.now();if(cache&&now-cache.at<6e5)return cache.p;
  const p=(async()=>{const parts=await Promise.all(FABRIC.map(f=>f.load().catch(()=>({}))));
   const merged={diary:[],lessons:[],reads:[],seeds:[]};for(const x of parts)for(const k of Object.keys(merged))if(Array.isArray(x?.[k]))merged[k].push(...x[k]);
-  return buildSelfMemory(itemsFrom(merged));
+  const m=buildSelfMemory(itemsFrom(merged));
+  // Receipt: where each source was read from this process ('azure' | 'github'); names only, never a URL or credential.
+  m.origins=Object.freeze(Object.fromEntries(FABRIC.map((f,i)=>[f.shelf||f.source,parts[i]?.from||null]).filter(([,v])=>v)));
+  return m;
  })().catch(()=>buildSelfMemory([]));
  cache={at:now,p};return p;}
 
