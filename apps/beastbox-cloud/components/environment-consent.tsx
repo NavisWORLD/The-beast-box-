@@ -7,6 +7,7 @@ import {useCallback,useEffect,useRef,useState} from 'react';
 import {CHANNELS,validateEnvironment,type EnvChannel} from '../lib/environment/environment-link.mjs';
 import {getEnvironment,grantEnvironment,revokeEnvironmentLocal,setEnvironmentNumbers,subscribeEnvironment,getHeartNumbers} from '../lib/environment/environment-store.mjs';
 import {startSensors,type Want} from '../lib/environment/sensor-runtime';
+import {sensorLeaseHolder} from '../lib/environment/share-stream';
 type Sw={time:boolean;motion:boolean;light:boolean;sound:boolean;pulse:boolean;camera:boolean};
 const allOff:Sw={time:false,motion:false,light:false,sound:false,pulse:false,camera:false};
 // Status lines are 44 characters or fewer (wording from consent_status_fixes_PROPOSED.json); the right-hand status slot of a switch row holds 22.
@@ -57,12 +58,13 @@ export default function EnvironmentConsent({onClose,beastName}:{onClose:()=>void
  // Sensors run only while sharing is on, and only for switches that are on. Light needs the camera switch AND no pulse being read (one camera job at a time).
  const want:Want={sound:sw.sound,motion:sw.motion,light:sw.light&&sw.camera&&!env.pulseReading};
  const wantKey=[want.sound,want.motion,want.light,sw.time,sw.pulse,sw.camera].join();
- useEffect(()=>{stopRef.current?.();stopRef.current=null;if(!env.consent)return;let dead=false;setTicks(0);
+ useEffect(()=>{stopRef.current?.();stopRef.current=null;if (sensorLeaseHolder() === 'sensorium') return;if(!env.consent)return;let dead=false;setTicks(0);
   startSensors(want,sample).then(r=>{if(dead)r.stop();else stopRef.current=r.stop;}).catch(()=>{});
   return()=>{dead=true;stopRef.current?.();stopRef.current=null;};
   // eslint-disable-next-line react-hooks/exhaustive-deps
  },[env.consent,wantKey,sample]);
  useEffect(()=>()=>{stopRef.current?.();},[]);
+ useEffect(()=>{const onLease=()=>{stopRef.current?.();stopRef.current=null;};window.addEventListener('beastbox:sensorium-lease',onLease);return()=>window.removeEventListener('beastbox:sensorium-lease',onLease);},[]);
  const stop=async()=>{stopRef.current?.();stopRef.current=null;setSw(allOff);revokeEnvironmentLocal();setErr('');setConfirm(false);
   setNotice(beast+' is back to its own sky.');
   try{const r=await fetch('/api/environment',{method:'DELETE'});setServer(r.status===200?'Stopped. Saved numbers deleted.':r.status===401?'Stopped. Nothing was stored.':'Stopped here. Couldn\'t erase saved numbers.');}catch{setServer('Stopped here. Site unreachable; not erased.');}};

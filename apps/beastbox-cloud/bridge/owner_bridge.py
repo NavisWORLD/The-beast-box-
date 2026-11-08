@@ -28,6 +28,8 @@ from beastbox.cst_sensor_preview import compare_sensor_state
 from beastbox.engine_growth_report import engine_growth_report
 from beastbox.device_observations import normalize_device_observations
 from beastbox.durable import DurableRuntime
+from beastbox.lived_events import CANONICAL_SUBJECT, ActivationRejected, SampleRejected, host_attachment
+from beastbox.lived_state import LivedStore
 from beastbox.background_consolidation import OwnerMemoryLoop
 from beastbox.qc67_local import (PINS as QC67_PINS, URL as QC67_URL,
                                   profile as qc67_profile, status as qc67_status)
@@ -47,8 +49,13 @@ from beastbox.signal_model_probe import signal_model_probe
 from beastbox.soul.archive_summary import archive_manifest
 
 MAX_BYTES = 256_000
-GET_ALLOW = frozenset({"orbit", "memory", "trace", "provider", "conversation", "storage", "context", "connections", "bio", "chat-job", "observations", "models", "model-inventory", "hf-model-inventory", "engine-growth", "engine-loop", "activation"})
-POST_ALLOW = frozenset({"chat", "chat-start", "context", "connections", "bio", "observations", "models", "azure-read", "guest-local", "guest-growing", "cns-model-probe", "signal-model-probe", "activation", "authority", "features"})
+GET_ALLOW = frozenset({"orbit", "memory", "trace", "provider", "conversation", "storage", "context", "connections", "bio", "chat-job", "observations", "models", "model-inventory", "hf-model-inventory", "engine-growth", "engine-loop", "activation", "sensorium"})
+POST_ALLOW = frozenset({"chat", "chat-start", "context", "connections", "bio", "observations", "models", "azure-read", "guest-local", "guest-growing", "cns-model-probe", "signal-model-probe", "activation", "authority", "features", "sensorium"})
+_SENSOR_ID = re.compile(r"^[a-z0-9][a-z0-9_-]{0,63}$")
+_SENSOR_FORBIDDEN = frozenset({
+    "subject_id", "beast_id", "scope", "image", "images", "transcript", "audio",
+    "video", "frames", "pixels", "waveform", "url", "origin", "heartbeat", "feelings",
+})
 
 
 class OwnerBridge:
@@ -111,6 +118,8 @@ class OwnerBridge:
         # never implicitly authorize arbitrary sensor events.
         if self.device_memory_enabled:
             self.app.authority.grant("device_memory")
+        self._sensorium_lock = threading.Lock()
+        self._lived_sensorium = None
         self.chat_jobs = ChatJobs(lambda payload: self.app.dispatch("POST", "/api/chat", payload))
         # Explicit host flag: recurring, bounded source-index maintenance,
         # never background LLM chat, online gradient steps or autonomous tools.
@@ -650,6 +659,117 @@ class OwnerBridge:
                      "system_id": result["runtime"]["system_id"],
                      "checkpoint_sha256": result["runtime"]["checkpoint_sha256"]}
 
+    def _sensor_view(self, snap: dict) -> dict:
+        return {
+            "schema": "lived-snapshot-public-v1",
+            "subject_id": snap["subject_id"],
+            "scope": snap["scope"],
+            "basis": snap["basis"],
+            "sequence": snap["sequence"],
+            "state_sha256": snap["state_sha256"],
+            "chain_head": snap["chain_head"],
+        }
+
+    def _sensor_receipt(self, receipt: dict) -> dict:
+        keep = ("schema", "status", "code", "event_id", "sequence", "previous", "chain_head", "state_sha256", "subject_id", "scope", "kind")
+        return {key: receipt[key] for key in keep if key in receipt}
+
+    def _open_sensorium(self):
+        origin = os.environ.get("BEASTBOX_LIVED_ORIGIN_COMMITMENT", "")
+        prior = os.environ.get("BEASTBOX_LIVED_PRIOR_HEAD", "")
+        attachment = host_attachment(origin, prior)
+        if attachment is None:
+            return None
+        if self._lived_sensorium is not None:
+            return self._lived_sensorium
+        # open() validates again. The checked attachment carries initial_state_kind,
+        # which is not an input field, so pass only the host fields.
+        raw = {key: attachment[key] for key in (
+            "schema", "subject_id", "scope", "basis", "origin_commitment", "prior_head", "verified",
+        )}
+        path = self.root / "lived-backbone" / f"{CANONICAL_SUBJECT}.sqlite"
+        self._lived_sensorium = LivedStore.open(path, raw)
+        return self._lived_sensorium
+
+    def _sensorium_action(self, data):
+        """Admit derived numbers. The browser does not choose the subject. No model, no QPU."""
+        origin = os.environ.get("BEASTBOX_LIVED_ORIGIN_COMMITMENT", "")
+        prior = os.environ.get("BEASTBOX_LIVED_PRIOR_HEAD", "")
+        try:
+            attachment = host_attachment(origin, prior)
+        except ActivationRejected:
+            return 503, {"enabled": True, "admitted": False, "configured": False, "model_invoked": False, "qpu_invoked": False, "error": "attachment"}
+        quiet = {"enabled": False, "admitted": False, "model_invoked": False, "qpu_invoked": False}
+        if attachment is None:
+            return 200, quiet
+        if data is None:
+            path = self.root / "lived-backbone" / f"{CANONICAL_SUBJECT}.sqlite"
+            if self._lived_sensorium is None and not path.exists():
+                return 200, {"enabled": True, "admitted": False, "model_invoked": False, "qpu_invoked": False, "snapshot": None}
+            store = self._open_sensorium()
+            snap = store.read_lived_snapshot(store.scope)
+            return 200, {"enabled": True, "admitted": False, "model_invoked": False, "qpu_invoked": False, "snapshot": self._sensor_view(snap)}
+        if not isinstance(data, dict) or set(data) & _SENSOR_FORBIDDEN:
+            return 400, {"enabled": True, "admitted": False, "model_invoked": False, "qpu_invoked": False, "error": "rejected"}
+        if data.get("retention_consent") is not True:
+            return 400, {"enabled": True, "admitted": False, "model_invoked": False, "qpu_invoked": False, "error": "consent"}
+        # Reject a measured pulse that did not come from a fingertip or a wearable
+        # before the store exists, so a camera reading never starts a chain.
+        early = data.get("samples")
+        if isinstance(early, list):
+            for raw in early:
+                channels = raw.get("channels") if isinstance(raw, dict) else None
+                pulse = channels.get("pulse_bpm") if isinstance(channels, dict) else None
+                if isinstance(pulse, dict) and pulse.get("status") == "present" and pulse.get("source") not in {"fingertip_ppg", "wearable_ppg"}:
+                    return 422, {"enabled": True, "admitted": False, "model_invoked": False, "qpu_invoked": False, "error": "camera_pulse"}
+        try:
+            store = self._open_sensorium()
+        except ActivationRejected:
+            return 503, {"enabled": True, "admitted": False, "configured": False, "model_invoked": False, "qpu_invoked": False, "error": "attachment"}
+        if store is None:
+            return 200, quiet
+        now_ms = int(time.time() * 1000)
+        refused = {"enabled": True, "admitted": False, "model_invoked": False, "qpu_invoked": False}
+        if data.get("schema") == "sensor-feed-off-v1":
+            allowed = {"schema", "retention_consent", "session_id", "consent_epoch"}
+            session_id = data.get("session_id")
+            epoch = data.get("consent_epoch")
+            if set(data) != allowed or not isinstance(session_id, str) or not _SENSOR_ID.fullmatch(session_id) or type(epoch) is not int or epoch < 0:
+                return 400, {**refused, "error": "invalid"}
+            try:
+                with self._sensorium_lock:
+                    receipt = store.revoke_feed(session_id=session_id, consent_epoch=epoch, now_ms=now_ms)
+                    snap = store.read_lived_snapshot(store.scope)
+            except SampleRejected as exc:
+                return 422, {**refused, "error": exc.code}
+            return 200, {"enabled": True, "admitted": True, "model_invoked": False, "qpu_invoked": False, "receipts": [self._sensor_receipt(receipt)], "snapshot": self._sensor_view(snap)}
+        samples = data.get("samples")
+        if data.get("schema") != "sensor-batch-v1" or not isinstance(samples, list) or not samples or len(samples) > 32:
+            return 400, {**refused, "error": "invalid"}
+        first = samples[0] if isinstance(samples[0], dict) else {}
+        if str(data.get("nonce")) != str(first.get("source_seq")):
+            return 400, {**refused, "error": "nonce"}
+        previous = None
+        for raw in samples:
+            if not isinstance(raw, dict) or type(raw.get("source_seq")) is not int:
+                return 400, {**refused, "error": "invalid"}
+            if previous is not None and raw["source_seq"] <= previous:
+                return 400, {**refused, "error": "reordered"}
+            previous = raw["source_seq"]
+        receipts = []
+        try:
+            with self._sensorium_lock:
+                for raw in samples:
+                    captured = raw.get("captured_at_ms")
+                    admit_now = now_ms
+                    if type(captured) is int and now_ms < captured <= now_ms + 2000:
+                        admit_now = captured
+                    receipts.append(self._sensor_receipt(store.admit_sensor(raw, now_ms=admit_now)))
+                snap = store.read_lived_snapshot(store.scope)
+        except SampleRejected as exc:
+            return 422, {**refused, "error": exc.code, "receipts": receipts}
+        return 200, {"enabled": True, "admitted": True, "model_invoked": False, "qpu_invoked": False, "receipts": receipts, "snapshot": self._sensor_view(snap)}
+
     def dispatch(self, method: str, path: str, auth: str, body: bytes = b""):
         if not hmac.compare_digest(
             auth.encode("utf-8", errors="replace"),
@@ -666,6 +786,8 @@ class OwnerBridge:
         allowed = GET_ALLOW if method == "GET" else POST_ALLOW if method == "POST" else frozenset()
         if name not in allowed:
             return 404, {"error": "unsupported route"}
+        if name == "sensorium" and method == "GET":
+            return self._sensorium_action(None)
         if name == "activation" and method == "GET":
             # Separate status connection: never wait for an in-flight model.
             engine = self.app._activation()
@@ -827,6 +949,8 @@ class OwnerBridge:
             return self._features_action(data)
         if name == "observations":
             return self._observation_action(data)
+        if name == "sensorium":
+            return self._sensorium_action(data)
         return self.app.dispatch(method, parsed.path, data)
 
 

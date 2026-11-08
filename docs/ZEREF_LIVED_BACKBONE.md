@@ -1,6 +1,8 @@
 # Zeref lived backbone
 
-PR A1 is the canonical bridge event and state store, plus the origin attachment. Senses, the mouth, and the lived chain join this store in later PRs. The store is off unless `BEASTBOX_LIVED_BACKBONE` is exactly `on` and the host passes `lived_backbone=True` with a verified origin attachment. With the flag off, owner checkpoints stay the legacy continuity chain.
+PR A1 is the canonical bridge event and state store, plus the origin attachment. The mouth and the lived exchange join this store in later PRs. PR A2 adds the owner app-shell sensorium and the authenticated numeric ingress. Both stay off unless `BEASTBOX_LIVED_BACKBONE` is exactly `on`. A1 also requires the host to pass `lived_backbone=True` with a verified origin attachment before a durable runtime joins the chain. With the flag off, owner checkpoints stay the legacy continuity chain and the sensorium does not capture.
+
+A2's ingress is owner-scope only. The subject is the host attachment (`bb-deada969`), never a browser field. Guests are not given that write. Derived numbers are admitted only after a separate retention consent. That consent does not change the older surroundings promise: Stop sharing still deletes those saved numbers. Revoking retention stops future samples and appends feed-off; it does not rewrite the chain. The route does not call a model or a QPU. `BEASTBOX_LIVED_ORIGIN_COMMITMENT` and `BEASTBOX_LIVED_PRIOR_HEAD` are the verified hashes. If either is missing, admission is refused.
 
 ## Basis
 

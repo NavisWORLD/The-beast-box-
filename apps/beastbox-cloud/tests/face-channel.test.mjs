@@ -72,3 +72,23 @@ test('face channels drive only the existing feeling words',()=>{
  assert.equal(confusedState({reply:'no',target:'rain',drill:null},null),null);
  assert.equal(confusedState({reply:'no',target:'rain',drill:null},{confused:true}).feeling,'confused');
 });
+test('a face that leaves is retained, a camera that is off is absent, and feelings stay on feelingsFromFace',async()=>{
+ const {faceForSample,feelingsLink,pulseChannel}=await import('../lib/sensorium/sample.mjs');
+ const proxies={facePresent:0,faceScale:0.02,faceX:0,faceY:0,faceBlink:0};
+ const kept=faceForSample(true,proxies,null);
+ assert.equal(kept.schema,'beastbox-face-bio-estimates-v1');
+ assert.equal(kept.heartbeat_label,'ESTIMATE');
+ assert.equal(kept.face.present,false);
+ assert.equal(faceForSample(false,proxies,null),null);
+ const felt=feelingsLink(kept.face,null);
+ assert.equal(felt.label,'DERIVED');
+ assert.deepEqual(felt.words,EMOTIONS);
+ assert.equal(felt.confused,null);
+ assert.deepEqual([felt.joy,felt.curiosity,felt.fear,felt.calm,felt.mischief],[0,0,0,0,0]);
+ const estimate=pulseChannel({valid:true,bpm:72,quality:0.9,source:'face_camera'});
+ assert.equal(estimate.label,'ABSENT');
+ assert.equal(estimate.value,null);
+ const measured=pulseChannel({valid:true,bpm:72,quality:0.9,source:'fingertip_ppg'});
+ assert.equal(measured.label,'MEASURED');
+ assert.equal(measured.source,'fingertip_ppg');
+});
