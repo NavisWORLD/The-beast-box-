@@ -222,6 +222,26 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
    window.removeEventListener('beastbox:spark-mute',mute);
    window.removeEventListener(POCKET_3D_CAMERA_RESET,resetCamera);
   };
+  // Headless Chromium reports every page focused and visible, so a tab left
+  // open keeps painting. The newest cage claims the painter; older ones park
+  // until this page is clicked again. Otherwise SwiftShader on the first tab
+  // never leaves the second tab a turn to finish verifySnapshot.
+  let lead=true;
+  let paintChannel:BroadcastChannel|null=null;
+  let claimPaint=()=>{};
+  try{
+   const owner=crypto.randomUUID();
+   let stamp=Date.now();
+   paintChannel=new BroadcastChannel('beastbox-pocket-paint');
+   paintChannel.onmessage=event=>{
+    const other=event.data as {id?:string;stamp?:number}|null;
+    if(!other?.id||other.id===owner)return;
+    if((other.stamp??0)>stamp||((other.stamp??0)===stamp&&other.id>owner))lead=false;
+   };
+   claimPaint=()=>{stamp=Date.now();lead=true;paintChannel?.postMessage({id:owner,stamp});};
+   claimPaint();
+   window.addEventListener('pointerdown',claimPaint);
+  }catch{}
   const shown=whenShown(canvas);
   // Phone /beast-cage keeps this canvas below the fold (measured top ~941 in a 900px viewport,
   // ~968 in an 844px one). SwiftShader was linking shaders and then painting every frame while
@@ -235,12 +255,16 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     const now=await Promise.race([shown.promise,later]);
     clearTimeout(settle);
     // The canvas is on screen at the bridge's 1440×1000 viewport, so whenShown
-    // resolves in this effect's first microtask. This effect runs before the
-    // portable-beast panel. Continuing straight into the shader link holds the
-    // main thread ahead of verifySnapshot, and the file input stays disabled
-    // after the stored receipt is already painted. One macrotask lets that
-    // check enable the control before SwiftShader takes the thread.
-    await new Promise(r=>setTimeout(r,50));
+    // resolves in this effect's first microtask, ahead of the portable-beast
+    // panel. verifySnapshot does no fetching; its hash continuation just never
+    // runs if this effect goes on into the shader link. Wait until that panel
+    // marks the check finished. A page with no bridge does not wait.
+    const bridgeDeadline=performance.now()+20000;
+    while(!disposed&&performance.now()<bridgeDeadline){
+     const panel=document.querySelector('[data-bridge-settled]');
+     if(!panel||panel.getAttribute('data-bridge-settled')==='yes')break;
+     await new Promise(r=>setTimeout(r,40));
+    }
     if(!now||disposed)return;
     if(!window.WebGLRenderingContext)throw Error('WebGL unavailable');
     // Home: let the 3D Zeref finish cutting his layers first (both share one main thread on phones / software GL).
@@ -485,8 +509,10 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
      visible=inView();
      const dt=clamp((now-last)/1000,0,.06);last=now;
      // A background tab that keeps linking and painting starves the tab the
-     // bridge is actually importing into. Rendering resumes when this page is focused.
-     if(document.hidden||!document.hasFocus()||(!visible&&rendered)||now-lastPaint<(soft?120:low?66:33))return;
+     // bridge is actually importing into. Headless Chromium leaves every page
+     // focused, so the newest cage claims the painter and this one parks
+     // until it is clicked.
+     if(!lead||document.hidden||(!visible&&rendered)||now-lastPaint<(soft?120:low?66:33))return;
      lastPaint=now;beastNode.visible=insideCreatureVisible(creatureRef.current);
      if(!reduced)elapsed+=dt;
      nebulaMat.uniforms.time.value=elapsed;poolMat.uniforms.time.value=elapsed;
@@ -631,7 +657,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     if(!disposed){setFailed(true);setReady(false);}
    }
   })();
-  return()=>{disposed=true;clearTimeout(settle);shown.cancel();cancelAnimationFrame(frame);cleanup();releaseListeners();};
+  return()=>{disposed=true;clearTimeout(settle);shown.cancel();cancelAnimationFrame(frame);cleanup();releaseListeners();window.removeEventListener('pointerdown',claimPaint);paintChannel?.close();};
  },[key,failed,reduced,visualSettings.enabled,visualSettings.quality,qvmCounts]);
   return <div className={styles.root} data-pocket-dimension="true"
   data-world-source="genesis-nightops-core-visual-v1"

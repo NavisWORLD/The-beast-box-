@@ -15,7 +15,8 @@ test('stored portable receipt is committed at hydration, before digest verificat
  assert.match(s,/function previewStored\(\):Snapshot\|null/);
  assert.match(s,/validateFields\(snapshot\)/);
  assert.match(s,/setSnapshot\(null\)/);
- assert.match(s,/setReady\(!failed\)/);
+ assert.match(s,/setReady\(!failed\);setSettled\(true\)/);
+ assert.match(s,/data-bridge-settled=\{settled\?'yes':'pending'\}/);
  assert.match(s,/advancedRef\.current=event\.currentTarget\.open/);
  assert.match(s,/if\(node&&advancedRef\.current\)node\.open=true/);
  assert.doesNotMatch(s,/setReady\(true\).*previewStored|previewStored[\s\S]*setReady\(true\)/);});

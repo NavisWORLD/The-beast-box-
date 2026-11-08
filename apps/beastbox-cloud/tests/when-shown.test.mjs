@@ -46,7 +46,8 @@ test('an offscreen pocket waits out the OPEN GAME tap, then still boots, and doe
   const src = read('components/cage-pocket-dimension.tsx');
   const wait = src.indexOf('await Promise.race([shown.promise,later])');
   const three = src.indexOf("await import('three')");
-  assert.ok(wait > 0 && three > wait);
+  const bridge = src.indexOf("data-bridge-settled");
+  assert.ok(wait > 0 && bridge > wait && three > bridge);
   assert.match(src, /setTimeout\(\(\)=>resolve\(true\),5000\)/);
   assert.match(src, /let visible=inView\(\)/);
   assert.match(src, /visible=inView\(\)/);

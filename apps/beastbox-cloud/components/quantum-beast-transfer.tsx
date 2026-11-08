@@ -36,7 +36,7 @@ export default function QuantumBeastTransfer({profile,onImport}:{profile:Creatur
  const [snapshot,setSnapshot]=useState<Snapshot|null>(null),[key,setKey]=useState('');
  const [status,setStatus]=useState(''),[error,setError]=useState(''),[busy,setBusy]=useState(false);
  const [verifiedKey,setVerifiedKey]=useState<string|undefined>(),[signature,setSignature]=useState('absent');
- const [ready,setReady]=useState(false);
+ const [ready,setReady]=useState(false),[settled,setSettled]=useState(false);
  const input=useRef<HTMLInputElement>(null),storedRaw=useRef<string|null>(null),running=useRef(false);
  const detailsRef=useRef<HTMLDetailsElement>(null),advancedRef=useRef(false);
  const importCallback=useRef(onImport);importCallback.current=onImport;
@@ -49,7 +49,7 @@ export default function QuantumBeastTransfer({profile,onImport}:{profile:Creatur
  // before paint so that click still reaches the button.
  useLayoutEffect(()=>{const node=detailsRef.current;if(node&&advancedRef.current)node.open=true;});
  useEffect(()=>{let active=true;
-  void(async()=>{let failed=false;try{const raw=localStorage.getItem(KEY);storedRaw.current=raw;if(!raw)return;const s=await storedSnapshot(raw),stored=JSON.parse(raw),options=stored.trustedPublicKey?{trustedPublicKey:stored.trustedPublicKey}:{};const known=localStorage.getItem(KEY+'-creature-'+s.profile.id);if(known)assertContinuation(s,await storedSnapshot(known));const v=await verifySnapshot(s,options);if(active){setSnapshot(s);setVerifiedKey(stored.trustedPublicKey);setKey(stored.trustedPublicKey??'');setSignature(v.signature);importCallback.current(s.profile);}}catch{failed=true;if(active){setSnapshot(null);setError('A previous portable save could not be verified. It has been retained for recovery; transfers are blocked until it is recovered.');}}finally{if(active)setReady(!failed);}})();
+  void(async()=>{let failed=false;try{const raw=localStorage.getItem(KEY);storedRaw.current=raw;if(!raw)return;const s=await storedSnapshot(raw),stored=JSON.parse(raw),options=stored.trustedPublicKey?{trustedPublicKey:stored.trustedPublicKey}:{};const known=localStorage.getItem(KEY+'-creature-'+s.profile.id);if(known)assertContinuation(s,await storedSnapshot(known));const v=await verifySnapshot(s,options);if(active){setSnapshot(s);setVerifiedKey(stored.trustedPublicKey);setKey(stored.trustedPublicKey??'');setSignature(v.signature);importCallback.current(s.profile);}}catch{failed=true;if(active){setSnapshot(null);setError('A previous portable save could not be verified. It has been retained for recovery; transfers are blocked until it is recovered.');}}finally{if(active){setReady(!failed);setSettled(true);}}})();
   return()=>{active=false;};
  },[]);
  const matches=!!profile&&!!snapshot&&canonical(profile)===canonical(snapshot.profile);
@@ -98,7 +98,7 @@ export default function QuantumBeastTransfer({profile,onImport}:{profile:Creatur
   await remember(s,trustedPublicKey);onImport(s.profile);
   setStatus('Imported the same public Beast, including its approved history. No owner memory or permissions imported.');
  }
- return <section className={css.panel} data-critical-control aria-label="Quantum Beast portable companion bridge">
+ return <section className={css.panel} data-critical-control data-bridge-settled={settled?'yes':'pending'} aria-label="Quantum Beast portable companion bridge">
   <div><span className={css.kicker}>QUANTUM BEAST BRIDGE</span><h3>One Beast. Many brains.</h3>
    <p>Carry this creature’s identity, appearance and approved memories to a compatible runtime. Its host approves every new event.</p></div>
   <div className={css.actions}>
