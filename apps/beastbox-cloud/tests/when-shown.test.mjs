@@ -34,6 +34,44 @@ test('an on-screen canvas starts immediately and an offscreen one waits for inte
   delete globalThis.window;
 });
 
+test('a zero-size canvas does not start immediately, and a timeout settles instead of waiting forever', async () => {
+  class IO {
+    constructor() {}
+    observe() {}
+    disconnect() {}
+  }
+  let notify = () => {};
+  globalThis.IntersectionObserver = IO;
+  globalThis.ResizeObserver = class {
+    constructor(cb) { notify = cb; }
+    observe() {}
+    disconnect() {}
+  };
+  globalThis.window = {innerHeight: 800};
+  const zero = {getBoundingClientRect: () => ({width: 0, height: 0, top: 0, bottom: 0})};
+  const hung = whenShown(zero);
+  let early = false;
+  hung.promise.then(() => { early = true; });
+  await new Promise(r => setTimeout(r, 15));
+  assert.equal(early, false);
+  hung.cancel();
+  assert.equal(await hung.promise, false);
+  const timed = whenShown(zero, {timeoutMs: 30});
+  assert.equal(await timed.promise, true);
+  let box = {width: 0, height: 0, top: 0, bottom: 0};
+  const growing = whenShown({getBoundingClientRect: () => box}, {timeoutMs: 5000});
+  let grew = false;
+  growing.promise.then(value => { grew = value; });
+  await new Promise(r => setTimeout(r, 10));
+  assert.equal(grew, false);
+  box = {width: 120, height: 80, top: 10, bottom: 90};
+  notify();
+  assert.equal(await growing.promise, true);
+  delete globalThis.ResizeObserver;
+  delete globalThis.IntersectionObserver;
+  delete globalThis.window;
+});
+
 test('living world waits to be shown before it imports three', () => {
   const src = read('components/living-world.tsx');
   const wait = src.indexOf('await shown.promise');

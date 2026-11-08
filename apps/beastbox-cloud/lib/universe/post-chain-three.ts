@@ -23,7 +23,7 @@ export async function createPostChain(THREE:any,renderer:any,scene:any,camera:an
     const o=s.optics;if(o.grain>0||o.chromatic_aberration>0||o.vignette>0||o.edge_blur>0){optics=new ShaderPass({uniforms:{tDiffuse:{value:null},uAberration:{value:o.chromatic_aberration},uGrain:{value:o.grain},uVignette:{value:o.vignette},uEdgeBlur:{value:o.edge_blur},uGamma:{value:o.gamma},uGrainSeed:{value:0}},vertexShader:PASS_VERT,fragmentShader:OPTICS_FRAG});composer.addPass(optics);}
     composer.addPass(new OutputPass());
     renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=o.exposure;
-    const dpr=Math.min(globalThis.devicePixelRatio||1,s.budget.max_dpr)*s.budget.render_scale;composer.setPixelRatio(dpr);composer.setSize(size.x,size.y);
+    const dpr=Math.min(globalThis.devicePixelRatio||1,s.budget.max_dpr)*s.budget.render_scale;composer.setPixelRatio(dpr);if(size.x>=2&&size.y>=2)composer.setSize(size.x,size.y);
   };
   build();
   const v=new THREE.Vector3();
@@ -32,7 +32,7 @@ export async function createPostChain(THREE:any,renderer:any,scene:any,camera:an
       if(rays&&sunWorld){v.copy(sunWorld).project(camera);const behind=v.z>1;const vis=behind?0:sunVisible(sunElevDeg,[v.x,v.y],0);rays.uniforms.uSunVisible.value=vis;rays.uniforms.uSunPos.value.set((v.x+1)/2,(v.y+1)/2);last.sunVisible=+vis.toFixed(3);}
       if(optics)optics.uniforms.uGrainSeed.value=grainSeed(frame);
       composer.render();},
-    setSize(w,h){composer.setSize(w,h);if(bloom)bloom.setSize(w,h);},
+    setSize(w,h){if(!(w>=2)||!(h>=2))return;composer.setSize(w,h);if(bloom)bloom.setSize(w,h);},
     setTier(t){if(t!==cur){cur=t;build();}},tier:()=>cur,
     state:()=>({tier:cur,frame,passes:composer.passes.map((p:any)=>p.constructor?.name||'pass'),rays:!!rays,bloom:!!bloom,optics:!!optics,...last}),
     dispose(){composer.dispose?.();},

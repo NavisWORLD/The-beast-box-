@@ -37,6 +37,7 @@ import {addVolcanoIsland,addCosmoSky,sheet as lfSheet,LF as LANDF} from '@/lib/u
 import {createWorldCues,stepWorldCues} from '@/lib/universe/world-mechanics.mjs';
 import {isSoftwareGL} from '@/lib/three/soft-gl';
 import {whenShown} from '@/lib/three/when-shown.mjs';
+import {whenLaidOut} from '@/lib/three/gl-size.mjs';
 import {safeGlBudget,pageGlBudget,tryCreateGl} from '@/lib/three/gl-budget';
 import SeededLand2D from './seeded-land-2d';
 import {addBeachShore} from '@/lib/universe/beach-shore-three';
@@ -132,7 +133,7 @@ export default function LivingWorld({genome,beastKey,beastName,onClose,embedded=
  const gKey=genome?JSON.stringify(genome):'';
  useEffect(()=>{
   let disposed=false,raf=0;const cleanup:(()=>void)[]=[];
-  const shown=whenShown(canvasRef.current);
+  const shown=whenShown(canvasRef.current,{timeoutMs:1500});
   (async()=>{
    // Same offscreen slot as the pocket: do not fetch models or link shaders until the canvas is on screen.
    if(!await shown.promise||disposed)return;
@@ -150,6 +151,9 @@ export default function LivingWorld({genome,beastKey,beastName,onClose,embedded=
    if(VISIT){u={...u,seed:u.seed+':visit:'+visitPl.id};setVisit({id:visitPl.id,star:visitPl.star});}
    let traits:Traits=(()=>{try{const t=JSON.parse(localStorage.getItem('lw:traits:'+bKey)||'null');if(t&&typeof t.calm==='number')return t;}catch{}return initialTraits(u,bKey);})();
    const canvas=canvasRef.current!;
+   const laid=await whenLaidOut(canvas,2500);
+   if(disposed)return;
+   if(!laid.ok){setLand2d(String(u.seed||'tiny'));return;}
    const phone=matchMedia('(max-width: 820px)').matches||/iPhone|iPad|Android/.test(navigator.userAgent);
    // P0 (ONE UNIVERSE r2): phones and CPU rasterisers get the 'default' power preference and no antialias; desktop GPUs keep today's options.
    // Creation is guarded PER VIEW: if it fails this view draws its 2D seeded land instead of an error wall, and nothing propagates to a neighbour.
@@ -597,7 +601,7 @@ uniform vec3 uPlay[8];uniform vec3 uPlayT[8];uniform float uWindK;uniform float 
      // a tap on a growth node's ground: scale bounce + gold burst (view state only) and one creature-notice line (Emeth's growth_tap_*, active beast name substituted)
      if(surface&&gSnap.length){const hit=tapRay.ray.intersectSphere(new THREE.Sphere(new THREE.Vector3(),PR+.02),new THREE.Vector3());if(hit){const g=surface.tapGrowth([hit.x/hit.length(),hit.y/hit.length(),hit.z/hit.length()],performance.now());if(g?.key)notice(g.key,1500);if(g?.node?.id)gTaps[g.node.id]=(gTaps[g.node.id]||0)+1;}}};
     canvas.addEventListener('pointerdown',tpd);canvas.addEventListener('pointerup',tpu);cleanup.push(()=>{canvas.removeEventListener('pointerdown',tpd);canvas.removeEventListener('pointerup',tpu);});}
-   const resize=()=>{if(!host.current)return;const r=host.current.getBoundingClientRect();renderer.setSize(r.width,r.height,false);post?.setSize(r.width,r.height);camera.aspect=r.width/Math.max(1,r.height);camera.updateProjectionMatrix();};
+   const resize=()=>{if(!host.current)return;const r=host.current.getBoundingClientRect();if(r.width<2||r.height<2)return;renderer.setSize(r.width,r.height,false);post?.setSize(r.width,r.height);camera.aspect=r.width/Math.max(1,r.height);camera.updateProjectionMatrix();};
    const ro=new ResizeObserver(resize);ro.observe(host.current!);resize();cleanup.push(()=>ro.disconnect());
    // perf: measure fps for 3s windows and shrink the blade count if the phone can't hold ~50fps
    // test/debug hook: walk the traveler to the first seeded spot of a biome (used for screenshots)
@@ -995,7 +999,7 @@ uniform vec3 uPlay[8];uniform vec3 uPlayT[8];uniform float uWindK;uniform float 
  return <div ref={host} className="lw-root" data-living-world={spawned?'spawned':'orbit'} data-lw-embedded={embedded?'':undefined} style={{pointerEvents:'auto',position:embedded||door?'absolute':'fixed',inset:0,zIndex:embedded||door?1:2147483000,borderRadius:embedded?18:0,overflow:'hidden',background:'#05030f',touchAction:embedded&&!spawned?'pan-y':'none',fontSize:embedded?11:13,color:'#efeaff',font:'13px/1.35 system-ui,sans-serif'}}>
   <canvas ref={canvasRef} style={{position:'absolute',inset:0,width:'100%',height:'100%',display:'block',touchAction:'none'}}/>
   {land2d!=null?<div data-lw-land2d style={{position:'absolute',inset:0,zIndex:0,pointerEvents:'none',background:'#05030f'}}><SeededLand2D seed={land2d} fill/></div>:null}
-  {!booted&&!err&&land2d==null?<div role="status" aria-live="polite" data-lw-loading style={{position:'absolute',inset:0,zIndex:4,display:'grid',placeItems:'center',background:'#05030f',color:'#d9ccff',fontWeight:600,pointerEvents:'none'}}>Opening your tiny world…</div>:null}
+  {!booted&&!err&&land2d==null?<div role="status" aria-live="polite" data-lw-loading style={{position:'absolute',inset:0,zIndex:1,display:'grid',placeItems:'center',background:'#05030f',color:'#d9ccff',fontWeight:600,pointerEvents:'none'}}>Opening your tiny world…</div>:null}
   {embedded&&infoHost?createPortal(<details data-lw-chips data-lw-info data-lw-in-menu style={{maxWidth:'100%'}}>
    <summary aria-label="About this world: what is recorded, simulated or modelled" style={{listStyle:'none',cursor:'pointer',width:30,height:30,borderRadius:'50%',display:'grid',placeItems:'center',background:'rgba(10,6,30,.78)',border:'1px solid rgba(190,170,255,.6)',color:'#efeaff',font:'700 15px system-ui'}}>ⓘ</summary>
    <div style={{display:'flex',flexWrap:'wrap',gap:6,marginTop:6,padding:8,borderRadius:12,background:'rgba(10,6,30,.86)'}}>
