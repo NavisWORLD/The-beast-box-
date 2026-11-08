@@ -72,21 +72,28 @@ export default function ShareWorld() {
       if (fp.facePresent && fp.faceGreen > 0) pulse.current?.push(performance.now(), fp.faceGreen);
     }, 100);
     const tick = window.setInterval(() => {
-      const data = sampleFrame(); if (!data) return;
-      const f = analyzeFrame(data, gray.current, W, H); gray.current = f.gray;
-      const fp = shareStream.facing === 'user' ? faceProxies(data, W, H, prevEye.current) : null;
-      const cur: any = { brightness: f.brightness, hue: f.hue, motion: f.motion, gazeX: f.gazeX, gazeY: f.gazeY, loudness: 0, pitchHz: 0 };
+      const data = sampleFrame();
+      const heard = shareStream.measureSound();
+      if (!data && !heard) return;
+      const f = data ? analyzeFrame(data, gray.current, W, H) : null;
+      if (f) gray.current = f.gray;
+      const fp = data && shareStream.facing === 'user' ? faceProxies(data, W, H, prevEye.current) : null;
+      const cur: any = { brightness: f?.brightness, hue: f?.hue, motion: f?.motion, gazeX: f?.gazeX, gazeY: f?.gazeY };
+      if (heard) { cur.loudness = heard.loudness; cur.pitchHz = heard.pitchHz; }
       if (fp) { cur.facePresent = fp.facePresent; cur.faceScale = fp.faceScale; cur.faceX = fp.faceX; cur.faceY = fp.faceY; cur.faceBlink = fp.faceBlink; }
       const n = notice(cur, prev.current); prev.current = cur;
       const now = Date.now();
-      if (n || now - lastLog.current > 20000) {
+      if ((n || now - lastLog.current > 20000) && f) {
         lastLog.current = now;
-        const log = [...readLog(), experience(cur, now)].slice(-MAX_LOG);
+        const record = experience(cur, now) as {loudness?: number; pitchHz?: number};
+        if (!heard) { delete record.loudness; delete record.pitchHz; }
+        const log = [...readLog(), record].slice(-MAX_LOG);
         try { localStorage.setItem(LOG_KEY, JSON.stringify(log)); } catch { /* full/blocked: sharing still works */ }
       }
       const est = buildFaceEstimates({ face: fp ? { facePresent: fp.facePresent, faceScale: fp.faceScale, faceX: fp.faceX, faceY: fp.faceY, faceBlink: fp.faceBlink } : undefined, pulse: pulse.current?.estimate() || null });
       window.dispatchEvent(new CustomEvent('zeref:share-sample', { detail: { perception: cur, estimates: est } }));
-      setLine(`light ${cur.brightness} · motion ${cur.motion}${fp ? ` · face ${fp.facePresent ? 'present' : 'not seen'} (estimate)` : ''}`);
+      const soundLine = heard ? `sound ${heard.loudness}` : 'sound absent';
+      setLine(`light ${f ? cur.brightness : 'absent'} · motion ${f ? cur.motion : 'absent'} · ${soundLine}${fp ? ` · face ${fp.facePresent ? 'present' : 'not seen'} (estimate)` : ''}`);
       setEstLine(est.pulse ? `pulse ≈ ${est.pulse.bpm} bpm (estimate, face channel)` : '');
     }, 500);
     return () => { window.clearInterval(faceTick); window.clearInterval(tick); };

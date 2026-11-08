@@ -100,6 +100,35 @@ def activation_enabled() -> bool:
     return os.environ.get("BEASTBOX_LIVED_BACKBONE", "off") == "on"
 
 
+def host_attachment(origin: str | None = None, prior: str | None = None) -> dict[str, Any] | None:
+    """Owner continuation configured on the host. Never read from a request.
+
+    A flag that is not exactly ``on`` leaves the attachment unset. Missing
+    hashes fail closed and are not echoed back.
+    """
+    if os.environ.get("BEASTBOX_LIVED_BACKBONE", "off") != "on":
+        return None
+    if origin is None:
+        origin = os.environ.get("BEASTBOX_LIVED_ORIGIN_COMMITMENT", "")
+    if prior is None:
+        prior = os.environ.get("BEASTBOX_LIVED_PRIOR_HEAD", "")
+    if not isinstance(origin, str) or not isinstance(prior, str):
+        raise ActivationRejected("attachment", "lived origin attachment is not configured")
+    origin = origin.strip().lower()
+    prior = prior.strip().lower()
+    if not origin or not prior:
+        raise ActivationRejected("attachment", "lived origin attachment is not configured")
+    return validate_attachment({
+        "schema": "lived-origin-attachment-v1",
+        "subject_id": CANONICAL_SUBJECT,
+        "scope": "owner",
+        "basis": BASIS,
+        "origin_commitment": origin,
+        "prior_head": prior,
+        "verified": True,
+    })
+
+
 def _reject(code: str, message: str) -> None:
     raise SampleRejected(code, message)
 
