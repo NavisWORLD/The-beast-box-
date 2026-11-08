@@ -9,3 +9,14 @@ test('home 3D toggles stay reachable inside a View menu',()=>{const s=r('compone
 test('bridge keeps PLAY prominent and tucks technical controls into Advanced settings',()=>{const s=r('components/quantum-beast-transfer.tsx');
  const adv=s.indexOf('Advanced settings');assert.ok(adv>0);assert.ok(s.indexOf('PLAY THIS BEAST IN LOST COSMOS')<adv);
  for(const k of ['DOWNLOAD QUANTUM BEAST','IMPORT QUANTUM BEAST','Lineage','Verify a trusted publisher','Quantum-inspired game identity'])assert.ok(s.indexOf(k)>adv,k);});
+test('stored portable receipt is committed at hydration, before digest verification',()=>{const s=r('components/quantum-beast-transfer.tsx');
+ const layout=s.indexOf('useLayoutEffect'),verify=s.indexOf('verifySnapshot');
+ assert.ok(layout>0&&verify>layout);
+ assert.match(s,/function previewStored\(\):Snapshot\|null/);
+ assert.match(s,/validateFields\(snapshot\)/);
+ assert.match(s,/setSnapshot\(null\)/);
+ assert.match(s,/setReady\(!failed\);setSettled\(true\)/);
+ assert.match(s,/data-bridge-settled=\{settled\?'yes':'pending'\}/);
+ assert.match(s,/advancedRef\.current=event\.currentTarget\.open/);
+ assert.match(s,/if\(node&&advancedRef\.current\)node\.open=true/);
+ assert.doesNotMatch(s,/setReady\(true\).*previewStored|previewStored[\s\S]*setReady\(true\)/);});

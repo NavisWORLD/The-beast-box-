@@ -47,7 +47,7 @@ export function validatePayload(kind:unknown,payload:unknown):asserts payload is
  else if(kind==='memory'){exactKeys(payload,['summary','source_ref']);publicText(payload.summary,256);publicText(payload.source_ref,96);}
  else throw new InvalidBeast('Unsupported event kind');
 }
-function validateFields(snapshot:unknown):asserts snapshot is Snapshot{
+export function validateFields(snapshot:unknown):asserts snapshot is Snapshot{
  exactKeys(snapshot,['format','version','profile','public_state','progress','events','generation','lineage_head','digest'],['signature']);
  requireCondition(snapshot.format==='QBEAST1'&&snapshot.version===1,'Unsupported QBEAST format/version');
  requireCondition(validCreature(snapshot.profile),'Forged or malformed canonical Genesis profile');

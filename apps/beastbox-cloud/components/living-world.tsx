@@ -36,6 +36,7 @@ const {createWorldField,stepWorldField,legendAt,fieldRGBA,createCreatureLoop,ste
 import {addVolcanoIsland,addCosmoSky,sheet as lfSheet,LF as LANDF} from '@/lib/universe/landforms-three';
 import {createWorldCues,stepWorldCues} from '@/lib/universe/world-mechanics.mjs';
 import {isSoftwareGL} from '@/lib/three/soft-gl';
+import {whenShown} from '@/lib/three/when-shown.mjs';
 import {safeGlBudget,pageGlBudget,tryCreateGl} from '@/lib/three/gl-budget';
 import SeededLand2D from './seeded-land-2d';
 import {addBeachShore} from '@/lib/universe/beach-shore-three';
@@ -131,7 +132,10 @@ export default function LivingWorld({genome,beastKey,beastName,onClose,embedded=
  const gKey=genome?JSON.stringify(genome):'';
  useEffect(()=>{
   let disposed=false,raf=0;const cleanup:(()=>void)[]=[];
+  const shown=whenShown(canvasRef.current);
   (async()=>{
+   // Same offscreen slot as the pocket: do not fetch models or link shaders until the canvas is on screen.
+   if(!await shown.promise||disposed)return;
    const THREE=await import('three');
    const [g0,frames,wishReg]=await Promise.all([fetch('/universe/tiny-universe-genesis.json').then(r=>r.json()),fetch(ART+'livingworld_frames.json').then(r=>r.json()),fetch('/zeref-messages/seed-registry.json').then(r=>r.ok?r.json():null).catch(()=>null)]);
    if(disposed)return;
@@ -978,7 +982,7 @@ uniform vec3 uPlay[8];uniform vec3 uPlayT[8];uniform float uWindK;uniform float 
    {/* ?sea=fish|ray|whale jumps the camera to that seeded school (same as the Sea life button) */const sq=new URLSearchParams(window.location.search).get('sea');if(sq){const k=({fish:1,ray:2,whale:3,jelly:4,turtle:5,bird:6,seabird:6} as any)[sq]||0;if(k){seaQ=k;zT=0;}}}
    cleanup.push(()=>{renderer.dispose();plush?.dispose();scene.traverse((o:any)=>{o.geometry?.dispose?.();o.material?.dispose?.();});});
   })().catch(e=>{if(!disposed)setErr(String(e?.message||e));});
-  return()=>{disposed=true;cancelAnimationFrame(raf);cleanup.forEach(f=>{try{f();}catch{}});};
+  return()=>{disposed=true;shown.cancel();cancelAnimationFrame(raf);cleanup.forEach(f=>{try{f();}catch{}});};
  },[gKey,beastKey]);// eslint-disable-line react-hooks/exhaustive-deps
  // touch joystick
  const jd=(e:React.PointerEvent)=>{(e.target as Element).setPointerCapture(e.pointerId);joy.current={x:0,y:0,active:true,id:e.pointerId,cx:e.clientX,cy:e.clientY};setStick({x:0,y:0});};

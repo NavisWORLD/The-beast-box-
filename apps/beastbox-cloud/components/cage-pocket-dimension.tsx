@@ -40,6 +40,7 @@ import {environmentWeights,isFresh} from '../lib/environment/environment-link.mj
 import {getEnvironment} from '../lib/environment/environment-store.mjs';
 import {guardCanvasTouch} from '../lib/three/touch-guard';
 import {isSoftwareGL} from '../lib/three/soft-gl';
+import {whenShown} from '../lib/three/when-shown.mjs';
 import {createHop,stepHop} from '../lib/physics/ground-hop.mjs';
 import {useEffect,useRef,useState} from 'react';
 import {createPortal} from 'react-dom';
@@ -221,8 +222,50 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
    window.removeEventListener('beastbox:spark-mute',mute);
    window.removeEventListener(POCKET_3D_CAMERA_RESET,resetCamera);
   };
+  // Headless Chromium reports every page focused and visible, so a tab left
+  // open keeps painting. The newest cage claims the painter; older ones park
+  // until this page is clicked again. Otherwise SwiftShader on the first tab
+  // never leaves the second tab a turn to finish verifySnapshot.
+  let lead=true;
+  let paintChannel:BroadcastChannel|null=null;
+  let claimPaint=()=>{};
+  try{
+   const owner=crypto.randomUUID();
+   let stamp=Date.now();
+   paintChannel=new BroadcastChannel('beastbox-pocket-paint');
+   paintChannel.onmessage=event=>{
+    const other=event.data as {id?:string;stamp?:number}|null;
+    if(!other?.id||other.id===owner)return;
+    if((other.stamp??0)>stamp||((other.stamp??0)===stamp&&other.id>owner))lead=false;
+   };
+   claimPaint=()=>{stamp=Date.now();lead=true;paintChannel?.postMessage({id:owner,stamp});};
+   claimPaint();
+   window.addEventListener('pointerdown',claimPaint);
+  }catch{}
+  const shown=whenShown(canvas);
+  // Phone /beast-cage keeps this canvas below the fold (measured top ~941 in a 900px viewport,
+  // ~968 in an 844px one). SwiftShader was linking shaders and then painting every frame while
+  // OPEN GAME was clicked, so the navigation could not finish inside 30s. Intersection still
+  // starts it immediately. A cage that stays open never scrolls, and the 3D acceptance waits
+  // 30s for ready/fallback, so an offscreen canvas also starts after the tap has had time to leave.
+  let settle=0;
+  const later=new Promise(resolve=>{settle=window.setTimeout(()=>resolve(true),5000);});
   void(async()=>{
    try{
+    const now=await Promise.race([shown.promise,later]);
+    clearTimeout(settle);
+    // The canvas is on screen at the bridge's 1440×1000 viewport, so whenShown
+    // resolves in this effect's first microtask, ahead of the portable-beast
+    // panel. verifySnapshot does no fetching; its hash continuation just never
+    // runs if this effect goes on into the shader link. Wait until that panel
+    // marks the check finished. A page with no bridge does not wait.
+    const bridgeDeadline=performance.now()+20000;
+    while(!disposed&&performance.now()<bridgeDeadline){
+     const panel=document.querySelector('[data-bridge-settled]');
+     if(!panel||panel.getAttribute('data-bridge-settled')==='yes')break;
+     await new Promise(r=>setTimeout(r,40));
+    }
+    if(!now||disposed)return;
     if(!window.WebGLRenderingContext)throw Error('WebGL unavailable');
     // Software GL links this scene on the CPU. Doing that while the cage is still
     // fetching the spark catalog, world links and route prefetches keeps those
@@ -446,7 +489,8 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     };
     const ro=typeof ResizeObserver!=='undefined'?new ResizeObserver(resize):null;
     ro?.observe(canvas);resize();
-    let visible=true,last=performance.now(),elapsed=0,lastPaint=0,rendered=false;
+    const inView=()=>{try{const r=canvas.getBoundingClientRect();return r.width>2&&r.height>2&&r.bottom>0&&r.top<(window.innerHeight||0);}catch{return true;}};
+    let visible=inView(),last=performance.now(),elapsed=0,lastPaint=0,rendered=false;
     const io=typeof IntersectionObserver!=='undefined'?new IntersectionObserver(entries=>visible=entries.some(e=>e.isIntersecting),{threshold:.01}):null;
     io?.observe(canvas);
     const onContextLost=(e:Event)=>{e.preventDefault();setReady(false);setFailed(true);};
@@ -475,8 +519,13 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     const animate=(now:number)=>{
      if(disposed)return;
      frame=requestAnimationFrame(animate);
+     visible=inView();
      const dt=clamp((now-last)/1000,0,.06);last=now;
-     if(document.hidden||(!visible&&rendered)||now-lastPaint<(soft?120:low?66:33))return;
+     // A background tab that keeps linking and painting starves the tab the
+     // bridge is actually importing into. Headless Chromium leaves every page
+     // focused, so the newest cage claims the painter and this one parks
+     // until it is clicked.
+     if(!lead||document.hidden||(!visible&&rendered)||now-lastPaint<(soft?120:low?66:33))return;
      lastPaint=now;beastNode.visible=insideCreatureVisible(creatureRef.current);
      if(!reduced)elapsed+=dt;
      nebulaMat.uniforms.time.value=elapsed;poolMat.uniforms.time.value=elapsed;
@@ -596,6 +645,9 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
      catch{}finally{drawn.forEach(o=>{o.visible=true;});}
      if(disposed)return;
     }
+    // Below the fold the warmed scene is real, but the per-frame world step is what starved OPEN GAME.
+    // Leave that loop parked until the canvas is actually on screen. Scrolling in resumes it.
+    if(!inView()){rendered=true;setReady(true);}
     frame=requestAnimationFrame(animate);
     cleanup=()=>{
      window.removeEventListener('beastbox:beast-chat',onLcChat);window.removeEventListener('beastbox:geyser',onGj);renderer.domElement.removeEventListener('pointerdown',gjPD);renderer.domElement.removeEventListener('pointerup',gjPU);(window as any).__geyserReady=false;gjSnd?.dispose();window.removeEventListener('beastbox:local-sensor-level',onLcLevel);window.removeEventListener('beastbox:spark-chirp',onLcChirp);renderer.domElement.removeEventListener('pointerdown',onLcTap);
@@ -618,7 +670,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     if(!disposed){setFailed(true);setReady(false);}
    }
   })();
-  return()=>{disposed=true;cancelAnimationFrame(frame);cleanup();releaseListeners();};
+  return()=>{disposed=true;clearTimeout(settle);shown.cancel();cancelAnimationFrame(frame);cleanup();releaseListeners();window.removeEventListener('pointerdown',claimPaint);paintChannel?.close();};
  },[key,failed,reduced,visualSettings.enabled,visualSettings.quality,qvmCounts]);
   return <div className={styles.root} data-pocket-dimension="true"
   data-world-source="genesis-nightops-core-visual-v1"

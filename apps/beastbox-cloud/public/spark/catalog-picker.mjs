@@ -1,5 +1,6 @@
 /** Quantum catalogue picker: all entries in /spark/catalog-index.json (one per recorded IBM count
  * distribution, SIMULATED 'balanced' signal). Pure helpers are exported for tests. */
+import {CONCEPT_CATALOGUE,CONCEPT_SPRITES,drawConceptFrame} from './concept-sprites.mjs';
 export const CATALOG_PATH='/spark/catalog-index.json';
 export function rowsOf(cat){
  const T=cat.traits;return cat.rows.map(r=>{const o={key:r[0],name:r[1],finalName:r[2],bits:r[3]};T.forEach((t,i)=>{o[t]=cat.values[t][r[4+i]];});return o;});
@@ -45,5 +46,12 @@ export function mountPicker(root,cat,{onPick,owned}){
  random.addEventListener('click',()=>{const r=randomRow(rows);info.textContent=`Random: uniform over all ${rows.length} catalogue beasts → ${r.name}`;onPick(r,'random');});
  unique.addEventListener('click',()=>{const u=uniqueRow(rows,cat,owned());if(!u)return;info.textContent=`Unique: ${u.row.name} brings ${u.novelBits} bits of traits you don't own yet (${u.newTraits.slice(0,4).join(', ')})`;onPick(u.row,'unique');});
  const filters=el('div',{className:'cat-filters'});filters.append(island,body,sort,q);const actions=el('div',{className:'row'});actions.append(random,unique);
- root.replaceChildren(filters,actions,info,list,more);draw();return {rows,draw};
+ // Approved concept redraws: exact catalogue run keys (recipes), never names. Picking uses the same onPick path.
+ const concept=el('div',{id:'cat-concept',className:'row'});concept.setAttribute('aria-label','Approved concept redraws');
+ for(const c of CONCEPT_CATALOGUE){const r=rows.find(x=>x.key===c.runKey),entry=CONCEPT_SPRITES.find(e=>e.slug===c.slug);if(!r||!entry)continue;
+  const b=el('button',{type:'button',className:'cat-concept'});b.dataset.key=r.key;b.dataset.concept=c.slug;
+  const cv=el('canvas');cv.width=cv.height=64;cv.setAttribute('aria-hidden','true');cv.style.cssText='width:32px;height:32px;image-rendering:pixelated;vertical-align:middle';
+  const paint=()=>drawConceptFrame(cv.getContext('2d'),entry,0,0,0,64,{flip:true,onReady:paint});paint();
+  b.append(cv,el('span',{},' '+r.name));b.addEventListener('click',()=>onPick(r,'concept'));concept.append(b);}
+ root.replaceChildren(filters,actions,...(concept.childElementCount?[concept]:[]),info,list,more);draw();return {rows,draw};
 }

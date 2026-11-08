@@ -143,3 +143,14 @@ export function paintConceptThumb(ctx, genome, size, { frame = 0, onReady } = {}
 }
 /** Static /spark page: eye state -> concept frame (blink = frame 2). Reduced motion always frame 0. */
 export function conceptEyeFrame(eye, reduced = false) { return !reduced && eye === 'closed' ? 2 : 0; }
+
+/** Catalogue recipes for the concept creatures that live in the /spark Quantum catalogue (recorded IBM
+ * run key + the catalogue's SIMULATED 'balanced' signal, no keeper id). Pistonwyrm is registered
+ * (bb-d41e5bd4) instead. A recipe is offered only when it reproduces the pack's exact genome seed. */
+export const CONCEPT_CATALOGUE = Object.freeze([
+ Object.freeze({ slug: 'cindertot', runKey: 'ibm_marrakesh:da6ondrsq5js73bj0pjg#pub31' }),
+ Object.freeze({ slug: 'umbralet', runKey: 'ibm_kingston:da69153sq5js73bidsa0#pub30' }),
+ Object.freeze({ slug: 'halopip', runKey: 'ibm_fez:da6an43sq5js73bifvdg#pub34' }),
+ Object.freeze({ slug: 'tidefin', runKey: 'ibm_kingston:da680fk86m6s738vgm00#pub14' }),
+ Object.freeze({ slug: 'fernling', runKey: 'ibm_fez:d6rfjubopkic73fj4g8g' })
+]);

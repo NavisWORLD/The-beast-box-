@@ -4,6 +4,7 @@ import { catalogRoster, STAGE_MARK } from '../lib/companion/field-roster.mjs';
 import { expandCompactRun } from '../lib/companion/spark-machine.mjs';
 import { blit, renderBeast, SPRITE } from '../public/spark/draw.mjs';
 import { paintConceptThumb } from '../public/spark/concept-sprites.mjs';
+import { conceptCatalogueGenomes } from '../public/spark/concept-catalogue.mjs';
 import css from './spark-field.module.css';
 
 type StageCard = { stage: number; mark: string; name: string };
@@ -13,6 +14,7 @@ type Catalog = {
   creatures: CreatureCard[];
   charlet: CreatureCard & { name: string };
   rares: RareCard[];
+  concept?: { slug: string; key: string; name: string; genome: { seed: string; names: Record<number, string> } }[];
 };
 
 type Choice = { name: string; genome: { seed: string; names: Record<number, string> } };
@@ -31,7 +33,7 @@ export default function SparkFieldRoster({ onChoose }: { onChoose: (choice: Choi
       if (!response.ok) throw new Error('Recorded roster table unavailable');
       const table = await response.json() as { runs?: Record<string, unknown>[] };
       const runs = (table.runs || []).map((row) => expandCompactRun(row));
-      if (!cancelled) setCatalog(catalogRoster(runs) as unknown as Catalog);
+      if (!cancelled) setCatalog({ ...(catalogRoster(runs) as unknown as Catalog), concept: conceptCatalogueGenomes(runs) as unknown as Catalog['concept'] });
     })().catch((err) => {
       if (!cancelled) setError(err instanceof Error ? err.message : 'Roster unavailable');
     });
@@ -71,6 +73,7 @@ export default function SparkFieldRoster({ onChoose }: { onChoose: (choice: Choi
           return <button key={creature.body} type="button" onClick={() => { const choice = { name: shown.name, genome: creature.genome }; setPicked(choice); onChoose(choice); }}>{creature.body} · Stage {shown.mark} · {shown.name}</button>;
         })}
         <button type="button" onClick={() => { const shown = catalog.charlet.stages.find((item) => item.stage === stage) || catalog.charlet.stages[0]; const choice = { name: stage === 1 ? catalog.charlet.name : shown.name, genome: catalog.charlet.genome }; setPicked(choice); onChoose(choice); }}>Charlet · Stage {STAGE_MARK[stage]} · {stage === 1 ? catalog.charlet.name : catalog.charlet.stages.find((item) => item.stage === stage)?.name}</button>
+        {(catalog.concept || []).map((c) => <button key={c.key} type="button" data-concept={c.slug} onClick={() => { const choice = { name: c.name, genome: c.genome }; setPicked(choice); onChoose(choice); }}>Redraw · {c.name}</button>)}
         {catalog.rares.map((rare) => <button key={rare.key} type="button" onClick={() => { const choice = { name: rare.name, genome: rare.genome }; setPicked(choice); onChoose(choice); }}>Rare · {rare.name}</button>)}
       </div>
     </> : null}
