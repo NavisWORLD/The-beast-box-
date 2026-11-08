@@ -246,6 +246,9 @@ export async function POST(request:Request){
      guest_chars:text.length,reply_chars:reply.length,exchange_id:exchangeId('public',threadId,at,text,reply)});
    }catch{/* receipt marks recorded:false */}
   }
+  const livedExchangeId=await mintExchangeId('visitor',identity,text);
+  const lived=mouthReceipt(result.lived_state,{exchangeId:livedExchangeId,scope:'visitor',spokenBy:'gated',environment:item.environment});
+  environmentIsNotCanonical(item.environment);
   const headers:Record<string,string>={'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'};
   if(minted)headers['Set-Cookie']=`${COOKIE}=${threadId}; Path=/; HttpOnly; SameSite=Lax; Max-Age=31536000${request.url.startsWith('https:')?'; Secure':''}`;
   return Response.json({provider:'rawrphos-local',model:'rawrphos-native',
@@ -267,8 +270,7 @@ export async function POST(request:Request){
     return {self_memory_used:used,memory_read:used?selfMem.memory_read:[],self_memory:{schema:SELF_MEMORY_SCHEMA,label:SELF_MEMORY_LABEL,...(used&&(selfMem as any).origins?{origins:(selfMem as any).origins}:{}),...(used&&(selfMem as any).screens?{screens:(selfMem as any).screens}:{})}};})(),
    prompt_chars:text.length,
    ...(result.routing&&typeof result.routing==='object'&&!Array.isArray(result.routing)?{routing:result.routing}:{}),
-   ...(()=>{const lived=mouthReceipt(result.lived_state,{exchangeId:mintExchangeId('visitor',identity,text),scope:'visitor',spokenBy:'gated',environment:item.environment});
-    environmentIsNotCanonical(item.environment);return lived?{lived_state:lived}:{};})()},
+   ...(lived?{lived_state:lived}:{})},
    {status:200,headers});
  }catch{return safeJson(502,{error:'Local guest inference unavailable or timed out'});}
 }

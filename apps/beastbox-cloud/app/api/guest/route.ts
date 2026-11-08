@@ -18,7 +18,7 @@ const MODEL_ID=/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+(?::[A-Za-z0-9_.-]+)?$/;
 const GROWING_LABEL='Growing Zeref · not the pin';
 // Two minds, one voice (Cory 2026-10-31): the growing branch drafts beside the pin. Its draft is checked the same way
 // /api/guest-growing checks it; any failure just leaves the gated draft alone (growing = ABSENT, null).
-async function growingDraft(text:string,identity:string):Promise<{reply:string;tag:string;checkpoint_sha256:string}|null>{
+async function growingDraft(text:string,identity:string):Promise<{reply:string;tag:string;checkpoint_sha256:string;lived_state?:unknown}|null>{
  try{
   const res=await fetch(new URL('/api/guest-growing',process.env.BEASTBOX_CLOUD_BRIDGE_URL!),{method:'POST',redirect:'error',cache:'no-store',
    headers:{Authorization:'Bearer '+process.env.BEASTBOX_CLOUD_BRIDGE_TOKEN!,'Content-Type':'application/json'},
@@ -85,7 +85,7 @@ export async function POST(request:Request){
     request.headers.get('x-forwarded-for')||'unknown';
   const identity=createHmac('sha256',secret).update(forwarded.slice(0,256)).digest('hex');
   const host=new URL('/api/guest-local',process.env.BEASTBOX_CLOUD_BRIDGE_URL!);
-  const exchangeId=mintExchangeId('guest',identity,text);
+  const exchangeId=await mintExchangeId('guest',identity,text);
   try{
    const send=(prompt:string)=>fetch(host,{method:'POST',redirect:'error',cache:'no-store',
     headers:{Authorization:'Bearer '+process.env.BEASTBOX_CLOUD_BRIDGE_TOKEN!,

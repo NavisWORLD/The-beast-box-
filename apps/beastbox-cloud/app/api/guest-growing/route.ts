@@ -46,10 +46,12 @@ export async function POST(request:Request){
      typeof r.checkpoint_sha256!=='string'||r.checkpoint_sha256===PUBLIC_PIN.checkpoint_sha256||typeof r.reply!=='string'||r.reply.length>6000||
      typeof r.tag!=='string'||!/^zeref-growing-\d{3,}$/.test(r.tag))
    return safeJson(502,{error:'Unverified growing model response'});
+  environmentIsNotCanonical(item.environment);
+  const lived=mouthReceipt(r.lived_state,{exchangeId:await mintExchangeId('guest',identity,text),scope:'guest',spokenBy:'growing'});
   return safeJson(200,{label:GROWING_LABEL,is_public_pin:false,gated:false,model:'rawrphos-native',tag:r.tag,step:r.step,
    checkpoint_sha256:r.checkpoint_sha256,reply:r.reply,hebbian:r.hebbian===true,guest_stateless:true,
    ...selfMemoryReceipt(sentMemory&&r.memory_used===true,mem.memory_read,(mem as any).origins,(mem as any).screens),
-   ...(()=>{environmentIsNotCanonical(item.environment);const lived=mouthReceipt(r.lived_state,{exchangeId:mintExchangeId('guest',identity,text),scope:'guest',spokenBy:'growing'});return lived?{lived_state:lived}:{};})()});
+   ...(lived?{lived_state:lived}:{})});
  }catch{return safeJson(502,{error:'Growing Zeref unavailable or timed out',label:GROWING_LABEL});}
 }
 /** memory_used is true ONLY when the bridge confirms his memory reached the prompt; memory_read lists exactly those items. */

@@ -6,8 +6,6 @@
  * a sample, call a model, or read a visitor-supplied environment as state.
  * Guest and visitor mouths never keep an owner-conditioned receipt.
  */
-import {createHash} from 'node:crypto';
-
 export const LIVED_MOUTH_SCHEMA = 'lived-mouth-receipt-v1';
 const HEX64 = /^[0-9a-f]{64}$/;
 const HEX32 = /^[0-9a-f]{32}$/;
@@ -16,12 +14,15 @@ const REASONS = new Set([
   'isolated', 'missing', 'stale', 'rejected', 'remote_withheld', 'budget', 'capability', 'diverged',
 ]);
 
+/** SHA-256 hex via Web Crypto. The same global exists in the browser and in Node. */
+async function sha256Hex(text) {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, '0')).join('');
+}
+
 /** One id for every draft of this turn. Deterministic: no clock and no Math.random. */
-export function mintExchangeId(scope, identity, text) {
-  return createHash('sha256')
-    .update(`lived-exchange-v1\n${scope}\n${identity}\n${text}`, 'utf8')
-    .digest('hex')
-    .slice(0, 32);
+export async function mintExchangeId(scope, identity, text) {
+  return (await sha256Hex(`lived-exchange-v1\n${scope}\n${identity}\n${text}`)).slice(0, 32);
 }
 
 /** A browser environment summary is sight, not the canonical lived snapshot. */

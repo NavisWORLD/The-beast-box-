@@ -269,7 +269,7 @@ export async function talkToBeast(input) {
       if(payload?.state!=="done")return failure(route,payload?.error||(TERMINAL.has(payload?.state)?`Brain Bay chat job ${payload.state}. No reply was received.`:"Brain Bay did not finish within 55 seconds. No reply was received."));
       const read=interpretModelResult("owner-bridge",payload);
       if(!read.ok||!read.reply||read.reply.length>6000)return failure(route,read.reason||"No verified Brain Bay reply.");
-      const lived=ownerTalkReceipt(payload,mintExchangeId("owner","owner",text));
+      const lived=ownerTalkReceipt(payload,await mintExchangeId("owner","owner",text));
       return {ok:true,route,reply:read.reply,model:clean(status.providerKind||"Brain Bay",80),label:ROUTE_INFO[route].label,at:Date.now(),...(lived?{lived_state:lived}:{})};
     }
     if (route === "shared-ollama") {

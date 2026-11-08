@@ -1,5 +1,5 @@
 export const LIVED_MOUTH_SCHEMA: string;
-export function mintExchangeId(scope: string, identity: string, text: string): string;
+export function mintExchangeId(scope: string, identity: string, text: string): Promise<string>;
 export function environmentIsNotCanonical(environment: unknown): {ignored: boolean; snapshot: null};
 export function mouthReceipt(raw: unknown, options?: {
   exchangeId?: string | null; scope?: 'guest' | 'visitor' | 'owner'; spokenBy?: string | null; environment?: unknown;

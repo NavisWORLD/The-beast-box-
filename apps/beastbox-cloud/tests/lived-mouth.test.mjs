@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';
+import {createHash} from 'node:crypto';
+import {existsSync, readFileSync} from 'node:fs';
+import {dirname, resolve} from 'node:path';
 import test from 'node:test';
+import {fileURLToPath} from 'node:url';
 import {chooseOneVoice} from '../lib/zeref/one-voice.mjs';
 import {talkToBeast, talkPersona} from '../lib/companion/beast-talk.mjs';
 import {assembleBridgeContext, contextOmitsCanonicalState} from '../lib/cosmos/live-context.mjs';
@@ -21,12 +24,14 @@ function isolated(desc = DESC) {
   };
 }
 
-test('exchange ids are deterministic and shared by both drafts', () => {
+test('exchange ids are deterministic and shared by both drafts', async () => {
   const text = 'hello from the shell';
-  const id = mintExchangeId('guest', 'a'.repeat(64), text);
-  assert.equal(id, mintExchangeId('guest', 'a'.repeat(64), text));
+  const id = await mintExchangeId('guest', 'a'.repeat(64), text);
+  const expected = createHash('sha256').update(`lived-exchange-v1\nguest\n${'a'.repeat(64)}\n${text}`, 'utf8').digest('hex').slice(0, 32);
+  assert.equal(id, expected);
+  assert.equal(id, await mintExchangeId('guest', 'a'.repeat(64), text));
   assert.equal(id.length, 32);
-  assert.notEqual(id, mintExchangeId('guest', 'b'.repeat(64), text));
+  assert.notEqual(id, await mintExchangeId('guest', 'b'.repeat(64), text));
   const spoken = speakLived({
     exchangeId: id, gated: isolated(), growing: isolated(), chosen: 'gated', growingFailed: false,
   });
@@ -39,22 +44,22 @@ test('exchange ids are deterministic and shared by both drafts', () => {
   assert.equal(spoken.descriptor_sha256, DESC);
 });
 
-test('one-voice scoring is unchanged and the spoken receipt uses that choice', () => {
+test('one-voice scoring is unchanged and the spoken receipt uses that choice', async () => {
   const prompt = 'Keeper: ocean\nZeref:';
   const voice = chooseOneVoice(prompt,
     {reply: 'I am so happy! I am so happy! I am so happy!'},
     {reply: 'The ocean waves roll under my moon.'});
   assert.equal(voice.chosen, 'growing');
   const spoken = speakLived({
-    exchangeId: mintExchangeId('guest', 'a'.repeat(64), prompt),
+    exchangeId: await mintExchangeId('guest', 'a'.repeat(64), prompt),
     gated: isolated(DESC), growing: isolated(DESC), chosen: voice.chosen,
   });
   assert.equal(spoken.spoken_by, 'growing');
   assert.equal(spoken.descriptor_sha256, DESC);
 });
 
-test('a failed growing draft keeps the gated receipt', () => {
-  const id = mintExchangeId('guest', 'a'.repeat(64), 'hello');
+test('a failed growing draft keeps the gated receipt', async () => {
+  const id = await mintExchangeId('guest', 'a'.repeat(64), 'hello');
   const kept = speakLived({
     exchangeId: id, gated: isolated(DESC), growing: isolated(OTHER), chosen: 'growing', growingFailed: true,
   });
@@ -64,8 +69,8 @@ test('a failed growing draft keeps the gated receipt', () => {
   assert.notEqual(kept.status, 'delivered');
 });
 
-test('disagreeing drafts are not reported as a successful snapshot', () => {
-  const id = mintExchangeId('guest', 'a'.repeat(64), 'hello');
+test('disagreeing drafts are not reported as a successful snapshot', async () => {
+  const id = await mintExchangeId('guest', 'a'.repeat(64), 'hello');
   const spoken = speakLived({
     exchangeId: id, gated: isolated(DESC), growing: isolated(OTHER), chosen: 'growing', growingFailed: false,
   });
@@ -76,14 +81,14 @@ test('disagreeing drafts are not reported as a successful snapshot', () => {
   assert.equal(spoken.changes_model_tensors, false);
 });
 
-test('owner talk sees the snapshot admitted with no chat, and guests do not', () => {
+test('owner talk sees the snapshot admitted with no chat, and guests do not', async () => {
   const admitted = {sequence: 4, state_sha256: HASH};
   const payload = {result: {result: {response: 'noted', lived_state: {
     status: 'delivered', sequence: admitted.sequence, state_sha256: admitted.state_sha256,
     descriptor_sha256: DESC, conditioned: true, changes_model_tensors: false,
     counts_as_memory_used: false, omitted_current_text_bytes: 0, scope: 'owner',
   }}}};
-  const owner = ownerTalkReceipt(payload, mintExchangeId('owner', 'owner', 'hello'));
+  const owner = ownerTalkReceipt(payload, await mintExchangeId('owner', 'owner', 'hello'));
   assert.equal(owner.sequence, 4);
   assert.equal(owner.state_sha256, HASH);
   assert.equal(owner.descriptor_sha256, DESC);
@@ -92,7 +97,7 @@ test('owner talk sees the snapshot admitted with no chat, and guests do not', ()
   assert.equal(owner.counts_as_memory_used, false);
   assert.equal(owner.scope, 'owner');
   for (const scope of ['guest', 'visitor']) {
-    const hidden = mouthReceipt(payload.result.result.lived_state, {scope, exchangeId: mintExchangeId(scope, 'a'.repeat(64), 'hello')});
+    const hidden = mouthReceipt(payload.result.result.lived_state, {scope, exchangeId: await mintExchangeId(scope, 'a'.repeat(64), 'hello')});
     assert.equal(hidden.status, 'unavailable');
     assert.equal(hidden.reason, 'isolated');
     assert.equal(hidden.sequence, null);
@@ -102,11 +107,11 @@ test('owner talk sees the snapshot admitted with no chat, and guests do not', ()
   }
 });
 
-test('stale and omitted owner receipts stay honest', () => {
+test('stale and omitted owner receipts stay honest', async () => {
   const stale = mouthReceipt({
     status: 'unavailable', reason: 'stale', sequence: 4, state_sha256: HASH,
     descriptor_sha256: DESC, conditioned: false,
-  }, {scope: 'owner', spokenBy: 'owner', exchangeId: mintExchangeId('owner', 'owner', 'hi')});
+  }, {scope: 'owner', spokenBy: 'owner', exchangeId: await mintExchangeId('owner', 'owner', 'hi')});
   assert.equal(stale.status, 'unavailable');
   assert.equal(stale.reason, 'stale');
   assert.equal(stale.conditioned, false);
@@ -137,12 +142,12 @@ test('a missing lived field is a capability mismatch and not a second model call
   assert.doesNotMatch(src, /Math\.random\(|fetch\(|admit_sensor\(/);
 });
 
-test('unicode and 1800-character turns keep one exchange id', () => {
+test('unicode and 1800-character turns keep one exchange id', async () => {
   const cjk = '你'.repeat(1800);
   const emoji = '😀'.repeat(1800);
-  const a = mintExchangeId('visitor', 'id', cjk);
-  assert.equal(a, mintExchangeId('visitor', 'id', cjk));
-  assert.notEqual(a, mintExchangeId('visitor', 'id', emoji));
+  const a = await mintExchangeId('visitor', 'id', cjk);
+  assert.equal(a, await mintExchangeId('visitor', 'id', cjk));
+  assert.notEqual(a, await mintExchangeId('visitor', 'id', emoji));
   const spoken = speakLived({exchangeId: a, gated: isolated(), growing: isolated(), chosen: 'gated'});
   assert.equal(spoken.exchange_id, a);
   assert.equal(spoken.counts_as_memory_used, false);
@@ -171,7 +176,7 @@ test('public talk forwards a receipt and does not send state text', async () => 
     schema: 'lived-mouth-receipt-v1', status: 'unavailable', reason: 'isolated', sequence: null,
     state_sha256: null, descriptor_sha256: DESC, conditioned: false, changes_model_tensors: false,
     counts_as_memory_used: false, omitted_current_text_bytes: 0, scope: 'guest',
-    exchange_id: mintExchangeId('guest', 'guest', 'Hi!'), spoken_by: 'gated',
+    exchange_id: await mintExchangeId('guest', 'guest', 'Hi!'), spoken_by: 'gated',
   };
   const guest = await talkToBeast({
     text: 'Hi!', persona: talkPersona({}),
@@ -218,4 +223,43 @@ test('owner talk surfaces the nested runtime receipt', async () => {
   assert.equal(result.lived_state.changes_model_tensors, false);
   assert.equal(result.lived_state.counts_as_memory_used, false);
   assert.equal(result.lived_state.conditioned, true);
+});
+
+function importSpecifiers(source) {
+  const code = source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:\\])\/\/.*$/gm, '$1');
+  const specs = [];
+  for (const match of code.matchAll(/(?:import|export)\s+(?:[\s\S]*?\sfrom\s+)?['"]([^'"]+)['"]/g)) specs.push(match[1]);
+  for (const match of code.matchAll(/import\(\s*['"]([^'"]+)['"]\s*\)/g)) specs.push(match[1]);
+  for (const match of code.matchAll(/require\(\s*['"]([^'"]+)['"]\s*\)/g)) specs.push(match[1]);
+  return specs;
+}
+
+function resolveLocal(fromFile, spec) {
+  if (!spec.startsWith('.')) return null;
+  const base = resolve(dirname(fromFile), spec);
+  const candidates = [base, `${base}.mjs`, `${base}.js`, `${base}.json`, resolve(base, 'index.mjs'), resolve(base, 'index.js')];
+  return candidates.find((candidate) => existsSync(candidate)) || null;
+}
+
+function nodeImportsReachableFrom(entry) {
+  const hits = [];
+  const seen = new Set();
+  const queue = [entry];
+  while (queue.length) {
+    const current = queue.pop();
+    if (!current || seen.has(current)) continue;
+    seen.add(current);
+    const source = readFileSync(current, 'utf8');
+    for (const spec of importSpecifiers(source)) {
+      if (spec.startsWith('node:')) hits.push(`${current} -> ${spec}`);
+      const next = resolveLocal(current, spec);
+      if (next) queue.push(next);
+    }
+  }
+  return hits;
+}
+
+test('beast-talk import graph does not reach a node: module', () => {
+  const entry = fileURLToPath(new URL('../lib/companion/beast-talk.mjs', import.meta.url));
+  assert.deepEqual(nodeImportsReachableFrom(entry), []);
 });
