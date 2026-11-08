@@ -1,7 +1,7 @@
 'use client';
-import {useEffect,useRef,useState} from 'react';
+import {useEffect,useLayoutEffect,useRef,useState} from 'react';
 import type {CreatureProfile} from '../lib/creature-profile';
-import {createSnapshot,parseSnapshot,serializeSnapshot,verifySnapshot,MAX_BYTES,canonical,type Snapshot} from '../../../packages/quantum-beast/src/verifier';
+import {createSnapshot,parseSnapshot,serializeSnapshot,validateFields,verifySnapshot,MAX_BYTES,canonical,type Snapshot} from '../../../packages/quantum-beast/src/verifier';
 import {exportGba} from '../../../packages/quantum-beast/src/gba_export';
 import {lostCosmosShareUrl,LOST_COSMOS_SOURCE_SHA} from '../../../packages/quantum-beast/src/lost_cosmos';
 import css from './quantum-beast-transfer.module.css';
@@ -18,6 +18,18 @@ async function storedSnapshot(raw:string){
  const stored=JSON.parse(raw),options=stored.trustedPublicKey?{trustedPublicKey:stored.trustedPublicKey}:{};
  return parseSnapshot(stored.text,options);
 }
+/** Shape of the saved file only. Digests and the signature stay in verifySnapshot. */
+function previewStored():Snapshot|null{
+ try{
+  const raw=localStorage.getItem(KEY);
+  if(!raw||raw.length>MAX_BYTES*2)return null;
+  const stored=JSON.parse(raw);
+  if(!stored||typeof stored.text!=='string'||stored.text.length>MAX_BYTES*2)return null;
+  const snapshot=JSON.parse(stored.text);
+  validateFields(snapshot);
+  return snapshot;
+ }catch{return null;}
+}
 function download(bytes:BlobPart,name:string,type:string){const url=URL.createObjectURL(new Blob([bytes],{type}));const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
 export default function QuantumBeastTransfer({profile,onImport}:{profile:CreatureProfile|null;onImport:(profile:CreatureProfile)=>void}){
  const {session}=useBeastSession();
@@ -26,9 +38,18 @@ export default function QuantumBeastTransfer({profile,onImport}:{profile:Creatur
  const [verifiedKey,setVerifiedKey]=useState<string|undefined>(),[signature,setSignature]=useState('absent');
  const [ready,setReady]=useState(false);
  const input=useRef<HTMLInputElement>(null),storedRaw=useRef<string|null>(null),running=useRef(false);
+ const detailsRef=useRef<HTMLDetailsElement>(null),advancedRef=useRef(false);
  const importCallback=useRef(onImport);importCallback.current=onImport;
+ // The receipt is the saved generation count. Its check awaits SHA-256 and Ed25519, and the other
+ // tab's pocket frames can hold that continuation past the bridge wait. Paint the stored record
+ // in this layout pass. Transfers stay disabled until verification, which removes a failed preview.
+ useLayoutEffect(()=>{const preview=previewStored();if(preview)setSnapshot(preview);},[]);
+ // A later verification render was closing this panel: React reapplies a missing `open`
+ // attribute. The bridge test opens it, then clicks Download. Put the user's open state back
+ // before paint so that click still reaches the button.
+ useLayoutEffect(()=>{const node=detailsRef.current;if(node&&advancedRef.current)node.open=true;});
  useEffect(()=>{let active=true;
-  void(async()=>{let failed=false;try{const raw=localStorage.getItem(KEY);storedRaw.current=raw;if(!raw)return;const s=await storedSnapshot(raw),stored=JSON.parse(raw),options=stored.trustedPublicKey?{trustedPublicKey:stored.trustedPublicKey}:{};const known=localStorage.getItem(KEY+'-creature-'+s.profile.id);if(known)assertContinuation(s,await storedSnapshot(known));const v=await verifySnapshot(s,options);if(active){setSnapshot(s);setVerifiedKey(stored.trustedPublicKey);setKey(stored.trustedPublicKey??'');setSignature(v.signature);importCallback.current(s.profile);}}catch{failed=true;if(active)setError('A previous portable save could not be verified. It has been retained for recovery; transfers are blocked until it is recovered.');}finally{if(active)setReady(!failed);}})();
+  void(async()=>{let failed=false;try{const raw=localStorage.getItem(KEY);storedRaw.current=raw;if(!raw)return;const s=await storedSnapshot(raw),stored=JSON.parse(raw),options=stored.trustedPublicKey?{trustedPublicKey:stored.trustedPublicKey}:{};const known=localStorage.getItem(KEY+'-creature-'+s.profile.id);if(known)assertContinuation(s,await storedSnapshot(known));const v=await verifySnapshot(s,options);if(active){setSnapshot(s);setVerifiedKey(stored.trustedPublicKey);setKey(stored.trustedPublicKey??'');setSignature(v.signature);importCallback.current(s.profile);}}catch{failed=true;if(active){setSnapshot(null);setError('A previous portable save could not be verified. It has been retained for recovery; transfers are blocked until it is recovered.');}}finally{if(active)setReady(!failed);}})();
   return()=>{active=false;};
  },[]);
  const matches=!!profile&&!!snapshot&&canonical(profile)===canonical(snapshot.profile);
@@ -84,7 +105,7 @@ export default function QuantumBeastTransfer({profile,onImport}:{profile:Creatur
    <button type="button" className={css.playGame} disabled={!profile||busy||!ready||Boolean(snapshot&&!matches)} title={!ready?'Getting ready…':busy?'Working…':!profile?'Make or load a Quantum Beast first':'This file belongs to a different creature'} onClick={()=>void run(openLostCosmos)}>PLAY THIS BEAST IN LOST COSMOS</button>
    <input ref={input} disabled={busy||!ready} className={css.file} type="file" accept=".qbeast,application/json" aria-label="Quantum Beast file" onChange={e=>{const file=e.target.files?.[0];e.target.value='';if(file)void run(()=>importFile(file));}}/>
   </div>
-  <details className={css.details} data-bridge-advanced><summary>Advanced settings</summary>
+  <details ref={detailsRef} className={css.details} data-bridge-advanced onToggle={event=>{advancedRef.current=event.currentTarget.open;}}><summary>Advanced settings</summary>
    <button type="button" disabled={!profile||busy||!ready||Boolean(snapshot&&!matches)} title={!ready?'Getting ready…':busy?'Working…':!profile?'Make or load a Quantum Beast first':'This file belongs to a different creature'} onClick={()=>void run(openSynapseShare)}>Open the web Synapse share (github.io)</button>
   <div className={css.actions}>
    <button type="button" disabled={!profile||busy||!ready} title={!ready?'Getting ready…':busy?'Working…':!profile?'Make or load a Quantum Beast first':'This file belongs to a different creature'} onClick={()=>void run(exportPortable)}>DOWNLOAD QUANTUM BEAST</button>
