@@ -1,4 +1,6 @@
 import { bridgeConfigured, isOwner, safeJson } from '@/lib/security';
+import {storageConfig} from '@/lib/cosmos/azure-blob.mjs';
+import {mirrorLivedExchange} from '@/lib/cosmos/forever-store.mjs';
 export const runtime='nodejs';
 const GET_ALLOW=new Set(['orbit','memory','trace','provider','conversation','storage','context','connections','bio','chat-job','observations','models','model-inventory','hf-model-inventory','engine-growth','engine-loop','activation']);
 const POST_ALLOW=new Set(['chat','chat-start','context','connections','bio','observations','models','azure-read','cns-model-probe','signal-model-probe','activation','authority','features']);
@@ -214,6 +216,12 @@ async function forward(request:Request, method:'GET'|'POST', {params}:RouteConte
     if (raw.length>1_000_000) return safeJson(502,{error:'Backend response too large'});
     let data:unknown;try{data=JSON.parse(raw);}catch{return safeJson(502,{error:'Invalid backend response'});}
     if (!upstream.ok) return safeJson(upstream.status>=500?502:upstream.status,{error:(data&&typeof data==='object'&&'error' in data&&typeof data.error==='string')?data.error:'Backend rejected request'});
+    if((endpoint==='chat'||endpoint==='chat-start')&&data&&typeof data==='object'&&'result' in data){
+      const lived=(data as {result?:{lived_exchange?:Record<string,unknown>}}).result?.lived_exchange;
+      if(lived&&lived.status==='lived'){
+        try{const cfg=storageConfig();if(cfg)await mirrorLivedExchange(cfg,lived);}catch{/* a replica miss leaves the canonical receipt */}
+      }
+    }
     return safeJson(200,data);
   } catch {return safeJson(502,{error:'Durable Beast Box service unavailable; no substitute provider was used'});}
 }

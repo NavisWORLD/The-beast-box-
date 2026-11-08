@@ -1,0 +1,255 @@
+"""Commit one owner exchange onto the canonical lived chain.
+
+The heard line is written before the model runs. The spoken line is written
+after, and only the delivered reply. Guest and visitor scopes never open the
+owner file. The host attachment is whatever ``host_attachment`` returns: a
+missing flag or ``verified`` other than True writes nothing.
+"""
+from __future__ import annotations
+
+import os
+import sqlite3
+from pathlib import Path
+from typing import Any, Callable, Mapping
+
+from .hashutil import sha256_text
+from .lived_events import (
+    ACTIVATION_ENV,
+    CANONICAL_SUBJECT,
+    ActivationRejected,
+    ChainRejected,
+    IdentityRejected,
+    SampleRejected,
+    host_attachment,
+)
+from .lived_state import LivedStore
+
+
+def _allows_write(attachment: Mapping[str, Any] | None) -> bool:
+    if os.environ.get(ACTIVATION_ENV, "off") != "on":
+        return False
+    if not isinstance(attachment, Mapping):
+        return False
+    if attachment.get("verified") is not True:
+        return False
+    return attachment.get("scope") == "owner" and attachment.get("subject_id") == CANONICAL_SUBJECT
+
+
+def _current_attachment() -> Mapping[str, Any] | None:
+    if os.environ.get(ACTIVATION_ENV, "off") != "on":
+        return None
+    try:
+        attachment = host_attachment()
+    except ActivationRejected:
+        return None
+    if not _allows_write(attachment):
+        return None
+    return attachment
+
+
+def _host_fields(attachment: Mapping[str, Any]) -> dict[str, Any]:
+    return {key: attachment[key] for key in (
+        "schema", "subject_id", "scope", "basis", "origin_commitment", "prior_head", "verified",
+    )}
+
+
+def _as_text(produced: Any) -> str | None:
+    if isinstance(produced, str):
+        return produced
+    if isinstance(produced, dict) and isinstance(produced.get("response"), str):
+        return produced["response"]
+    return None
+
+
+def _blank(status: str, *, reply: str | None, generated: bool, receipt: dict[str, Any] | None = None) -> dict[str, Any]:
+    return {
+        "wrote": False,
+        "status": status,
+        "reply": reply,
+        "generated": generated,
+        "receipt": receipt,
+        "recovered": False,
+    }
+
+
+def _owner_path(root: Path) -> Path:
+    return Path(root) / "lived-backbone" / f"{CANONICAL_SUBJECT}.sqlite"
+
+
+def run_owner_exchange(
+    root: str | Path,
+    *,
+    scope: str,
+    heard: str,
+    exchange_id: str,
+    now_ms: int,
+    generate: Callable[[], Any],
+    model: str | None = None,
+    delivered: bool = True,
+    acknowledge: bool = True,
+    unchosen: str | None = None,
+) -> dict[str, Any]:
+    """Append the heard line and, when delivered, only the chosen reply.
+
+    ``unchosen`` is accepted so a two-draft turn can name the draft that must
+    not be stored. It is never written.
+    """
+    del unchosen
+    if scope != "owner":
+        return _blank("isolated", reply=None, generated=False)
+    attachment = _current_attachment()
+    if attachment is None:
+        produced = generate()
+        return _blank("skipped", reply=_as_text(produced), generated=True)
+    path = _owner_path(Path(root))
+    if path.is_symlink() or path.parent.is_symlink():
+        produced = generate()
+        return _blank("skipped", reply=_as_text(produced), generated=True)
+    try:
+        store = LivedStore.open(path, _host_fields(attachment))
+    except (ActivationRejected, ChainRejected, IdentityRejected, SampleRejected, OSError, sqlite3.Error):
+        produced = generate()
+        return _blank(
+            "unconfirmed", reply=_as_text(produced), generated=True,
+            receipt={"schema": "lived-exchange-receipt-v1", "status": "unconfirmed", "exchange_id": exchange_id},
+        )
+    try:
+        return _commit(
+            store, heard=heard, exchange_id=exchange_id, now_ms=now_ms, generate=generate,
+            model=model, delivered=delivered, acknowledge=acknowledge,
+        )
+    finally:
+        store.close()
+
+
+def _commit(
+    store: LivedStore, *, heard: str, exchange_id: str, now_ms: int, generate: Callable[[], Any],
+    model: str | None, delivered: bool, acknowledge: bool,
+) -> dict[str, Any]:
+    row = store.exchange_row(exchange_id)
+    if row is not None and row.get("spoken_event_id"):
+        receipt = store.exchange_receipt(str(row["spoken_event_id"]))
+        receipt["acknowledged"] = bool(row.get("acknowledged"))
+        return {
+            "wrote": True, "status": "lived", "reply": store.exchange_reply(str(row["spoken_event_id"])),
+            "generated": False, "receipt": receipt, "recovered": True,
+        }
+    if row is not None and row.get("failure_event_id"):
+        receipt = store.exchange_receipt(str(row["failure_event_id"]))
+        return {
+            "wrote": True, "status": "failed", "reply": None, "generated": False,
+            "receipt": receipt, "recovered": True,
+        }
+    if row is None or not row.get("heard_event_id"):
+        store.begin_exchange(exchange_id=exchange_id, text=heard, now_ms=now_ms)
+    if not delivered:
+        try:
+            receipt = store.fail_exchange(exchange_id=exchange_id, now_ms=now_ms)
+        except sqlite3.Error:
+            return _blank(
+                "unconfirmed", reply=None, generated=False,
+                receipt={"schema": "lived-exchange-receipt-v1", "status": "unconfirmed", "exchange_id": exchange_id},
+            )
+        return {
+            "wrote": True, "status": "failed", "reply": None, "generated": False,
+            "receipt": receipt, "recovered": False,
+        }
+    staged = store.staged_reply(exchange_id)
+    generated = False
+    if staged is not None:
+        reply = staged["reply"]
+        if model is None:
+            model = staged.get("model")
+    else:
+        reply = _as_text(generate())
+        generated = True
+        if not isinstance(reply, str) or not reply.strip():
+            try:
+                receipt = store.fail_exchange(exchange_id=exchange_id, now_ms=now_ms)
+            except sqlite3.Error:
+                return _blank(
+                    "unconfirmed", reply=reply, generated=True,
+                    receipt={"schema": "lived-exchange-receipt-v1", "status": "unconfirmed", "exchange_id": exchange_id},
+                )
+            return {
+                "wrote": True, "status": "failed", "reply": reply, "generated": True,
+                "receipt": receipt, "recovered": False,
+            }
+        try:
+            store.stage_exchange_reply(exchange_id, reply, model)
+        except sqlite3.Error:
+            return _blank(
+                "unconfirmed", reply=reply, generated=True,
+                receipt={"schema": "lived-exchange-receipt-v1", "status": "unconfirmed", "exchange_id": exchange_id},
+            )
+    try:
+        receipt = store.finish_exchange(exchange_id=exchange_id, reply=reply, now_ms=now_ms, model=model)
+    except sqlite3.Error:
+        return _blank(
+            "unconfirmed", reply=reply, generated=generated,
+            receipt={"schema": "lived-exchange-receipt-v1", "status": "unconfirmed", "exchange_id": exchange_id},
+        )
+    if acknowledge:
+        store.acknowledge_exchange(exchange_id)
+        receipt = dict(receipt)
+        receipt["acknowledged"] = True
+    else:
+        receipt = dict(receipt)
+        receipt["acknowledged"] = False
+    return {
+        "wrote": True, "status": "lived", "reply": reply, "generated": generated,
+        "receipt": receipt, "recovered": False,
+    }
+
+
+def speak_owner(root: str | Path, heard: str, generate: Callable[[], Any], *, now_ms: int) -> Any:
+    """Owner chat hook. Flag-off and unverified attachments return the model result unchanged."""
+    if _current_attachment() is None:
+        return generate()
+    exchange_id = _exchange_id_for(Path(root), heard)
+    held: dict[str, Any] = {}
+
+    def once() -> Any:
+        if "value" not in held:
+            held["value"] = generate()
+        return held["value"]
+
+    result = run_owner_exchange(
+        root, scope="owner", heard=heard, exchange_id=exchange_id, now_ms=now_ms, generate=once,
+    )
+    if result["status"] == "skipped":
+        return held.get("value", result["reply"])
+    if result["recovered"]:
+        return {"response": result["reply"], "lived_exchange": result["receipt"], "recovered": True}
+    body = held.get("value")
+    if not isinstance(body, dict):
+        body = {"response": result["reply"]}
+    else:
+        body = dict(body)
+    if result["receipt"] is not None:
+        body["lived_exchange"] = result["receipt"]
+    return body
+
+
+def _exchange_id_for(root: Path, text: str) -> str:
+    digest = sha256_text(text)
+    path = _owner_path(root)
+    if not path.is_file():
+        return sha256_text(f"lived-exchange-v1\nowner\nowner\n{text}\n0")[:32]
+    attachment = _current_attachment()
+    if attachment is None:
+        return sha256_text(f"lived-exchange-v1\nowner\nowner\n{text}\n0")[:32]
+    store = LivedStore.open(path, _host_fields(attachment))
+    try:
+        rows = store.db.execute(
+            "SELECT exchange_id, acknowledged FROM lived_exchanges WHERE text_sha256=? ORDER BY exchange_id",
+            (digest,),
+        ).fetchall()
+    finally:
+        store.close()
+    for row in rows:
+        acknowledged = row["acknowledged"] if not isinstance(row, tuple) else row[1]
+        exchange_id = row["exchange_id"] if not isinstance(row, tuple) else row[0]
+        if not acknowledged:
+            return str(exchange_id)
+    return sha256_text(f"lived-exchange-v1\nowner\nowner\n{text}\n{len(rows)}")[:32]

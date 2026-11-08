@@ -17,6 +17,7 @@ import secrets
 import sys
 import tempfile
 import threading
+import time
 from collections import deque
 from typing import Any, Callable, Iterable
 import urllib.parse
@@ -25,6 +26,7 @@ from .cosmic_ui import render_cosmic_ui
 from .activation_queue import ActivationEngine
 from .cypher.workspace import FULL_REPLACEMENT_DIFF_HEADER, Workspace
 from .durable import DurableRuntime
+from .lived_exchange import speak_owner
 from .semantic_retrieval import EmbeddingProvider
 from .optional_resources import ResourceUnavailable, quantum_event
 from .portable_state import import_snapshot, verify_snapshot
@@ -307,7 +309,10 @@ class CosmicApp:
         runtime = self._runtime(profile)
         try:
             before = runtime.inspect()
-            result = runtime.respond(text, transient_context=context)
+            result = speak_owner(
+                self.root, text, lambda: runtime.respond(text, transient_context=context),
+                now_ms=int(time.time() * 1000),
+            )
             after = runtime.inspect()
         finally:
             runtime.close()
