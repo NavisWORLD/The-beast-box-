@@ -15,6 +15,11 @@ on:
         required: false
         default: ''
         type: string
+      uncapped:
+        description: Cory 2026-11-07 "uncap the job any usage amount". true = cap is all remaining quota (5 s margin, reserve waived) and no queue-wait cancel; the job stays in IBM's queue and ibm-job-recover scores it later.
+        required: false
+        default: false
+        type: boolean
 permissions:
   contents: read
 concurrency:
@@ -38,7 +43,13 @@ jobs:
         run: |
           python scripts/ibm_open_plan_preflight.py
           cp _ibm_open_plan_preflight/receipt.json quota_before.json
-          cap=$(python -c "import json;r=json.load(open('quota_before.json'))['remaining_seconds'];print(max(0,min(45,int(r-60))))")
+          if [ "${{ inputs.uncapped }}" = "true" ]; then
+            cap=$(python -c "import json;r=json.load(open('quota_before.json'))['remaining_seconds'];print(max(0,int(r-5)))")
+            echo "QWAIT=0" >> "$GITHUB_ENV"; echo "WAIVE=YES_ANY_USAGE_V13_2026-11-07" >> "$GITHUB_ENV"
+          else
+            cap=$(python -c "import json;r=json.load(open('quota_before.json'))['remaining_seconds'];print(max(0,min(45,int(r-60))))")
+            echo "QWAIT=900" >> "$GITHUB_ENV"; echo "WAIVE=" >> "$GITHUB_ENV"
+          fi
           echo "SPARK_CAP=$cap"; echo "CAP=$cap" >> "$GITHUB_ENV"
       - name: Read-only live queue depths (no submit)
         if: env.CAP >= 15
@@ -65,7 +76,8 @@ jobs:
           CHSH_GAME_ROUNDS: '24000'
           CHSH_BEST_PAIR: '1'
           CHSH_BACKEND_PICK: least_busy
-          CHSH_QUEUE_WAIT_S: '900'
+          CHSH_QUEUE_WAIT_S: ${{ env.QWAIT }}
+          CHSH_OWNER_RESERVE_WAIVED: ${{ env.WAIVE }}
           CHSH_RUN_TAG: navisworld-zeref-heart-seed-v13${{ inputs.tag_suffix }}
           CHSH_BACKEND_NAME: ${{ inputs.backend }}
           CHSH_GAME_OUT: _final
