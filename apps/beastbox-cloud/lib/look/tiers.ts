@@ -1,5 +1,7 @@
 // Presentation tier for the Genesis look. Reads the existing pack; does not edit it.
-// Phones default to MED. Software GL stays LOW. Reduced motion freezes motion elsewhere, not this default.
+// Phones default to MED. Desktops default to HIGH (a GOD machine stays GOD).
+// A saved override still wins. Software GL does not pin the default: a real
+// frame-time average drops the live tier, and that drop is not saved.
 import {autoTier,readTierOverride,TIERS} from '../universe/post-tiers.mjs';
 
 export type Tier='LOW'|'MED'|'HIGH'|'GOD';
@@ -18,15 +20,14 @@ export function budgetFor(tier:string){
  return GENESIS_BUDGET[t];
 }
 
-/** Saved override wins. Otherwise phones are MED and a desktop LOW pick lifts to HIGH. */
+/** Saved override wins. Otherwise a phone is MED and a desktop is HIGH, or GOD when the machine already is. */
 export function presentationTier(storage:Store,hints:Hints={}):Tier{
  const saved=readTierOverride(storage);
  if(saved)return saved as Tier;
- if(hints.softGL)return 'LOW';
  if(hints.phone)return 'MED';
  const auto=autoTier({...hints,phone:false,reducedMotion:false,softGL:false});
- if(auto==='LOW')return 'HIGH';
- return auto as Tier;
+ if(auto==='GOD')return 'GOD';
+ return 'HIGH';
 }
 
 const ORDER:Tier[]=['LOW','MED','HIGH','GOD'];
@@ -37,4 +38,13 @@ export function dropTierIfSlow(tier:string,avgMs:number,userPick:string):Tier{
  if(!(avgMs>20))return cur;
  const dropped=ORDER[Math.max(0,ORDER.indexOf(cur)-1)];
  return ORDER.indexOf(dropped)>ORDER.indexOf(cap)?cap:dropped;
+}
+
+/** Apply dropTierIfSlow once a real frame sample covers the window. Does not write storage. */
+export function considerDrop(tier:string,userPick:string,frameMs:number[],windowMs=3000):{tier:Tier;consumed:boolean}{
+ let total=0;
+ for(const ms of frameMs)total+=ms;
+ const cur=(TIERS as readonly string[]).includes(tier)?tier as Tier:'MED';
+ if(!(total>=windowMs)||frameMs.length<20)return {tier:cur,consumed:false};
+ return {tier:dropTierIfSlow(cur,total/frameMs.length,userPick),consumed:true};
 }

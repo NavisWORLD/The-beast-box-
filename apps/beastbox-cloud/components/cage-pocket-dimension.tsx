@@ -16,7 +16,6 @@ const pocketSunDir=():[number,number,number]=>{const d=oneSunAt(Date.now()/1000)
 /** By day keep only the sun disc (PR #688 treatment): the additive halo, rays, shaft, motes and flares hide; lights stay. */
 const pocketDayDiscOnly=(root:any)=>{const day=oneSunAt(Date.now()/1000).day>=.05;root.traverse((o:any)=>{if(o===root||o.isLight||o.name==='heaven-sun'||o.parent!==root&&o.parent?.isLight)return;if(o.material&&o.material.blending===2)o.visible=!day;});return day;};
 import {terrainHeight} from '../lib/worlds/terrain-math.mjs';
-import {attachGenesisLook} from '../lib/look/attach';
 import {createCompanions} from '../lib/companions/companions';
 import {createSensors,bodyDims,nervePaletteChoice} from '../lib/sensors/sensors';
 import {neonPatch,neonUniforms,neonDistGain,makeFilaments} from '../lib/worlds/neon-wire';
@@ -225,6 +224,18 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
   void(async()=>{
    try{
     if(!window.WebGLRenderingContext)throw Error('WebGL unavailable');
+    // Software GL links this scene on the CPU. Doing that while the cage is still
+    // fetching the spark catalog, world links and route prefetches keeps those
+    // responses in flight, so the page never reaches network idle. Wait out one
+    // quiet beat first (bounded, so a stuck request cannot hold the pocket).
+    if(isSoftwareGL()){
+     const start=performance.now();let last=start;
+     let obs:PerformanceObserver|null=null;
+     try{obs=new PerformanceObserver(()=>{last=performance.now();});obs.observe({type:'resource'});}catch{}
+     while(!disposed&&performance.now()-start<4000&&performance.now()-last<650)await new Promise(r=>setTimeout(r,80));
+     obs?.disconnect();
+     if(disposed)return;
+    }
     // Home: let the 3D Zeref finish cutting his layers first (both share one main thread on phones / software GL).
     // The pocket's first frame links its shader programs synchronously; starting it while Zeref is still loading
     // starves his 9s fallback guard too, so neither ever settles on slow machines. His guard (main thread free while
@@ -361,7 +372,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     const zHolder=new THREE.Group();zHolder.scale.setScalar(.45);zHolder.position.set(0,-.07,0);zHolder.rotation.y=.7;scene.add(zHolder);
     // Universe of worlds: home trees/clouds/sky dome/parallax haze + distant worlds with gravity wells; Zeref travels between them.
     const neonU=neonUniforms();const uw=buildWorlds(THREE,scene,{low,universe:UNIVERSE_R,neon:neonU});const land=(!soft||lcForced)?buildTerrain(THREE,scene,{low}):null;if(lcForced)(window as any).__lcLand=land;const gj=(!soft||lcForced)?buildIsland(THREE,scene,{low,open:true}):null;const gjEv=gj?addGeyserEvents(THREE,gj,{low}):null;const gjLife=gj&&gjEv?addIslandLife(THREE,gj,gjEv.puff,{low}):null;const gjSnd=gj?createGeyserSound():null;gjEv?.on(e=>{gjSnd?.event(e==='geyser-tap'?'':e);if(e==='tremor'||e==='erupt')gjLife?.scare();});gjLife?.on(e=>gjSnd?.event(e));if(lcForced){(window as any).__geyser=gj;(window as any).__geyserEv=gjEv;(window as any).__geyserLife=gjLife;}
-    const genesisLook=soft?null:attachGenesisLook(THREE,scene,{seed:String(key||'cage'),phone:window.innerWidth<=820,softGL:false,heightAt:(x:number,z:number)=>terrainHeight(x,z),reduced:()=>reduced,nowMs:()=>performance.now(),classicRoots:()=>land?.root?[land.root]:[],renderer});
+    const genesisLook=soft?null:(await import('../lib/look/attach')).attachGenesisLook(THREE,scene,{seed:String(key||'cage'),phone:window.innerWidth<=820,softGL:false,heightAt:(x:number,z:number)=>terrainHeight(x,z),reduced:()=>reduced,nowMs:()=>performance.now(),classicRoots:()=>land?.root?[land.root]:[],renderer});
     const onGj=(e:any)=>{const a=String(e?.detail?.action||'');if(a==='erupt')gjEv?.erupt();else if(a==='tremor')gjEv?.tremor();else if(a==='geyser')gjEv?.geyser();else if(a==='breach')gjLife?.breach();else if(a==='castoff')gjLife?.castoff();};window.addEventListener('beastbox:geyser',onGj);if(gj){(window as any).__geyserReady=true;window.dispatchEvent(new Event('beastbox:geyser-ready'));}
     // tap the geyser, volcano, whale or boat to trigger it (taps only; drags keep orbiting the camera)
     const gjRay=new THREE.Raycaster(),gjNdc=new THREE.Vector2();let gjDown:{x:number;y:number;t:number}|null=null;
