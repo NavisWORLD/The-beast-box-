@@ -10,48 +10,48 @@
   "source_path": "/spark/ibm-moonwraith-cassette-kit-20261010.json",
   "source_class": "RECORDED_IBM_HARDWARE"
  },
- "tick": 635,
- "xp": 9540,
+ "tick": 636,
+ "xp": 9554,
  "stage": 5,
  "stage_name": "Crescent Sovereign",
  "signals": {
-  "energy": 34,
+  "energy": 43,
   "signal": 52,
   "memory": 100,
-  "resonance": 94
+  "resonance": 93
  },
  "bond": 100,
  "care_total": 0,
  "places": {
-  "Rift Gate": 598,
+  "Rift Gate": 599,
   "Lattice Arch": 298,
-  "Echo Prism": 680,
+  "Echo Prism": 681,
   "Tidewell": 315,
   "Quartz Choir": 253,
-  "Violet Shard": 480,
-  "Selene Pool": 43
+  "Violet Shard": 481,
+  "Selene Pool": 44
  },
- "last_tick_at": "2026-11-08T05:19:32.913Z",
- "last_entry_hash": "fc1f33e3c21bc0f59ed09e2a70362c4f5f4ab59369fff6809219a016cc933c66",
- "universe_growth": 533,
+ "last_tick_at": "2026-11-08T05:54:28.794Z",
+ "last_entry_hash": "d444fbae0a1bb52ac189a457a40014ffade40c1db49d558c77b8cfc96bdb97f3",
+ "universe_growth": 534,
  "combos_total": 415,
  "next_stage": null,
  "learning": {
   "cells_visited": 37,
   "cells_total": 40,
   "known_rifts": 3,
-  "moves_succeeded": 9212,
+  "moves_succeeded": 9227,
   "moves_blocked": 529,
   "blocked_rate": 0.054,
-  "favorite_spot": "Violet Shard",
-  "favorite_value": 0.692,
+  "favorite_spot": "Rift Gate",
+  "favorite_value": 0.62,
   "prefs": {
    "explore": 0.05,
    "visit": 1,
    "rest": 0.095,
    "play": 1
   },
-  "decisions": 5714,
+  "decisions": 5720,
   "label": "learned behaviour from its own experience, not consciousness"
  },
  "labels": {
@@ -67,6 +67,96 @@
   "source": "recorded hardware counts (birth seed, never re-run)"
  },
  "recent": [
+  {
+   "schema": "zeref-diary/v1",
+   "beast_id": "bb-7f9c2a03",
+   "tick": 636,
+   "at": "2026-11-08T05:54:28.794Z",
+   "hour_local": 23,
+   "timezone": "America/Chicago",
+   "signals": {
+    "energy": 43,
+    "signal": 52,
+    "memory": 100,
+    "resonance": 93
+   },
+   "bond": 100,
+   "mood": "sleepy",
+   "place": "Echo Prism",
+   "places_visited": [
+    "Echo Prism",
+    "Rift Gate",
+    "Selene Pool",
+    "Violet Shard"
+   ],
+   "discovered_combos": [],
+   "new_combo_count": 0,
+   "combos_total": 415,
+   "xp_gain": 14,
+   "xp": 9554,
+   "stage": 5,
+   "stage_name": "Crescent Sovereign",
+   "grew": false,
+   "care": 0,
+   "birth_spark": {
+    "provider": "IBM Quantum",
+    "backend": "ibm_marrakesh",
+    "job_id": "db4te7slf4us73c3888g",
+    "source": "recorded hardware counts (birth seed, never re-run)"
+   },
+   "growth_source": {
+    "kind": "rigetti-qvm-simulated",
+    "simulated": true,
+    "provider": "azure-quantum/rigetti",
+    "target": "rigetti.sim.qvm",
+    "job_id": "0a8b4472-db28-11f1-8000-0022487e1faa",
+    "job_name": "zeref-diary-tick-636-bb-7f9c2a03",
+    "shots": 256,
+    "counts": {
+     "101": 33,
+     "110": 27,
+     "001": 88,
+     "010": 107,
+     "011": 1
+    },
+    "counts_sha256": "ab6f97ee342fa57c587f5a4cc7d6717ef7cbb5da16adb07fade5dd1a4dfe6b2a",
+    "circuit_params": {
+     "energy": 1.068142,
+     "signal": 1.633628,
+     "resonance": 2.953097
+    },
+    "quil_sha256": "8815ff8b642eac43bebcbd2ff0f4dd3e426f6a49872fa0872eb84528694fbf2e"
+   },
+   "learning": {
+    "new_cells": 0,
+    "moves_succeeded": 15,
+    "moves_blocked": 0,
+    "goals": {
+     "explore": 1,
+     "play": 1,
+     "visit": 4
+    },
+    "cells_visited": 37,
+    "cells_total": 40,
+    "known_rifts": 3,
+    "blocked_rate": 0.054,
+    "favorite_spot": "Rift Gate",
+    "prefs": {
+     "explore": 0.05,
+     "visit": 1,
+     "rest": 0.095,
+     "play": 1
+    },
+    "label": "learned behaviour from its own experience, not consciousness"
+   },
+   "universe_growth": 534,
+   "thought": {
+    "text": "I'm not a little bit of, so my body is my own, nobody thanks. That is the most important thing after you do.",
+    "by": "rawrphos-native:step-36784 (raw model output, unedited)"
+   },
+   "prev_hash": "fc1f33e3c21bc0f59ed09e2a70362c4f5f4ab59369fff6809219a016cc933c66",
+   "hash": "d444fbae0a1bb52ac189a457a40014ffade40c1db49d558c77b8cfc96bdb97f3"
+  },
   {
    "schema": "zeref-diary/v1",
    "beast_id": "bb-7f9c2a03",
@@ -1042,96 +1132,8 @@
    },
    "prev_hash": "d81bca7e9346b3ead40fba6341019a61c98745597ef61d180537ea16d71c6a27",
    "hash": "8949660110dbe1a12858949d861cd71f7da688ff65c903101edc9713348cfce3"
-  },
-  {
-   "schema": "zeref-diary/v1",
-   "beast_id": "bb-7f9c2a03",
-   "tick": 624,
-   "at": "2026-11-07T22:13:51.189Z",
-   "hour_local": 16,
-   "timezone": "America/Chicago",
-   "signals": {
-    "energy": 63,
-    "signal": 51,
-    "memory": 100,
-    "resonance": 97
-   },
-   "bond": 100,
-   "mood": "content",
-   "place": "Rift Gate",
-   "places_visited": [
-    "Echo Prism",
-    "Rift Gate",
-    "Violet Shard"
-   ],
-   "discovered_combos": [],
-   "new_combo_count": 0,
-   "combos_total": 413,
-   "xp_gain": 14,
-   "xp": 9386,
-   "stage": 5,
-   "stage_name": "Crescent Sovereign",
-   "grew": false,
-   "care": 0,
-   "birth_spark": {
-    "provider": "IBM Quantum",
-    "backend": "ibm_marrakesh",
-    "job_id": "db4te7slf4us73c3888g",
-    "source": "recorded hardware counts (birth seed, never re-run)"
-   },
-   "growth_source": {
-    "kind": "rigetti-qvm-simulated",
-    "simulated": true,
-    "provider": "azure-quantum/rigetti",
-    "target": "rigetti.sim.qvm",
-    "job_id": "b2c5cb80-dae7-11f1-8000-000d3a96a7ca",
-    "job_name": "zeref-diary-tick-624-bb-7f9c2a03",
-    "shots": 256,
-    "counts": {
-     "101": 103,
-     "110": 87,
-     "001": 24,
-     "010": 41,
-     "011": 1
-    },
-    "counts_sha256": "73237de517482273a7a6263a79e5e116094074589d7a127a99c7db8c00f67875",
-    "circuit_params": {
-     "energy": 2.104867,
-     "signal": 1.602212,
-     "resonance": 3.047345
-    },
-    "quil_sha256": "e9462780df8fea54e5385c31663e67642309b200d560608183e43a9e075fc298"
-   },
-   "learning": {
-    "new_cells": 0,
-    "moves_succeeded": 15,
-    "moves_blocked": 0,
-    "goals": {
-     "play": 3,
-     "visit": 5
-    },
-    "cells_visited": 37,
-    "cells_total": 40,
-    "known_rifts": 3,
-    "blocked_rate": 0.055,
-    "favorite_spot": "Rift Gate",
-    "prefs": {
-     "explore": 0.05,
-     "visit": 0.9955,
-     "rest": 0.05,
-     "play": 1
-    },
-    "label": "learned behaviour from its own experience, not consciousness"
-   },
-   "universe_growth": 522,
-   "thought": {
-    "text": "What I see in my own world: My world's sky, per Simple\", \"I see that it is!",
-    "by": "rawrphos-native:step-36784 (raw model output, unedited)"
-   },
-   "prev_hash": "8a4e38698b1635d28d67ee5c3dd5b8d3ac0341489d60c3b99ec70419c535398f",
-   "hash": "d81bca7e9346b3ead40fba6341019a61c98745597ef61d180537ea16d71c6a27"
   }
  ],
- "generated_at": "2026-11-08T05:19:32.913Z",
+ "generated_at": "2026-11-08T05:54:28.794Z",
  "thought_source_note": "rawrphos-ok"
 }
