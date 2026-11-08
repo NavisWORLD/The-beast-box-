@@ -40,6 +40,7 @@ import {environmentWeights,isFresh} from '../lib/environment/environment-link.mj
 import {getEnvironment} from '../lib/environment/environment-store.mjs';
 import {guardCanvasTouch} from '../lib/three/touch-guard';
 import {isSoftwareGL} from '../lib/three/soft-gl';
+import {whenShown} from '../lib/three/when-shown.mjs';
 import {createHop,stepHop} from '../lib/physics/ground-hop.mjs';
 import {useEffect,useRef,useState} from 'react';
 import {createPortal} from 'react-dom';
@@ -221,8 +222,13 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
    window.removeEventListener('beastbox:spark-mute',mute);
    window.removeEventListener(POCKET_3D_CAMERA_RESET,resetCamera);
   };
+  const shown=whenShown(canvas);
   void(async()=>{
    try{
+    // The habitat canvas is below the phone fold while OPEN GAME is on screen. Building this
+    // scene anyway compiles and paints a second WebGL world on the CPU rasteriser and the
+    // navigation cannot finish. Wait until the canvas is actually in view.
+    if(!await shown.promise||disposed)return;
     if(!window.WebGLRenderingContext)throw Error('WebGL unavailable');
     // Home: let the 3D Zeref finish cutting his layers first (both share one main thread on phones / software GL).
     // The pocket's first frame links its shader programs synchronously; starting it while Zeref is still loading
@@ -605,7 +611,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     if(!disposed){setFailed(true);setReady(false);}
    }
   })();
-  return()=>{disposed=true;cancelAnimationFrame(frame);cleanup();releaseListeners();};
+  return()=>{disposed=true;shown.cancel();cancelAnimationFrame(frame);cleanup();releaseListeners();};
  },[key,failed,reduced,visualSettings.enabled,visualSettings.quality,qvmCounts]);
   return <div className={styles.root} data-pocket-dimension="true"
   data-world-source="genesis-nightops-core-visual-v1"

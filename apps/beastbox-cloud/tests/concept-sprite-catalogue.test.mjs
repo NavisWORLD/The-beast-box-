@@ -19,4 +19,16 @@ test('a recipe that no longer reproduces is dropped, not substituted',()=>{
 test('catalogue picker offers redraws by run key and picks through the existing onPick path',()=>{
  const src=readFileSync(new URL('../public/spark/catalog-picker.mjs',import.meta.url),'utf8');
  assert.match(src,/rows\.find\(x=>x\.key===c\.runKey\)/);assert.match(src,/onPick\(r,'concept'\)/);assert.ok(!/Math\.random/.test(src));
+ const pickAt=src.indexOf("onPick(r,'concept')");
+ assert.ok(src.lastIndexOf("addEventListener('click'",pickAt)>src.indexOf('CONCEPT_CATALOGUE'),'concept art is adopted only from the click');
+});
+test('a redraw tap adopts the verified recipe and never the excluded registered identities',()=>{
+ const roster=readFileSync(new URL('../components/spark-field-roster.tsx',import.meta.url),'utf8');
+ assert.match(roster,/data-concept=\{c\.slug\} onClick=\{\(\) => \{ const choice = \{ name: c\.name, genome: c\.genome \}; setPicked\(choice\); onChoose\(choice\); \}\}/);
+ assert.doesNotMatch(roster.slice(roster.indexOf('useEffect(() =>'),roster.indexOf('return <section')),/onChoose/);
+ for(const c of CONCEPT_CATALOGUE){
+  const entry=CONCEPT_SPRITES.find(s=>s.slug===c.slug);
+  assert.ok(entry&&entry.ids.length===0,c.slug+' stays a catalogue recipe, not a new registry id');
+  assert.ok(!entry.ids.some(id=>['bb-deada969','bb-7f9c2a03','bb-1e1759f3','bb-4c633cb5'].includes(id)));
+ }
 });
