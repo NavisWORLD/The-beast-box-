@@ -234,6 +234,13 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
    try{
     const now=await Promise.race([shown.promise,later]);
     clearTimeout(settle);
+    // The canvas is on screen at the bridge's 1440×1000 viewport, so whenShown
+    // resolves in this effect's first microtask. This effect runs before the
+    // portable-beast panel. Continuing straight into the shader link holds the
+    // main thread ahead of verifySnapshot, and the file input stays disabled
+    // after the stored receipt is already painted. One macrotask lets that
+    // check enable the control before SwiftShader takes the thread.
+    await new Promise(r=>setTimeout(r,50));
     if(!now||disposed)return;
     if(!window.WebGLRenderingContext)throw Error('WebGL unavailable');
     // Home: let the 3D Zeref finish cutting his layers first (both share one main thread on phones / software GL).
@@ -477,7 +484,9 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
      frame=requestAnimationFrame(animate);
      visible=inView();
      const dt=clamp((now-last)/1000,0,.06);last=now;
-     if(document.hidden||(!visible&&rendered)||now-lastPaint<(soft?120:low?66:33))return;
+     // A background tab that keeps linking and painting starves the tab the
+     // bridge is actually importing into. Rendering resumes when this page is focused.
+     if(document.hidden||!document.hasFocus()||(!visible&&rendered)||now-lastPaint<(soft?120:low?66:33))return;
      lastPaint=now;beastNode.visible=insideCreatureVisible(creatureRef.current);
      if(!reduced)elapsed+=dt;
      nebulaMat.uniforms.time.value=elapsed;poolMat.uniforms.time.value=elapsed;
