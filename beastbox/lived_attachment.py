@@ -14,6 +14,7 @@ import sys
 from pathlib import Path
 from typing import Any, Mapping
 
+from .hashutil import canonical_qbeast
 from .lived_events import BASIS, CANONICAL_SUBJECT, activation_enabled
 
 DIARY_SUBJECT = "bb-7f9c2a03"
@@ -49,9 +50,11 @@ def _qbeast():
 
 
 def _entry_hash(entry: Mapping[str, Any]) -> str:
-    canonical, _hash_object = _qbeast()
+    # The vendored QBEAST canonical (beastbox.hashutil) is byte-identical to
+    # spark-beasts/qbeast_file.canonical and needs no generator tree, so the
+    # diary walk also recomputes inside the owner-bridge image.
     rest = {key: entry[key] for key in entry if key != "hash"}
-    return hashlib.sha256(canonical(rest).encode()).hexdigest()
+    return hashlib.sha256(canonical_qbeast(rest).encode()).hexdigest()
 
 
 def _lineage_path() -> Path:
