@@ -231,7 +231,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
   // The living world does not join the channel. The id and stamp stay in
   // sessionStorage so this effect restart cannot steal the claim.
   setParked(false);
-  const painter=createPocketPaintClaim({onChange:lead=>{if(!disposed)setParked(!lead);}});
+  const painter=createPocketPaintClaim({onChange:(lead:boolean)=>{if(!disposed)setParked(!lead);}});
   claimRef.current=()=>painter.claim();
   const claimPaint=()=>painter.claim();
   window.addEventListener('pointerdown',claimPaint);
