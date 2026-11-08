@@ -336,6 +336,13 @@ function fitSight(text,meta,refit,capBytes){
  * the same honest receipt metadata assembleServedPreface reports, plus the
  * sight receipt (labels present either way; `composed` states inclusion).
  */
+/** Context fields the bridge already accepts. Canonical lived state is not one of them. */
+export const BRIDGE_CONTEXT_FIELDS=Object.freeze(['continuity','universe','library','sight','memory']);
+export function contextOmitsCanonicalState(context){
+ const banned=new Set(['state','state12','lived','lived_state','snapshot','dyn12','descriptor','environment','condition54']);
+ return !!context&&typeof context==='object'&&!Array.isArray(context)&&Object.keys(context).every(key=>BRIDGE_CONTEXT_FIELDS.includes(key)&&!banned.has(key));
+}
+
 export function assembleBridgeContext({continuity='',recompose=null,world=null,shelfHits=[],sight='',sightMeta=null,refitSight=null}={}){
  const liveMeta=liveUniverseReceipt(world);
  const libMeta=shelfReceipt(shelfHits);
@@ -362,6 +369,9 @@ export function assembleBridgeContext({continuity='',recompose=null,world=null,s
  if(sightKept)context.sight=sightKept;
  const bytes={continuity:byteLen(cont),universe:byteLen(univ),library:byteLen(lib),sight:byteLen(sightKept)};
  bytes.total=bytes.continuity+bytes.universe+bytes.library+bytes.sight;
+ // Lived state is a bridge receipt, never one of these context strings.
+ // A visitor environment summary is not copied in here either.
+ if(!contextOmitsCanonicalState(context))throw new Error('lived state is not a context field');
  return {context,bytes,
   live:{...liveMeta,composed:Boolean(univ)},
   library:{...libMeta,composed:Boolean(lib)},

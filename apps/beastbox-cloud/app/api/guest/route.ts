@@ -2,6 +2,7 @@ import {createHmac} from 'node:crypto';
 import {bridgeConfigured,safeJson} from '@/lib/security';
 import PUBLIC_PIN from '@/lib/rawrphos-public-pin.json';
 import {chooseOneVoice,ONE_VOICE_SCHEMA,ONE_VOICE_RULE} from '@/lib/zeref/one-voice.mjs';
+import {mintExchangeId,speakLived} from '@/lib/zeref/lived-exchange.mjs';
 // Reviewed public checkpoint pin (14000 unless a chat-not-worse promotion PR changed it).
 const PIN_STEP:number=PUBLIC_PIN.training_steps,PIN_SHA:string=PUBLIC_PIN.checkpoint_sha256;
 export const runtime='nodejs';
@@ -27,7 +28,8 @@ async function growingDraft(text:string,identity:string):Promise<{reply:string;t
   if(!r||r.schema!=='beastbox-guest-growing-v1'||r.model!=='rawrphos-native'||r.is_public_pin!==false||r.label!==GROWING_LABEL||
      typeof r.checkpoint_sha256!=='string'||r.checkpoint_sha256===PIN_SHA||typeof r.reply!=='string'||r.reply.length>6000||
      typeof r.tag!=='string'||!/^zeref-growing-\d{3,}$/.test(r.tag))return null;
-  return {reply:r.reply,tag:r.tag,checkpoint_sha256:r.checkpoint_sha256};
+  return {reply:r.reply,tag:r.tag,checkpoint_sha256:r.checkpoint_sha256,
+   ...(r.lived_state!==undefined?{lived_state:r.lived_state}:{})};
  }catch{return null;}
 }
 
@@ -83,6 +85,7 @@ export async function POST(request:Request){
     request.headers.get('x-forwarded-for')||'unknown';
   const identity=createHmac('sha256',secret).update(forwarded.slice(0,256)).digest('hex');
   const host=new URL('/api/guest-local',process.env.BEASTBOX_CLOUD_BRIDGE_URL!);
+  const exchangeId=mintExchangeId('guest',identity,text);
   try{
    const send=(prompt:string)=>fetch(host,{method:'POST',redirect:'error',cache:'no-store',
     headers:{Authorization:'Bearer '+process.env.BEASTBOX_CLOUD_BRIDGE_TOKEN!,
@@ -123,6 +126,8 @@ export async function POST(request:Request){
    // Sequential, not parallel: the bridge runs one guest inference at a time (a parallel draft got 429 busy).
    const growing=await growingDraft(text,identity);
    const voice=chooseOneVoice(text,{reply:result.reply},growing);
+   const lived=speakLived({exchangeId,gated:result.lived_state,growing:growing?growing.lived_state:undefined,
+    chosen:voice.chosen,growingFailed:growing===null});
    return safeJson(200,{provider:'rawrphos-local',model:'rawrphos-native',
     step:PIN_STEP,checkpoint_sha256:PIN_SHA,reply:voice.reply||result.reply,
     one_voice:{schema:ONE_VOICE_SCHEMA,rule:ONE_VOICE_RULE,spoken_by:voice.chosen,scores:voice.scores,
@@ -130,7 +135,8 @@ export async function POST(request:Request){
       {role:'growing',label:'NOT GATED (growing branch)',tag:growing?growing.tag:null,checkpoint_sha256:growing?growing.checkpoint_sha256:null,drafted:growing!==null}]},
     hebbian:result.hebbian===true,state_mode:result.state_mode==='tri'||result.state_mode==='dyn12'?result.state_mode:null,
     guest_stateless:true,prompt_chars:sent.length,
-    ...(result.routing&&typeof result.routing==='object'&&!Array.isArray(result.routing)?{routing:result.routing}:{})});
+    ...(result.routing&&typeof result.routing==='object'&&!Array.isArray(result.routing)?{routing:result.routing}:{}),
+    ...(lived?{lived_state:lived}:{})});
   }catch{return safeJson(502,{error:'Local guest inference unavailable or timed out'});}
  }
  if(Object.keys(item).sort().join(',')!=='hf_key,model,provider,spend_confirmed,text'||

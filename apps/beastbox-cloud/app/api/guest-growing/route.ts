@@ -3,6 +3,7 @@ import {bridgeConfigured,safeJson} from '@/lib/security';
 import PUBLIC_PIN from '@/lib/rawrphos-public-pin.json';
 import {bridgeReadsMemory,loadSelfMemory,readSelfMemory,SELF_MEMORY_LABEL,SELF_MEMORY_SCHEMA,teacherJoinPending} from '@/lib/zeref/self-memory.mjs';
 import {after} from 'next/server';
+import {environmentIsNotCanonical,mintExchangeId,mouthReceipt} from '@/lib/zeref/lived-exchange.mjs';
 // Growing Zeref (Cory, 2026-10-31): the always-learning side branch, served on its own bridge door
 // (/api/guest-growing). It is NOT the pin: every reply says so, and a reply carrying the pin's sha is refused.
 export const runtime='nodejs';
@@ -47,7 +48,8 @@ export async function POST(request:Request){
    return safeJson(502,{error:'Unverified growing model response'});
   return safeJson(200,{label:GROWING_LABEL,is_public_pin:false,gated:false,model:'rawrphos-native',tag:r.tag,step:r.step,
    checkpoint_sha256:r.checkpoint_sha256,reply:r.reply,hebbian:r.hebbian===true,guest_stateless:true,
-   ...selfMemoryReceipt(sentMemory&&r.memory_used===true,mem.memory_read,(mem as any).origins,(mem as any).screens)});
+   ...selfMemoryReceipt(sentMemory&&r.memory_used===true,mem.memory_read,(mem as any).origins,(mem as any).screens),
+   ...(()=>{environmentIsNotCanonical(item.environment);const lived=mouthReceipt(r.lived_state,{exchangeId:mintExchangeId('guest',identity,text),scope:'guest',spokenBy:'growing'});return lived?{lived_state:lived}:{};})()});
  }catch{return safeJson(502,{error:'Growing Zeref unavailable or timed out',label:GROWING_LABEL});}
 }
 /** memory_used is true ONLY when the bridge confirms his memory reached the prompt; memory_read lists exactly those items. */
