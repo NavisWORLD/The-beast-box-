@@ -10,6 +10,12 @@ import SiteNav from '../components/site-nav';
 import ShareWorld from '../components/share-world';
 import SensoriumProvider from '../components/sensorium-provider';
 import OneWorldProvider from '../components/one-world-provider';
+import {isOwner} from '../lib/security';
 export const metadata: Metadata = { title: 'Beast Box', description: 'Swap the brain. Keep the story. A cosmic workstation by Cory Davis.', robots: { index: false, follow: false }, manifest: '/manifest.webmanifest', icons: { icon: [{ url: BRAND_ICONS.favicon, sizes: '48x48' }, { url: BRAND_CREST_SMALL_SVG, type: 'image/svg+xml', sizes: 'any' }, { url: BRAND_ICONS.png32, type: 'image/png', sizes: '32x32' }, { url: BRAND_ICONS.png16, type: 'image/png', sizes: '16x16' }], apple: [{ url: BRAND_ICONS.apple180, sizes: '180x180', type: 'image/png' }] }, appleWebApp: { capable: true, title: 'BEAST BOX', statusBarStyle: 'black-translucent' } };
 export const viewport: Viewport = { width: 'device-width', initialScale: 1, themeColor: '#080b19', viewportFit:'cover' };
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) { return <html lang="en"><body><OneWorldProvider/><SiteNav/><CompanionProvider>{children}</CompanionProvider><HonestLine/><SiteSoundDock/><ZerefVoiceDock/><SiteDock/><ShareWorld/><SensoriumProvider/></body></html>; }
+export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+  // Public and guest pages never mount the sensorium, so they never call its route.
+  // The flag is read here by name. Owner identity comes from the session cookie.
+  const sensorium = process.env.BEASTBOX_LIVED_BACKBONE === 'on' && await isOwner();
+  return <html lang="en"><body><OneWorldProvider/><SiteNav/><CompanionProvider>{children}</CompanionProvider><HonestLine/><SiteSoundDock/><ZerefVoiceDock/><SiteDock/><ShareWorld/>{sensorium ? <SensoriumProvider enabled /> : null}</body></html>;
+}

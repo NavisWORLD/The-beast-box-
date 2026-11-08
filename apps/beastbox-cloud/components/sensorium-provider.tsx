@@ -6,7 +6,6 @@ import {useEffect, useRef, useState} from 'react';
 import {createBrowserSensorium} from '../lib/sensorium/runtime';
 import {readRetention, writeRetention} from '../lib/sensorium/sample.mjs';
 
-type Status = {enabled?: boolean};
 type Runtime = ReturnType<typeof createBrowserSensorium>;
 
 async function postSample(body: unknown) {
@@ -22,24 +21,14 @@ async function postSample(body: unknown) {
   return {ok: data?.admitted !== false && data?.enabled !== false};
 }
 
-export default function SensoriumProvider() {
-  const [status, setStatus] = useState<Status | null>(null);
+export default function SensoriumProvider({enabled}: {enabled: boolean}) {
   const [running, setRunning] = useState(false);
   const [line, setLine] = useState('Senses on');
   const runtimeRef = useRef<Runtime | null>(null);
 
-  useEffect(() => {
-    let live = true;
-    fetch('/api/zeref/sensorium', {cache: 'no-store', credentials: 'same-origin'})
-      .then((response) => response.json())
-      .then((body) => { if (live) setStatus(body?.enabled === true ? body : {enabled: false}); })
-      .catch(() => { if (live) setStatus({enabled: false}); });
-    return () => { live = false; };
-  }, []);
-
   useEffect(() => () => { void runtimeRef.current?.stop(false); }, []);
 
-  if (status?.enabled !== true) return null;
+  if (enabled !== true) return null;
   const accepted = typeof window !== 'undefined' && readRetention(window.localStorage).accepted;
 
   async function start(lease: 'ambient' | 'fingertip') {

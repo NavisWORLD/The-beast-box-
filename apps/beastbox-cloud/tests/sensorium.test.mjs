@@ -302,6 +302,9 @@ test('the app shell owns one sensorium, share world stops hardcoding silence, an
   const consent = read('components/environment-consent.tsx');
   const bridge = read('bridge/owner_bridge.py');
   assert.match(layout, /SensoriumProvider/);
+  assert.match(layout, /process\.env\.BEASTBOX_LIVED_BACKBONE/);
+  assert.match(layout, /isOwner\(/);
+  assert.doesNotMatch(provider, /fetch\('\/api\/zeref\/sensorium', \{cache/);
   assert.match(provider, /data-sensorium-indicator/);
   assert.match(provider, /data-sensorium-stop/);
   assert.match(provider, /Keep derived sense numbers/);
