@@ -1,9 +1,25 @@
 // Layered aerial perspective. Classic keeps FogExp2; this is the Genesis shader term.
+// Far colour is the sky along the view, faded by 1 - exp(-d * sigma * exp(-y / H)).
+import {skyAir} from './sky-math.ts';
 export const HAZE_LAYERS=Object.freeze([
- {name:'near',density:.045,falloff:.8,weight:.55},
- {name:'mid',density:.012,falloff:.35,weight:.3},
- {name:'far',density:.004,falloff:.12,weight:.15},
+ {name:'near',density:.0045,falloff:1.15,weight:.4},
+ {name:'mid',density:.0012,falloff:.4,weight:.35},
+ {name:'far',density:.00035,falloff:.1,weight:.25},
 ]);
+
+export const AERIAL_SIGMA=0.00135;
+export const AERIAL_SCALE_H=48;
+
+/** Height-exponential fade into the sky. 0 near the camera, about 1 on the far hills. */
+export function aerialAmount(distance:number,height:number,sigma=AERIAL_SIGMA,scaleH=AERIAL_SCALE_H){
+ const d=Math.max(0,distance),y=Math.max(0,height);
+ return 1-Math.exp(-d*sigma*Math.exp(-y/scaleH));
+}
+
+/** Sky colour a far surface fades toward. The sun disc stays on the dome, so the hills do not fade into it. */
+export function hazeColour(viewDir:number[],sunDir:number[],horizon:number[],zenith:number[],drift=0){
+ return skyAir(viewDir,sunDir,horizon,zenith,drift,1,1);
+}
 
 export function hazeAmount(distance:number,height:number,density=.012,falloff=.35){
  const d=Math.max(0,distance),h=Math.max(0,height);
@@ -35,8 +51,12 @@ export const HAZE_GLSL=`float hazeAmt(float dist,float height,float density,floa
  return 1.0-exp(-d*density*exp(-h*falloff));
 }
 float hazeStackAmt(float dist,float height){
- float a=hazeAmt(dist,height,.045,.8)*.55;
- a+=hazeAmt(dist,height,.012,.35)*.3;
- a+=hazeAmt(dist,height,.004,.12)*.15;
+ float a=hazeAmt(dist,height,${HAZE_LAYERS[0].density},${HAZE_LAYERS[0].falloff})*${HAZE_LAYERS[0].weight};
+ a+=hazeAmt(dist,height,${HAZE_LAYERS[1].density},${HAZE_LAYERS[1].falloff})*${HAZE_LAYERS[1].weight};
+ a+=hazeAmt(dist,height,${HAZE_LAYERS[2].density},${HAZE_LAYERS[2].falloff})*${HAZE_LAYERS[2].weight};
  return clamp(a,0.0,1.0);
+}
+float aerialAmt(float dist,float height){
+ float d=max(dist,0.0);float y=max(height,0.0);
+ return 1.0-exp(-d*${AERIAL_SIGMA}*exp(-y/${AERIAL_SCALE_H}.0));
 }`;

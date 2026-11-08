@@ -194,12 +194,15 @@ test('Genesis adds no second light and lib/look has no Math.random',async()=>{
   follow:()=>classic,classicRoots:()=>[classic,skyMark],
  });
  ground.sync();
- assert.equal(ground.group.visible,false);
- assert.equal(skyMark.visible,true);
+ assert.equal(ground.group.visible,true);
+ assert.equal(skyMark.visible,false);
+ assert.equal(ground.group.getObjectByName('genesis-terrain').visible,false);
+ assert.equal(ground.group.getObjectByName('genesis-sky').material.uniforms.uSpace.value,1);
  classic.visible=true;
  ground.sync();
  assert.equal(ground.group.visible,true);
  assert.equal(skyMark.visible,false);
+ assert.equal(ground.group.getObjectByName('genesis-sky').material.uniforms.uSpace.value,0);
  ground.dispose();
 });
 

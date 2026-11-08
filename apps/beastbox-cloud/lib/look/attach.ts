@@ -7,6 +7,7 @@ import {buildTerrainLod} from './terrain-lod.ts';
 import {createTerrainMaterial} from './terrain-material.ts';
 import {buildWater,createWaterMaterial,shoreSurface,syncWater,WATER_LABEL} from './water.ts';
 import {createSkyDome,syncSky,type SunSample} from './sky-dome.ts';
+import {sunTintFor} from './sun-tint.ts';
 import {genesisPoints} from './speckle.ts';
 import {buildFoliage,syncFoliage} from './foliage.ts';
 import {CREATURE_MOTION,motionAt,presentationTick} from './motion.ts';
@@ -108,7 +109,8 @@ export function attachGenesisLook(THREE:typeof import('three'),scene:{add:(o:any
   built=true;
   const shore=shoreSurface(opts.heightAt,opts.seed||'genesis');
   const lod=buildTerrainLod(THREE,{heightAt:opts.heightAt,tier:live,seed:opts.seed||'genesis',waterLevel:shore.coeff});
-  terrain=createTerrainMaterial(THREE,shore.coeff);
+  const lite=!!opts.softGL;
+  terrain=createTerrainMaterial(THREE,shore.coeff,{lite});
   const mesh=new THREE.Mesh(lod.geometry,terrain.material);
   mesh.name='genesis-terrain';mesh.frustumCulled=false;mesh.renderOrder=-8;group.add(mesh);
   const wet=buildWater(THREE,{heightAt:opts.heightAt,waterLevel:shore.coeff,surface:shore.at,tier:live,span:WATER_SPAN[live]||220});
@@ -117,7 +119,7 @@ export function attachGenesisLook(THREE:typeof import('three'),scene:{add:(o:any
   wmesh.name='genesis-water';wmesh.userData.label=WATER_LABEL;wmesh.frustumCulled=false;wmesh.renderOrder=2;group.add(wmesh);
   foliage=buildFoliage(THREE,{heightAt:opts.heightAt,shoreAt:shore.at,tier:live,seed:opts.seed||'genesis'});
   group.add(foliage.grass);group.add(foliage.trees);
-  sky=createSkyDome(THREE,{dir:[0,1,0],day:1,sky:{zenith:[.2,.45,.75],horizon:[.62,.78,.9],starAlpha:0}},{sunElevationDeg:40,exposure:.85});
+  sky=createSkyDome(THREE,{dir:[0,1,0],day:1,sky:{zenith:[.2,.45,.75],horizon:[.62,.78,.9],starAlpha:0}},{sunElevationDeg:40,exposure:.85},{lite});
   group.add(sky.dome);
   stars=starField(THREE,opts.seed||'genesis');
   group.add(stars);
@@ -189,9 +191,15 @@ export function attachGenesisLook(THREE:typeof import('three'),scene:{add:(o:any
   group.visible=true;
   applyQuality(true);
   const follow=opts.follow?.();
-  // Orbit and the other non-ground views leave the classic ground hidden. Genesis is that ground's picture, so it stays hidden with it.
-  if(follow&&follow.visible===false){group.visible=false;applyQuality(false);revealClassic();return;}
+  // Orbit leaves the flat ground hidden. Keep the classic olive below-horizon dome concealed and draw the space sky instead.
+  const orbit=!!(follow&&follow.visible===false);
   concealClassic();
+  const terrainMesh=group.getObjectByName('genesis-terrain');
+  const waterMesh=group.getObjectByName('genesis-water');
+  if(terrainMesh)terrainMesh.visible=!orbit;
+  if(waterMesh)waterMesh.visible=!orbit;
+  if(foliage){foliage.grass.visible=!orbit;foliage.trees.visible=!orbit;}
+  if(stars)stars.visible=!orbit;
   if(follow){group.position.copy(follow.position);group.quaternion.copy(follow.quaternion);}
   group.updateMatrixWorld();
   const cam=opts.camera?.();
@@ -206,7 +214,7 @@ export function attachGenesisLook(THREE:typeof import('three'),scene:{add:(o:any
   const d=sun.dir||[0,1,0];
   group.getWorldQuaternion(invQ).invert();
   sunV.set(d[0],d[1],d[2]).applyQuaternion(invQ);
-  if(sky)syncSky(sky.uniforms,{...sun,dir:[sunV.x,sunV.y,sunV.z]},rig,frame);
+  if(sky)syncSky(sky.uniforms,{...sun,dir:[sunV.x,sunV.y,sunV.z]},rig,frame,orbit);
   if(stars){(stars.material as {opacity:number}).opacity=+(sun.sky?.starAlpha||0);}
   if(terrain){
    terrain.uniforms.uSun.value.copy(sunV);
@@ -216,6 +224,8 @@ export function attachGenesisLook(THREE:typeof import('three'),scene:{add:(o:any
    terrain.uniforms.uMotion.value=frame.reduced?0:1;
    const tint=sky?sky.uniforms.uHor.value:null;
    if(tint)terrain.uniforms.uHaze.value.copy(tint);
+   const body=sunTintFor(sun.elevationDeg??0);
+   terrain.uniforms.uBody?.value.setRGB(body.rgb[0],body.rgb[1],body.rgb[2]);
   }
   if(water){
    syncWater(water.uniforms,frame);
