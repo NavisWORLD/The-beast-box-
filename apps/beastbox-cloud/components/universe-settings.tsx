@@ -10,6 +10,9 @@ import {useBeastSession} from './beast-session';
 import {useUniverseMotion} from './use-universe-motion';
 import {beastIdentity,shownName} from '../lib/companion/session.mjs';
 import {DEFAULT_POCKET_3D,POCKET_3D_EVENT,POCKET_3D_KEY,readPocket3D,savePocket3D} from '../lib/companion/pocket-3d-settings.mjs';
+import {readLook,writeLook,type Look} from '../lib/look/look-mode';
+import {presentationTier} from '../lib/look/tiers';
+import {qualityLabel,writeTierOverride} from '../lib/universe/post-tiers.mjs';
 import {publicBrainProvider} from '../lib/companion/public-brain-bay.mjs';
 import styles from './universe-settings.module.css';
 
@@ -20,12 +23,25 @@ export default function UniverseSettings(){
  const [notice,setNotice]=useState('');
  const [pocket3d,setPocket3d]=useState<{enabled:boolean;quality:string;neonWire?:boolean}>({...DEFAULT_POCKET_3D});
  const [pocketReady,setPocketReady]=useState(false);
+ const [look,setLook]=useState<Look>('classic');
+ const [tier,setTier]=useState('MED');
  useEffect(()=>{
   const sync=()=>{try{setPocket3d(readPocket3D(window.localStorage));}catch{setPocket3d({...DEFAULT_POCKET_3D});}};
   const changed=(event:StorageEvent)=>{if(event.key===POCKET_3D_KEY)sync();};
   sync();setPocketReady(true);window.addEventListener('storage',changed);
+  const phone=matchMedia('(max-width: 820px)').matches||/iPhone|iPad|Android/.test(navigator.userAgent);
+  try{setLook(readLook(window.localStorage));}catch{setLook('classic');}
+  try{setTier(presentationTier(window.localStorage,{phone,cores:navigator.hardwareConcurrency,memoryGB:(navigator as {deviceMemory?:number}).deviceMemory,reducedMotion:matchMedia('(prefers-reduced-motion: reduce)').matches}));}catch{setTier(phone?'MED':'HIGH');}
   return()=>window.removeEventListener('storage',changed);
  },[]);
+ function changeLook(next:Look){
+  try{setLook(writeLook(window.localStorage,next));setNotice('Look saved on this device. The world, its beasts and its clock are unchanged.');}
+  catch{setNotice('Look could not be saved. Nothing in the world was changed.');}
+ }
+ function changeTier(next:string){
+  try{writeTierOverride(window.localStorage,next);setTier(next);setNotice('Quality saved on this device. The world itself is unchanged.');}
+  catch{setNotice('Quality could not be saved. Nothing in the world was changed.');}
+ }
  function changePocket3D(next:{enabled:boolean;quality:string;neonWire?:boolean}){
   try{
    const saved=savePocket3D(window.localStorage,next);
@@ -87,6 +103,20 @@ export default function UniverseSettings(){
        <option value="high">High · detailed scenery</option>
       </select>
      </div>
+     <div className={styles.volume}>
+      <label htmlFor="world-look">Look</label>
+      <select id="world-look" data-look-choice className={styles.qualitySelect} value={look} onChange={event=>changeLook(event.target.value==='genesis'?'genesis':'classic')}>
+       <option value="classic">Classic</option>
+       <option value="genesis">Genesis</option>
+      </select>
+     </div>
+     <div className={styles.volume}>
+      <label htmlFor="world-quality">World quality</label>
+      <select id="world-quality" data-quality-choice className={styles.qualitySelect} value={tier} onChange={event=>changeTier(event.target.value)}>
+       {(['LOW','MED','HIGH','GOD'] as const).map(name=><option key={name} value={name}>{qualityLabel(name)}</option>)}
+      </select>
+     </div>
+     <p className={styles.hint} data-phone-quality>Phones open at MED. Classic stays available, and the 2D seeded land stays available when WebGL is unavailable. Reduced motion holds the Genesis waves, haze and sky still.</p>
      <p className={styles.hint}>Your system reduced-motion choice always takes priority. These are local visual settings, not quantum or model settings, and they do not modify the native Game Boy ROM.</p>
      <div className={styles.advancedLinks}><Link prefetch={false} href="/beast-cage#habitat"><Eye size={18} aria-hidden="true"/><span><strong>Open 3D Beast Cage</strong><small>Drag, pinch or use the arrow keys to orbit the existing world.</small></span><ArrowUpRight size={16} aria-hidden="true"/></Link><Link prefetch={false} href="/beast-cage/turntable"><Sparkles size={18} aria-hidden="true"/><span><strong>Open original 3D turntable</strong><small>The existing Cursor-era character mesh and camera presets.</small></span><ArrowUpRight size={16} aria-hidden="true"/></Link></div>
     </section>
