@@ -84,6 +84,6 @@ export function createAsciiPass(THREE:T,renderer:import('three').WebGLRenderer,{
    #include <colorspace_fragment>
   }`});mat.toneMapped=true;
  const quad=new THREE.Mesh(new THREE.PlaneGeometry(2,2),mat);quad.frustumCulled=false;const qs=new THREE.Scene();qs.add(quad);const qc=new THREE.OrthographicCamera(-1,1,1,-1,0,1);
- return {render(scene:any,camera:any){const s=renderer.getDrawingBufferSize(new THREE.Vector2());if(rt.width!==s.x||rt.height!==s.y){rt.setSize(s.x,s.y);mat.uniforms.resolution.value.copy(s);}
+ return {render(scene:any,camera:any){const s=renderer.getDrawingBufferSize(new THREE.Vector2());if(s.x>0&&s.y>0&&(rt.width!==s.x||rt.height!==s.y)){rt.setSize(s.x,s.y);mat.uniforms.resolution.value.copy(s);}
    renderer.setRenderTarget(rt);renderer.render(scene,camera);renderer.setRenderTarget(null);renderer.render(qs,qc);},dispose(){rt.dispose();mat.dispose();atlas.dispose();}};
 }

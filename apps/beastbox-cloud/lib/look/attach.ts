@@ -6,7 +6,7 @@ import {budgetFor,considerDrop,presentationTier,type Tier} from './tiers.ts';
 import {buildTerrainLod} from './terrain-lod.ts';
 import {createTerrainMaterial} from './terrain-material.ts';
 import {buildWater,createWaterMaterial,shoreSurface,syncWater,WATER_LABEL} from './water.ts';
-import {createSkyDome,syncSky,type SunSample} from './sky-dome.ts';
+import {createSkyDome,syncSky,shellRadius,DOME_RADIUS,type SunSample} from './sky-dome.ts';
 import {sunTintFor} from './sun-tint.ts';
 import {genesisPoints} from './speckle.ts';
 import {buildFoliage,syncFoliage} from './foliage.ts';
@@ -31,7 +31,7 @@ type Opts={
  getTier?:()=>string;
  onTier?:(tier:string)=>void;
  getSun?:()=>Sun;
- camera?:()=>{position:{x:number;y:number;z:number}}|null;
+ camera?:()=>{position:{x:number;y:number;z:number};near?:number;far?:number}|null;
  follow?:()=>{position:any;quaternion:any;visible?:boolean}|null;
  classicRoots?:()=>any[];
  renderer?:{getPixelRatio():number;setPixelRatio(n:number):void};
@@ -161,6 +161,8 @@ export function attachGenesisLook(THREE:typeof import('three'),scene:{add:(o:any
  }
 
  function sampleFrames(now:number){
+  // The frame and onBeforeRender both call sync. A second call in the same paint must not double-count.
+  if(lastNow>0&&now-lastNow<8)return;
   if(lastNow>0){
    const dt=now-lastNow;
    if(dt>0&&dt<250)frames.push(dt);
@@ -187,12 +189,16 @@ export function attachGenesisLook(THREE:typeof import('three'),scene:{add:(o:any
   const look=(opts.getLook?opts.getLook():currentLook())==='genesis';
   anchor.visible=true;
   if(!look){group.visible=false;applyQuality(false);revealClassic();return;}
+  const now=opts.nowMs?.()??0;
+  sampleFrames(now);
   build();
   group.visible=true;
   applyQuality(true);
   const follow=opts.follow?.();
-  // Orbit leaves the flat ground hidden. Keep the classic olive below-horizon dome concealed and draw the space sky instead.
-  const orbit=!!(follow&&follow.visible===false);
+  const cam=opts.camera?.();
+  const dist=cam?Math.hypot(cam.position.x,cam.position.y,cam.position.z):0;
+  // Orbit leaves the flat ground hidden. A camera well outside the planet is orbit even when that hide lands a frame late.
+  const orbit=!!(follow&&follow.visible===false)||dist>14;
   concealClassic();
   const terrainMesh=group.getObjectByName('genesis-terrain');
   const waterMesh=group.getObjectByName('genesis-water');
@@ -202,10 +208,14 @@ export function attachGenesisLook(THREE:typeof import('three'),scene:{add:(o:any
   if(stars)stars.visible=!orbit;
   if(follow){group.position.copy(follow.position);group.quaternion.copy(follow.quaternion);}
   group.updateMatrixWorld();
-  const cam=opts.camera?.();
-  if(cam&&sky){sky.dome.position.set(cam.position.x,cam.position.y,cam.position.z);group.worldToLocal(sky.dome.position);}
+  if(cam&&sky){
+   sky.dome.position.set(cam.position.x,cam.position.y,cam.position.z);
+   group.worldToLocal(sky.dome.position);
+   const r=shellRadius(Number(cam.near)||0.05,Number(cam.far)||400);
+   sky.dome.scale.setScalar(r/DOME_RADIUS);
+   sky.dome.updateMatrixWorld();
+  }
   const reduced=!!opts.reduced?.();
-  const now=opts.nowMs?.()??0;
   const tick=worldTick(opts.readTick);
   if(tick!==seenTick){seenTick=tick;changedAt=now;}
   const frame=motionAt(opts.seed||'genesis',presentationTick(tick,now,changedAt,reduced),reduced);
@@ -214,7 +224,7 @@ export function attachGenesisLook(THREE:typeof import('three'),scene:{add:(o:any
   const d=sun.dir||[0,1,0];
   group.getWorldQuaternion(invQ).invert();
   sunV.set(d[0],d[1],d[2]).applyQuaternion(invQ);
-  if(sky)syncSky(sky.uniforms,{...sun,dir:[sunV.x,sunV.y,sunV.z]},rig,frame,orbit);
+  if(sky)syncSky(sky.uniforms,{...sun,dir:[sunV.x,sunV.y,sunV.z]},rig,frame,orbit,d);
   if(stars){(stars.material as {opacity:number}).opacity=+(sun.sky?.starAlpha||0);}
   if(terrain){
    terrain.uniforms.uSun.value.copy(sunV);
@@ -240,10 +250,10 @@ export function attachGenesisLook(THREE:typeof import('three'),scene:{add:(o:any
    foliage.grass.material.uniforms.uDay.value=day;
    foliage.trees.material.uniforms.uDay.value=day;
   }
-  sampleFrames(now);
   return frame;
  }
  anchor.onBeforeRender=()=>{sync();};
+ sync();
  return {
   anchor,group,get tier(){return live;},sync,creature:CREATURE_MOTION,lightsAdded:lightsBefore(),
   dispose(){

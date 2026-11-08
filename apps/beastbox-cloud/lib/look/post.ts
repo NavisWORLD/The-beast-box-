@@ -4,6 +4,7 @@
 // Label: a designed screen effect, SIMULATED.
 import {budgetFor} from './tiers.ts';
 import {smoothstep} from './sun-tint.ts';
+import {positiveSize} from './viewport.ts';
 
 export const POST_LABEL='Post · SIMULATED';
 
@@ -89,7 +90,7 @@ export async function createGenesisPost(THREE:any,renderer:any,scene:any,camera:
   renderer.toneMapping=THREE.ACESFilmicToneMapping;
   const pr=Math.min(globalThis.devicePixelRatio||1,budgetFor(cur).dpr);
   composer.setPixelRatio(pr);
-  composer.setSize(size.x,size.y);
+  if(positiveSize(size.x,size.y))composer.setSize(size.x,size.y);
  };
  build();
  return {
@@ -110,12 +111,14 @@ export async function createGenesisPost(THREE:any,renderer:any,scene:any,camera:
    return true;
   },
   setSize(w,h){
-   composer.setSize(w,h);
+   const s=positiveSize(w,h);
+   if(!s)return;
+   composer.setSize(s.w,s.h);
    const plan=postPlan(cur,false);
-   if(bloom)bloom.setSize(Math.max(1,w*plan.bloomScale),Math.max(1,h*plan.bloomScale));
+   if(bloom)bloom.setSize(Math.max(1,s.w*plan.bloomScale),Math.max(1,s.h*plan.bloomScale));
    if(fxaa){
     const pr=Math.min(globalThis.devicePixelRatio||1,budgetFor(cur).dpr);
-    fxaa.material.uniforms.resolution.value.set(1/Math.max(1,w*pr),1/Math.max(1,h*pr));
+    fxaa.material.uniforms.resolution.value.set(1/Math.max(1,s.w*pr),1/Math.max(1,s.h*pr));
    }
   },
   state:()=>({tier:cur,exposure,bloom:!!bloom,fxaa:!!fxaa,label:POST_LABEL,passes:composer.passes.map((p:any)=>p.constructor?.name||'pass')}),

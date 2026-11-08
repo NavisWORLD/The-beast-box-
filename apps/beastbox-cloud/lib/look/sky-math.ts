@@ -92,7 +92,20 @@ export function spaceSkyColour(dir:number[],sun:number[],drift=0,day=1,motion=1,
  const warm=Math.pow(Math.max(mu,0),4)*0.06*clamp(day,0,1);
  c=c.map((v,i)=>v+[0.22,0.1,0.04][i]*warm);
  const tint=body?.length===3?body:[1,.95,.82];
- return addDisc(c,mu,clamp(day,0,1),tint,drift,motion);
+ return orbitDisc(c,mu,clamp(day,0,1),tint);
+}
+
+/**
+ * Orbit sun. Wider than the ground disc so it reads with no bloom.
+ * The ground-view night factor is 1 whenever the camera is pulled back, which used to
+ * multiply this disc by zero. A floor keeps the one sun visible on every tier.
+ */
+export function orbitDisc(c:number[],mu:number,dayK:number,tint:number[]){
+ const day=Math.max(clamp(dayK,0,1),0.82);
+ const core=smoothstep(0.990,0.9992,mu)*day;
+ const halo=Math.pow(Math.max(mu,0),18)*0.9*day;
+ const body=tint?.length===3?tint:[1,.95,.82];
+ return c.map((v,i)=>v+body[i]*(core*4.4+halo));
 }
 
 /** Same painting as skyColour, for the dome and the terrain. Keep the constants aligned with the function above. */
@@ -147,11 +160,17 @@ vec3 spaceStars(vec3 d,float drift,float motion){
  float tw=motion>0.0?0.75+0.25*sin(drift*2.0+h*6.0):1.0;
  return vec3(0.72,0.82,1.0)*on*core*tw*0.55;
 }
+vec3 orbitDisc(vec3 c,float mu,float dayK,vec3 body){
+ float day=max(clamp(dayK,0.0,1.0),0.82);
+ float core=smoothstep(0.990,0.9992,mu)*day;
+ float halo=pow(max(mu,0.0),18.0)*0.9*day;
+ return c+body*(core*4.4+halo);
+}
 vec3 spaceSky(vec3 dir,vec3 body,vec3 sun,float day,float drift,float motion){
  vec3 d=normalize(dir);vec3 s=normalize(sun);
  float mu=clamp(dot(d,s),-1.0,1.0);
  vec3 c=spaceAir(d);
  c+=vec3(0.22,0.10,0.04)*pow(max(mu,0.0),4.0)*0.08*clamp(day,0.0,1.0);
  c+=spaceStars(d,drift,motion)*(1.0-smoothstep(0.92,0.995,mu));
- return addDisc(c,mu,clamp(day,0.0,1.0),body,drift,motion);
+ return orbitDisc(c,mu,clamp(day,0.0,1.0),body);
 }`;

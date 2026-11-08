@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {sunTintFor,sunKelvinFromDeg,tintRig,SUN_LABEL} from '../lib/look/sun-tint.ts';
-import {skyColour,spaceSkyColour,rayleighPhase,hgPhase,createSkyDome,syncSky,SKY_LABEL} from '../lib/look/sky-dome.ts';
+import {skyColour,spaceSkyColour,rayleighPhase,hgPhase,createSkyDome,syncSky,shellRadius,DOME_RADIUS,SKY_LABEL} from '../lib/look/sky-dome.ts';
 import {aerialAmount,hazeColour} from '../lib/look/haze.ts';
 import {skyAir} from '../lib/look/sky-math.ts';
 import {exposureTarget,stepExposure,bloomFor,postPlan,POST_LABEL} from '../lib/look/post.ts';
@@ -57,6 +57,12 @@ test('the animated sky puts the sun on the one-sun direction and brightens that 
  assert.ok(rayleighPhase(1)>rayleighPhase(0));
  assert.ok(hgPhase(1,0.995)>hgPhase(0,0.995));
  assert.equal(SKY_LABEL,'Sky · DERIVED');
+ const wide=shellRadius(0.05,400);
+ assert.ok(wide>0.05&&wide<400);
+ const tight=shellRadius(200,400);
+ assert.ok(tight>200&&tight<400);
+ const pulled=shellRadius(400,12000);
+ assert.ok(pulled>400&&pulled<12000);
 });
 
 test('orbit space is a dark blue gradient and the sun disc is hotter than the air',()=>{
@@ -69,6 +75,8 @@ test('orbit space is a dark blue gradient and the sun disc is hotter than the ai
  assert.notDeepEqual(up.map(v=>+v.toFixed(3)),down.map(v=>+v.toFixed(3)));
  const disc=spaceSkyColour(norm(sun),sun,0,1,1);
  assert.ok(lum(disc)>lum(up)+1);
+ const night=spaceSkyColour(norm(sun),sun,0,0,0);
+ assert.ok(lum(night)>lum(up)+1,'orbit disc stays visible when the ground-view night factor is 1');
  const off=skyColour([0,0.2,1],sun,[.62,.78,.9],[.18,.4,.7],0,1,1);
  const on=skyColour(norm(sun),sun,[.62,.78,.9],[.18,.4,.7],0,1,1);
  assert.ok(lum(on)>lum(off)+1);
@@ -139,6 +147,14 @@ test('software GL keeps the light sky and a real GPU gets the scattering sky',as
  assert.equal(orb.group.getObjectByName('genesis-terrain').visible,false);
  assert.equal(orb.group.getObjectByName('genesis-sky').material.uniforms.uSpace.value,1);
  assert.match(orb.group.getObjectByName('genesis-sky').material.fragmentShader,/spaceSky/);
+ assert.match(orb.group.getObjectByName('genesis-sky').material.fragmentShader,/orbitDisc/);
+ assert.match(liteSky.material.fragmentShader,/0\.990/);
+ const fitted=attachGenesisLook(THREE,{add(){},children:[]},{...opts,camera:()=>({position:new THREE.Vector3(0,0,80),near:40,far:120}),follow:()=>({position:new THREE.Vector3(),quaternion:new THREE.Quaternion(),visible:true})});
+ const shell=fitted.group.getObjectByName('genesis-sky');
+ const radius=shell.scale.x*DOME_RADIUS;
+ assert.ok(radius>40&&radius<120,`shell ${radius} left the frustum`);
+ assert.equal(shell.material.uniforms.uSpace.value,1);
+ fitted.dispose();
  orb.dispose();
  const grown=buildFoliage(THREE,{heightAt:()=>1,shoreAt:()=>0,tier:'LOW',seed:'meadow'});
  assert.equal(grown.grass.userData.label,PLACEMENT_LABEL);
