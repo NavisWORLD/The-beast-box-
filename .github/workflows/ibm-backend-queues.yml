@@ -1,0 +1,34 @@
+name: IBM backend queues (read-only)
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  queues:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install 'qiskit-ibm-runtime>=0.45,<0.50'
+      - name: List accessible operational backend queues without submitting
+        env:
+          IBM_QUANTUM_TOKEN: ${{ secrets.IBM_QUANTUM_TOKEN }}
+        run: |
+          python - <<'PYTHON'
+          import json, os
+          from datetime import datetime, timezone
+          from qiskit_ibm_runtime import QiskitRuntimeService
+          service = QiskitRuntimeService(channel="ibm_quantum_platform", token=os.environ["IBM_QUANTUM_TOKEN"].strip(), plans_preference=["open"])
+          print("CHECKED_AT", datetime.now(timezone.utc).isoformat())
+          rows = []
+          for backend in service.backends():
+              status = backend.status()
+              if status.operational:
+                  rows.append(dict(name=backend.name, num_qubits=backend.num_qubits,
+                                   operational=status.operational, pending_jobs=status.pending_jobs))
+          for row in sorted(rows, key=lambda row: (row["pending_jobs"], row["name"])):
+              print("BACKEND_QUEUE", json.dumps(row, sort_keys=True))
+          print("NO_JOBS_SUBMITTED")
+          PYTHON
