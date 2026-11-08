@@ -237,8 +237,10 @@ def host_attachment(
     """
     if not activation_enabled():
         return _empty("activation")
-    prior = claimed_prior_head if claimed_prior_head is not None else os.environ.get(PRIOR_ENV)
-    origin = claimed_origin if claimed_origin is not None else os.environ.get(ORIGIN_ENV)
+    # Literal env names: the repo env inventory (make env-check) refuses
+    # dynamic environment reads so configuration stays auditable.
+    prior = claimed_prior_head if claimed_prior_head is not None else os.environ.get("BEASTBOX_LIVED_PRIOR_HEAD")
+    origin = claimed_origin if claimed_origin is not None else os.environ.get("BEASTBOX_LIVED_ORIGIN_COMMITMENT")
     if not prior or not origin:
         return _empty("missing-claim")
     if not diary_entries:
