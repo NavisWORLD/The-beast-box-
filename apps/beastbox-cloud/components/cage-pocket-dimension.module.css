@@ -33,3 +33,10 @@
 .sandLabel{left:13%;transform:none;max-width:44%;text-align:left}
 .sandLabel[data-open=false]{transform:translateY(-6px)}
 @media(max-width:480px){.sandLabel{left:13%;max-width:42%}}
+.parked{position:absolute;inset:0;z-index:8;display:grid;place-items:center;margin:0;padding:18px;border:0;background:#05030fe6;color:#efeaff;font:600 14px/1.4 system-ui,sans-serif;text-align:center;cursor:pointer;pointer-events:auto}
+.parked:focus-visible{outline:2px solid #c4b5fd;outline-offset:-6px}
+.root[data-pocket-painter="parked"]{z-index:6}
+@media(max-width:420px){
+ .sandLabel,.sandLabel[data-open=true],.sandLabel[data-open=false]{left:8px;right:8px;top:auto;bottom:8px;width:auto;max-width:none;transform:none;text-align:left;font-size:8px;line-height:1.25;z-index:5}
+ .live{top:8px;left:8px;right:auto;bottom:auto;transform:none;max-width:calc(100% - 120px);z-index:6}
+}

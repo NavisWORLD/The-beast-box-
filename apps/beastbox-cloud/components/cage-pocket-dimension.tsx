@@ -41,6 +41,8 @@ import {getEnvironment} from '../lib/environment/environment-store.mjs';
 import {guardCanvasTouch} from '../lib/three/touch-guard';
 import {isSoftwareGL} from '../lib/three/soft-gl';
 import {whenShown} from '../lib/three/when-shown.mjs';
+import {whenLaidOut} from '../lib/three/gl-size.mjs';
+import {createPocketPaintClaim} from '../lib/three/pocket-paint-claim.mjs';
 import {createHop,stepHop} from '../lib/physics/ground-hop.mjs';
 import {useEffect,useRef,useState} from 'react';
 import {createPortal} from 'react-dom';
@@ -101,7 +103,8 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
   sync();window.addEventListener(POCKET_3D_EVENT,sync);window.addEventListener('storage',onStorage);
   return()=>{window.removeEventListener(POCKET_3D_EVENT,sync);window.removeEventListener('storage',onStorage);};
  },[]);
- const [ready,setReady]=useState(false),[failed,setFailed]=useState(false);
+ const [ready,setReady]=useState(false),[failed,setFailed]=useState(false),[parked,setParked]=useState(false);
+ const claimRef=useRef<(()=>void)|null>(null);
  // Living pocket: play-god toolbar + classic pixel toggle + collapsible info (LIVE feed framing).
  const godRef=useRef<God|null>(null);const [weatherI,setWeatherI]=useState(0),[timeI,setTimeI]=useState(0),[infoOpen,setInfoOpen]=useState(false);
  const [pixel,setPixel]=useState(false);const pixelRef=useRef(false);pixelRef.current=pixel;
@@ -223,25 +226,15 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
    window.removeEventListener(POCKET_3D_CAMERA_RESET,resetCamera);
   };
   // Headless Chromium reports every page focused and visible, so a tab left
-  // open keeps painting. The newest cage claims the painter; older ones park
-  // until this page is clicked again. Otherwise SwiftShader on the first tab
-  // never leaves the second tab a turn to finish verifySnapshot.
-  let lead=true;
-  let paintChannel:BroadcastChannel|null=null;
-  let claimPaint=()=>{};
-  try{
-   const owner=crypto.randomUUID();
-   let stamp=Date.now();
-   paintChannel=new BroadcastChannel('beastbox-pocket-paint');
-   paintChannel.onmessage=event=>{
-    const other=event.data as {id?:string;stamp?:number}|null;
-    if(!other?.id||other.id===owner)return;
-    if((other.stamp??0)>stamp||((other.stamp??0)===stamp&&other.id>owner))lead=false;
-   };
-   claimPaint=()=>{stamp=Date.now();lead=true;paintChannel?.postMessage({id:owner,stamp});};
-   claimPaint();
-   window.addEventListener('pointerdown',claimPaint);
-  }catch{}
+  // open keeps painting. The newest cage-pocket tab claims the painter; older
+  // pocket tabs park until this page is clicked or the newer tab closes.
+  // The living world does not join the channel. The id and stamp stay in
+  // sessionStorage so this effect restart cannot steal the claim.
+  setParked(false);
+  const painter=createPocketPaintClaim({onChange:(lead:boolean)=>{if(!disposed)setParked(!lead);}});
+  claimRef.current=()=>painter.claim();
+  const claimPaint=()=>painter.claim();
+  window.addEventListener('pointerdown',claimPaint);
   const shown=whenShown(canvas);
   // Phone /beast-cage keeps this canvas below the fold (measured top ~941 in a 900px viewport,
   // ~968 in an 844px one). SwiftShader was linking shaders and then painting every frame while
@@ -286,6 +279,8 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     if(autoOrbitRef.current){const t0=performance.now();while(!disposed&&performance.now()-t0<60000&&document.querySelector('[data-zeref-sprite3d="loading"]'))await new Promise(r=>setTimeout(r,250));if(disposed)return;}
     const THREE=await import('three');
     if(disposed)return;
+    const laid=await whenLaidOut(canvas,4000);
+    if(disposed||!laid.ok)return;
     // User quality never overrides the OS reduced-motion safety boundary.
     let low=reduced||visualSettings.quality==='low'||(visualSettings.quality==='auto'&&window.innerWidth<600);
     // Phones with a real GPU (iPhone etc.) are 'low' only for world density; they still get AA, a crisper ratio and the sculpted GLBs.
@@ -525,7 +520,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
      // bridge is actually importing into. Headless Chromium leaves every page
      // focused, so the newest cage claims the painter and this one parks
      // until it is clicked.
-     if(!lead||document.hidden||(!visible&&rendered)||now-lastPaint<(soft?120:low?66:33))return;
+     if(!painter.leads()||document.hidden||(!visible&&rendered)||now-lastPaint<(soft?120:low?66:33))return;
      lastPaint=now;beastNode.visible=insideCreatureVisible(creatureRef.current);
      if(!reduced)elapsed+=dt;
      nebulaMat.uniforms.time.value=elapsed;poolMat.uniforms.time.value=elapsed;
@@ -670,11 +665,13 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     if(!disposed){setFailed(true);setReady(false);}
    }
   })();
-  return()=>{disposed=true;clearTimeout(settle);shown.cancel();cancelAnimationFrame(frame);cleanup();releaseListeners();window.removeEventListener('pointerdown',claimPaint);paintChannel?.close();};
+  return()=>{disposed=true;clearTimeout(settle);shown.cancel();cancelAnimationFrame(frame);cleanup();releaseListeners();window.removeEventListener('pointerdown',claimPaint);claimRef.current=null;painter.close();};
  },[key,failed,reduced,visualSettings.enabled,visualSettings.quality,qvmCounts]);
   return <div className={styles.root} data-pocket-dimension="true"
   data-world-source="genesis-nightops-core-visual-v1"
+  data-pocket-painter={parked?'parked':'lead'}
   data-pocket-state={!visualSettings.enabled?'disabled':failed?'fallback':ready?'ready':'loading'} data-creature-id={id}>
+  {parked?<button type="button" className={styles.parked} data-pocket-parked="yes" onClick={()=>claimRef.current?.()}>Paused. Another tab is showing this cage. Close it, or tap here to show it here.</button>:null}
   {visualSettings.enabled&&!failed?<canvas data-pocket-webgl="true" className={styles.canvas} ref={canvasRef}
    aria-hidden="true"/>:null}
   {!visualSettings.enabled?<span className={styles.sr} role="status">3D scenery is off. Your Beast and game remain available.</span>:!failed&&!ready?<span className={styles.sr} role="status">Opening the dimensional world behind your Beast…</span>:null}

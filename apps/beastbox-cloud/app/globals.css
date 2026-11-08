@@ -303,6 +303,15 @@ em{font-style:normal;background:linear-gradient(115deg,#67d9fa 0%,#b598ff 49%,#f
  .cage-pocket-active [data-beast-arena="true"] [class*="tools"] [class*="tool"]{padding:5px 7px;font-size:9px}
 
 }
+@media(max-width:420px){
+ .cage-habitat-visual.cage-pocket-active{overflow:visible}
+ .cage-pocket-active [data-spark-beast="true"]{margin-top:0}
+ .cage-pocket-active .cage-hero-creature{width:min(148px,42%)!important;height:min(154px,44%)!important}
+ .cage-pocket-active [data-spark-beast="true"] [class*="rig"]{width:min(140px,40vw)}
+ .cage-pocket-active [data-beast-arena="true"] [class*="tools"]{top:52px;left:8px;right:auto;width:auto;flex-direction:column;align-items:flex-start;gap:6px}
+ .cage-pocket-active [data-beast-arena="true"] [class*="tools"] [class*="tool"]{width:44px;min-width:44px;height:44px;padding:0;justify-content:center}
+ .cage-pocket-active .cage-habitat-caption{left:50%;right:auto;top:10px;bottom:auto;transform:translateX(-50%);max-width:42%;text-align:center;font-size:7px;letter-spacing:.08em}
+}
 
 .cage-invariants{padding:20px;display:flex;justify-content:center;gap:clamp(20px,6vw,92px);border-top:1px solid #c7bafa2d;border-bottom:1px solid #c7bafa2d;color:#9fe0e6;font:700 11px 'Space Grotesk';letter-spacing:.13em;flex-wrap:wrap;background:#151a2b96}
 .cage-customize,.cage-worlds{max-width:1400px;margin:auto;padding:94px clamp(20px,5vw,70px) 70px}
@@ -803,6 +812,11 @@ body[data-dock=closed] :is([data-lost-cosmos-dock][data-dock-state=mini],[data-l
 }
 /* PR E2 (Cosmo): the beast's name card docks under the creature instead of over it; the box behind it is see-through. */
 .cage-habitat-visual [data-spark-beast="true"] figcaption{position:absolute!important;top:100%;left:50%;transform:translateX(-50%);width:max-content;max-width:min(320px,86vw);padding:5px 10px!important;border-radius:12px;background:#0b0820d9;border:1px solid #b48cff44}
+@media(max-width:420px){
+ .cage-pocket-active [data-spark-beast="true"] figcaption{top:calc(100% + 12px);bottom:auto;left:50%;right:auto;width:max-content;max-width:min(300px,86vw);transform:translateX(-50%);text-align:center;font-size:9px;line-height:1.25;z-index:4}
+ .cage-pocket-active [data-spark-beast="true"] figcaption small{display:block}
+ .cage-pocket-active [data-spark-beast="true"] figcaption [class*="seedLine"]{white-space:normal;overflow:visible;text-overflow:clip;max-width:none}
+}
 .cage-habitat-visual [data-spark-beast="true"] figcaption small:not([class*="seedLine"]){display:none}
 .cage-habitat-visual [data-spark-beast="true"]{background:none!important;border-color:transparent!important;box-shadow:none!important}
 .cage-habitat-visual [data-spark-beast="true"] [class*="aura"]{display:none}
@@ -911,6 +925,9 @@ body:has([data-not-found]) :is(.site-dock,[data-beast-chat-launcher],[data-zeref
 
 /* Oct 25: in the round pocket the creature's own controls (sound, attack, ...) sit low and centered, inside the circle and clear of the Menu button; the corner spot was clipped by the circle on phones. */
 .cage-habitat-visual[data-cage-view=pocket] [data-tools-open]{top:auto!important;bottom:24%!important;left:0!important;right:0!important;margin-inline:auto!important;width:min(86%,300px)!important;flex-direction:row!important;flex-wrap:wrap!important;justify-content:center!important;align-items:center!important}
+@media(max-width:420px){
+ .cage-habitat-visual[data-cage-view=pocket] [data-tools-open]{top:52px!important;bottom:auto!important;left:8px!important;right:auto!important;margin:0!important;width:auto!important;flex-direction:column!important;flex-wrap:nowrap!important;justify-content:flex-start!important;align-items:flex-start!important}
+}
 
 /* Phone, dock open: the minimized Lost COSMOS 'OPEN GAME' pill rides one row above the dock instead of on top of it and the sound dock. */
 @media(max-width:480px){body[data-dock=open]:has(.site-dock) [data-spark-player][data-player-mode=minimized]{left:max(8px,env(safe-area-inset-left))!important;right:auto!important;bottom:calc(max(8px,env(safe-area-inset-bottom)) + 66px)!important;max-width:calc(100vw - 96px)!important}}
