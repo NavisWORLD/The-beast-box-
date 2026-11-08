@@ -2,6 +2,7 @@ import test from 'node:test';import assert from 'node:assert/strict';
 import {faceProxies,FACE_KEYS} from '../lib/companion/face-channel.mjs';
 import {FacePulse} from '../lib/bio/face-pulse.mjs';
 import {buildFaceEstimates,validateFaceEstimates} from '../lib/bio/face-estimates.mjs';
+import {EMOTIONS,OPT_IN_FEELINGS,feelingsFromFace,confusedState} from '../lib/companion/emotion.mjs';
 import {experience,isNumericExperience} from '../lib/companion/field-perception.mjs';
 const W=32,H=24;
 function frame(paint){const px=new Uint8ClampedArray(W*H*4);for(let y=0;y<H;y++)for(let x=0;x<W;x++){const [r,g,b]=paint(x,y);const i=(y*W+x)*4;px[i]=r;px[i+1]=g;px[i+2]=b;px[i+3]=255;}return px;}
@@ -42,4 +43,32 @@ test('experience records carry face keys only when present; old records still va
  const plain=experience(base,1000);assert.ok(!('facePresent' in plain));assert.ok(isNumericExperience(plain));
  const faced=experience({...base,facePresent:1,faceScale:.22,faceX:.05,faceY:-.1,faceBlink:.3},1000);
  assert.equal(faced.facePresent,1);assert.ok(isNumericExperience(faced));
+});
+test('face keys and the estimates record stay the existing schema',()=>{
+ assert.deepEqual(FACE_KEYS,['facePresent','faceScale','faceX','faceY','faceBlink']);
+ const wall=faceProxies(frame(()=>WALL),W,H);
+ const left=buildFaceEstimates({face:wall,pulse:null});
+ assert.equal(left.face.present,false);
+ assert.equal(left.schema,'beastbox-face-bio-estimates-v1');
+ assert.equal(left.heartbeat_label,'ESTIMATE');
+ assert.equal(left.pulse,null);
+ assert.equal(left.raw_audio_published,false);
+ assert.equal(left.raw_video_published,false);
+ assert.equal(left.raw_frames_in_packet,false);
+ assert.deepEqual(validateFaceEstimates(left),{ok:true,errors:[]});
+});
+test('face channels drive only the existing feeling words',()=>{
+ assert.deepEqual(EMOTIONS,['joy','curiosity','fear','calm','mischief']);
+ assert.deepEqual(OPT_IN_FEELINGS,['confused']);
+ assert.equal(feelingsFromFace(null),null);
+ const face={present:true,scale:0.22,x:0.05,y:-0.1,blink:0.3};
+ const felt=feelingsFromFace(face,{bpm:72,sqi:0.55});
+ assert.equal(felt.label,'DERIVED');
+ assert.equal(felt.confused,null);
+ assert.deepEqual(felt.words,EMOTIONS);
+ assert.deepEqual([felt.joy,felt.curiosity,felt.fear,felt.calm,felt.mischief],[8,10,14,37,1]);
+ const gone=feelingsFromFace({present:false,scale:0.02,x:0,y:0,blink:0});
+ assert.deepEqual([gone.joy,gone.curiosity,gone.fear,gone.calm,gone.mischief],[0,0,0,0,0]);
+ assert.equal(confusedState({reply:'no',target:'rain',drill:null},null),null);
+ assert.equal(confusedState({reply:'no',target:'rain',drill:null},{confused:true}).feeling,'confused');
 });
