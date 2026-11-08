@@ -36,10 +36,16 @@ void main(){
  float dayK=clamp(uDay,0.0,1.0);
  c*=(mix(0.46,0.28,dayK)+mix(0.35,0.72,dayK)*ndl)*vAo;
  float dist=distance(cameraPosition,vW);
+ float h=max(vW.y,0.0);
  float drift=mix(1.0,.92+.08*sin(uHazePhase),uMotion);
- float k=hazeAmt(dist,max(vW.y,0.0),.01,.32)*drift;
- vec3 haze=mix(uHaze,uZen,.22);
- c=mix(c,haze,clamp(k,0.0,.9));
+ float near=hazeAmt(dist,h,.045,.8);
+ float mid=hazeAmt(dist,h,.012,.35);
+ float far=hazeAmt(dist,h,.004,.12);
+ vec3 lowBand=mix(uHaze*.62,uHaze,.35);
+ vec3 midBand=mix(uHaze,uZen,.45);
+ vec3 band=mix(lowBand,midBand,clamp(mid,0.0,1.0));
+ band=mix(band,uZen,clamp(far*.85+near*.08,0.0,1.0));
+ c=mix(c,band,clamp((near*.55+mid*.3+far*.15)*drift,0.0,.92));
  gl_FragColor=vec4(c,1.0);
 }`;
 

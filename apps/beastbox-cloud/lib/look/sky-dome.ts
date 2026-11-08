@@ -30,8 +30,12 @@ void main(){
  float e=d.y;
  float veil=uMotion*sin(d.x*1.6+d.z*1.1+uDrift)*.07;
  vec3 c=mix(uHor,uZen,pow(clamp(e+veil,0.0,1.0),.45));
+ float low=smoothstep(.38,-.08,e);
+ float mid=smoothstep(.7,.16,e)*(1.0-low);
+ c=mix(c,uHor,low*.55);
+ c=mix(c,mix(uHor,uZen,.42),mid*.4);
  float s=max(dot(d,normalize(uSun)),0.0);
- float disc=smoothstep(.9992,.9997,s)*uDay;
+ float disc=smoothstep(.9968,.9992,s)*uDay;
  float glow=pow(s,48.0)*uDay;
  c+=vec3(1.0,.93,.78)*(disc*1.4+glow*.35);
  float night=uStar*(1.0-uDay)*step(-.02,e);

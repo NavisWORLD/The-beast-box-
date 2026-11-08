@@ -5,30 +5,30 @@ import {budgetFor} from './tiers.ts';
 export type Ring={r0:number;r1:number;a:number;rad:number};
 const PLANS:Record<string,Ring[]>={
  LOW:[
-  {r0:.6,r1:18,a:64,rad:10},
-  {r0:18,r1:60,a:48,rad:8},
-  {r0:60,r1:140,a:40,rad:6},
+  {r0:.5,r1:16,a:96,rad:24},
+  {r0:16,r1:48,a:112,rad:28},
+  {r0:48,r1:180,a:128,rad:40},
  ],
  MED:[
-  {r0:.5,r1:14,a:128,rad:24},
-  {r0:14,r1:40,a:112,rad:16},
-  {r0:40,r1:100,a:96,rad:12},
-  {r0:100,r1:220,a:160,rad:12},
+  {r0:.4,r1:12,a:128,rad:28},
+  {r0:12,r1:36,a:144,rad:28},
+  {r0:36,r1:90,a:160,rad:32},
+  {r0:90,r1:240,a:180,rad:40},
  ],
  HIGH:[
-  {r0:.4,r1:12,a:160,rad:32},
-  {r0:12,r1:32,a:144,rad:20},
-  {r0:32,r1:80,a:128,rad:16},
-  {r0:80,r1:170,a:160,rad:14},
-  {r0:170,r1:360,a:180,rad:12},
+  {r0:.4,r1:10,a:160,rad:32},
+  {r0:10,r1:28,a:176,rad:28},
+  {r0:28,r1:70,a:192,rad:32},
+  {r0:70,r1:160,a:200,rad:36},
+  {r0:160,r1:420,a:220,rad:56},
  ],
  GOD:[
-  {r0:.4,r1:10,a:192,rad:40},
-  {r0:10,r1:28,a:176,rad:24},
-  {r0:28,r1:70,a:160,rad:18},
-  {r0:70,r1:150,a:180,rad:16},
-  {r0:150,r1:300,a:200,rad:14},
-  {r0:300,r1:560,a:220,rad:12},
+  {r0:.35,r1:8,a:192,rad:40},
+  {r0:8,r1:22,a:192,rad:28},
+  {r0:22,r1:56,a:200,rad:28},
+  {r0:56,r1:120,a:208,rad:32},
+  {r0:120,r1:260,a:220,rad:36},
+  {r0:260,r1:560,a:240,rad:48},
  ],
 };
 
@@ -41,6 +41,15 @@ export function centralNormal(heightAt:(x:number,z:number)=>number,x:number,z:nu
  const ny=e*2;
  const len=Math.hypot(hx,ny,hz)||1;
  return [hx/len,ny/len,hz/len] as [number,number,number];
+}
+
+/** Average the central difference at two steps so a coarse ring does not facet. */
+export function smoothNormal(heightAt:(x:number,z:number)=>number,x:number,z:number,e=Math.max(.35,Math.hypot(x,z)*.02)){
+ const a=centralNormal(heightAt,x,z,e);
+ const b=centralNormal(heightAt,x,z,e*2.5);
+ const s=[a[0]+b[0],a[1]+b[1],a[2]+b[2]];
+ const len=Math.hypot(s[0],s[1],s[2])||1;
+ return [s[0]/len,s[1]/len,s[2]/len] as [number,number,number];
 }
 
 export function terrainTrisBudget(tier:string){return budgetFor(tier).tris;}
@@ -79,7 +88,7 @@ export function buildTerrainLod(THREE:typeof import('three'),o:{
     const a=i/cols*Math.PI*2;
     const x=Math.cos(a)*r,z=Math.sin(a)*r;
     const y=heightAt(x,z);
-    const n=centralNormal(heightAt,x,z,Math.max(.25,r*.01));
+    const n=smoothNormal(heightAt,x,z);
     push(x,y,z,n[0],n[1],n[2]);
    }
   }

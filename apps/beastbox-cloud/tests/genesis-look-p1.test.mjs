@@ -3,12 +3,13 @@ import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {readdirSync,readFileSync} from 'node:fs';
 import {readLook,writeLook,lookLabel,snapshotWorld,withLook,DEFAULT_LOOK} from '../lib/look/look-mode.ts';
-import {presentationTier,dropTierIfSlow,budgetFor} from '../lib/look/tiers.ts';
+import {presentationTier,dropTierIfSlow,considerDrop,budgetFor} from '../lib/look/tiers.ts';
 import {motionAt,presentationTick,windSway,cloudDrift,treeSway,FOLIAGE_IN_P1,CREATURE_MOTION,MOTION_LABEL} from '../lib/look/motion.ts';
-import {hazeAmount,hazeTint} from '../lib/look/haze.ts';
+import {hazeAmount,hazeStack,hazeTint} from '../lib/look/haze.ts';
 import {sunDiscDir} from '../lib/look/sky-dome.ts';
-import {foamAmount,fresnelSchlick,buildWater,shoreSurface,WATER_LABEL} from '../lib/look/water.ts';
-import {buildTerrainLod,centralNormal,ringPlan,plannedTris} from '../lib/look/terrain-lod.ts';
+import {foamAmount,fresnelSchlick,buildWater,shoreSurface,shoreAlpha,WAVE_CREST,WATER_LABEL} from '../lib/look/water.ts';
+import {buildTerrainLod,smoothNormal,ringPlan,plannedTris} from '../lib/look/terrain-lod.ts';
+import {buildFoliage,syncFoliage} from '../lib/look/foliage.ts';
 import {readSeededHeight} from '../lib/look/height-read.ts';
 import {attachGenesisLook} from '../lib/look/attach.ts';
 import {SPECKLE_STOP} from '../lib/look/speckle.ts';
@@ -42,17 +43,26 @@ test('Classic is the default and a look switch does not change world state',()=>
  assert.deepEqual(world,frozen);
 });
 
-test('phones default to MED, software GL stays LOW',()=>{
+test('desktop defaults to HIGH, phones to MED, and a slow frame window drops one tier',()=>{
  const s=mem();
  assert.equal(presentationTier(s,{phone:true,cores:2,memoryGB:1}),'MED');
  assert.equal(presentationTier(s,{phone:true,cores:8,memoryGB:8}),'MED');
  assert.equal(presentationTier(s,{phone:true,reducedMotion:true,cores:2,memoryGB:1}),'MED');
- assert.equal(presentationTier(s,{phone:true,softGL:true,cores:8,memoryGB:8}),'LOW');
+ assert.equal(presentationTier(s,{phone:true,softGL:true,cores:8,memoryGB:8}),'MED');
+ assert.equal(presentationTier(s,{cores:4,memoryGB:4,softGL:true}),'HIGH');
+ assert.equal(presentationTier(s,{cores:8,memoryGB:8}),'GOD');
+ s.setItem('beastbox.quality.v1','LOW');
+ assert.equal(presentationTier(s,{cores:8,memoryGB:8}),'LOW');
  assert.equal(budgetFor('MED').dpr,1.5);
  assert.equal(budgetFor('MED').rings,4);
  assert.equal(dropTierIfSlow('HIGH',21,'HIGH'),'MED');
  assert.equal(dropTierIfSlow('MED',10,'HIGH'),'MED');
  assert.equal(dropTierIfSlow('GOD',30,'HIGH'),'HIGH');
+ assert.equal(considerDrop('HIGH','HIGH',Array.from({length:10},()=>40)).consumed,false);
+ const slow=considerDrop('HIGH','HIGH',Array.from({length:30},()=>100));
+ assert.equal(slow.consumed,true);
+ assert.equal(slow.tier,'MED');
+ assert.equal(considerDrop('HIGH','HIGH',Array.from({length:30},()=>10)).tier,'HIGH');
 });
 
 test('Genesis motion is deterministic for a seed and tick and does not change world state',()=>{
@@ -72,7 +82,7 @@ test('Genesis motion is deterministic for a seed and tick and does not change wo
  assert.ok(presentationTick(4,500,0,false)>4&&presentationTick(4,500,0,false)<5);
  assert.deepEqual(world,before);
  assert.equal(CREATURE_MOTION.applied,false);
- assert.equal(FOLIAGE_IN_P1,false);
+ assert.equal(FOLIAGE_IN_P1,true);
  const frame=motionAt('wind',2,false);
  assert.equal(windSway(frame,1,2),windSway(frame,1,2));
  assert.equal(cloudDrift(frame),frame.cloudPhase);
@@ -96,7 +106,7 @@ test('seeded height is read only and the same seed builds the same hills',async(
  assert.ok(plannedTris(ringPlan('LOW'))<budgetFor('LOW').tris);
  const p=a.geometry.attributes.position,n=a.geometry.attributes.normal;
  const x=p.getX(20),y=p.getY(20),z=p.getZ(20);
- const cn=centralNormal(heightAt,x,z,Math.max(.25,Math.hypot(x,z)*.01));
+ const cn=smoothNormal(heightAt,x,z);
  const dot=n.getX(20)*cn[0]+n.getY(20)*cn[1]+n.getZ(20)*cn[2];
  assert.ok(dot>.999,dot);
  assert.ok(Number.isFinite(y));
@@ -104,6 +114,10 @@ test('seeded height is read only and the same seed builds the same hills',async(
 
 test('water carves the land, fresnel and foam follow depth, waves are labelled SIMULATED',async()=>{
  assert.equal(WATER_LABEL,'Waves · SIMULATED');
+ assert.ok(WAVE_CREST>=.5);
+ assert.equal(shoreAlpha(0),0);
+ assert.equal(shoreAlpha(-.2),0);
+ assert.ok(shoreAlpha(1)>shoreAlpha(.15));
  assert.equal(foamAmount(0),0);
  assert.ok(foamAmount(.1)>.5);
  assert.equal(foamAmount(1),0);
@@ -127,6 +141,9 @@ test('water carves the land, fresnel and foam follow depth, waves are labelled S
 test('haze thins with height and the sun disc matches the one sun',()=>{
  assert.ok(hazeAmount(80,0) > hazeAmount(80,30));
  assert.ok(hazeAmount(10,0) < hazeAmount(80,0));
+ const stacked=hazeStack(400,0),lifted=hazeStack(30,40);
+ assert.equal(stacked.layers.length,3);
+ assert.ok(stacked.amount>lifted.amount);
  let night=null,day=null;
  for(let s=0;s<240;s+=.5){const os=oneSunAt(s);if(os.elevationDeg<-8)night=os;if(os.elevationDeg>25)day=os;}
  assert.ok(night&&day);
@@ -168,6 +185,7 @@ test('Genesis adds no second light and lib/look has no Math.random',async()=>{
  assert.equal(lights,1);
  assert.equal(g.lightsAdded,0);
  assert.equal(g.creature.applied,false);
+ assert.equal(scene.children[0].name,'genesis-anchor');
  g.dispose();
  const classic=new THREE.Object3D();classic.visible=false;
  const skyMark=new THREE.Object3D();skyMark.visible=true;
@@ -198,10 +216,30 @@ test('speckle sources in lib/universe stay untouched, and the page wiring keeps 
  assert.match(lw,/Horizon layers · SEEDED/);
  assert.match(lw,/Motion · SIMULATED/);
  assert.match(lw,/presentationTier\(/);
+ assert.match(lw,/onTier:/);
+ assert.match(lw,/__lwSky/);
+ assert.match(lw,/max-width:480px/);
  assert.doesNotMatch(read('components/cage-pocket-dimension.tsx'),/localStorage|fetch\(/);
  assert.match(read('components/cage-pocket-dimension.tsx'),/attachGenesisLook\(/);
  assert.match(read('components/universe-settings.tsx'),/data-look-choice/);
  assert.match(read('components/universe-settings.tsx'),/data-quality-choice/);
  assert.match(read('components/tiny-universe-view.tsx'),/SeededLand2D/);
  assert.doesNotMatch(read('lib/look/attach.ts'),/windSway|cloudDrift|treeSway|InstancedMesh|beastNode|travNode/);
+ assert.match(read('lib/look/foliage.ts'),/windSway\(/);
+ assert.match(read('lib/look/foliage.ts'),/treeSway\(/);
+ assert.doesNotMatch(read('lib/look/foliage.ts'),/beastNode|travNode/);
+});
+
+test('grass and trees take the wind hooks and freeze when motion is reduced',async()=>{
+ const THREE=await import('three');
+ const grown=buildFoliage(THREE,{heightAt:()=>1,shoreAt:()=>0,tier:'LOW',seed:'meadow'});
+ assert.ok(grown.counts.grass>0&&grown.counts.trees>0);
+ const frame=motionAt('meadow',3,false);
+ syncFoliage(grown,frame);
+ assert.equal(grown.grass.material.uniforms.uPhase.value,frame.windPhase);
+ assert.equal(grown.grass.material.uniforms.uAmp.value,frame.windAmp);
+ assert.equal(grown.trees.material.uniforms.uLean.value,treeSway(frame));
+ syncFoliage(grown,motionAt('meadow',9,true));
+ assert.equal(grown.grass.material.uniforms.uAmp.value,0);
+ assert.equal(grown.trees.material.uniforms.uLean.value,0);
 });

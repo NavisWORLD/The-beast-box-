@@ -4,8 +4,8 @@ import {stream01} from './seed.ts';
 import {ONE_WORLD_TICK_MS} from '../world/one-world-clock.mjs';
 
 export const MOTION_LABEL='Genesis motion · SIMULATED';
-/** P1 does not instance grass. The wind value is a hook for a later foliage pass. */
-export const FOLIAGE_IN_P1=false;
+/** Grass and trees are drawn by lib/look/foliage.ts from these hooks. */
+export const FOLIAGE_IN_P1=true;
 /**
  * Creature idle bob is not applied. The beast and the traveler are moved inside the living-world
  * frame, and writing their transforms would change that state. This look does not own that frame.
@@ -60,13 +60,13 @@ export function motionAt(seed:string,tick:number,reduced=false):MotionFrame{
  };
 }
 
-/** P2 hook. P1 has no grass mesh, so nothing in the scene calls this. */
+/** Lateral grass lean. foliage.ts copies this into the grass shader. */
 export function windSway(frame:MotionFrame,x:number,z:number){
  return Math.sin(frame.windPhase+x*.2+z*.17)*frame.windAmp;
 }
 /** P2 hook for drifting clouds. Not drawn in P1. */
 export function cloudDrift(frame:MotionFrame){return frame.cloudPhase;}
-/** P2 hook for tree sway. Not drawn in P1. */
+/** Tree lean. foliage.ts copies this into the tree shader. */
 export function treeSway(frame:MotionFrame){return frame.treeSway;}
 
 /**
