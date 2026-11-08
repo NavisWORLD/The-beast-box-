@@ -97,7 +97,7 @@ class ChainRejected(LivedRejection):
 
 
 def activation_enabled() -> bool:
-    return os.environ.get(ACTIVATION_ENV, "off") == "on"
+    return os.environ.get("BEASTBOX_LIVED_BACKBONE", "off") == "on"
 
 
 def _reject(code: str, message: str) -> None:
