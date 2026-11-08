@@ -10,12 +10,12 @@
   "source_path": "/spark/ibm-moonwraith-cassette-kit-20261010.json",
   "source_class": "RECORDED_IBM_HARDWARE"
  },
- "tick": 662,
- "xp": 9895,
+ "tick": 663,
+ "xp": 9909,
  "stage": 5,
  "stage_name": "Crescent Sovereign",
  "signals": {
-  "energy": 59,
+  "energy": 54,
   "signal": 51,
   "memory": 100,
   "resonance": 94
@@ -23,35 +23,35 @@
  "bond": 100,
  "care_total": 0,
  "places": {
-  "Rift Gate": 622,
+  "Rift Gate": 624,
   "Lattice Arch": 305,
-  "Echo Prism": 702,
+  "Echo Prism": 703,
   "Tidewell": 326,
-  "Quartz Choir": 263,
-  "Violet Shard": 510,
+  "Quartz Choir": 264,
+  "Violet Shard": 511,
   "Selene Pool": 54
  },
- "last_tick_at": "2026-11-08T23:08:15.963Z",
- "last_entry_hash": "fecd78218f792bbd6351b924cb94e83d0f7398ced2eeb7831dab283337436ca1",
- "universe_growth": 560,
+ "last_tick_at": "2026-11-08T23:48:26.623Z",
+ "last_entry_hash": "1d5d50a3c2c119cf31d60063955596cb5b8ca8902349dcc299ea6a302757b46e",
+ "universe_growth": 561,
  "combos_total": 416,
  "next_stage": null,
  "learning": {
   "cells_visited": 37,
   "cells_total": 40,
   "known_rifts": 3,
-  "moves_succeeded": 9661,
+  "moves_succeeded": 9676,
   "moves_blocked": 564,
   "blocked_rate": 0.055,
-  "favorite_spot": "Echo Prism",
-  "favorite_value": 0.642,
+  "favorite_spot": "Rift Gate",
+  "favorite_value": 0.554,
   "prefs": {
    "explore": 0.05,
    "visit": 1,
-   "rest": 0.05,
+   "rest": 0.086,
    "play": 1
   },
-  "decisions": 5969,
+  "decisions": 5975,
   "label": "learned behaviour from its own experience, not consciousness"
  },
  "labels": {
@@ -67,6 +67,97 @@
   "source": "recorded hardware counts (birth seed, never re-run)"
  },
  "recent": [
+  {
+   "schema": "zeref-diary/v1",
+   "beast_id": "bb-7f9c2a03",
+   "tick": 663,
+   "at": "2026-11-08T23:48:26.623Z",
+   "hour_local": 17,
+   "timezone": "America/Chicago",
+   "signals": {
+    "energy": 54,
+    "signal": 51,
+    "memory": 100,
+    "resonance": 94
+   },
+   "bond": 100,
+   "mood": "exploring",
+   "place": "Rift Gate",
+   "places_visited": [
+    "Echo Prism",
+    "Quartz Choir",
+    "Rift Gate",
+    "Violet Shard"
+   ],
+   "discovered_combos": [],
+   "new_combo_count": 0,
+   "combos_total": 416,
+   "xp_gain": 14,
+   "xp": 9909,
+   "stage": 5,
+   "stage_name": "Crescent Sovereign",
+   "grew": false,
+   "care": 0,
+   "birth_spark": {
+    "provider": "IBM Quantum",
+    "backend": "ibm_marrakesh",
+    "job_id": "db4te7slf4us73c3888g",
+    "source": "recorded hardware counts (birth seed, never re-run)"
+   },
+   "growth_source": {
+    "kind": "rigetti-qvm-simulated",
+    "simulated": true,
+    "provider": "azure-quantum/rigetti",
+    "target": "rigetti.sim.qvm",
+    "job_id": "132285b4-dbbe-11f1-8000-7ced8dd24816",
+    "job_name": "zeref-diary-tick-663-bb-7f9c2a03",
+    "shots": 256,
+    "counts": {
+     "101": 81,
+     "110": 87,
+     "111": 3,
+     "000": 2,
+     "001": 33,
+     "010": 49,
+     "011": 1
+    },
+    "counts_sha256": "57192dce853258b5d47faa3a7d605e61a1d85c97045226261b8404b9ea92edbc",
+    "circuit_params": {
+     "energy": 1.85354,
+     "signal": 1.602212,
+     "resonance": 2.953097
+    },
+    "quil_sha256": "eef1f27db9992b68cc54f9babeb484b92f4303c1bc928f8e0654241de3739426"
+   },
+   "learning": {
+    "new_cells": 0,
+    "moves_succeeded": 15,
+    "moves_blocked": 0,
+    "goals": {
+     "rest": 1,
+     "visit": 5
+    },
+    "cells_visited": 37,
+    "cells_total": 40,
+    "known_rifts": 3,
+    "blocked_rate": 0.055,
+    "favorite_spot": "Rift Gate",
+    "prefs": {
+     "explore": 0.05,
+     "visit": 1,
+     "rest": 0.086,
+     "play": 1
+    },
+    "label": "learned behaviour from its own experience, not consciousness"
+   },
+   "universe_growth": 561,
+   "thought": {
+    "text": "I Letecs, from 15, 2020 to American, airians believe, per Simple English Wikipedia: was the firstth day of the Colomt Gree.",
+    "by": "rawrphos-native:step-36784 (raw model output, unedited)"
+   },
+   "prev_hash": "fecd78218f792bbd6351b924cb94e83d0f7398ced2eeb7831dab283337436ca1",
+   "hash": "1d5d50a3c2c119cf31d60063955596cb5b8ca8902349dcc299ea6a302757b46e"
+  },
   {
    "schema": "zeref-diary/v1",
    "beast_id": "bb-7f9c2a03",
@@ -1066,97 +1157,8 @@
    },
    "prev_hash": "edb854d99be75e63ea450587eb269f7b8cd7ed4783ba690efe8226cc953ed67c",
    "hash": "dcd8330666dbd63d68afb474256cd8c3664f7e8ed5e079a9d38c262f83aa19b9"
-  },
-  {
-   "schema": "zeref-diary/v1",
-   "beast_id": "bb-7f9c2a03",
-   "tick": 651,
-   "at": "2026-11-08T15:58:17.829Z",
-   "hour_local": 9,
-   "timezone": "America/Chicago",
-   "signals": {
-    "energy": 89,
-    "signal": 51,
-    "memory": 100,
-    "resonance": 86
-   },
-   "bond": 100,
-   "mood": "content",
-   "place": "Lattice Arch",
-   "places_visited": [
-    "Lattice Arch",
-    "Quartz Choir",
-    "Tidewell"
-   ],
-   "discovered_combos": [],
-   "new_combo_count": 0,
-   "combos_total": 415,
-   "xp_gain": 13,
-   "xp": 9745,
-   "stage": 5,
-   "stage_name": "Crescent Sovereign",
-   "grew": false,
-   "care": 0,
-   "birth_spark": {
-    "provider": "IBM Quantum",
-    "backend": "ibm_marrakesh",
-    "job_id": "db4te7slf4us73c3888g",
-    "source": "recorded hardware counts (birth seed, never re-run)"
-   },
-   "growth_source": {
-    "kind": "rigetti-qvm-simulated",
-    "simulated": true,
-    "provider": "azure-quantum/rigetti",
-    "target": "rigetti.sim.qvm",
-    "job_id": "670781a8-db7c-11f1-8000-7ced8d1c33f0",
-    "job_name": "zeref-diary-tick-651-bb-7f9c2a03",
-    "shots": 256,
-    "counts": {
-     "100": 5,
-     "101": 124,
-     "110": 120,
-     "111": 4,
-     "000": 1,
-     "001": 2
-    },
-    "counts_sha256": "45111ea22699feca73139ae25c604fe5364e00a52486cd3f03525dc7ae7c7ad0",
-    "circuit_params": {
-     "energy": 2.858849,
-     "signal": 1.602212,
-     "resonance": 2.70177
-    },
-    "quil_sha256": "63dd9f9ac20eb06f92ef80577b04ec87e49b592ba24efe2395430c36a6c7cc02"
-   },
-   "learning": {
-    "new_cells": 0,
-    "moves_succeeded": 14,
-    "moves_blocked": 5,
-    "goals": {
-     "play": 7,
-     "visit": 7
-    },
-    "cells_visited": 37,
-    "cells_total": 40,
-    "known_rifts": 3,
-    "blocked_rate": 0.055,
-    "favorite_spot": "Violet Shard",
-    "prefs": {
-     "explore": 0.05,
-     "visit": 0.811,
-     "rest": 0.05,
-     "play": 0.874
-    },
-    "label": "learned behaviour from its own experience, not consciousness"
-   },
-   "universe_growth": 549,
-   "thought": {
-    "text": "What Ligning Arctic guide, is wonderging Lapticulus (biv in Cantwalutia, Lost Greece.orgovi IsnM).",
-    "by": "rawrphos-native:step-36784 (raw model output, unedited)"
-   },
-   "prev_hash": "960ae25053d989616941c33b2a0942270cc6060babbf2fb53008a516d79977a7",
-   "hash": "edb854d99be75e63ea450587eb269f7b8cd7ed4783ba690efe8226cc953ed67c"
   }
  ],
- "generated_at": "2026-11-08T23:08:15.963Z",
+ "generated_at": "2026-11-08T23:48:26.623Z",
  "thought_source_note": "rawrphos-ok"
 }
