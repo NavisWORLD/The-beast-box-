@@ -168,7 +168,7 @@ export async function POST(request:Request){
  const contextSent=Buffer.byteLength(text,'utf8')<=MAX_TEXT_WITH_CONTEXT;
  // Self-memory: the same one index the growing door reads, plus THIS visitor's own thread turns only.
  // It rides as the bridge's `memory` field only if the existing 1300-byte total still holds.
- const selfMem=contextSent&&await bridgeReadsMemory(process.env.BEASTBOX_CLOUD_BRIDGE_URL!)?await loadSelfMemory().then(m=>readSelfMemory(m,text,{ownThread:ownThreadItems([...archiveTurns,...(threadRec?.thread?.turns||[])]),
+ const selfMem=contextSent&&await bridgeReadsMemory(process.env.BEASTBOX_CLOUD_BRIDGE_URL!)?await loadSelfMemory().then(m=>readSelfMemory(m,text,{ownThread:ownThreadItems([...archiveTurns,...(threadRec?.thread?.turns||[])],threadId),
    cap:Math.max(0,Math.min(300,1300-(bridgeContext.bytes?.total||0)))})).catch(()=>({text:'',memory_read:[]})):{text:'',memory_read:[]};
  try{after(()=>teacherJoinPending());}catch{/* outside a request scope (tests): nothing to keep alive */}
  const liveReceipt=contextSent?bridgeContext.live:{...bridgeContext.live,composed:false};

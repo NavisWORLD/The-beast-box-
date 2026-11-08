@@ -1,11 +1,11 @@
 export const SELF_MEMORY_SCHEMA:string;export const SELF_MEMORY_CAP:number;export const SELF_MEMORY_LABEL:string;
 export type MemoryItem={id:string;kind:'LIVED'|'TAUGHT';source:string;label:string;text:string;sha256:string;ref:string|null};
-export type MemoryRead={id:string;label:string;sha256:string};
+export type MemoryRead={id:string;label:string;sha256:string;entry_sha256:string;entry_hash_spec:string;entry_hash_note:string;role:string;source:string;thread_id:string;created_at:string};
 export type SelfMemory={schema:string;items:MemoryItem[];index:any;byId:Map<string,MemoryItem>};
 export function isShareableText(text:unknown):boolean;
 export function sha256(s:unknown):string;
 export function itemsFrom(src?:{diary?:any[];lessons?:any[];reads?:any[];seeds?:any[]}):MemoryItem[];
-export function ownThreadItems(turns:any[]):MemoryItem[];
+export function ownThreadItems(turns:any[], threadId?:string):MemoryItem[];
 export function buildSelfMemory(items:MemoryItem[]):SelfMemory;
 export function readSelfMemory(mem:SelfMemory,query:string,o?:{ownThread?:MemoryItem[];k?:number;cap?:number;minScore?:number}):{text:string;memory_read:MemoryRead[];origins?:Record<string,string>;screens?:Record<string,unknown>};
 export function loadSelfMemory():Promise<SelfMemory>;
