@@ -1,0 +1,43 @@
+name: Zeref promote pin files agree
+# The pin and both brain constants are one fingerprint. A drift fails this check.
+on:
+  pull_request:
+    paths:
+      - apps/beastbox-cloud/lib/rawrphos-public-pin.json
+      - apps/beastbox-cloud/lib/companion/brain.mjs
+      - apps/beastbox-cloud/public/spark/shared/brain.mjs
+      - scripts/zeref_promote_pin.py
+      - tests/test_zeref_promote_pin.py
+      - docs/zeref-promote-pin.md
+      - .github/workflows/zeref-promote-pin-check.yml
+  push:
+    branches: [main]
+    paths:
+      - apps/beastbox-cloud/lib/rawrphos-public-pin.json
+      - apps/beastbox-cloud/lib/companion/brain.mjs
+      - apps/beastbox-cloud/public/spark/shared/brain.mjs
+      - scripts/zeref_promote_pin.py
+      - tests/test_zeref_promote_pin.py
+      - docs/zeref-promote-pin.md
+      - .github/workflows/zeref-promote-pin-check.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: python -m pip install --disable-pip-version-check 'pytest>=8,<10'
+      - run: python scripts/zeref_promote_pin.py --check
+      - run: python -m pytest -q tests/test_zeref_promote_pin.py
+      - run: node --test apps/beastbox-cloud/tests/brain-public-pin.test.mjs
