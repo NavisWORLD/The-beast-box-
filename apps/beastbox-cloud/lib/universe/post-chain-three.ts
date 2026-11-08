@@ -19,11 +19,12 @@ export async function createPostChain(THREE:any,renderer:any,scene:any,camera:an
     composer.addPass(new RenderPass(scene,camera));
     rays=null;bloom=null;optics=null;
     if(s.god_rays.enabled&&s.god_rays.samples>0){rays=new ShaderPass({uniforms:{tDiffuse:{value:null},uSunPos:{value:new THREE.Vector2(.5,.5)},uDensity:{value:s.god_rays.density},uDecay:{value:s.god_rays.decay},uWeight:{value:s.god_rays.weight},uExposure:{value:s.god_rays.exposure},uSunVisible:{value:0},uGate:{value:new THREE.Vector2(s.god_rays.bright_gate[0],s.god_rays.bright_gate[1])}},vertexShader:PASS_VERT,fragmentShader:GOD_RAYS_FRAG(s.god_rays.samples)});composer.addPass(rays);}
-    if(s.bloom.enabled){const k=s.bloom.resolution==='full'?1:.5;bloom=new UnrealBloomPass(new THREE.Vector2(size.x*k,size.y*k),s.bloom.strength,s.bloom.radius,bloomThresholdPreExposure(cur));composer.addPass(bloom);}
+    if(s.bloom.enabled){const k=s.bloom.resolution==='full'?1:.5;bloom=new UnrealBloomPass(new THREE.Vector2(Math.max(1,size.x*k),Math.max(1,size.y*k)),s.bloom.strength,s.bloom.radius,bloomThresholdPreExposure(cur));composer.addPass(bloom);}
     const o=s.optics;if(o.grain>0||o.chromatic_aberration>0||o.vignette>0||o.edge_blur>0){optics=new ShaderPass({uniforms:{tDiffuse:{value:null},uAberration:{value:o.chromatic_aberration},uGrain:{value:o.grain},uVignette:{value:o.vignette},uEdgeBlur:{value:o.edge_blur},uGamma:{value:o.gamma},uGrainSeed:{value:0}},vertexShader:PASS_VERT,fragmentShader:OPTICS_FRAG});composer.addPass(optics);}
     composer.addPass(new OutputPass());
     renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=o.exposure;
-    const dpr=Math.min(globalThis.devicePixelRatio||1,s.budget.max_dpr)*s.budget.render_scale;composer.setPixelRatio(dpr);composer.setSize(size.x,size.y);
+    const dpr=Math.min(globalThis.devicePixelRatio||1,s.budget.max_dpr)*s.budget.render_scale;composer.setPixelRatio(dpr);
+    if(size.x>0&&size.y>0)composer.setSize(size.x,size.y);
   };
   build();
   const v=new THREE.Vector3();
@@ -32,7 +33,7 @@ export async function createPostChain(THREE:any,renderer:any,scene:any,camera:an
       if(rays&&sunWorld){v.copy(sunWorld).project(camera);const behind=v.z>1;const vis=behind?0:sunVisible(sunElevDeg,[v.x,v.y],0);rays.uniforms.uSunVisible.value=vis;rays.uniforms.uSunPos.value.set((v.x+1)/2,(v.y+1)/2);last.sunVisible=+vis.toFixed(3);}
       if(optics)optics.uniforms.uGrainSeed.value=grainSeed(frame);
       composer.render();},
-    setSize(w,h){composer.setSize(w,h);if(bloom)bloom.setSize(w,h);},
+    setSize(w,h){if(!(w>0)||!(h>0))return;composer.setSize(w,h);if(bloom)bloom.setSize(w,h);},
     setTier(t){if(t!==cur){cur=t;build();}},tier:()=>cur,
     state:()=>({tier:cur,frame,passes:composer.passes.map((p:any)=>p.constructor?.name||'pass'),rays:!!rays,bloom:!!bloom,optics:!!optics,...last}),
     dispose(){composer.dispose?.();},

@@ -25,11 +25,11 @@ export function roundPointTexture(THREE:typeof import('three')){
  const t=new THREE.CanvasTexture(c);t.needsUpdate=true;return t;
 }
 
-/** Genesis points: size attenuates, alpha is premultiplied, the renderer tonemaps before its dither. */
+/** Genesis points: size attenuates, the sprite is a straight-alpha circle, the renderer tonemaps before its dither. */
 export function genesisPoints(THREE:typeof import('three'),color=0xdde6ff,size=1.4){
  const map=roundPointTexture(THREE);
  return new THREE.PointsMaterial({
-  color,size,sizeAttenuation:true,transparent:true,opacity:.9,depthWrite:false,
-  premultipliedAlpha:true,...(map?{map}:{}),
+  color,size,sizeAttenuation:true,transparent:true,opacity:.9,depthWrite:false,alphaTest:.15,
+  ...(map?{map}:{}),
  });
 }

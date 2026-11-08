@@ -3,6 +3,7 @@
 import {stream01} from './seed.ts';
 import {treeSway,windSway,type MotionFrame} from './motion.ts';
 
+export const PLACEMENT_LABEL='Placement · SEEDED';
 const GRASS:Record<string,number>={LOW:280,MED:480,HIGH:720,GOD:1000};
 const TREES:Record<string,number>={LOW:16,MED:28,HIGH:40,GOD:56};
 
@@ -70,7 +71,7 @@ export function buildFoliage(THREE:typeof import('three'),o:{
   side:THREE.DoubleSide,fog:false,
  });
  const grass=new THREE.InstancedMesh(grassGeo,grassMat,n.grass);
- grass.name='genesis-grass';grass.frustumCulled=false;
+ grass.name='genesis-grass';grass.frustumCulled=false;grass.userData.label=PLACEMENT_LABEL;
  const treeGeo=new THREE.ConeGeometry(.28,1.15,5);
  treeGeo.translate(0,.58,0);
  const treeMat=new THREE.ShaderMaterial({
@@ -78,7 +79,7 @@ export function buildFoliage(THREE:typeof import('three'),o:{
   vertexShader:TREE_VERT,fragmentShader:TREE_FRAG,fog:false,
  });
  const trees=new THREE.InstancedMesh(treeGeo,treeMat,n.trees);
- trees.name='genesis-trees';trees.frustumCulled=false;
+ trees.name='genesis-trees';trees.frustumCulled=false;trees.userData.label=PLACEMENT_LABEL;
  const m=new THREE.Matrix4(),p=new THREE.Vector3(),q=new THREE.Quaternion(),s=new THREE.Vector3();
  let gi=0;
  for(let i=0;i<n.grass*3&&gi<n.grass;i++){
