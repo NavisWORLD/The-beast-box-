@@ -1,0 +1,113 @@
+// Chunked rings over a caller-supplied height function. The function is only read.
+import {seededNoise} from './seed.ts';
+import {budgetFor} from './tiers.ts';
+
+export type Ring={r0:number;r1:number;a:number;rad:number};
+const PLANS:Record<string,Ring[]>={
+ LOW:[
+  {r0:.6,r1:18,a:64,rad:10},
+  {r0:18,r1:60,a:48,rad:8},
+  {r0:60,r1:140,a:40,rad:6},
+ ],
+ MED:[
+  {r0:.5,r1:14,a:128,rad:24},
+  {r0:14,r1:40,a:112,rad:16},
+  {r0:40,r1:100,a:96,rad:12},
+  {r0:100,r1:220,a:160,rad:12},
+ ],
+ HIGH:[
+  {r0:.4,r1:12,a:160,rad:32},
+  {r0:12,r1:32,a:144,rad:20},
+  {r0:32,r1:80,a:128,rad:16},
+  {r0:80,r1:170,a:160,rad:14},
+  {r0:170,r1:360,a:180,rad:12},
+ ],
+ GOD:[
+  {r0:.4,r1:10,a:192,rad:40},
+  {r0:10,r1:28,a:176,rad:24},
+  {r0:28,r1:70,a:160,rad:18},
+  {r0:70,r1:150,a:180,rad:16},
+  {r0:150,r1:300,a:200,rad:14},
+  {r0:300,r1:560,a:220,rad:12},
+ ],
+};
+
+export function ringPlan(tier:string):Ring[]{return PLANS[tier]||PLANS.MED;}
+export function plannedTris(rings:Ring[]){return rings.reduce((s,r)=>s+r.a*r.rad*2,0);}
+
+export function centralNormal(heightAt:(x:number,z:number)=>number,x:number,z:number,e=.45){
+ const hx=heightAt(x-e,z)-heightAt(x+e,z);
+ const hz=heightAt(x,z-e)-heightAt(x,z+e);
+ const ny=e*2;
+ const len=Math.hypot(hx,ny,hz)||1;
+ return [hx/len,ny/len,hz/len] as [number,number,number];
+}
+
+export function terrainTrisBudget(tier:string){return budgetFor(tier).tris;}
+
+export function buildTerrainLod(THREE:typeof import('three'),o:{
+ heightAt:(x:number,z:number)=>number;
+ tier?:string;
+ seed?:string;
+ waterLevel?:number;
+}){
+ const tier=o.tier||'MED';
+ const rings=ringPlan(tier);
+ const cap=terrainTrisBudget(tier);
+ if(plannedTris(rings)>cap)throw new Error('terrain rings exceed the '+tier+' triangle budget');
+ const heightAt=o.heightAt;
+ const pos:number[]=[];const nrm:number[]=[];const ao:number[]=[];const noise:number[]=[];const idx:number[]=[];
+ const skirt=.35;
+ const push=(x:number,y:number,z:number,nx:number,ny:number,nz:number)=>{
+  pos.push(x,y,z);nrm.push(nx,ny,nz);
+  const h=y;
+  let occ=0;const step=1.6;
+  for(const [dx,dz] of [[step,0],[-step,0],[0,step],[0,-step]] as const){
+   const nh=heightAt(x+dx,z+dz);
+   if(nh>h+.02)occ+=Math.min(1,(nh-h)/.8);
+  }
+  ao.push(1-Math.min(.65,occ*.22));
+  noise.push(seededNoise(o.seed||'genesis',x,z));
+  return (pos.length/3)-1;
+ };
+ for(const ring of rings){
+  const base=pos.length/3;
+  const cols=ring.a,rows=ring.rad;
+  for(let j=0;j<=rows;j++){
+   const r=ring.r0+(ring.r1-ring.r0)*(j/rows);
+   for(let i=0;i<=cols;i++){
+    const a=i/cols*Math.PI*2;
+    const x=Math.cos(a)*r,z=Math.sin(a)*r;
+    const y=heightAt(x,z);
+    const n=centralNormal(heightAt,x,z,Math.max(.25,r*.01));
+    push(x,y,z,n[0],n[1],n[2]);
+   }
+  }
+  const row=cols+1;
+  for(let j=0;j<rows;j++)for(let i=0;i<cols;i++){
+   const a=base+j*row+i,b=a+row;
+   idx.push(a,a+1,b,a+1,b+1,b);
+  }
+  // Skirt on the outer edge so a coarser neighbour does not crack open.
+  const edge=base+rows*row;
+  const sBase=pos.length/3;
+  for(let i=0;i<=cols;i++){
+   const v=edge+i;
+   const x=pos[v*3],y=pos[v*3+1],z=pos[v*3+2];
+   push(x,y-skirt,z,nrm[v*3],nrm[v*3+1],nrm[v*3+2]);
+  }
+  for(let i=0;i<cols;i++){
+   const a=edge+i,b=sBase+i;
+   idx.push(a,b,a+1,a+1,b,b+1);
+  }
+ }
+ const geo=new THREE.BufferGeometry();
+ geo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
+ geo.setAttribute('normal',new THREE.Float32BufferAttribute(nrm,3));
+ geo.setAttribute('ao',new THREE.Float32BufferAttribute(ao,1));
+ geo.setAttribute('noise',new THREE.Float32BufferAttribute(noise,1));
+ geo.setIndex(idx);
+ geo.computeBoundingSphere();
+ const tris=idx.length/3;
+ return {geometry:geo,tris,rings:rings.length,tier};
+}

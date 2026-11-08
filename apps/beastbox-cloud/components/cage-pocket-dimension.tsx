@@ -16,6 +16,7 @@ const pocketSunDir=():[number,number,number]=>{const d=oneSunAt(Date.now()/1000)
 /** By day keep only the sun disc (PR #688 treatment): the additive halo, rays, shaft, motes and flares hide; lights stay. */
 const pocketDayDiscOnly=(root:any)=>{const day=oneSunAt(Date.now()/1000).day>=.05;root.traverse((o:any)=>{if(o===root||o.isLight||o.name==='heaven-sun'||o.parent!==root&&o.parent?.isLight)return;if(o.material&&o.material.blending===2)o.visible=!day;});return day;};
 import {terrainHeight} from '../lib/worlds/terrain-math.mjs';
+import {attachGenesisLook} from '../lib/look/attach';
 import {createCompanions} from '../lib/companions/companions';
 import {createSensors,bodyDims,nervePaletteChoice} from '../lib/sensors/sensors';
 import {neonPatch,neonUniforms,neonDistGain,makeFilaments} from '../lib/worlds/neon-wire';
@@ -360,6 +361,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     const zHolder=new THREE.Group();zHolder.scale.setScalar(.45);zHolder.position.set(0,-.07,0);zHolder.rotation.y=.7;scene.add(zHolder);
     // Universe of worlds: home trees/clouds/sky dome/parallax haze + distant worlds with gravity wells; Zeref travels between them.
     const neonU=neonUniforms();const uw=buildWorlds(THREE,scene,{low,universe:UNIVERSE_R,neon:neonU});const land=(!soft||lcForced)?buildTerrain(THREE,scene,{low}):null;if(lcForced)(window as any).__lcLand=land;const gj=(!soft||lcForced)?buildIsland(THREE,scene,{low,open:true}):null;const gjEv=gj?addGeyserEvents(THREE,gj,{low}):null;const gjLife=gj&&gjEv?addIslandLife(THREE,gj,gjEv.puff,{low}):null;const gjSnd=gj?createGeyserSound():null;gjEv?.on(e=>{gjSnd?.event(e==='geyser-tap'?'':e);if(e==='tremor'||e==='erupt')gjLife?.scare();});gjLife?.on(e=>gjSnd?.event(e));if(lcForced){(window as any).__geyser=gj;(window as any).__geyserEv=gjEv;(window as any).__geyserLife=gjLife;}
+    const genesisLook=soft?null:attachGenesisLook(THREE,scene,{seed:String(key||'cage'),phone:window.innerWidth<=820,softGL:false,heightAt:(x:number,z:number)=>terrainHeight(x,z),reduced:()=>reduced,nowMs:()=>performance.now(),classicRoots:()=>land?.root?[land.root]:[],renderer});
     const onGj=(e:any)=>{const a=String(e?.detail?.action||'');if(a==='erupt')gjEv?.erupt();else if(a==='tremor')gjEv?.tremor();else if(a==='geyser')gjEv?.geyser();else if(a==='breach')gjLife?.breach();else if(a==='castoff')gjLife?.castoff();};window.addEventListener('beastbox:geyser',onGj);if(gj){(window as any).__geyserReady=true;window.dispatchEvent(new Event('beastbox:geyser-ready'));}
     // tap the geyser, volcano, whale or boat to trigger it (taps only; drags keep orbiting the camera)
     const gjRay=new THREE.Raycaster(),gjNdc=new THREE.Vector2();let gjDown:{x:number;y:number;t:number}|null=null;
@@ -589,7 +591,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
      lcS.syn?.dispose();if(lcS.g){lcS.g.remove(lcS.LC.group);zActorNode.remove(lcS.g);}extras.dispose();gcam.dispose();lcBus.current=null;
      pickRef.current=null;godRef.current=null;world.dispose();window.removeEventListener('beastbox:genome',syncPlush);window.removeEventListener('beastbox:pixel-mode',syncPlush);window.removeEventListener('beastbox:spark-chirp',onTalk);document.documentElement.removeAttribute('data-beast-3d');life.dispose();plush?.dispose();
      {const ze=(window as any).__zerefEmbed;if(ze?.root?.parent===zActorNode){zActorNode.remove(ze.root);ze.root.position.y=0;ze.claimed=false;}}
-     cancelAnimationFrame(frame);ro?.disconnect();io?.disconnect();
+     cancelAnimationFrame(frame);genesisLook?.dispose();ro?.disconnect();io?.disconnect();
      canvas.removeEventListener('webglcontextlost',onContextLost);
      const geometries=new Set<import('three').BufferGeometry>(),materials=new Set<import('three').Material>();
      scene.traverse(o=>{
