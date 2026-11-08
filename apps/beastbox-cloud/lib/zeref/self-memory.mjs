@@ -13,6 +13,7 @@ import {isPublicDiaryEntry} from './diary-privacy.mjs';
 import {ZEREF_PROFILE} from './zeref-mind.mjs';
 import {storageConfig,getBlob,listBlobs} from '../cosmos/azure-blob.mjs';
 import {TEACHER_LABEL,screenTeacherLessons,loadHeldoutScreen,readTeacherRecords} from './teacher-lessons.mjs';
+import {recallReceiptBody,recallThreadId,recallUtc} from './recall-receipt.mjs';
 
 export const SELF_MEMORY_SCHEMA='zeref-self-memory/v1';
 /** Bytes of the bridge context's `memory` field (inside the existing 1300 total; he trained on 128-token windows). */
@@ -34,9 +35,11 @@ export const KIND_OF=Object.freeze({diary:'LIVED',read:'LIVED',node:'LIVED',thre
 export const KIND_TIER=Object.freeze({LIVED:0,TAUGHT:1});
 /** Normalise raw source records into labelled items. Pure. `thread` items are only ever the caller's own. */
 export function itemsFrom({diary=[],lessons=[],reads=[],seeds=[]}={}){
- const out=[];const push=(source,label,text,ref)=>{const t=String(text??'').replace(/\s+/g,' ').trim();if(!isShareableText(t))return;
-  const h=sha256(source+'\n'+t);out.push({id:source+':'+h.slice(0,16),kind:KIND_OF[source],source,label,text:t,sha256:h,ref:ref??null});};
- for(const e of Array.isArray(diary)?diary:[]){if(!isPublicDiaryEntry(e))continue;push('diary','RECORDED',e.thought.text,e.hash?`diary tick ${e.tick}`:null);}
+ const out=[];const push=(source,label,text,ref,identity)=>{const raw=String(text??'');const t=raw.replace(/\s+/g,' ').trim();if(!isShareableText(t))return;
+  // Legacy id, unchanged: SHA-256 of source + newline + collapsed text; id keeps the first 16 hex chars.
+  const h=sha256(source+'\n'+t);out.push({id:source+':'+h.slice(0,16),kind:KIND_OF[source],source,label,text:t,sha256:h,ref:ref??null,
+   recall:{text:raw,role:source,source,thread_id:'',created_at:recallUtc(identity?.created_at)}});};
+ for(const e of Array.isArray(diary)?diary:[]){if(!isPublicDiaryEntry(e))continue;push('diary','RECORDED',e.thought.text,e.hash?`diary tick ${e.tick}`:null,{created_at:e.at});}
  for(const r of Array.isArray(lessons)?lessons:[]){
   if(!r||EXCLUDED_PATH_RX.test(String(r.path||''))||(r.split&&r.split!=='train'))continue;
   if(typeof r.assistant!=='string')continue;
@@ -45,9 +48,11 @@ export function itemsFrom({diary=[],lessons=[],reads=[],seeds=[]}={}){
  for(const s of Array.isArray(seeds)?seeds:[]){if(!s||typeof s.word!=='string'||!s.wish_sha256)continue;push('node','SEEDED',`A growth node planted from my wish word "${s.word}".`,'wish '+String(s.wish_sha256).slice(0,12));}
  return out;}
 
-/** Thread items for ONE caller. Never pass another guest's turns here. */
-export function ownThreadItems(turns){const out=[];for(const t of Array.isArray(turns)?turns:[]){const g=t?.from==='guest'&&typeof t?.text==='string'?t.text:typeof t?.guest==='string'?t.guest:typeof t?.guestText==='string'?t.guestText:null;
- if(g&&isShareableText(g)){const h=sha256('thread\n'+g);out.push({id:'thread:'+h.slice(0,16),kind:'LIVED',source:'thread',label:'THREAD (your own)',text:g.replace(/\s+/g,' ').trim(),sha256:h,ref:null});}}return out;}
+/** Thread items for ONE caller. Never pass another guest's turns here. `threadId` is the door's thread, used when a window turn has no thread field of its own. */
+export function ownThreadItems(turns,threadId){const out=[];const fallback=recallThreadId(threadId);for(const t of Array.isArray(turns)?turns:[]){const g=t?.from==='guest'&&typeof t?.text==='string'?t.text:typeof t?.guest==='string'?t.guest:typeof t?.guestText==='string'?t.guestText:null;
+ if(g&&isShareableText(g)){// Legacy id, unchanged: SHA-256 of the prefix thread, a newline, and the raw guest text. The id keeps the first 16 hex chars.
+  const h=sha256('thread\n'+g);out.push({id:'thread:'+h.slice(0,16),kind:'LIVED',source:'thread',label:'THREAD (your own)',text:g.replace(/\s+/g,' ').trim(),sha256:h,ref:null,
+   recall:{text:g,role:'guest',source:'thread',thread_id:recallThreadId(t?.thread)||fallback,created_at:recallUtc(t?.at)}});}}return out;}
 
 /** One shared index. Items are sorted by id so BM25's document-order tie-break is an id tie-break. */
 export function buildSelfMemory(items){const seen=new Set();const list=(Array.isArray(items)?items:[]).filter(i=>i&&!seen.has(i.id)&&seen.add(i.id)).sort((a,b)=>a.id<b.id?-1:a.id>b.id?1:0);
@@ -65,8 +70,18 @@ export function readSelfMemory(mem,query,{ownThread=[],k=2,cap=SELF_MEMORY_CAP,m
  for(const {item} of hits){if(read.length>=k)break;const line=`\n- [${item.label}] ${item.text}`;
   const room=cap-Buffer.byteLength(text,'utf8');if(room<40)break;
   let piece=line;while(Buffer.byteLength(piece,'utf8')>room)piece=piece.slice(0,-1);
-  text+=piece;read.push({id:item.id,label:item.label,sha256:item.sha256});}
+  text+=piece;read.push(memoryRead(item));}
  return read.length?{text,memory_read:read,...(mem?.origins?{origins:mem.origins}:{}),...(mem?.screens?{screens:mem.screens}:{})}:empty;}
+
+/** Receipt: legacy id, label, and sha256, plus the verifiable entry hash. Ranking does not read these fields. */
+function memoryRead(item){
+ const r=item?.recall||{};
+ const source=typeof r.source==='string'?r.source:(typeof item?.source==='string'?item.source:'');
+ return {id:item.id,label:item.label,sha256:item.sha256,...recallReceiptBody({
+  text:typeof r.text==='string'?r.text:(typeof item?.text==='string'?item.text:''),
+  role:typeof r.role==='string'?r.role:source,source,
+  thread_id:recallThreadId(r.thread_id),created_at:recallUtc(r.created_at)})};
+}
 
 /* ---------------- loaders: the one loader (network/fs; never inside the ranking) ---------------- */
 // Root cause fixed here (and in live-context.mjs): Turbopack rewrites a TEMPLATE-literal URL relative to import.meta.url
@@ -129,7 +144,8 @@ export async function teacherJoin(m,io={storageConfig,listBlobs,getBlob}){
  const {items,report}=records?screenTeacherLessons(records,{heldout,existingTexts,isShareable:isShareableText})
   :{items:[],report:{total:why.listed??null,in:0,screen_ran:false,excluded:{azure_unreadable:'all'},cause:why.cause||'unknown',ms:why.ms??null}};
  const extra=[];for(const t of items){const text=`${t.prompt} - ${t.reply}`.replace(/\s+/g,' ').trim();if(!isShareableText(text))continue;
-  const hh=sha256('teacher\n'+text);extra.push({id:'teacher:'+hh.slice(0,16),kind:KIND_OF.teacher,source:'teacher',label:TEACHER_LABEL,text,sha256:hh,ref:'lesson '+t.id});}
+  const hh=sha256('teacher\n'+text);extra.push({id:'teacher:'+hh.slice(0,16),kind:KIND_OF.teacher,source:'teacher',label:TEACHER_LABEL,text,sha256:hh,ref:'lesson '+t.id,
+   recall:{text,role:'teacher',source:'teacher',thread_id:'',created_at:''}});}
  const out=buildSelfMemory([...m.items,...extra]);
  out.origins=Object.freeze({...m.origins,...(records?{teacher:'azure'}:{})});
  out.screens=Object.freeze({teacher:{...report,in:extra.length}});
