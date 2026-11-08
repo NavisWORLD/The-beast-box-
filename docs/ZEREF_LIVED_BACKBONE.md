@@ -52,3 +52,9 @@ Teaching is a design rule in this PR. A1 does not teach. The store can hold a pe
 - Self-knowledge lesson to teach him: "When you do not know, you can go and learn." The wording is Emeth's call.
 
 S1 is not built here. A1 does not fetch, rate-limit, narrate, or seed that self-knowledge sentence. The chain can already append `study_request`, `study_lesson` (label `TAUGHT`, with source and license), and `study_arc` stages `confused`, `asked`, `studied`, and `answered`. Those records advance the chain and leave dyn12 unchanged. Raw page text, urls, and transplanted weights are rejected.
+
+## Prompt (PR B1)
+
+The local mouth reads the owner sensorium file on the host. A client cannot submit state text. The descriptor sits beside self-memory and context, inside the existing UTF-8 budgets. It is not history memory: `memory_used` stays the history flag, and the lived receipt says it does not count as that flag. The receipt carries the snapshot sequence, the state hash, and the hash of the exact descriptor text placed in the prompt. `changes_model_tensors` is false. The descriptor does not name an origin, a person, or a raw recording.
+
+Guest and visitor mouths do not open the owner chain. Their descriptor says unavailable, reason isolated. A missing file, a stale present reading, or a remote provider also says unavailable and does not invent numbers. An off channel stays ABSENT and null. Face stays ESTIMATE. Pulse is MEASURED only from fingertip or wearable PPG. Feeling words stay the ones in `emotion.mjs`. Two calls that share a host exchange id keep the first snapshot. Budget cuts trim the prompt window only. The guest archive keeps the full turn. The caps are unchanged. With the flag off, or without the verified origin attachment, the prompt and the response keys stay as they were.

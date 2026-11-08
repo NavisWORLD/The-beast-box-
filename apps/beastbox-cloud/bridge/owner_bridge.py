@@ -29,6 +29,7 @@ from beastbox.engine_growth_report import engine_growth_report
 from beastbox.device_observations import normalize_device_observations
 from beastbox.durable import DurableRuntime
 from beastbox.lived_events import CANONICAL_SUBJECT, ActivationRejected, SampleRejected, host_attachment
+from beastbox.lived_prompt import CLIENT_STATE_KEYS
 from beastbox.lived_state import LivedStore
 from beastbox.background_consolidation import OwnerMemoryLoop
 from beastbox.qc67_local import (PINS as QC67_PINS, URL as QC67_URL,
@@ -903,6 +904,8 @@ class OwnerBridge:
             with self.app._lock:
                 return self.chat_jobs.run_when_idle(lambda: signal_model_probe(data))
         if name == "guest-local":
+            if isinstance(data, dict) and set(data) & CLIENT_STATE_KEYS:
+                return 400, {"error": "Invalid bounded guest request"}
             if not self.chat_jobs.acquire_guest():
                 # Spark on receipt (Cory, 2026-11-03): the message arrived; its
                 # spark is recorded even though the guest slot is busy, and the
@@ -921,6 +924,8 @@ class OwnerBridge:
             finally:
                 self.chat_jobs.release_guest()
         if name == "guest-growing":  # Growing Zeref, not the pin (beastbox/growing.py); same guest slot
+            if isinstance(data, dict) and set(data) & CLIENT_STATE_KEYS:
+                return 400, {"error": "Invalid bounded guest request"}
             if not self.chat_jobs.acquire_guest():
                 return 429, {"error": "Owner inference or local guest slot is busy"}
             try:
@@ -1054,6 +1059,16 @@ def served_pin_health() -> dict:
         body["context_fields"] = sorted(CONTEXT_CAPS)
     except Exception:
         pass
+    try:  # capability only: an older bridge reports unavailable and does not call a model to guess the schema
+        from beastbox.lived_prompt import capability_receipt
+        body["lived_state"] = capability_receipt()
+    except Exception:
+        body["lived_state"] = {
+            "schema": "lived-state-capability-v1",
+            "state_conditioning": "unavailable",
+            "changes_model_tensors": False,
+            "clients_submit_state": False,
+        }
     try:
         ready = native_pin_status()
         body["served_readiness"] = str(ready.get("readiness"))

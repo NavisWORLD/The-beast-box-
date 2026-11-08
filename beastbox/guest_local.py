@@ -29,6 +29,7 @@ import urllib.request
 from .guest_hebbian import (MAX_TEXT_WITH_CONTEXT, GuestHebbianStore,
                             assemble_messages, guest_key, memory_in_prompt,
                             persist_enabled, validate_context)
+from .lived_prompt import CLIENT_STATE_KEYS, backbone_ready, fit_guest, guest_view
 from .providers import _local_opener
 from .rawrphos_local import MODEL, SHA, STEP, status as native_status
 
@@ -209,7 +210,8 @@ def _recharging(root: Path, identity: str, message: str, retry_after: int,
     return body
 
 
-def guest_local_infer(root: Path, payload: dict, *, owner_jobs_busy: bool = False) -> tuple[int, dict]:
+def guest_local_infer(root: Path, payload: dict, *, owner_jobs_busy: bool = False,
+                      exchange_id: str | None = None) -> tuple[int, dict]:
     """Exactly one native inference. No owner-provider selection or fallback.
 
     The plain contract {text, guest_identity} is stateless, byte-for-byte as
@@ -224,6 +226,8 @@ def guest_local_infer(root: Path, payload: dict, *, owner_jobs_busy: bool = Fals
     if not isinstance(payload, dict):
         return 400, {"error": "Invalid bounded guest request"}
     keys = set(payload)
+    if keys & CLIENT_STATE_KEYS:
+        return 400, {"error": "Invalid bounded guest request"}
     context = None
     if keys == {"text", "guest_identity", "context"}:
         context = validate_context(payload["context"])
@@ -279,10 +283,16 @@ def guest_local_infer(root: Path, payload: dict, *, owner_jobs_busy: bool = Fals
                 routing = router.route_turn(f"guest-{_ROUTER['n']}")  # counter, never the guest identity
         except Exception:  # routing never blocks a reply; the response then simply carries no routing summary
             routing = None
-        if context is not None:
-            messages = assemble_messages(context, history, payload["text"].strip())
+        lived_receipt = None
+        spoken = payload["text"].strip()
+        if backbone_ready():
+            messages, lived_receipt = fit_guest(
+                context, history, spoken, guest_view(payload["guest_identity"], exchange_id),
+            )
+        elif context is not None:
+            messages = assemble_messages(context, history, spoken)
         else:
-            messages = [{"role": "user", "content": payload["text"].strip()}]
+            messages = [{"role": "user", "content": spoken}]
         request_body = {"model": MODEL, "messages": messages,
                         "max_tokens": MAX_OUTPUT_TOKENS, "temperature": CHAT_TEMPERATURE,
                         "seed": _request_seed(payload["guest_identity"], payload["text"].strip()),
@@ -341,7 +351,8 @@ def guest_local_infer(root: Path, payload: dict, *, owner_jobs_busy: bool = Fals
                      "owner_tools_used": False, "provider_key_shared": False,
                      # Self-memory receipt: present only when the site sent a memory field (others unchanged).
                      **({"self_memory_in_prompt": memory_in_prompt(context, messages)}
-                        if context and context.get("memory") else {})}
+                        if context and context.get("memory") else {}),
+                     **({"lived_state": lived_receipt} if lived_receipt else {})}
     except (OSError, TimeoutError, ValueError, TypeError, KeyError, IndexError, urllib.error.HTTPError) as exc:
         from .reason_codes import reason_for
         return 502, {"error": "Native guest inference unavailable; no fallback", "reason": reason_for(exc)}
