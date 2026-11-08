@@ -33,6 +33,8 @@ from .dad_son import DadSonLedger
 from .events import bounded_output, normalize_event
 from .evidence import EvidenceEvent
 from .hashutil import sha256_obj, sha256_text
+from .lived_events import BASIS, ActivationRejected, activation_enabled, validate_attachment
+from .lived_state import LivedStore
 from .memory import MemoryHit, ReconciliationMemory
 from .organism import EvolutionEngine, InternalMonologue, OrganismState, SlowState
 from .providers import ReferenceTextProvider, TextProvider
@@ -119,11 +121,23 @@ class DurableRuntime(CosmosRuntime):
         closed_loop: bool = False,
         reviewed_routing_receipt: Mapping[str, Any] | None = None,
         unicode_mode: bool = False,
+        lived_backbone: bool = False,
+        lived_attachment: Mapping[str, Any] | None = None,
     ):
         if type(recent_dialogue_limit) is not int or not 0 <= recent_dialogue_limit <= 6:
             raise ValueError("recent dialogue limit must be an integer in 0..6")
         if type(closed_loop) is not bool or type(unicode_mode) is not bool:
             raise ValueError("closed-loop and Unicode switches are explicit host booleans")
+        if type(lived_backbone) is not bool:
+            raise ValueError("lived backbone switch is an explicit host boolean")
+        self._lived_store = None
+        self._lived_attachment = None
+        if lived_backbone:
+            if not activation_enabled():
+                raise ActivationRejected(
+                    "activation", "lived backbone stays off unless BEASTBOX_LIVED_BACKBONE is on",
+                )
+            self._lived_attachment = validate_attachment(lived_attachment)
         self._reviewed_weights = reviewed_weights(reviewed_routing_receipt)
         if self._reviewed_weights is not None and not closed_loop:
             raise ValueError("reviewed routing weights require a connected host closed loop")
@@ -191,6 +205,10 @@ class DurableRuntime(CosmosRuntime):
         try:
             self.continuity = ContinuityStore(self.memory.db, create=not existed)
             with self.memory.transaction():
+                if self._lived_attachment is not None:
+                    self._lived_store = LivedStore.attach(
+                        self.memory.db, self._lived_attachment, owned=False,
+                    )
                 if not existed:
                     self.continuity.append(self._state(), system_id=self.system_id, receipt={"kind": "genesis"})
                 restored = self.continuity.verify()
@@ -254,6 +272,9 @@ class DurableRuntime(CosmosRuntime):
         }
         if self._wiring_profile is not None:
             state["wiring_profile"] = self._wiring_profile
+        profile = self._lived_profile()
+        if profile is not None:
+            state["lived_profile"] = profile
         return state
 
     def _restore(self, checkpoint: dict[str, Any]) -> None:
@@ -297,6 +318,18 @@ class DurableRuntime(CosmosRuntime):
             raise RuntimeError("provenance chain integrity failed")
         self.r12_state = state["r12_state"]
         self.simulator_position = state["simulator_position"]
+        profile = state.get("lived_profile")
+        if profile is not None and self._lived_store is None:
+            raise ValueError("persistent lived backbone profile requires the same host activation")
+        if profile is not None and self._lived_store is not None:
+            snap = self._lived_store.read_lived_snapshot(self._lived_store.scope)
+            if (
+                profile.get("subject_id") != snap["subject_id"]
+                or profile.get("sequence") != snap["sequence"]
+                or profile.get("state_sha256") != snap["state_sha256"]
+                or profile.get("chain_head") != snap["chain_head"]
+            ):
+                raise ValueError("lived backbone profile does not match the committed chain")
 
     def _trace_stage(self, stage):
         self._trace.append(stage)
@@ -456,6 +489,71 @@ class DurableRuntime(CosmosRuntime):
         self._tool_result = bounded_output(response, self.policy, self.simulator_position)
         self.simulator_position = self._tool_result["position"]
         self._trace_stage("bounded_output")
+
+    def _lived_profile(self) -> dict[str, Any] | None:
+        if self._lived_store is None:
+            return None
+        snap = self._lived_store.read_lived_snapshot(self._lived_store.scope)
+        return {
+            "schema": "lived-backbone-profile-v1",
+            "subject_id": snap["subject_id"],
+            "scope": snap["scope"],
+            "basis": snap["basis"],
+            "sequence": snap["sequence"],
+            "state_sha256": snap["state_sha256"],
+            "chain_head": snap["chain_head"],
+            "origin_commitment": snap["origin_commitment"],
+            "segment": snap["segment"],
+        }
+
+    def read_lived_snapshot(self, scope: str) -> dict[str, Any]:
+        if self._lived_store is None:
+            raise ActivationRejected("activation", "lived backbone is not active")
+        return self._lived_store.read_lived_snapshot(scope)
+
+    def admit_sensor(self, sample: Mapping[str, Any], *, now_ms: int) -> dict[str, Any]:
+        """Admit one numeric sample into the lived chain and the continuity receipt.
+
+        The text provider is not called. A duplicate source sequence does not
+        append another continuity row.
+        """
+        if self._lived_store is None:
+            raise ActivationRejected("activation", "lived backbone is not active")
+        before = None
+        committed = False
+        try:
+            with self.memory.transaction():
+                before = self.continuity.verify()
+                self._check_anchor(before)
+                self._restore(copy.deepcopy(before))
+                receipt = self._lived_store.admit_sensor(
+                    sample, now_ms=now_ms, external_transaction=True,
+                )
+                checkpoint = None
+                if receipt["status"] != "duplicate":
+                    self.ledger.append(
+                        "lived_sensor",
+                        {
+                            "event_id": receipt["event_id"],
+                            "sequence": receipt["sequence"],
+                            "state_sha256": receipt["state_sha256"],
+                            "chain_head": receipt["chain_head"],
+                            "basis": BASIS,
+                        },
+                    )
+                    checkpoint = self.continuity.append(
+                        self._state(),
+                        system_id=self.system_id,
+                        receipt={"kind": "lived_sensor", "event_id": receipt["event_id"]},
+                    )
+            committed = True
+            if checkpoint is not None:
+                self._publish_anchor(before, checkpoint)
+            return receipt
+        except BaseException:
+            if before is not None and not committed:
+                self._restore(before)
+            raise
 
     def swap_provider(self, provider: TextProvider) -> None:
         """Replace inference and revoke grants; neither model nor memory grants authority."""

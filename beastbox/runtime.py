@@ -1,11 +1,12 @@
 from __future__ import annotations
 
+import math
 from dataclasses import asdict
 from pathlib import Path
 from typing import Any
 
 from .bridge import BridgePacket
-from .cns import CNS
+from .cns import CNS, PHI
 from .config import RuntimeConfig
 from .evidence import EvidenceLedger
 from .heartbeat import Heartbeat
@@ -49,6 +50,8 @@ class CosmosRuntime:
         self.heartbeat = Heartbeat()
         self.ledger = EvidenceLedger()
         self.turn = 0
+        # The lived chain is attached only by an opted-in durable host. None keeps this loop unchanged.
+        self._lived_store = None
         # Opt-in live routing (BEASTBOX_LIVE_ROUTING=on): owner sensors + Rigetti SIMULATED spark -> 12D/42D/54D each turn.
         from .live_routing import from_env as _live_router
         self.live_router = _live_router(self.config.data_dir)
@@ -106,6 +109,7 @@ class CosmosRuntime:
                         **({"routing_receipt_sha256": routing["summary"]["receipt_sha256"]} if routing else {})},
         )
         cns_state = self.cns.tick(state, packet.safe_dict())
+        self._reconcile_lived_state(state, cns_state)
         self._trace_stage("state_cns")
         memories = self._route_memories(text, memories, state)
         state.evidence = [m.text for m in memories]
@@ -174,6 +178,22 @@ class CosmosRuntime:
 
     def save_evidence(self, path: str | Path) -> None:
         self.ledger.write_jsonl(path)
+
+    def _reconcile_lived_state(self, state: MissionState, cns_state: dict[str, Any]) -> None:
+        """Copy the canonical lived dyn12 over the speech-turn copy when a store is attached."""
+        store = getattr(self, "_lived_store", None)
+        if store is None:
+            return
+        snap = store.read_lived_snapshot(store.scope)
+        canonical = [float(item) for item in snap["state12"]]
+        state.dyn12 = list(canonical)
+        family = self.synaptic.state_family
+        family.dyn12 = list(canonical)
+        family.dyn54 = list(canonical) + list(family.dyn54[12:])
+        phos = sum(math.cos(PHI * item) for item in canonical) / 12.0
+        state.phos = phos
+        cns_state["dyn12"] = list(canonical)
+        cns_state["phos"] = phos
 
     def _conversation_context(self) -> str:
         """Optional host-configured recent context; default keeps historical prompts exact."""
