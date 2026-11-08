@@ -859,6 +859,17 @@ body:has([data-not-found]) :is(.site-dock,[data-beast-chat-launcher],[data-zeref
  .beast-landing-art:has(.is-roamer) .beast-landing-caption{bottom:-30px!important;left:4%!important;right:4%!important}
  /* Full-screen world: the buttons form a compact wrapped row instead of a tall stack over the globe. */
  [data-living-world]:not([data-lw-embedded]) [data-lw-actions]{flex-direction:row!important;flex-wrap:wrap!important;justify-content:flex-end;gap:5px!important;max-width:min(72%,260px)}
+ /* 390px camera switch: left column, chips stay on the right, labels wrap, 44px targets. */
+ .lw-root{container-type:inline-size}
+ [data-lw-cam-switch] summary::-webkit-details-marker{display:none}
+ [data-lw-cam-switch] summary{list-style:none}
+ @container (max-width:420px){
+  [data-lw-view-chips]{max-width:min(168px,46cqw)!important}
+  [data-lw-view-chips] :is(button,span){white-space:normal!important;max-width:100%}
+  [data-lw-cam-switch]{width:min(210px,calc(50cqw - 12px))!important;left:8px!important;top:calc(env(safe-area-inset-top) + 44px)!important}
+  [data-lw-line]{--lw-line-top:calc(env(safe-area-inset-top) + 230px)}
+  [data-lw-cam-switch][open] ~ [data-lw-line]{--lw-line-top:calc(env(safe-area-inset-top) + 340px)!important}
+ }
  [data-living-world]:not([data-lw-embedded]) [data-lw-actions] button{padding:8px 10px!important;font-size:12px!important;min-height:36px}
  /* /universe 3D: Storms and the black-hole note share one stack; phones put it under the zoom row at the left edge. */
  [data-u3d-stack]{left:12px!important;top:244px!important;max-width:calc(100% - 24px)!important}
