@@ -42,6 +42,8 @@ MAX_TEXT_WITH_CONTEXT = 1200
 # under the served model's 2048-token context even at one token per byte.
 MAX_ASSEMBLED_BYTES = 1900
 MAX_REPLAY_MESSAGES = 28  # the model server accepts at most 32 messages
+# Reserved host descriptor. Not a client context field. The caps above stay put.
+MAX_DESCRIPTOR_BYTES = 1200
 MAX_TURNS = 40
 MAX_TURN_CHARS = 600
 MAX_THREAD_CHARS = 8000
@@ -131,6 +133,83 @@ def assemble_messages(context: dict, history: list[dict], text: str) -> list[dic
         fields = fields[:-1]  # library first, then sight, then universe; continuity stays
         msgs = build()
     return msgs
+
+
+def _excerpt_user(text: str, fits) -> tuple[str, int]:
+    """Shorten the prompt window of the current text. The caller keeps the full turn."""
+    raw = text.encode("utf-8", "surrogatepass")
+    if fits(text):
+        return text, 0
+    keep = len(raw)
+    while keep > 0:
+        keep -= 1
+        while keep > 0 and (raw[keep] & 0xC0) == 0x80:
+            keep -= 1
+        omitted = len(raw) - keep
+        shown = raw[:keep].decode("utf-8", "surrogatepass") + f" [omitted {omitted} utf-8 bytes]"
+        if fits(shown):
+            return shown, omitted
+    omitted = len(raw)
+    shown = f"[omitted {omitted} utf-8 bytes]"
+    if fits(shown):
+        return shown, omitted
+    return text, -1
+
+
+def assemble_lived_messages(context: dict, history: list[dict], text: str, descriptor: str) -> dict:
+    """assemble_messages plus one reserved descriptor, inside the same budgets.
+
+    Cut order matches the context contract: oldest history, then fields from
+    the end, and only then the current-text window. Continuity is kept. The
+    durable archive is not this function's input. A descriptor that does not
+    fit is left out and descriptor_included is false.
+    """
+    plain = assemble_messages(context, history, text)
+    encoded = descriptor.encode("utf-8", "surrogatepass") if isinstance(descriptor, str) else b""
+    if (
+        not isinstance(descriptor, str) or not descriptor or "\x00" in descriptor
+        or len(encoded) > MAX_DESCRIPTOR_BYTES
+        or "LIVED-STATE-DESCRIPTOR" in descriptor
+    ):
+        return {"messages": plain, "omitted_current_text_bytes": 0, "descriptor_included": False}
+    fields = [context[name] for name in CONTEXT_ORDER if context.get(name)]
+    hist = list(history)
+
+    def build(user_text: str) -> list[dict]:
+        msgs = [{"role": "system", "content": descriptor}]
+        if fields:
+            msgs.append({"role": "system", "content": "\n".join(fields)})
+        msgs.extend(hist[-MAX_REPLAY_MESSAGES:])
+        msgs.append({"role": "user", "content": user_text})
+        return msgs
+
+    def over(user_text: str) -> bool:
+        return _formatted_bytes(build(user_text)) > MAX_ASSEMBLED_BYTES
+
+    while over(text) and hist:
+        hist = hist[1:]
+        while hist and hist[0]["role"] != "user":
+            hist = hist[1:]
+    while over(text) and len(fields) > 1:
+        fields = fields[:-1]
+    if not over(text):
+        messages = build(text)
+    else:
+        shown, omitted = _excerpt_user(text, lambda user_text: not over(user_text))
+        if omitted < 0 or over(shown):
+            return {"messages": plain, "omitted_current_text_bytes": 0, "descriptor_included": False}
+        messages = build(shown)
+        if _formatted_bytes(messages) > MAX_ASSEMBLED_BYTES or len(messages) > 32:
+            return {"messages": plain, "omitted_current_text_bytes": 0, "descriptor_included": False}
+        included = any(m.get("role") == "system" and m.get("content") == descriptor for m in messages)
+        return {
+            "messages": messages,
+            "omitted_current_text_bytes": omitted,
+            "descriptor_included": included,
+        }
+    if _formatted_bytes(messages) > MAX_ASSEMBLED_BYTES or len(messages) > 32:
+        return {"messages": plain, "omitted_current_text_bytes": 0, "descriptor_included": False}
+    return {"messages": messages, "omitted_current_text_bytes": 0, "descriptor_included": True}
 
 
 class GuestHebbianStore:

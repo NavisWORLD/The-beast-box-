@@ -17,6 +17,7 @@ from .quantum_heart import HeartMode, QuantumHeart
 from .sensory import SensorySummary, freshness_gate
 from .state import MissionState
 from .synaptic import SynapticField
+from .lived_prompt import attest_owner, backbone_ready, owner_prefix
 
 
 DEFAULT_SYSTEM_PROMPT = (
@@ -118,8 +119,16 @@ class CosmosRuntime:
         memory_block = "\n".join(f"- {m.text}" for m in memories) or "- none"
         recent_dialogue = self._conversation_context()
         synthesis_instructions = (system_prompt or DEFAULT_SYSTEM_PROMPT).strip()
+        lived_prefix = ""
+        lived_exchange = None
+        if backbone_ready():
+            lived_prefix, lived_exchange = owner_prefix(
+                Path(self.config.data_dir), self.provider,
+                exchange_id=getattr(self, "_lived_exchange_id", None),
+            )
         prompt = (
             f"{synthesis_instructions}\n"
+            f"{lived_prefix}"
             f"USER INPUT:\n{text}\n\nRETRIEVED MEMORY:\n{memory_block}\n\n"
             f"DYN12 SUMMARY: min={min(state.dyn12):.4f} max={max(state.dyn12):.4f}\n"
             f"QUANTUM HEART MODE: {heart['mode']}\n"
@@ -167,7 +176,7 @@ class CosmosRuntime:
             },
         )
         self._trace_stage("provenance")
-        return {
+        result = {
             "response": response,
             "state_hash": state.digest(),
             "memory_hits": [asdict(m) for m in memories],
@@ -175,6 +184,9 @@ class CosmosRuntime:
             "quantum_heart": heart,
             "ledger_head": self.ledger.head,
         }
+        if lived_exchange is not None:
+            result["lived_state"] = attest_owner(prompt, lived_exchange, prefix=lived_prefix)
+        return result
 
     def save_evidence(self, path: str | Path) -> None:
         self.ledger.write_jsonl(path)

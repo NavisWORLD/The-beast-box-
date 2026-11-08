@@ -326,3 +326,41 @@ def test_receipt_archived_count_grows_and_failed_save_is_not_success(monkeypatch
     code, out = infer({"text": "one more", "guest_identity": ID_A, "context": CONTEXT})
     assert code == 200 and out["guest_thread"]["save_ok"] is False and out["guest_thread"]["archive_ok"] is False
     assert out["guest_thread"]["archived_turns"] == 2 * guest_hebbian.MAX_TURNS
+
+
+def test_lived_descriptor_keeps_continuity_and_the_byte_cap():
+    from beastbox.guest_hebbian import _formatted_bytes, assemble_lived_messages
+    descriptor = "D" * 800
+    context = {"continuity": "c" * 100, "universe": "u" * 300, "library": "l" * 300}
+    fitted = assemble_lived_messages(context, [], "t" * 1200, descriptor)
+    assert fitted["descriptor_included"] is True
+    assert _formatted_bytes(fitted["messages"]) <= guest_hebbian.MAX_ASSEMBLED_BYTES
+    assert len(fitted["messages"]) <= 32
+    system = "\n".join(m["content"] for m in fitted["messages"] if m["role"] == "system")
+    assert descriptor in system and "c" * 100 in system and "l" * 300 not in system
+    assert guest_hebbian.MAX_ASSEMBLED_BYTES == 1900
+    assert guest_hebbian.MAX_CONTEXT_TOTAL == 1300
+    assert guest_hebbian.CONTEXT_CAPS["memory"] == 300
+
+
+def test_lived_prompt_window_excerpt_leaves_the_archive_whole(monkeypatch, tmp_path):
+    infer, sent = _serve(monkeypatch, tmp_path)
+    monkeypatch.setenv("BEASTBOX_LIVED_BACKBONE", "on")
+    monkeypatch.setenv("BEASTBOX_LIVED_ORIGIN_COMMITMENT", "ab" * 32)
+    monkeypatch.setenv("BEASTBOX_LIVED_PRIOR_HEAD", "cd" * 32)
+    text = "😀" * 300
+    context = {"continuity": "c" * 600, "universe": "u" * 300, "sight": "s" * 300, "library": "l" * 100}
+    code, out = infer({"text": text, "guest_identity": ID_A, "context": context})
+    assert code == 200
+    assert out["memory_used"] is False
+    assert out["lived_state"]["counts_as_memory_used"] is False
+    assert out["lived_state"]["status"] == "unavailable"
+    assert out["lived_state"]["conditioned"] is False
+    assert out["lived_state"]["changes_model_tensors"] is False
+    assert out["lived_state"]["omitted_current_text_bytes"] > 0
+    spoken = sent[0]["messages"][-1]["content"]
+    assert spoken != text and "omitted" in spoken
+    from beastbox.guest_hebbian import _formatted_bytes
+    assert _formatted_bytes(sent[0]["messages"]) <= guest_hebbian.MAX_ASSEMBLED_BYTES
+    archived = GuestHebbianStore(tmp_path).archived(ID_A)
+    assert archived[0]["t"] == text and archived[0]["r"] == "u"

@@ -101,3 +101,33 @@ def test_bridge_health_lists_context_fields_additively():
     src = (ROOT / "apps/beastbox-cloud/bridge/owner_bridge.py").read_text()
     assert 'body["context_fields"] = sorted(CONTEXT_CAPS)' in src
     assert '"schema": "beastbox-bridge-health-v2"' in src
+
+
+def test_lived_state_receipt_is_not_memory_and_hides_owner_numbers(monkeypatch, tmp_path):
+    sent = []
+    _wire(monkeypatch, tmp_path, sent)
+    monkeypatch.setenv("BEASTBOX_LIVED_BACKBONE", "on")
+    monkeypatch.setenv("BEASTBOX_LIVED_ORIGIN_COMMITMENT", "ab" * 32)
+    monkeypatch.setenv("BEASTBOX_LIVED_PRIOR_HEAD", "cd" * 32)
+    mem = "From your own memory:\n- [RECORDED] I walked to the Violet Shard."
+    code, body = g.growing_infer(tmp_path, {"text": "hi", "guest_identity": "a" * 64, "context": {"memory": mem}})
+    assert code == 200 and body["memory_used"] is True
+    assert body["lived_state"]["counts_as_memory_used"] is False
+    assert body["lived_state"]["status"] == "unavailable"
+    assert body["lived_state"]["reason"] == "isolated"
+    assert body["lived_state"]["changes_model_tensors"] is False
+    assert body["lived_state"]["sequence"] is None
+    delivered = json.loads(sent[0])
+    assert "0.137" not in sent[0].decode()
+    assert any(mem in message["content"] for message in delivered["messages"])
+    code, plain = g.growing_infer(tmp_path, {"text": "hi", "guest_identity": "a" * 64})
+    assert code == 200 and plain["memory_used"] is False
+    assert plain["lived_state"]["status"] == "unavailable"
+    assert plain["lived_state"]["counts_as_memory_used"] is False
+
+
+def test_lived_capability_fallback_reports_unavailable_without_a_model_call():
+    src = (ROOT / "apps/beastbox-cloud/bridge/owner_bridge.py").read_text()
+    assert 'body["lived_state"] = capability_receipt()' in src
+    assert '"state_conditioning": "unavailable"' in src
+    assert "guest_local_infer" not in src[src.index("def served_pin_health"):]
