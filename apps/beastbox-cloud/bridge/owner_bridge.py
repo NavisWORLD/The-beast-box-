@@ -28,7 +28,8 @@ from beastbox.cst_sensor_preview import compare_sensor_state
 from beastbox.engine_growth_report import engine_growth_report
 from beastbox.device_observations import normalize_device_observations
 from beastbox.durable import DurableRuntime
-from beastbox.lived_events import CANONICAL_SUBJECT, ActivationRejected, SampleRejected, host_attachment
+from beastbox.lived_chain_public import backbone_db_path, public_lived_chain
+from beastbox.lived_events import ActivationRejected, SampleRejected, host_attachment
 from beastbox.lived_state import LivedStore
 from beastbox.background_consolidation import OwnerMemoryLoop
 from beastbox.qc67_local import (PINS as QC67_PINS, URL as QC67_URL,
@@ -687,7 +688,7 @@ class OwnerBridge:
         raw = {key: attachment[key] for key in (
             "schema", "subject_id", "scope", "basis", "origin_commitment", "prior_head", "verified",
         )}
-        path = self.root / "lived-backbone" / f"{CANONICAL_SUBJECT}.sqlite"
+        path = backbone_db_path(self.root)
         self._lived_sensorium = LivedStore.open(path, raw)
         return self._lived_sensorium
 
@@ -703,7 +704,7 @@ class OwnerBridge:
         if attachment is None:
             return 200, quiet
         if data is None:
-            path = self.root / "lived-backbone" / f"{CANONICAL_SUBJECT}.sqlite"
+            path = backbone_db_path(self.root)
             if self._lived_sensorium is None and not path.exists():
                 return 200, {"enabled": True, "admitted": False, "model_invoked": False, "qpu_invoked": False, "snapshot": None}
             store = self._open_sensorium()
@@ -1003,9 +1004,10 @@ class Handler(BaseHTTPRequestHandler):
 
     def _handle(self, method: str) -> None:
         # The only unauthenticated path: bounded, non-sensitive runtime readiness
-        # for a managed HTTPS reverse proxy. No model or owner state is returned.
+        # for a managed HTTPS reverse proxy. The pin fingerprint and the recomputed
+        # lived-chain receipt (head, entry count, subject id). No event payloads.
         if method == "GET" and self.path == "/healthz":
-            self._emit(200, served_pin_health())
+            self._emit(200, served_pin_health(self.bridge.root))
             return
         auth = self.headers.get("Authorization", "")
         if method == "POST":
@@ -1040,15 +1042,18 @@ class Handler(BaseHTTPRequestHandler):
         return
 
 
-def served_pin_health() -> dict:
-    """Public, non-secret readiness: which public pin this image was built for and
-    which checkpoint the private loopback model is actually serving right now.
-    Step and sha are public pin data; no owner state, keys or prompts are returned."""
+def served_pin_health(data_dir: Path | None = None) -> dict:
+    """Public, non-secret readiness: which public pin this image was built for,
+    which checkpoint the private loopback model is serving, and the lived chain
+    head recomputed from the continuation this bridge serves.
+    Step, checkpoint sha, chain head, entry count, and subject id are public.
+    No owner state, event payloads, keys, or prompts are returned."""
     from beastbox.rawrphos_local import STEP as PIN_STEP, SHA as PIN_SHA, status as native_pin_status
     body = {"ready": True, "service": "beastbox-owner-bridge", "schema": "beastbox-bridge-health-v2",
             "pin_step": PIN_STEP, "pin_checkpoint_sha256": PIN_SHA,
             "served_step": None, "served_checkpoint_sha256": None,
-            "served_readiness": "UNKNOWN", "serving_pin": False}
+            "served_readiness": "UNKNOWN", "serving_pin": False,
+            "lived_chain": public_lived_chain(data_dir)}
     try:  # additive: which bounded context fields this bridge accepts (lets the site send self-memory only when known)
         from beastbox.guest_hebbian import CONTEXT_CAPS
         body["context_fields"] = sorted(CONTEXT_CAPS)
