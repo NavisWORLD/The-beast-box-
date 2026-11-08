@@ -34,12 +34,23 @@ test('an on-screen canvas starts immediately and an offscreen one waits for inte
   delete globalThis.window;
 });
 
-test('pocket and living world wait to be shown before they import three', () => {
-  for (const path of ['components/cage-pocket-dimension.tsx', 'components/living-world.tsx']) {
-    const src = read(path);
-    const wait = src.indexOf('await shown.promise');
-    const three = src.indexOf("await import('three')");
-    assert.ok(wait > 0 && three > wait, path);
-    assert.ok(!/Math\.random/.test(read('lib/three/when-shown.mjs')));
-  }
+test('living world waits to be shown before it imports three', () => {
+  const src = read('components/living-world.tsx');
+  const wait = src.indexOf('await shown.promise');
+  const three = src.indexOf("await import('three')");
+  assert.ok(wait > 0 && three > wait);
+  assert.ok(!/Math\.random/.test(read('lib/three/when-shown.mjs')));
+});
+
+test('an offscreen pocket waits out the OPEN GAME tap, then still boots, and does not keep painting below the fold', () => {
+  const src = read('components/cage-pocket-dimension.tsx');
+  const wait = src.indexOf('await Promise.race([shown.promise,later])');
+  const three = src.indexOf("await import('three')");
+  assert.ok(wait > 0 && three > wait);
+  assert.match(src, /setTimeout\(\(\)=>resolve\(true\),5000\)/);
+  assert.match(src, /let visible=inView\(\)/);
+  assert.match(src, /visible=inView\(\)/);
+  assert.match(src, /!visible&&rendered/);
+  assert.match(src, /if\(!inView\(\)\)\{rendered=true;setReady\(true\);\}/);
+  assert.ok(!/Math\.random/.test(src));
 });

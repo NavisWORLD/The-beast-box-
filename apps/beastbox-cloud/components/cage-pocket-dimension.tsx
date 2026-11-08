@@ -223,12 +223,18 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
    window.removeEventListener(POCKET_3D_CAMERA_RESET,resetCamera);
   };
   const shown=whenShown(canvas);
+  // Phone /beast-cage keeps this canvas below the fold (measured top ~941 in a 900px viewport,
+  // ~968 in an 844px one). SwiftShader was linking shaders and then painting every frame while
+  // OPEN GAME was clicked, so the navigation could not finish inside 30s. Intersection still
+  // starts it immediately. A cage that stays open never scrolls, and the 3D acceptance waits
+  // 30s for ready/fallback, so an offscreen canvas also starts after the tap has had time to leave.
+  let settle=0;
+  const later=new Promise(resolve=>{settle=window.setTimeout(()=>resolve(true),5000);});
   void(async()=>{
    try{
-    // The habitat canvas is below the phone fold while OPEN GAME is on screen. Building this
-    // scene anyway compiles and paints a second WebGL world on the CPU rasteriser and the
-    // navigation cannot finish. Wait until the canvas is actually in view.
-    if(!await shown.promise||disposed)return;
+    const now=await Promise.race([shown.promise,later]);
+    clearTimeout(settle);
+    if(!now||disposed)return;
     if(!window.WebGLRenderingContext)throw Error('WebGL unavailable');
     // Home: let the 3D Zeref finish cutting his layers first (both share one main thread on phones / software GL).
     // The pocket's first frame links its shader programs synchronously; starting it while Zeref is still loading
@@ -439,7 +445,8 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     };
     const ro=typeof ResizeObserver!=='undefined'?new ResizeObserver(resize):null;
     ro?.observe(canvas);resize();
-    let visible=true,last=performance.now(),elapsed=0,lastPaint=0,rendered=false;
+    const inView=()=>{try{const r=canvas.getBoundingClientRect();return r.width>2&&r.height>2&&r.bottom>0&&r.top<(window.innerHeight||0);}catch{return true;}};
+    let visible=inView(),last=performance.now(),elapsed=0,lastPaint=0,rendered=false;
     const io=typeof IntersectionObserver!=='undefined'?new IntersectionObserver(entries=>visible=entries.some(e=>e.isIntersecting),{threshold:.01}):null;
     io?.observe(canvas);
     const onContextLost=(e:Event)=>{e.preventDefault();setReady(false);setFailed(true);};
@@ -468,6 +475,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     const animate=(now:number)=>{
      if(disposed)return;
      frame=requestAnimationFrame(animate);
+     visible=inView();
      const dt=clamp((now-last)/1000,0,.06);last=now;
      if(document.hidden||(!visible&&rendered)||now-lastPaint<(soft?120:low?66:33))return;
      lastPaint=now;beastNode.visible=insideCreatureVisible(creatureRef.current);
@@ -589,6 +597,9 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
      catch{}finally{drawn.forEach(o=>{o.visible=true;});}
      if(disposed)return;
     }
+    // Below the fold the warmed scene is real, but the per-frame world step is what starved OPEN GAME.
+    // Leave that loop parked until the canvas is actually on screen. Scrolling in resumes it.
+    if(!inView()){rendered=true;setReady(true);}
     frame=requestAnimationFrame(animate);
     cleanup=()=>{
      window.removeEventListener('beastbox:beast-chat',onLcChat);window.removeEventListener('beastbox:geyser',onGj);renderer.domElement.removeEventListener('pointerdown',gjPD);renderer.domElement.removeEventListener('pointerup',gjPU);(window as any).__geyserReady=false;gjSnd?.dispose();window.removeEventListener('beastbox:local-sensor-level',onLcLevel);window.removeEventListener('beastbox:spark-chirp',onLcChirp);renderer.domElement.removeEventListener('pointerdown',onLcTap);
@@ -611,7 +622,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     if(!disposed){setFailed(true);setReady(false);}
    }
   })();
-  return()=>{disposed=true;shown.cancel();cancelAnimationFrame(frame);cleanup();releaseListeners();};
+  return()=>{disposed=true;clearTimeout(settle);shown.cancel();cancelAnimationFrame(frame);cleanup();releaseListeners();};
  },[key,failed,reduced,visualSettings.enabled,visualSettings.quality,qvmCounts]);
   return <div className={styles.root} data-pocket-dimension="true"
   data-world-source="genesis-nightops-core-visual-v1"
