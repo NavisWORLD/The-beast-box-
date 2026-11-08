@@ -231,3 +231,14 @@ test('the IP quota-bucket derivation survives only in /api/guest, with no thread
  // 'thread:' derivation, no store helper — no thread concept at all.
  assert.doesNotMatch(src,/bridgeIdentityForThread|thread/);
 });
+
+test('forever door forwards the lived receipt and does not treat environment as canonical state',()=>{
+ const src=read('app/api/guest/forever/route.ts');
+ assert.match(src,/environmentIsNotCanonical\(item\.environment\)/);
+ assert.match(src,/mouthReceipt\(result\.lived_state/);
+ assert.match(src,/\{text,guest_identity:identity,context:bridgeContext\.context\}/);
+ assert.match(src,/\{text,guest_identity:identity\}/);
+ assert.equal((src.match(/await send\(\)/g)||[]).length,1);
+ assert.doesNotMatch(src,/lived_state:item\.environment|state12:item/);
+ assert.match(src,/\(result\.memory_used!==false&&result\.hebbian_mode!=='persisted'\)\|\|result\.owner_tools_used!==false/);
+});

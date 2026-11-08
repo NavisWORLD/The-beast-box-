@@ -57,3 +57,15 @@ test('owner homepage links guest but keeps private workstation',()=>{
  assert.match(read('../../beastbox/guest_local.py'),/native_status\(\)/);
  assert.doesNotMatch(read('../../beastbox/guest_local.py'),/DurableRuntime|CosmicApp|ConnectionVault|HF_TOKEN/);
 });
+
+test('lived receipt rides beside the unchanged guest bridge body',()=>{
+ const source=read('app/api/guest/route.ts');
+ assert.match(source,/body:JSON\.stringify\(\{text:prompt,guest_identity:identity\}\)/);
+ assert.match(source,/result\.memory_used!==false\|\|result\.owner_tools_used!==false/);
+ assert.match(source,/mintExchangeId\('guest',identity,text\)/);
+ assert.equal((source.match(/mintExchangeId\('guest',identity,text\)/g)||[]).length,1);
+ assert.match(source,/speakLived\(/);
+ assert.match(source,/growingFailed:growing===null/);
+ assert.ok(source.indexOf("mintExchangeId('guest',identity,text)")<source.indexOf('growingDraft(text,identity)'));
+ assert.doesNotMatch(source,/state12|brightness|condition54/);
+});

@@ -71,6 +71,12 @@ test('routes: both doors read the ONE index; pin door untouched; gate eval never
   const p = readFileSync(new URL('../app/api/guest/route.ts', import.meta.url), 'utf8');
   for (const s of [g, f]) { assert.match(s, /from '@\/lib\/zeref\/self-memory\.mjs'/); assert.match(s, /loadSelfMemory\(\)/); assert.match(s, /memory_read:used\?/); }
   assert.doesNotMatch(p, /self-memory/);
+  assert.match(g, /mouthReceipt\(r\.lived_state/);
+  assert.match(f, /mouthReceipt\(result\.lived_state/);
+  assert.match(g, /memory_used:used/);
+  assert.match(f, /self_memory_used:used/);
+  assert.doesNotMatch(g, /memory_used:lived/);
+  assert.doesNotMatch(p, /state12|lived_state:item/);
   const ev = readFileSync(new URL('../../../scripts/rawrphos_chat_eval.py', import.meta.url), 'utf8');
   assert.doesNotMatch(ev, /self.memory|retriev|guest_hebbian|growing/i);
 });
