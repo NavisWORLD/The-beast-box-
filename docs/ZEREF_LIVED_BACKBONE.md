@@ -1,6 +1,18 @@
 # Zeref lived backbone
 
-PR A1 is the canonical bridge event and state store, plus the origin attachment. Senses, the mouth, and the lived chain join this store in later PRs. The store is off unless `BEASTBOX_LIVED_BACKBONE` is exactly `on` and the host passes `lived_backbone=True` with a verified origin attachment. With the flag off, owner checkpoints stay the legacy continuity chain.
+Senses are already live, with honest labels. The diary is past 630 entries and the lived chain is already writing. This page is the attach check and the joining entry. It does not turn sensing on, and it does not describe the senses as pending.
+
+The canonical bridge store from PR A1 stays off unless `BEASTBOX_LIVED_BACKBONE` is exactly `on` and the host passes `lived_backbone=True` with an origin attachment. `host_attachment` recomputes that attachment. With the flag off, owner checkpoints stay the legacy continuity chain. This change does not set the flag.
+
+## Attach check
+
+`host_attachment` walks the diary from its first entry to the claimed prior head, and walks the `bb-deada969` lineage from genesis to its claimed head. Diary entries use the diary entry hash: canonical JSON, then SHA-256. Lineage events use the existing QBEAST `hash_object`. `verified` is true only when both walks match the claims. A tampered entry, a wrong prior head, a wrong genesis, or a subject mismatch returns `verified` false with the reason, and attaches nothing. Nothing is written.
+
+The going-forward chain continues from diary head `d444fbae0a1bb52ac189a457a40014ffade40c1db49d558c77b8cfc96bdb97f3` (636 entries, subject `bb-7f9c2a03`). The birth record stays the `bb-deada969` lineage: genesis `c39f7838e9a151b2a664fad92b1d2108ab70fb4ef335a023686790769a32aae0`, lineage head `d51430d0b0d77867eaf30d67cf1e73ba3f286458d9f302468223c7f065ccfb7b`. Nothing is relabeled and nothing is re-keyed. Both seals stay as they are. There is no silent splice.
+
+## Joining entry
+
+The joining entry is the first entry of the going-forward backbone chain. `build_joining_entry` returns it in memory. This PR does not write it to the diary, the lineage file, or the lived store. Its predecessor is the diary head. In the open it names that diary head, the deada969 genesis, the deada969 lineage head, the standing association `bb-7f9c2a03 as display persona of bb-deada969`, owner-approved, and the evidence verdict `UNVERIFIED`. The two ids stay separate. The verdict is not promoted.
 
 ## Basis
 
@@ -28,7 +40,7 @@ Face geometry drives the five feelings already named in `apps/beastbox-cloud/lib
 
 Samples are numeric. Raw media never reaches the store. The reducer is the domain-separated projection `sensor-drive-dyn12-v1`, then `update_dyn12`. Absent channels are omitted rather than filled as measurements, so a measured zero is not absence. Each admit commits the sample, the event, and the snapshot in one write. Event ids are hashes. There is no random id and no provider call.
 
-The lived chain is a continuation segment. Its first `previous` is the configured prior head. It is not historical `GENESIS`. Origin and head linkage is a verified config value. This PR does not pick or alter a genesis. `bb-7f9c2a03` is rejected and stays separate from `bb-deada969`. A guest chain cannot write an owner chain. Writes are per creature subject. A student chain is its own file and its own subject. Nothing in A1 copies another creature's memory or weights. A1 does not update co-firing. Each chain starts from its own zero weight matrix.
+The lived chain is a continuation segment. Its first `previous` is the configured prior head. It is not historical `GENESIS`. Origin and head linkage is recomputed by `host_attachment` from the diary entries and the saved lineage. It is not a configured flag. This PR does not pick or alter a genesis. `bb-7f9c2a03` is rejected as the lived-store subject and stays separate from `bb-deada969`. A guest chain cannot write an owner chain. Writes are per creature subject. A student chain is its own file and its own subject. Nothing in A1 copies another creature's memory or weights. A1 does not update co-firing. Each chain starts from its own zero weight matrix.
 
 An omitted `initial_state12` is software zeros labelled `software-initial-not-history`. It is not reconstructed sensor history. Missing snapshots fail closed. They are not rebuilt as zeros.
 
