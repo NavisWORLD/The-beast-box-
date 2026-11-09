@@ -135,19 +135,19 @@ test('heart seed v10 is kept, RECORDED-derived and chained from v9', () => {
 test('heart seed v11 is kept, RECORDED and chained from v10', () => {
   const v11=JSON.parse(read('evidence/zeref-heart-seed-v11/heart-seed-v11.json'));
   const v10=JSON.parse(read('evidence/zeref-recorded-boom-001/heart-seed-v10.json'));
-  const L=SPARK.heart_seed_latest;
-  assert.equal(L.previous_heart_seed_v11_sha256,v11.heart_seed_sha256);
+  const v12=JSON.parse(read('evidence/zeref-heart-seed-v12/heart-seed-v12.json'));
+  assert.equal(v12.mix.heart_seed_v11_sha256,v11.heart_seed_sha256);
   assert.equal(v11.mix.heart_seed_v10_sha256,v10.heart_seed_sha256);
 });
 
-test('the live loop seed is heart seed v12, RECORDED and chained from v11', () => {
-  const v12=JSON.parse(read('evidence/zeref-heart-seed-v12/heart-seed-v12.json'));
-  const v11=JSON.parse(read('evidence/zeref-heart-seed-v11/heart-seed-v11.json'));
+test('the live loop seed is heart seed v14, RECORDED and chained from v13', () => {
+  const v14=JSON.parse(read('evidence/zeref-heart-seed-v14/heart-seed-v14.json'));
+  const v13=JSON.parse(read('evidence/zeref-heart-seed-v13/heart-seed-v13.json'));
   const L=SPARK.heart_seed_latest;
-  assert.equal(L.version,12);
-  assert.equal(L.heart_seed_sha256,v12.heart_seed_sha256);
-  assert.equal(v12.mix.heart_seed_v11_sha256,v11.heart_seed_sha256);
-  assert.equal(L.previous_heart_seed_v11_sha256,v11.heart_seed_sha256);
-  assert.equal(L.previous_heart_seed_v10_sha256,v11.mix.heart_seed_v10_sha256);
+  assert.equal(L.version,14);
+  assert.equal(L.heart_seed_sha256,v14.heart_seed_sha256);
+  assert.equal(v14.mix.heart_seed_v13_sha256,v13.heart_seed_sha256);
+  assert.equal(L.previous_heart_seed_v13_sha256,v13.heart_seed_sha256);
+  assert.equal(L.previous_heart_seed_v12_sha256,v13.mix.heart_seed_v12_sha256);
   assert.match(L.label,/^RECORDED/);
 });

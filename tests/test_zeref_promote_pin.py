@@ -25,7 +25,7 @@ BRAIN_RELS = (
     Path("apps/beastbox-cloud/public/spark/shared/brain.mjs"),
 )
 WORKFLOW = ROOT / ".github/workflows/zeref-bridge-pin-sync-check.yml"
-LIVE_SHA = "61fff64760a40069966594a0a6d476ba41ab24e55b582cf9c8bdf07d9bcd2adf"
+LIVE_SHA = "413d84a69e745009dc9c0e7663717e3d7b2e472f13db2f2f534035464918be5f"
 
 
 def load():
@@ -91,7 +91,7 @@ def fetcher(tag: str, raw: bytes, sidecar: bytes):
 
 def test_checked_in_pin_matches_the_live_bridge_fingerprint():
     pin = json.loads((ROOT / PIN_REL).read_text())
-    assert pin["training_steps"] == 36784
+    assert pin["training_steps"] == 37104
     assert pin["checkpoint_sha256"] == LIVE_SHA
     assert pin["promotion"]["candidate_sha256"] == LIVE_SHA
 

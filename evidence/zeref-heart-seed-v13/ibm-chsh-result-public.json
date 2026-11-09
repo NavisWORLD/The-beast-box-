@@ -1,0 +1,83 @@
+{
+ "backend": "ibm_fez",
+ "classical_bound": 0.75,
+ "classical_control": {
+  "per_question_pair": {
+   "x0y0": {
+    "rounds": 5924,
+    "win_rate": 1.0
+   },
+   "x0y1": {
+    "rounds": 6136,
+    "win_rate": 1.0
+   },
+   "x1y0": {
+    "rounds": 5955,
+    "win_rate": 1.0
+   },
+   "x1y1": {
+    "rounds": 5985,
+    "win_rate": 0.0
+   }
+  },
+  "rounds": 24000,
+  "sigma_above_classical_bound": 0.22379360350346253,
+  "standard_error": 0.002792751849095261,
+  "win_rate": 0.750625,
+  "wins": 18015
+ },
+ "commitments_sha256": {
+  "alice_sha256": "405d52cd7840632fe37730b9d64ab0407c4a535fe41157f06dc5e3f2b78faec0",
+  "bob_sha256": "9d46045e6c0c2e1a0b651e6e2bcb179e44e4e894180c2d32887a97ab0ee94565"
+ },
+ "commitments_verified": false,
+ "counts": {
+  "00": 8291,
+  "01": 3894,
+  "10": 4098,
+  "11": 7717
+ },
+ "counts_sha256": "ead82fd1d64ae2d63142ac256a88717a0e942de3e2f7d7f06b92638fe28b232b",
+ "date_utc": "20261109",
+ "job_id": "dbnvpn0qtr0c73adoc00",
+ "job_tag": "navisworld-zeref-heart-seed-v13-uncapped-1",
+ "label": "CHSH game (Bell nonlocality)",
+ "loopholes": [
+  "No space-like separation: both qubits sit on one chip and one classical controller applies both settings, so locality is NOT enforced; this is not a loophole-free Bell test.",
+  "Detection/fair-sampling and readout errors are not mitigated.",
+  "Questions came from os.urandom on the GitHub runner (freedom-of-choice assumed, not proven); here they were recovered from the job inputs and the commitment could not be re-opened."
+ ],
+ "outcomes_sha256": "8513c068c82912953e1d671e97a5af52dae9129030abcecaf86eee70f86b7025",
+ "quantum": {
+  "per_question_pair": {
+   "x0y0": {
+    "rounds": 5924,
+    "win_rate": 0.8524645509790681
+   },
+   "x0y1": {
+    "rounds": 6136,
+    "win_rate": 0.8324641460234681
+   },
+   "x1y0": {
+    "rounds": 5955,
+    "win_rate": 0.8350965575146936
+   },
+   "x1y1": {
+    "rounds": 5985,
+    "win_rate": 0.8534670008354219
+   }
+  },
+  "rounds": 24000,
+  "sigma_above_classical_bound": 39.75699237739705,
+  "standard_error": 0.002346547389226192,
+  "win_rate": 0.8432916666666667,
+  "wins": 20239
+ },
+ "quantum_ideal": 0.8535533905932737,
+ "quantum_seconds": 10,
+ "recorded_utc": "2026-11-09T01:35:55.335121+00:00",
+ "recovery": "RECOVERED by job id after the workflow timed out waiting. The questions were read back from the submitted job's own per-round inputs; the commitment salts lived only on the timed-out runner, so the commitments could NOT be opened and are published as hashes only, unverified.",
+ "schema": "navisworld-chsh-game-v1",
+ "source_class": "RECORDED_IBM_HARDWARE",
+ "withheld": "question lists, commitment salts and the per-round outcome list are not published; only their hashes are"
+}

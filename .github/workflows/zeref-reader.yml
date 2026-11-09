@@ -1,7 +1,7 @@
 name: Zeref daily licensed reader
 # Cory 2026-10-31: reading is Zeref's own thing. Once a day (13:23 UTC) a few open-licence / public-domain
 # passages (Simple English Wikipedia, Wikinews, Project Gutenberg) are saved word for word with revision id,
-# URL, licence and sha256; anything overlapping the gate / held-out sets or a secret pattern is dropped.
+# URL, licence and sha256; anything overlapping the gate / held-out sets, matching a secret pattern, or carrying the license contract's restrictive-language terms is dropped.
 # Feeds the knowledge bank shards and the growing branch's lessons. Never the pin's training mix.
 on:
   schedule:
