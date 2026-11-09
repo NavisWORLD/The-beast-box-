@@ -17,8 +17,10 @@ from .quantum_heart import HeartMode, QuantumHeart
 from .sensory import SensorySummary, freshness_gate
 from .state import MissionState
 from .synaptic import SynapticField
+from . import lived_prompt as lived_prompt_module
 from .lived_prompt import attest_owner, backbone_ready, owner_prefix
 from .lived_recall import recall_for_root
+from .lived_study import study_on_speak
 
 
 DEFAULT_SYSTEM_PROMPT = (
@@ -124,6 +126,7 @@ class CosmosRuntime:
         lived_exchange = None
         lived_recall = None
         if backbone_ready():
+            study_on_speak(Path(self.config.data_dir), text, lived_prompt_module._now_ms())
             lived_prefix, lived_exchange = owner_prefix(
                 Path(self.config.data_dir), self.provider,
                 exchange_id=getattr(self, "_lived_exchange_id", None),
