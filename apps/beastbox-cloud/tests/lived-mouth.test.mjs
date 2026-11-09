@@ -183,7 +183,7 @@ test('public talk forwards a receipt and does not send state text', async () => 
     fetchImpl: async (_url, init) => {
       bodies.push(JSON.parse(init.body));
       return new Response(JSON.stringify({
-        provider: 'rawrphos-local', model: 'rawrphos-native', step: 36784, guest_stateless: true,
+        provider: 'rawrphos-local', model: 'rawrphos-native', step: 37104, guest_stateless: true,
         reply: 'hello', lived_state: isolatedReceipt,
       }));
     },
@@ -197,7 +197,7 @@ test('public talk forwards a receipt and does not send state text', async () => 
   const plain = await talkToBeast({
     text: 'Hi!', persona: talkPersona({}),
     fetchImpl: async () => new Response(JSON.stringify({
-      provider: 'rawrphos-local', model: 'rawrphos-native', step: 36784, guest_stateless: true, reply: 'hello',
+      provider: 'rawrphos-local', model: 'rawrphos-native', step: 37104, guest_stateless: true, reply: 'hello',
     })),
   });
   assert.equal(plain.ok, true);
