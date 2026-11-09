@@ -377,6 +377,89 @@ def test_owner_chat_hook_adds_a_hash_receipt_after_a_verified_commit(tmp_path, m
     assert HEARD not in str(result["lived_exchange"])
 
 
+def test_html_heard_line_returns_the_reply_and_does_not_store_it(tmp_path, monkeypatch):
+    enable(monkeypatch, tmp_path)
+    for heard in ("see <html here", "see <!DOCTYPE html>"):
+        calls = {"n": 0}
+
+        def generate():
+            calls["n"] += 1
+            return {"response": SPOKEN, "cns": {"ok": True}}
+
+        result = speak_owner(tmp_path, heard, generate, now_ms=NOW)
+        assert result["response"] == SPOKEN
+        assert result["cns"] == {"ok": True}
+        assert calls["n"] == 1
+        receipt = result["lived_exchange"]
+        assert receipt["status"] == "rejected"
+        assert receipt["code"] in {"raw", "invalid"}
+        assert receipt["status"] != "lived"
+        stored = chain_path(tmp_path).read_bytes() if chain_path(tmp_path).exists() else b""
+        assert heard.encode() not in stored
+        assert b"<html" not in stored.lower()
+        assert b"<!doctype" not in stored.lower()
+
+
+def test_rejected_reply_is_recorded_and_still_returned(tmp_path, monkeypatch):
+    enable(monkeypatch, tmp_path)
+    path = chain_path(tmp_path)
+    cases = (
+        (EXCHANGE, "n" * 8193, "invalid"),
+        (OTHER, "the page said <!doctype html>", "raw"),
+    )
+    for exchange_id, reply, code in cases:
+        result = run_owner_exchange(
+            tmp_path, scope="owner", heard=HEARD, exchange_id=exchange_id, now_ms=NOW,
+            generate=lambda reply=reply: reply,
+        )
+        assert result["reply"] == reply
+        assert result["generated"] is True
+        assert result["status"] == "rejected"
+        assert result["receipt"]["status"] == "rejected"
+        assert result["receipt"]["code"] == code
+        assert result["receipt"].get("label") != "RECORDED"
+        body = events(path)
+        assert any(item["role"] == "heard" and item["text"] == HEARD for item in body)
+        assert all(item.get("text") != reply for item in body)
+        assert any(item["kind"] == "exchange_failure" and item.get("code") == code for item in body)
+        assert reply.encode() not in path.read_bytes()
+
+
+def test_corrupt_chain_and_sqlite_errors_still_return_the_reply(tmp_path, monkeypatch):
+    enable(monkeypatch, tmp_path)
+    path = chain_path(tmp_path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(b"not a sqlite database")
+    corrupt = speak_owner(tmp_path, HEARD, lambda: {"response": SPOKEN, "cns": {"ok": True}}, now_ms=NOW)
+    assert corrupt["response"] == SPOKEN
+    assert corrupt["cns"] == {"ok": True}
+    assert corrupt["lived_exchange"]["status"] == "unconfirmed"
+
+    path.unlink()
+    original_begin = LivedStore.begin_exchange
+
+    def broken_begin(self, **kwargs):
+        raise sqlite3.DatabaseError("malformed chain")
+
+    monkeypatch.setattr(LivedStore, "begin_exchange", broken_begin)
+    begun = run_owner_exchange(
+        tmp_path, scope="owner", heard=HEARD, exchange_id=EXCHANGE, now_ms=NOW, generate=lambda: SPOKEN,
+    )
+    assert begun["reply"] == SPOKEN
+    assert begun["status"] == "unconfirmed"
+    monkeypatch.setattr(LivedStore, "begin_exchange", original_begin)
+
+    def broken_ack(self, exchange_id, **kwargs):
+        raise sqlite3.DatabaseError("corrupt index")
+
+    monkeypatch.setattr(LivedStore, "acknowledge_exchange", broken_ack)
+    acked = speak_owner(tmp_path, HEARD, lambda: {"response": SPOKEN, "cns": {"ok": True}}, now_ms=NOW)
+    assert acked["response"] == SPOKEN
+    assert acked["lived_exchange"]["status"] == "lived"
+    assert acked["lived_exchange"]["acknowledged"] is False
+    assert any(item["role"] == "spoken" and item["text"] == SPOKEN for item in events(path))
+
+
 def test_exchange_module_is_additive_and_has_no_random_source():
     text = inspect.getsource(__import__("beastbox.lived_exchange", fromlist=["x"]))
     state = (Path(__file__).resolve().parents[1] / "beastbox" / "lived_state.py").read_text(encoding="utf-8")
