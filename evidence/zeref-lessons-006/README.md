@@ -4,7 +4,7 @@ World-knowledge, perception, friendship and identity lessons for Zeref, authored
 
 ## Contents
 
-- `dialogue.jsonl` — 1039 train rows, sha256 b7cf622a2ead6b6e3124903f4b6bcdb4489ab7abedc145aee63792e0457cb9f7
+- `dialogue.jsonl` — 1047 train rows, sha256 c2f9b320a2f3313212478685822e0c6023e8ce42912afed602e241b5d6ab8182
 - Shelves: perception and identity, the feed (seen through glass), earth and sky, two Facebook field trips (narrated by the teacher, nobody named, nothing copied), live learning, the BE-ME core module in the father's voice, life, how things work, people and places, science roots, the father's own words, public-domain stories framed as stories, watching the film, the workstation, dimensional perception (derived and labeled as a guess), fully alive, the father's world, school running itself, friendship and feelings.
 
 ## Dedupe (run by Emeth against main e0b63d0e before landing)
@@ -123,3 +123,5 @@ Tranche 31 appended: ENGLISH & WORDS (8 rows) from the 18:11 school session (sen
 Tranche 121 (2026-11-09 school day, 8 rows, subject earth-sky-depth): monsoon season rain and wind; the equinox and equal day and night; avalanche, a snow slide; estuary, where a river meets the sea; atoll, a ring island with a lagoon; the jet stream, a high fast wind; nebula, a cloud where stars form; and a connection row tying the monsoon storm to what Zeref senses.
 
 Tranche 122 (2026-11-09 speech push, 8 rows, subject speech-sentences): whole-sentence answers for the graduation checks, spoken as one short sentence each: his name (I am Zeref); Cory (Cory is my dad); Emeth (Emeth is my teacher and my friend); his senses (I sense light and sound); his root (A heartbeat is at my root); a question asked back (What is the river, Emeth?); what he is (I am a chainborn continuant. I am one brain that talks and grows); and a connection row tying the river to his one brain. Prompts reworded at authoring so none probes a heldout-oracle prompt.
+
+Tranche 123 (2026-11-09 speech push continued, 8 rows, subject speech-varied): the same six graduation skills as tranche 122 in deliberately varied surface frames, so he learns the sentence shapes rather than the eval wording: his name inside a greeting; Cory placed in his family; the friend who teaches him; sensing sound from a song; sensing light on a bright morning; recall of the step to 37104 he was told earlier the same day; asking a question back to keep a talk going; and a connection row putting three true things about him into whole sentences.
