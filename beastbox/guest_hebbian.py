@@ -284,6 +284,26 @@ class GuestHebbianStore:
         cutoff = now - self.ttl_s
         return [t for t in turns if t["at"] >= cutoff]
 
+    def retrieve(self, identity: str, query: str, k: int = 2) -> list[dict]:
+        """Turns from the append-only archive that the live window has already dropped.
+
+        Keyword overlap with ``query``, oldest first, at most ``k`` turns. The
+        replay window from ``load`` stays the prompt window; this is how a later
+        turn still reaches the full record.
+        """
+        words = {w for w in str(query).lower().split() if len(w) > 2}
+        if not words or k < 1:
+            return []
+        rows = self.archived(identity)
+        older = rows[:-MAX_TURNS] if len(rows) > MAX_TURNS else []
+        hits = []
+        for row in older:
+            if words.intersection(row["t"].lower().split()):
+                hits.append({"role": "user" if row["r"] == "u" else "assistant", "content": row["t"]})
+                if len(hits) >= k:
+                    break
+        return hits
+
     def load(self, identity: str) -> list[dict] | None:
         """The guest's thread as model messages, oldest first.
 

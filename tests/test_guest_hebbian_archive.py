@@ -21,6 +21,17 @@ def test_archive_keeps_every_turn_past_the_window_and_eviction(tmp_path):
     assert len(store.archived(A)) == 2 * MAX_TURNS
 
 
+def test_retrieve_reaches_a_turn_the_window_has_dropped(tmp_path):
+    store = GuestHebbianStore(tmp_path, ttl_days=30, max_guests=4, now_fn=lambda: 1_700_000_000)
+    store.save(A, "the dragon is called Boto", "I hear you")
+    for i in range(MAX_TURNS):
+        assert store.save(A, f"filler words number {i}", f"reply {i}") is not None
+    loaded = store.load(A)
+    assert loaded is not None and all("Boto" not in m["content"] for m in loaded)
+    found = store.retrieve(A, "tell me about the dragon Boto", k=2)
+    assert found and found[0]["content"] == "the dragon is called Boto"
+
+
 def test_archive_module_never_deletes_or_updates_archive():
     import inspect
     import beastbox.guest_hebbian as m

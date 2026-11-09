@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {storageConfig} from '../lib/cosmos/azure-blob.mjs';
-import {appendExchange,appendArchive,readArchive,newThreadId,MAX_THREAD_TURNS,GUESTBOOK_DIR} from '../lib/cosmos/forever-store.mjs';
+import {appendExchange,appendArchive,readArchive,parseArchiveLines,newThreadId,MAX_THREAD_TURNS,MAX_ARCHIVE_READ_BYTES,GUESTBOOK_DIR,ARCHIVE_SCHEMA} from '../lib/cosmos/forever-store.mjs';
 import {ownThreadItems,buildSelfMemory,readSelfMemory} from '../lib/zeref/self-memory.mjs';
 const AT='2026-11-06T00:00:00.000Z';
 const sasCfg=()=>storageConfig({AZURE_STORAGE_CONTAINER_SAS_URL:'https://acct.blob.core.windows.net/beast-cosmos?sv=x&sig=y'});
@@ -68,6 +68,23 @@ test('own-thread retrieval reaches an archived turn older than the window; label
  assert.match(r.text,/Boto/);
 });
 
+test('an archive larger than MAX_ARCHIVE_READ_BYTES is still fully readable',async()=>{
+ const {blobs,fetch}=fakeBlobFetch();const real=globalThis.fetch;globalThis.fetch=fetch;
+ try{
+  const cfg=sasCfg();const id=newThreadId();
+  const line=JSON.stringify({schema:ARCHIVE_SCHEMA,thread:id,origin:'guest',source_kind:'public',training_eligible:false,at:AT,from:'guest',text:'kept'});
+  const n=Math.ceil((MAX_ARCHIVE_READ_BYTES+10)/(line.length+1));
+  const text=Array.from({length:n},()=>line).join('\n')+'\n';
+  assert.ok(text.length>MAX_ARCHIVE_READ_BYTES);
+  blobs.set(AN(id),{text,etag:'"e1"'});
+  const all=await readArchive(cfg,id);
+  assert.equal(all.length,n);
+  assert.equal(all[0].text,'kept');
+  assert.equal(all.at(-1).text,'kept');
+  assert.equal(parseArchiveLines(text,'f'.repeat(32)).length,0);
+ }finally{globalThis.fetch=real;}
+});
+
 test('route reads and writes the archive keyed by its own thread id only',()=>{
  const src=readFileSync(new URL('../app/api/guest/forever/route.ts',import.meta.url),'utf8');
  assert.match(src,/readArchive\(cfg,threadId\)/);assert.match(src,/appendArchive\(cfg,threadId,/);
@@ -77,13 +94,14 @@ test('events and classroom tails archive every line first (append-only shards), 
  const {blobs,fetch}=fakeBlobFetch();const real=globalThis.fetch;globalThis.fetch=fetch;
  try{
   const cfg=sasCfg();
-  const {appendGuestEvent,MAX_GUEST_EVENTS}=await import('../lib/cosmos/forever-store.mjs');
+  const {appendGuestEvent,readGuestEventArchive,MAX_GUEST_EVENTS}=await import('../lib/cosmos/forever-store.mjs');
   const n=MAX_GUEST_EVENTS+25;
   for(let i=0;i<n;i++){const prev=blobs.get(`${GUESTBOOK_DIR}/archive/events-2026-11.jsonl`)?.text||'';
    assert.equal(await appendGuestEvent(cfg,{at:AT,thread:newThreadId(),step:36464,exchange_id:String(i).padStart(64,'0')}),true);
    assert.ok(blobs.get(`${GUESTBOOK_DIR}/archive/events-2026-11.jsonl`).text.startsWith(prev));}
   assert.equal(blobs.get(`${GUESTBOOK_DIR}/archive/events-2026-11.jsonl`).text.split('\n').filter(Boolean).length,n);
   assert.equal(blobs.get(`${GUESTBOOK_DIR}/events.jsonl`).text.split('\n').filter(Boolean).length,MAX_GUEST_EVENTS);
+  assert.equal((await readGuestEventArchive(cfg)).length,n);
   await appendGuestEvent(cfg,{at:AT,thread:newThreadId(),step:36464,exchange_id:'0'.padStart(64,'0')});
   assert.equal(blobs.get(`${GUESTBOOK_DIR}/archive/events-2026-11.jsonl`).text.split('\n').filter(Boolean).length,n,'dedupe');
  }finally{globalThis.fetch=real;}

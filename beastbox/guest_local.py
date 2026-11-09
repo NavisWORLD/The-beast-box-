@@ -268,7 +268,7 @@ def guest_local_infer(root: Path, payload: dict, *, owner_jobs_busy: bool = Fals
             candidate = GuestHebbianStore(root)
             loaded = candidate.load(payload["guest_identity"])
             if loaded is not None:
-                store, history = candidate, loaded
+                store, history = candidate, candidate.retrieve(payload["guest_identity"], payload["text"].strip()) + loaded
         except ValueError:  # unsafe store path or invalid persistence configuration
             store, history = None, []
     try:
