@@ -36,6 +36,8 @@ def test_public_evidence_never_contains_private_questions_salts_or_outcomes(tmp_
     assert (tmp_path / "latest" / "spark-seed.json").read_text() == (out / "spark-seed.json").read_text()
     assert r["heart_seed"]["mix"]["heart_seed_v7_sha256"] == "c" * 64 and r["heart_seed"]["heartbeat"].startswith("none")
     assert json.loads((out / "quota-after.json").read_text())["remaining_seconds"] == 127
+    public = json.loads((out / "ibm-chsh-result-public.json").read_text())
+    assert public["label"] == "CHSH game score"
 
 
 def test_heartbeat_is_in_the_seed_only_when_a_measured_packet_is_supplied_and_it_is_deterministic(tmp_path):

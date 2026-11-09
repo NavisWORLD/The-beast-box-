@@ -26,12 +26,16 @@ def sha(b):
 
 
 def public_result(full):
-    """Strip everything private or bulky. Keeps the numbers, the hashes and the honest loophole list."""
+    """Strip everything private or bulky. Keeps the numbers, the hashes and the honest loophole list.
+
+    The public label is always "CHSH game score". The raw result label is not copied.
+    """
     c = full.get("commitments") or {}
-    keep = ("backend", "classical_bound", "classical_control", "date_utc", "job_id", "job_tag", "label", "loopholes", "outcomes_sha256",
+    keep = ("backend", "classical_bound", "classical_control", "date_utc", "job_id", "job_tag", "loopholes", "outcomes_sha256",
             "quantum", "quantum_ideal", "quantum_seconds", "recorded_utc", "schema", "source_class",
             "counts", "counts_sha256", "commitments_verified", "recovery")
     out = {k: full[k] for k in keep if k in full}
+    out["label"] = "CHSH game score"
     out["commitments_sha256"] = {k: c[k] for k in ("alice_sha256", "bob_sha256") if k in c}
     out["withheld"] = "question lists, commitment salts and the per-round outcome list are not published; only their hashes are"
     return out
