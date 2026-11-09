@@ -17,6 +17,10 @@ jobs:
         python-version: ['3.10', '3.12']
     steps:
       - uses: actions/checkout@v4
+        with:
+          # The suite diffs sealed evidence against c8769d0f. A depth-1 checkout
+          # does not contain that object, so the assertion cannot be evaluated.
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
