@@ -443,14 +443,33 @@ jobs:
       - uses: actions/setup-python@v5
         with: {python-version: '3.11'}
       - uses: actions/download-artifact@v4
+        id: download-recovery
+        continue-on-error: true
         with:
           name: zeref-006-recovery-${{ github.run_id }}
           path: build/
+      - name: Record honest failure when no recovery bundle was produced
+        if: steps.download-recovery.outcome != 'success'
+        run: |
+          set -Eeuo pipefail
+          mkdir -p build/zeref-006
+          python - <<'PYEOF'
+          import json, os
+          d = {'schema': 'zeref-006-interrupted-failure-v1',
+               'run_id': os.environ.get('GITHUB_RUN_ID', ''),
+               'result': 'train-zeref failed before a recovery bundle was produced',
+               'scored': False, 'promoted': False,
+               'reason': 'no saved checkpoint existed to score; the pin and every gate are untouched'}
+          json.dump(d, open('build/zeref-006/failure.json', 'w'), indent=1)
+          print('ZEREF_006_HONEST_FAILURE=' + json.dumps(d), flush=True)
+          PYEOF
       - name: Install the same CPU scoring runtime
+        if: steps.download-recovery.outcome == 'success'
         run: |
           python -m pip install --index-url https://download.pytorch.org/whl/cpu torch==2.6.0
           python -m pip install -e . -e ./models/rawrphos
       - name: Score latest saved raw checkpoint against the same unchanged gates
+        if: steps.download-recovery.outcome == 'success'
         run: |
           set -Eeuo pipefail
           python -u scripts/zeref_continuation_006.py --score-recovery
@@ -458,6 +477,7 @@ jobs:
           test -s build/zeref-006/recovery-score.json
           test ! -f build/zeref-006/approval.json
       - name: Same promotion rule on the recovered checkpoint (numbers only; never promotes)
+        if: steps.download-recovery.outcome == 'success'
         run: |
           set -Eeuo pipefail
           # Byte-identical rule to the training job's promotion step (contract-tested); report-only here.
