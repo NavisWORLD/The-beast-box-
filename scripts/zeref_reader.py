@@ -12,6 +12,8 @@ Reads a small, polite amount each day from open-licence / public-domain sources 
       "The King James Bible says (<ref>)", never as fact claims
 Every row: title, text, source URL (with revision), licence, author, revision_id, sha256 of the text.
 Rows that overlap the gate sets / held-out prompts, or match a secret pattern, are dropped (same rule as the pin's world slice).
+Rows carrying the license contract's stale restrictive-language terms are also dropped at ingest (Cory's 1+3 fix,
+2026-11-09), so a flagged word inside a third-party text can never travel from a reading into the bank or the lessons.
 Output: evidence/zeref-read-001/<date>.jsonl (feeds the knowledge bank shards and growing-branch lessons; never the pin's mix).
 """
 from __future__ import annotations
@@ -144,6 +146,16 @@ def gutenberg(cursor, k=3):
     cursor = {"book": i, "para": nxt} if nxt < total else {"book": i + 1, "para": 0}
     return rows, cursor
 
+def restrictive_language(row):
+    """License-contract ingest screen: True when the passage's own title or text carries one
+    of the contract's stale restrictive-language terms (STALE_TERMS in license_metadata_contract).
+    Third-party texts use those words in ordinary legal senses; the bank's existing shards are
+    classified third-party in the contract, and this screen keeps new flagged passages out at
+    the door. (The terms are named in the contract module, not here: writing them out in this
+    current-class file would itself trip the audit.)"""
+    from license_metadata_contract import STALE_TERMS
+    return bool(STALE_TERMS.search(row["title"] + " " + row["text"]))
+
 def keep_filter():
     from zeref_chat_corpus import world_gate_prompts, world_overlaps
     from zeref_teacher_distill import SECRET
@@ -161,15 +173,17 @@ def main(date):
     g_rows, cursor = gutenberg(cursor)
     sh_p = OUT / "shelves-cursor.json"; sc = json.loads(sh_p.read_text()) if sh_p.is_file() else {}
     s_rows, sc = shelves(sc); k_rows, sc = kjv(sc)
-    keep = keep_filter(); rows, dropped = [], 0
+    keep = keep_filter(); rows, dropped, dropped_terms = [], 0, 0
     for r in simplewiki() + wikinews() + g_rows + s_rows + k_rows:
         if r["sha256"] in seen: continue
+        if restrictive_language(r): dropped_terms += 1; continue
         if not keep(r): dropped += 1; continue
         seen.add(r["sha256"]); rows.append(r)
     if rows:
         with dest.open("a") as f: f.write("".join(json.dumps(r, sort_keys=True, ensure_ascii=False) + "\n" for r in rows))
     cur_p.write_text(json.dumps(cursor, sort_keys=True) + "\n"); sh_p.write_text(json.dumps(sc, sort_keys=True) + "\n")
     print("ZEREF_READER=" + json.dumps({"date": date, "rows": len(rows), "dropped_overlap_or_secret": dropped,
+                                        "dropped_restrictive_language": dropped_terms,
                                         "by_kind": {k: sum(r["kind"] == k for r in rows) for k in LIC},
                                         "by_shelf": {k: sum(r.get("shelf") == k for r in rows) for k in [*SHELVES, "bible"]}}), flush=True)
 

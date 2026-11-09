@@ -25,6 +25,7 @@ class ApacheMetadataContractTests(unittest.TestCase):
             "LICENSE_HISTORY.md", "Endsupdate/PROJECT_STATUS.json",
             "docs/closure/PREVIOUS_PRODUCT_STATUS.json",
             "apps/licenses/PyInstaller-COPYING.txt",
+            "apps/beastbox-cloud/public/knowledge-bank/shards/world-001-04.json",
         ):
             self.assertEqual(category(path), "PRESERVED_HISTORY_OR_THIRD_PARTY")
         self.assertEqual(category("PROJECT_STATUS.json"), "CURRENT_OR_UNCLASSIFIED")
