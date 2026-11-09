@@ -274,6 +274,6 @@ export function shapeLiveness({now,pin,diary,diaryVerified,bridge,azure,world}={
    lessons:azure.counts?.lessons??null,experiences:azure.counts?.experiences??null,
    source:'Azure Blob beasts/bb-deada969 (cosmos store)'};
  }else doc.azure={configured:false,source:'Azure Blob beasts/bb-deada969 (cosmos store)'};
- if(world&&typeof world==='object')doc.life_signals={schema:world.schema||'beast-world-live/v1',links:world.links||null,all_connected:world.all_connected===true,labels:world.labels||null,source:'/api/world/live channels (zeref-spark, zeref-live-tick branches)'};
+ if(world&&typeof world==='object')doc.life_signals={schema:world.schema||'beast-world-live/v1',links:world.links||null,all_connected:world.all_connected===true,stalls:world.stalls??null,river:world.river??null,senses:Array.isArray(world.senses)?world.senses:null,labels:world.labels||null,source:'/api/world/live channels (zeref-spark, zeref-live-tick, zeref-diary branches)'};
  return doc;
 }
