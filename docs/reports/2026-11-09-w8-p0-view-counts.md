@@ -1,5 +1,7 @@
 # W8 P0 view counts — 2026-11-09
 
+Report commit `4f13582a0fb956cefcda82bf35ac4b23ddbbc965` on `cursor/w7-w9-reports-44d7`, base `0995ff2fb32115fd6c97daf18caf3a9f8363c3cf`.
+
 Measured live. PR #833 is merge `45e713b3c6a397fc6aa889f960dd4a8de9736c66`, merged 2026-11-06T16:12:24Z. 3D P1 was not started.
 
 ## How it was counted

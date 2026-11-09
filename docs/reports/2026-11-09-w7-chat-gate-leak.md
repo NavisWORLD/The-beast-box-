@@ -1,5 +1,7 @@
 # W7 chat-gate leak — 2026-11-09
 
+Report commit `4f13582a0fb956cefcda82bf35ac4b23ddbbc965` on `cursor/w7-w9-reports-44d7`, base `0995ff2fb32115fd6c97daf18caf3a9f8363c3cf`.
+
 Report only. No edit to `scripts/rawrphos_chat_eval.py`, `scripts/zeref_gate_sets_v2.json`, `DECISION_WEIGHT`, the pin, the held-out sets, or any threshold.
 
 ## What fails
