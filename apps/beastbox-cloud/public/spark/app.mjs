@@ -19,6 +19,7 @@ import {applyRecordedQvmStimulus,validateRecordedQvmStimulus,recordedQvmStimulus
 import {createSparkChatPopup} from './chat-popup.mjs';
 import {CATALOG_PATH,mountPicker} from './catalog-picker.mjs';
 import {deriveEmotions,diaryEntry,EMOTIONS} from './shared/emotion.mjs';
+import {oneUniverseStateOn,browserSources,readClockState,watchOneWorldRead} from '../universe/one-universe-state.mjs';
 const STORE='spark-beasts-bestiary-v1',QVM_STORE='spark-qvm-growth-v1',SOUND_KEY='spark-beast-sound-v2',SCALE=4,$=id=>document.getElementById(id);
 const media=matchMedia('(prefers-reduced-motion: reduce)');
 const beastAudio=getBeastAudio();
@@ -693,3 +694,6 @@ async function main(){
  requestAnimationFrame(now=>loop(now));
 }
 main().then(()=>{if(new URL(location.href).searchParams.get('beast')==='zeref')void run(()=>sparkZeref());}).catch(err=>{$('status').textContent=err.message||'Spark Beasts could not start.'});
+try{
+ watchOneWorldRead({on:oneUniverseStateOn(browserSources()),getClock:()=>readClockState(window,localStorage),node:document.documentElement,surface:'spark',subscribe:(fn)=>{try{const clock=window.__bbOneWorld;if(clock&&clock.subscribe)return clock.subscribe(fn);}catch{}const id=setInterval(fn,2000);return()=>clearInterval(id);}});
+}catch{}

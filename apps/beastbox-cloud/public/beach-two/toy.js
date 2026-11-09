@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import {PALETTE,PALETTE_OKLAB,L_WEIGHT} from './palette.js';
 import {SEEDS,loadSeed} from './seed.js';
+import {oneUniverseStateOn,browserSources,readClockState,watchOneWorldRead} from '../universe/one-universe-state.mjs';
 const $=id=>document.getElementById(id);
 const LABEL='Seeded from recorded IBM Quantum outcomes. Recorded, not live. The physics is classical math; the quantum is the seed.';
 let COPY={};try{COPY=await (await fetch('./copy.json')).json();}catch{}
@@ -498,3 +499,7 @@ else{resize();reseed(first);let last=performance.now(),acc=0;const DT=1/120;
   $('v_stream').textContent=SEED.stream.drawn.toLocaleString('en-US')+' draws · block '+SEED.stream.counter;$('wms').textContent=`· ${WIND.speed.toFixed(1)} m/s`;$('signals').textContent=sigLog.join('\n');}
  requestAnimationFrame(frame);}
 window.__beachTwo={game,ball,get seed(){return SEED&&{name:SEED.name,drawn:SEED.stream.drawn}},loaded:()=>loaded.map(s=>({file:s.file||s.name,ok:s.ok}))};
+try{
+ const host=(()=>{try{return parent&&parent!==window?parent:window;}catch{return window;}})();
+ watchOneWorldRead({on:oneUniverseStateOn(browserSources()),getClock:()=>readClockState(host,localStorage),node:document.documentElement,surface:'beach',subscribe:(fn)=>{try{const clock=host.__bbOneWorld;if(clock&&clock.subscribe)return clock.subscribe(fn);}catch{}const id=setInterval(fn,2000);return()=>clearInterval(id);}});
+}catch{}
