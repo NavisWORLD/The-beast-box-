@@ -59,7 +59,11 @@ const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
  page.on('pageerror',e=>errors.push(String(e.message).slice(0,200)));
  try{
   await page.goto(root+'/spark/index.html',{waitUntil:'domcontentloaded'});
-  await page.waitForFunction(()=>document.querySelector('#view')?.dataset.creatureId,{timeout:45000});
+  // 2026-11-08 fix: waitForFunction options belong in the THIRD argument. Passing
+   // {timeout:45000} second silently made it the (ignored) arg, so the wait ran at the
+   // 30s Playwright default and a slow spark-page init failed every boot attempt
+   // (heartbeat run 42529247991). 120s matches the workflow's gameplay-wait budget.
+   await page.waitForFunction(()=>document.querySelector('#view')?.dataset.creatureId,null,{timeout:120000});
   await page.locator('#'+PROFILE.selector).click();
   await page.waitForFunction(want=>document.querySelector('#view')?.dataset.creatureId===want,PROFILE.id,{timeout:45000});
   const signed=await page.evaluate(()=>{
