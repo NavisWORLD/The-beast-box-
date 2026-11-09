@@ -1,0 +1,74 @@
+{
+ "backend": "ibm_marrakesh",
+ "classical_bound": 0.75,
+ "classical_control": {
+  "per_question_pair": {
+   "x0y0": {
+    "rounds": 5938,
+    "win_rate": 1.0
+   },
+   "x0y1": {
+    "rounds": 6052,
+    "win_rate": 1.0
+   },
+   "x1y0": {
+    "rounds": 6027,
+    "win_rate": 1.0
+   },
+   "x1y1": {
+    "rounds": 5983,
+    "win_rate": 0.0
+   }
+  },
+  "rounds": 24000,
+  "sigma_above_classical_bound": 0.25366105917506865,
+  "standard_error": 0.00279244017838955,
+  "win_rate": 0.7507083333333333,
+  "wins": 18017
+ },
+ "commitments_sha256": {
+  "alice_sha256": "a4a149862d8484340fa2634979c40ec75d3e3a443c4fe5fd085252c8adb19fbc",
+  "bob_sha256": "e876bcf5140141218cbc24163ba626c9ff81005b4c4f577510917ee7a07700a0"
+ },
+ "date_utc": "20261109",
+ "job_id": "dbp2818ou4as73cstj5g",
+ "job_tag": "navisworld-zeref-heart-seed-v14-the-end-respark-20261109",
+ "label": "CHSH game (Bell nonlocality)",
+ "loopholes": [
+  "No space-like separation: both qubits sit on one chip and one classical controller applies both settings, so locality is NOT enforced; this is not a loophole-free Bell test.",
+  "Detection/fair-sampling and readout errors are not mitigated.",
+  "Questions come from os.urandom on the GitHub runner (freedom-of-choice assumed, not proven)."
+ ],
+ "outcomes_sha256": "b276ac54aeffc87bda2ee3ce2e5c46aa4c0b3fe66806223a5f9c31a8de5f72a8",
+ "quantum": {
+  "per_question_pair": {
+   "x0y0": {
+    "rounds": 5938,
+    "win_rate": 0.8290670259346581
+   },
+   "x0y1": {
+    "rounds": 6052,
+    "win_rate": 0.8522802379378718
+   },
+   "x1y0": {
+    "rounds": 6027,
+    "win_rate": 0.8588020574083292
+   },
+   "x1y1": {
+    "rounds": 5983,
+    "win_rate": 0.8357011532675915
+   }
+  },
+  "rounds": 24000,
+  "sigma_above_classical_bound": 40.155006665049285,
+  "standard_error": 0.002341966157573075,
+  "win_rate": 0.8440416666666667,
+  "wins": 20257
+ },
+ "quantum_ideal": 0.8535533905932737,
+ "quantum_seconds": null,
+ "recorded_utc": "2026-11-09T19:51:19.392616+00:00",
+ "schema": "navisworld-chsh-game-v1",
+ "source_class": "RECORDED_IBM_HARDWARE",
+ "withheld": "question lists, commitment salts and the per-round outcome list are not published; only their hashes are"
+}
