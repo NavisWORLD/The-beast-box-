@@ -25,10 +25,11 @@ jobs:
       cancel-in-progress: false
     if: ${{ github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && (github.head_ref == 'feature/zeref-resumable-continuous-learning-006-20261011' || startsWith(github.head_ref, 'feature/zeref-manual-cpu-'))) }}
     runs-on: ubuntu-24.04
-    # A round includes a control AND multiple 320-attempt variants, not one 64-step run.
-    # Existing per-variant 2700s and candidate-start 2400s bounds can consume almost
-    # 7800s together. 90 minutes killed slow-runner rounds before any gate score.
-    timeout-minutes: 180
+    # A round is one 320-attempt control plus four 320-attempt candidates.
+    # The old 2400s candidate-start clock skipped candidates 2 and 3, and the
+    # 90-minute job killed the train step before the gate. 240 minutes covers
+    # five variants at the existing 2700s cap, plus the final unchanged gate.
+    timeout-minutes: 280
     env:
       GH_TOKEN: ${{ github.token }}
       OMP_NUM_THREADS: '2'
@@ -269,9 +270,9 @@ jobs:
             || { echo 'ZEREF_SPARK_TICKS_UNAVAILABLE (training continues unconditioned)'; : > build/zeref-006/spark-ticks.jsonl; }
       - name: Resume exact AdamW state, train 320-attempt variants and score unchanged gates
         id: continuation
-        # Leave setup/upload reserve inside the 180-minute job; an independent
-        # 30-minute scoring job handles a saved partial candidate if this expires.
-        timeout-minutes: 145
+        # 280-minute job leaves upload reserve outside this step. An independent
+        # 30-minute scoring job still handles a saved partial candidate if this expires.
+        timeout-minutes: 240
         env:
           ZEREF_COND54: '1'  # routed 54D conditioning with learnable zero-init gain; gate scoring stays unconditioned
           ZEREF_SPARK_TICKS: build/zeref-006/spark-ticks.jsonl
@@ -286,8 +287,11 @@ jobs:
           # 2026-10-25 multi-candidate rounds: 4 candidates (seed/lr/lr-floor variants) resume from the SAME live pin;
           # the best on set A goes to the UNCHANGED Gate v2 (set B strict, pin re-scored). Rounds are 320 updates from cycle 45.
           ZEREF_006_CANDIDATES: '4'
-          ZEREF_006_CANDIDATE_BUDGET_S: '2400'  # existing candidate-start window; excludes control (not a whole-job budget)
-          ZEREF_006_TIME_BUDGET_S: '2700'  # existing per-variant window; immutable snapshots also support independent scoring
+          # Start budget must clear three finished variants or candidates 2 and 3 never run.
+          # 3 x 2700s = 8100s, so 12000s still starts the fourth. Per-variant cap stays 2700s,
+          # above the slowest scored 320-update variant (2228s, run 42431049446).
+          ZEREF_006_CANDIDATE_BUDGET_S: '12000'
+          ZEREF_006_TIME_BUDGET_S: '2700'
         run: |
           set -Eeuo pipefail
           python -u scripts/zeref_continuation_006.py
