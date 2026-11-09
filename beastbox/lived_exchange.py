@@ -17,7 +17,6 @@ from .hashutil import sha256_text
 from .lived_attachment import host_attachment
 from .lived_chain_public import diary_export_path
 from .lived_events import (
-    ACTIVATION_ENV,
     CANONICAL_SUBJECT,
     ActivationRejected,
     ChainRejected,
@@ -28,7 +27,7 @@ from .lived_state import LivedStore
 
 
 def _allows_write(attachment: Mapping[str, Any] | None) -> bool:
-    if os.environ.get(ACTIVATION_ENV, "off") != "on":
+    if os.environ.get("BEASTBOX_LIVED_BACKBONE", "off") != "on":
         return False
     if not isinstance(attachment, Mapping):
         return False
@@ -61,7 +60,7 @@ def _export_entries(root: Path) -> list[dict[str, Any]] | None:
 
 
 def _current_attachment(root: Path) -> Mapping[str, Any] | None:
-    if os.environ.get(ACTIVATION_ENV, "off") != "on":
+    if os.environ.get("BEASTBOX_LIVED_BACKBONE", "off") != "on":
         return None
     try:
         result = host_attachment(_export_entries(root))
