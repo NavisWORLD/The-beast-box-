@@ -5,6 +5,7 @@
 
 import { chooseBrain, fallbackAfterFailure, guestBody, interpretModelResult, ownerChatBody } from "./brain.mjs";
 import { renderContextPrompt } from "./context.mjs";
+import { mintExchangeId, ownerTalkReceipt } from "../zeref/lived-exchange.mjs";
 
 function defaultUuid() {
   if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
@@ -87,6 +88,7 @@ export async function askBeast(input = {}) {
   let reply = "";
   let label = route.label;
   let pending = false;
+  let lived_state = null;
 
   if (route.route === "owner-bridge") {
     try {
@@ -117,6 +119,7 @@ export async function askBeast(input = {}) {
           if (read.ok && read.reply) {
             reply = read.reply;
             label = route.label;
+            lived_state = ownerTalkReceipt(state, await mintExchangeId("owner", "owner", String(saying || "")));
           } else label = fallbackAfterFailure(read.reason).failure;
         }
       } else label = fallbackAfterFailure(typeof job?.error === "string" ? job.error : "Brain Bay did not start a chat").failure;
@@ -125,27 +128,5 @@ export async function askBeast(input = {}) {
     }
   }
 
-  if (!reply && !pending) {
-    try {
-      const guestRoute = chooseBrain({ guestReady: true });
-      const guest = await fetchImpl("/api/guest", {
-        method: "POST",
-        credentials: "same-origin",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(guestBody(guestPrompt)),
-      });
-      const payload = await guest.json();
-      const read = interpretModelResult("guest-rawrphos", payload);
-      if (read.ok && read.reply) {
-        reply = read.reply;
-        label = guestRoute.label;
-      } else if (route.route !== "owner-bridge") label = fallbackAfterFailure(read.reason).failure;
-    } catch (error) {
-      if (route.route !== "owner-bridge") {
-        label = fallbackAfterFailure(error instanceof Error ? error.message : "RAWRPHØS guest did not answer").failure;
-      }
-    }
-  }
-
-  return { reply, label, pending };
+  return { reply, label, pending, ...(lived_state ? { lived_state } : {}) };
 }

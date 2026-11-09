@@ -81,6 +81,10 @@ An owner turn writes two RECORDED events on the same chain the senses use: the h
 
 The write runs only when `BEASTBOX_LIVED_BACKBONE` is exactly `on` and the recomputed `host_attachment` returns `verified: True`. The diary export beside the store is read for that check. It is not written and it is not re-keyed. Any other return writes nothing and does not create the chain file. Guest and visitor exchanges do not open the owner chain. The Azure copy is a hash replica with an outbox receipt. A replica failure does not move the canonical head.
 
+## One mouth (PR D1)
+
+The field sheet's owner talk uses the backbone mouth. It carries that mouth's receipt and does not fall through to the guest door. A guest on the field still uses the guest door, and that door does not open the owner chain. The share panel keeps its on-device experience log. It no longer emits a sample event that nothing reads. Game lines and teacher coaching stay on their own side of the glass.
+
 ## Co-firing (PR C2)
 
 Recorded exchanges co-fire with the shared twelve-state, and that co-firing stays in the owner store. Replaying the chain restores the same weights. The text drive is a fixed hash of the text bytes, labelled computed, and it does not enter a sensor channel. A sensor sample does not reset those weights. Guest and visitor turns do not touch them. There is no cap that drops an older recorded line.
