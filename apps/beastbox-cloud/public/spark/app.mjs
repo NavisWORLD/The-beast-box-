@@ -97,8 +97,10 @@ function updatePlate(){if(!current)return;const beast=session.beast;$('nameplate
 
 // ---- Emotions (deterministic; only real events and archived SIMULATED Rigetti runs change them) ----
 const DIARY_KEY=seed=>`beastbox-emotion-diary-v1:${seed}`;
+const DIARY_ARCHIVE_KEY=seed=>`beastbox-emotion-diary-archive-v1:${seed}`;
 const EMO_VOICE={joy:'spark',mischief:'spark',curiosity:'focus',calm:'calm',fear:'calm'};
 function currentEmotions(){if(!session?.beast)return null;return deriveEmotions(session.beast,{simGrowth:qvmGrowth,chatTurns:(session.chat||[]).filter(m=>m.role==='you').length});}
+function readDiaryArchive(seed){try{const d=JSON.parse(localStorage.getItem(DIARY_ARCHIVE_KEY(seed))||'[]');return Array.isArray(d)?d:[];}catch{return [];}}
 function readDiary(seed){try{const d=JSON.parse(localStorage.getItem(DIARY_KEY(seed))||'[]');return Array.isArray(d)?d.slice(-30):[];}catch{return [];}}
 function drawEmotions(){
  const em=currentEmotions();if(!em||!$('emotion-bars'))return em;
@@ -111,7 +113,7 @@ function drawEmotions(){
 }
 function emotionEvent(event,before){
  const after=drawEmotions();if(!after)return;const entry=diaryEntry(before,after,event);
- if(entry){try{const d=readDiary(session.beast.seed);d.push(entry);localStorage.setItem(DIARY_KEY(session.beast.seed),JSON.stringify(d.slice(-30)));}catch{}drawEmotions();}
+ if(entry){try{const seed=session.beast.seed;const arch=readDiaryArchive(seed);arch.push(entry);try{localStorage.setItem(DIARY_ARCHIVE_KEY(seed),JSON.stringify(arch));}catch{/* quota: keep the archive already stored */}localStorage.setItem(DIARY_KEY(seed),JSON.stringify(arch.slice(-30)));}catch{}drawEmotions();}
  if(runtime)runtime.emotionNext={state:after.choice.state,from:runtime.until};
  $('line').textContent=`${$('line').textContent} ${shownName(session.beast)} ${after.choice.line}`;
 }
