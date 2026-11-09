@@ -24,6 +24,7 @@ from .lived_events import (
     IdentityRejected,
     SampleRejected,
 )
+from .lived_recall import recall_for_root
 from .lived_state import LivedStore
 
 
@@ -239,6 +240,7 @@ def speak_owner(root: str | Path, heard: str, generate: Callable[[], Any], *, no
 
     def once() -> Any:
         if "value" not in held:
+            held["recall"] = recall_for_root(Path(root), heard)
             held["value"] = generate()
         return held["value"]
 
@@ -248,7 +250,13 @@ def speak_owner(root: str | Path, heard: str, generate: Callable[[], Any], *, no
     if result["status"] == "skipped":
         return held.get("value", result["reply"])
     if result["recovered"]:
-        return {"response": result["reply"], "lived_exchange": result["receipt"], "recovered": True}
+        recall = held.get("recall") or recall_for_root(Path(root), heard)
+        return {
+            "response": result["reply"],
+            "lived_exchange": result["receipt"],
+            "lived_recall": recall["receipt"],
+            "recovered": True,
+        }
     body = held.get("value")
     if not isinstance(body, dict):
         body = {"response": result["reply"]}
@@ -256,6 +264,8 @@ def speak_owner(root: str | Path, heard: str, generate: Callable[[], Any], *, no
         body = dict(body)
     if result["receipt"] is not None:
         body["lived_exchange"] = result["receipt"]
+    if "lived_recall" not in body and "recall" in held:
+        body["lived_recall"] = held["recall"]["receipt"]
     return body
 
 

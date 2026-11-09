@@ -18,6 +18,7 @@ from .sensory import SensorySummary, freshness_gate
 from .state import MissionState
 from .synaptic import SynapticField
 from .lived_prompt import attest_owner, backbone_ready, owner_prefix
+from .lived_recall import recall_for_root
 
 
 DEFAULT_SYSTEM_PROMPT = (
@@ -121,11 +122,14 @@ class CosmosRuntime:
         synthesis_instructions = (system_prompt or DEFAULT_SYSTEM_PROMPT).strip()
         lived_prefix = ""
         lived_exchange = None
+        lived_recall = None
         if backbone_ready():
             lived_prefix, lived_exchange = owner_prefix(
                 Path(self.config.data_dir), self.provider,
                 exchange_id=getattr(self, "_lived_exchange_id", None),
             )
+            lived_recall = recall_for_root(Path(self.config.data_dir), text)
+            lived_prefix += lived_recall["prompt"]
         prompt = (
             f"{synthesis_instructions}\n"
             f"{lived_prefix}"
@@ -186,6 +190,8 @@ class CosmosRuntime:
         }
         if lived_exchange is not None:
             result["lived_state"] = attest_owner(prompt, lived_exchange, prefix=lived_prefix)
+        if lived_recall is not None:
+            result["lived_recall"] = lived_recall["receipt"]
         return result
 
     def save_evidence(self, path: str | Path) -> None:
