@@ -19,7 +19,7 @@ concurrency:
 
 jobs:
   conversation:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 45
     env:
       AI_HORDE_API_KEY: "0000000000"

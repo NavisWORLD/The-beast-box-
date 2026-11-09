@@ -4,7 +4,11 @@ const fs=require('node:fs');
 const w=fs.readFileSync('.github/workflows/zeref-continuous-learning-006.yml','utf8');
 const t=fs.readFileSync('scripts/zeref_continuation_006.py','utf8');
 test('bounded multi-variant work has independent interruption scoring and CI headroom',()=>{
- assert.match(w,/timeout-minutes: 180/);
+ assert.match(w,/timeout-minutes: 280/);
+ assert.match(w,/timeout-minutes: 240/);
+ assert.match(w,/ZEREF_006_CANDIDATES: '4'/);
+ assert.match(w,/ZEREF_006_CANDIDATE_BUDGET_S: '12000'/);
+ assert.match(w,/ZEREF_006_TIME_BUDGET_S: '2700'/);
  assert.match(w,/score-interrupted:/);
  assert.match(w,/needs: train-zeref/);
  assert.match(w,/always\(\).*needs.train-zeref.result/);
