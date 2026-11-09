@@ -36,7 +36,7 @@ export default function QuantumBeastTransfer({profile,onImport}:{profile:Creatur
  const [snapshot,setSnapshot]=useState<Snapshot|null>(null),[key,setKey]=useState('');
  const [status,setStatus]=useState(''),[error,setError]=useState(''),[busy,setBusy]=useState(false);
  const [verifiedKey,setVerifiedKey]=useState<string|undefined>(),[signature,setSignature]=useState('absent');
- const [ready,setReady]=useState(false),[settled,setSettled]=useState(false);
+ const [ready,setReady]=useState(false),[settled,setSettled]=useState(false),[advancedOpen,setAdvancedOpen]=useState(false);
  const input=useRef<HTMLInputElement>(null),storedRaw=useRef<string|null>(null),running=useRef(false);
  const detailsRef=useRef<HTMLDetailsElement>(null),advancedRef=useRef(false);
  const importCallback=useRef(onImport);importCallback.current=onImport;
@@ -105,7 +105,7 @@ export default function QuantumBeastTransfer({profile,onImport}:{profile:Creatur
    <button type="button" className={css.playGame} disabled={!profile||busy||!ready||Boolean(snapshot&&!matches)} title={!ready?'Getting ready…':busy?'Working…':!profile?'Make or load a Quantum Beast first':'This file belongs to a different creature'} onClick={()=>void run(openLostCosmos)}>PLAY THIS BEAST IN LOST COSMOS</button>
    <input ref={input} disabled={busy||!ready} className={css.file} type="file" accept=".qbeast,application/json" aria-label="Quantum Beast file" onChange={e=>{const file=e.target.files?.[0];e.target.value='';if(file)void run(()=>importFile(file));}}/>
   </div>
-  <details ref={detailsRef} className={css.details} data-bridge-advanced onToggle={event=>{advancedRef.current=event.currentTarget.open;}}><summary>Advanced settings</summary>
+  <details ref={detailsRef} className={css.details} data-bridge-advanced open={advancedOpen} onToggle={event=>{advancedRef.current=event.currentTarget.open;setAdvancedOpen(event.currentTarget.open);}}><summary>Advanced settings</summary>
    <button type="button" disabled={!profile||busy||!ready||Boolean(snapshot&&!matches)} title={!ready?'Getting ready…':busy?'Working…':!profile?'Make or load a Quantum Beast first':'This file belongs to a different creature'} onClick={()=>void run(openSynapseShare)}>Open the web Synapse share (github.io)</button>
   <div className={css.actions}>
    <button type="button" disabled={!profile||busy||!ready} title={!ready?'Getting ready…':busy?'Working…':!profile?'Make or load a Quantum Beast first':'This file belongs to a different creature'} onClick={()=>void run(exportPortable)}>DOWNLOAD QUANTUM BEAST</button>
