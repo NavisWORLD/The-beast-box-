@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any, Mapping
 
 from .hashutil import canonical_json, sha256_obj, sha256_text
+from .lived_hebb import DT_MAX, RULE, initial_weights, recorded_transition
 from .lived_events import (
     STALE_MS,
     ChainRejected,
@@ -66,6 +67,11 @@ CREATE TABLE IF NOT EXISTS lived_exchanges (
   status TEXT NOT NULL,
   outbox TEXT,
   acknowledged INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS lived_hebb (
+  sequence INTEGER PRIMARY KEY,
+  payload TEXT NOT NULL,
+  sha256 TEXT NOT NULL
 );
 """
 
@@ -379,6 +385,7 @@ class LivedStore:
             raise ChainRejected("history", "refusing zero reconstruction of missing snapshot history")
         head = self.attachment["prior_head"]
         current = initial
+        weights = initial_weights()
         rows = self.db.execute(
             "SELECT sequence, event_id, payload, sha256 FROM lived_events ORDER BY sequence"
         ).fetchall()
@@ -392,7 +399,13 @@ class LivedStore:
             body = self._load(payload)
             if body.get("previous") != head or body.get("subject_id") != self.subject_id:
                 raise ChainRejected("chain", "lived chain broke or crossed subjects")
-            recomputed = self._transition(current, body)
+            if body.get("kind") == "exchange" and body.get("hebb_rule") == RULE:
+                weights, replayed = self._replay_recorded(current, body, weights, int(sequence))
+                recomputed = self._carry_snapshot(
+                    current, int(body["sequence"]), event_id, state12=replayed,
+                )
+            else:
+                recomputed = self._transition(current, body)
             if recomputed["state_sha256"] != body["state_sha256"]:
                 raise ChainRejected("chain", "replay did not reproduce the committed state")
             stored = self._snapshot_at(int(sequence))
@@ -608,15 +621,16 @@ class LivedStore:
             return self.exchange_receipt(str(row["heard_event_id"]))
         previous = self.read_lived_snapshot(self.scope)
         sequence = int(previous["sequence"]) + 1
-        body = _exchange_event(
-            "exchange", "heard", "RECORDED", exchange_id, text, previous, sequence, now_ms, self,
+        body, stepped = self._recorded_body(
+            "heard", exchange_id, text, previous, sequence, now_ms,
         )
         event_id = self._insert_event(body)
+        self._insert_hebb(sequence, stepped, previous["presence_mask"])
         self.db.execute(
             "INSERT INTO lived_exchanges(exchange_id, text_sha256, heard_event_id, spoken_event_id, failure_event_id, status, outbox, acknowledged) VALUES(?, ?, ?, NULL, NULL, 'open', NULL, 0)",
             (exchange_id, sha256_text(text), event_id),
         )
-        snapshot = self._carry_snapshot(previous, sequence, event_id)
+        snapshot = self._carry_snapshot(previous, sequence, event_id, state12=stepped["state12"])
         self._insert_snapshot(snapshot)
         return _public_exchange(body, event_id, snapshot, status="lived")
 
@@ -647,16 +661,17 @@ class LivedStore:
             "snapshot_sequence": int(previous["sequence"]),
             "state_sha256": previous["state_sha256"],
         }
-        body = _exchange_event(
-            "exchange", "spoken", "RECORDED", exchange_id, reply, previous, sequence, now_ms, self,
+        body, stepped = self._recorded_body(
+            "spoken", exchange_id, reply, previous, sequence, now_ms,
             model=model, causation=causation,
         )
         event_id = self._insert_event(body)
+        self._insert_hebb(sequence, stepped, previous["presence_mask"])
         self.db.execute(
             "UPDATE lived_exchanges SET spoken_event_id=?, status='spoken' WHERE exchange_id=?",
             (event_id, exchange_id),
         )
-        snapshot = self._carry_snapshot(previous, sequence, event_id)
+        snapshot = self._carry_snapshot(previous, sequence, event_id, state12=stepped["state12"])
         self._insert_snapshot(snapshot)
         return _public_exchange(body, event_id, snapshot, status="lived")
 
@@ -689,12 +704,110 @@ class LivedStore:
             (canonical_json({"ack": True}), exchange_id),
         )
 
-    def _carry_snapshot(self, previous: Mapping[str, Any], sequence: int, event_id: str) -> dict[str, Any]:
+    def hebb_checkpoint(self) -> dict[str, Any]:
+        row = self.db.execute(
+            "SELECT payload FROM lived_hebb ORDER BY sequence DESC LIMIT 1"
+        ).fetchone()
+        if row is None:
+            snap = self.read_lived_snapshot(self.scope)
+            weights = initial_weights()
+            return {
+                "rule": RULE,
+                "basis": "dyn12-v1",
+                "version": 1,
+                "weights": weights,
+                "prior_activation": [abs(float(item)) for item in snap["state12"]],
+                "weights_sha256": sha256_obj(weights),
+                "source_mask": dict(snap["presence_mask"]),
+            }
+        return self._load(row["payload"] if not isinstance(row, tuple) else row[0])
+
+    def _weight_matrix(self) -> list[list[float]]:
+        row = self.db.execute(
+            "SELECT payload FROM lived_hebb ORDER BY sequence DESC LIMIT 1"
+        ).fetchone()
+        if row is None:
+            return initial_weights()
+        return self._load(row["payload"] if not isinstance(row, tuple) else row[0])["weights"]
+
+    def _recorded_body(
+        self, role: str, exchange_id: str, text: str, previous: Mapping[str, Any],
+        sequence: int, now_ms: int, *, model: str | None = None,
+        causation: Mapping[str, Any] | None = None,
+    ) -> tuple[dict[str, Any], dict[str, Any]]:
+        stepped = recorded_transition(
+            previous["state12"], self._weight_matrix(), text, DT_MAX, sequence,
+        )
+        body = _exchange_event(
+            "exchange", role, "RECORDED", exchange_id, text, previous, sequence, now_ms, self,
+            model=model, causation=causation,
+        )
+        body["state12"] = [float(item) for item in stepped["state12"]]
+        body["state_sha256"] = sha256_obj(body["state12"])
+        body["hebb_rule"] = stepped["rule"]
+        body["projection"] = stepped["projection"]
+        body["drive_label"] = stepped["drive_label"]
+        body["dt"] = stepped["dt"]
+        body["drive_sha256"] = sha256_obj(stepped["drive"])
+        body["pre_activation"] = stepped["pre_activation"]
+        body["weights_sha256"] = sha256_obj(stepped["weights"])
+        return body, stepped
+
+    def _insert_hebb(self, sequence: int, stepped: Mapping[str, Any], mask: Mapping[str, Any]) -> None:
+        payload = {
+            "schema": "lived-hebb-v1",
+            "rule": stepped["rule"],
+            "basis": stepped["basis"],
+            "version": stepped["version"],
+            "sequence": sequence,
+            "weights": stepped["weights"],
+            "prior_activation": stepped["pre_activation"],
+            "weights_sha256": sha256_obj(stepped["weights"]),
+            "source_mask": {key: int(mask[key]) for key in mask},
+            "projection": stepped["projection"],
+            "dt": stepped["dt"],
+        }
+        raw = canonical_json(payload)
+        self.db.execute(
+            "INSERT INTO lived_hebb(sequence, payload, sha256) VALUES(?, ?, ?)",
+            (sequence, raw, sha256_text(raw)),
+        )
+
+    def _hebb_at(self, sequence: int) -> dict[str, Any] | None:
+        row = self.db.execute(
+            "SELECT payload FROM lived_hebb WHERE sequence=?", (sequence,)
+        ).fetchone()
+        if row is None:
+            return None
+        return self._load(row["payload"] if not isinstance(row, tuple) else row[0])
+
+    def _replay_recorded(
+        self, previous: Mapping[str, Any], body: Mapping[str, Any],
+        weights: list[list[float]], sequence: int,
+    ) -> tuple[list[list[float]], list[float]]:
+        stepped = recorded_transition(
+            previous["state12"], weights, str(body.get("text") or ""), body.get("dt", 0.0), sequence,
+        )
+        if sha256_obj(stepped["state12"]) != body.get("state_sha256"):
+            raise ChainRejected("chain", "replay did not reproduce the committed state")
+        if sha256_obj(stepped["drive"]) != body.get("drive_sha256"):
+            raise ChainRejected("chain", "replay did not reproduce the computed drive")
+        if sha256_obj(stepped["weights"]) != body.get("weights_sha256"):
+            raise ChainRejected("chain", "replay did not reproduce the co-firing weights")
+        stored = self._hebb_at(sequence)
+        if stored is None or sha256_obj(stored["weights"]) != body.get("weights_sha256"):
+            raise ChainRejected("chain", "stored co-firing does not match the replay")
+        return stepped["weights"], stepped["state12"]
+
+    def _carry_snapshot(
+        self, previous: Mapping[str, Any], sequence: int, event_id: str,
+        state12: list[float] | None = None,
+    ) -> dict[str, Any]:
         return make_snapshot(
             subject_id=self.subject_id,
             scope=self.scope,
             sequence=sequence,
-            state12=list(previous["state12"]),
+            state12=list(previous["state12"] if state12 is None else state12),
             chain_head=event_id,
             origin_commitment=self.attachment["origin_commitment"],
             prior_head=self.attachment["prior_head"],
