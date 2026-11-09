@@ -1,0 +1,48 @@
+{
+ "bridge_activation": {
+  "deployment": "SUCCESS (deployment created 2026-11-09T14:59:57Z)",
+  "healthz_after": {
+   "diary_chain_at_check": {
+    "entries": 687,
+    "note": "the diary kept appending during the flip; the seam stays anchored at the flip-time head (686)"
+   },
+   "lived_chain_receipt": "empty until the first lived event is admitted; the store anchors at BEASTBOX_LIVED_PRIOR_HEAD",
+   "lived_state_conditioning": "available (was unavailable before the flip)",
+   "pin_checkpoint_sha256": "61fff64760a40069966594a0a6d476ba41ab24e55b582cf9c8bdf07d9bcd2adf",
+   "pin_step": 36784,
+   "served_step": 36784
+  },
+  "service": "cosmos-owner-bridge (Railway, Beast Box COSMOS Engine / production)",
+  "variables": {
+   "BEASTBOX_LIVED_BACKBONE": "on",
+   "BEASTBOX_LIVED_ORIGIN_COMMITMENT": "c39f7838e9a151b2a664fad92b1d2108ab70fb4ef335a023686790769a32aae0",
+   "BEASTBOX_LIVED_PRIOR_HEAD": "4ba10af8a1980a49c22b358428032d3c538e6bb9bdf3de8946922baf7c7f08a3"
+  }
+ },
+ "flipped_at": "2026-11-09 (America/Chicago morning)",
+ "joining_entry_hash": "df5865f9da6c90a39681a4837c103022dfe36633ca3bcf1660a5c66e089eb38d",
+ "nothing_relabeled_or_rekeyed": true,
+ "ordered_by": "Cory Davis, owner ('Switch the flip' / 'Let the river flow', main chat 2026-11-09)",
+ "origin_ruling": "2026-11-08: his LIFE runs on the diary chain; bb-deada969 stays the canonical birth/lineage record, untouched",
+ "pin_and_gates_untouched": true,
+ "precondition_recompute": {
+  "across_seam_verified": true,
+  "diary_walk": {
+   "entries": 686,
+   "head": "4ba10af8a1980a49c22b358428032d3c538e6bb9bdf3de8946922baf7c7f08a3",
+   "matches_bridge_published_head": true,
+   "subject": "bb-7f9c2a03"
+  },
+  "lineage_walk": {
+   "genesis": "c39f7838e9a151b2a664fad92b1d2108ab70fb4ef335a023686790769a32aae0",
+   "head": "d51430d0b0d77867eaf30d67cf1e73ba3f286458d9f302468223c7f065ccfb7b",
+   "subject": "bb-deada969"
+  },
+  "method": "repo's own beastbox/lived_attachment.py host_attachment + recompute_across_seam, run by Emeth against live sources at flip time",
+  "negative_tests_first": {
+   "tampered_diary_entry": "refused (tampered-entry)",
+   "wrong_prior_head": "refused (wrong-prior-head)"
+  }
+ },
+ "schema": "backbone-switch-on-receipt-v1"
+}
