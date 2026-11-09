@@ -17,7 +17,6 @@ from typing import Any, Mapping
 from .lived_attachment import host_attachment
 from .lived_chain_public import diary_export_path
 from .lived_events import (
-    ACTIVATION_ENV,
     CANONICAL_SUBJECT,
     ActivationRejected,
     ChainRejected,
@@ -285,7 +284,7 @@ def study_on_speak(
 ) -> dict[str, Any]:
     if scope != "owner":
         return _receipt("isolated", wrote=False)
-    if os.environ.get(ACTIVATION_ENV, "off") != "on":
+    if os.environ.get("BEASTBOX_LIVED_BACKBONE", "off") != "on":
         return _receipt("off", wrote=False)
     if type(now_ms) is not int or now_ms < 0:
         return _receipt("clock", wrote=False)
