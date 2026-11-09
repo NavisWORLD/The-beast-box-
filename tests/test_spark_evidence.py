@@ -25,6 +25,14 @@ def artifact(tmp_path):
     return a, prev
 
 
+def files_listed(readme: str) -> list[str]:
+    for line in readme.splitlines():
+        if line.startswith("- Files written by this run: "):
+            body = line.removeprefix("- Files written by this run: ").removesuffix(".")
+            return [part.strip("`") for part in body.split(", ")]
+    raise AssertionError("README has no file list")
+
+
 def test_public_evidence_never_contains_private_questions_salts_or_outcomes(tmp_path):
     a, prev = artifact(tmp_path)
     out = tmp_path / "out"
@@ -78,3 +86,49 @@ def test_committed_003_evidence_matches_the_latest_pointer_and_the_mix_hook_is_p
     assert not list(ev.rglob("*private*"))
     src = (ROOT / "scripts/zeref_continuation_006.py").read_text()
     assert "heart_seed_v8_sha256" in src and "evidence/zeref-final-spark-003/heart-seed-v8.json" in src
+
+
+def test_readme_lists_only_the_files_this_build_wrote(tmp_path):
+    a, prev = artifact(tmp_path)
+    out = tmp_path / "out"
+    se.build(a, out, "tag-x", 8, prev)
+    readme = (out / "README.md").read_text()
+    assert "compact record the Rigetti" not in readme
+    listed = files_listed(readme)
+    assert listed == [
+        "ibm-chsh-result-public.json",
+        "spark-seed.json",
+        "heart-seed-v8.json",
+        "quota-before.json",
+        "quota-after.json",
+        "README.md",
+    ]
+    assert set(listed) == {p.name for p in out.iterdir() if p.is_file()}
+
+
+def test_readme_omits_quota_files_the_artifact_does_not_have(tmp_path):
+    a, prev = artifact(tmp_path)
+    (a / "quota_before.json").unlink()
+    (a / "_ibm_open_plan_preflight" / "receipt.json").unlink()
+    out = tmp_path / "bare"
+    se.build(a, out, "tag-x", 8, prev)
+    listed = files_listed((out / "README.md").read_text())
+    assert listed == [
+        "ibm-chsh-result-public.json",
+        "spark-seed.json",
+        "heart-seed-v8.json",
+        "README.md",
+    ]
+    assert set(listed) == {p.name for p in out.iterdir() if p.is_file()}
+
+
+def test_public_label_is_added_when_the_raw_result_has_none(tmp_path):
+    a, prev = artifact(tmp_path)
+    result = a / "chsh_game_result.json"
+    full = json.loads(result.read_text())
+    del full["label"]
+    result.write_text(json.dumps(full))
+    out = tmp_path / "nolabel"
+    se.build(a, out, "tag-x", 8, prev)
+    public = json.loads((out / "ibm-chsh-result-public.json").read_text())
+    assert public["label"] == "CHSH game score"
