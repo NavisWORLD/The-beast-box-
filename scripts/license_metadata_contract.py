@@ -13,8 +13,14 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 IGNORED_PARTS = {".git", "node_modules", "vendor", "vendored", ".venv", "venv", "__pycache__"}
+# The knowledge-bank shards (apps/beastbox-cloud/public/knowledge-bank/shards/) hold
+# word-for-word third-party passages (Simple English Wikipedia, Wikinews, Project
+# Gutenberg, GSM8K), every entry carrying its own source, author and licence. They are
+# independent third-party texts: audited in the preserved class, never relicensed, and
+# never read as this project's own license terms (Cory's gate call, 2026-11-09).
 PRESERVED_PREFIXES = (
     "Endsupdate/", "experimental/", "evidence/", "apps/licenses/",
+    "apps/beastbox-cloud/public/knowledge-bank/shards/",
     "docs/performance/", "docs/closure/PREVIOUS_PRODUCT_STATUS.json",
     "docs/closure/RELEASE_NOTES_", "docs/superpowers/", "docs/evidence/",
 )
