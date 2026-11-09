@@ -6,7 +6,10 @@
         [--bio-packet features.json --bio-result result.json]
 
 DIR is the unzipped GitHub Actions artifact (it contains chsh_game_result.json and the preflight receipts).
-Writes: ibm-chsh-result-public.json, spark-seed.json, heart-seed-vN.json, quota-*.json, README.md.
+Always writes ibm-chsh-result-public.json, spark-seed.json, heart-seed-vN.json, and README.md.
+Writes quota-before.json and quota-after.json only when those receipts are in the artifact.
+Writes bio-packet-numbers.json and bio-result.json only when those inputs are supplied.
+The README lists only the files that run wrote. --latest copies spark-seed.json to the given path, outside the evidence directory.
 NEVER copied: alice/ bob/ (private_questions.json, answers, salts), the question lists, the per-round outcome list, raw media.
 Labels: IBM = RECORDED_IBM_HARDWARE only when a real job result exists. Heartbeat = MEASURED only when a valid numbers-only packet is
 supplied; otherwise the heart seed says `heartbeat: none` (no pulse used) and nothing is invented. Order-only seed; quantum hardware cannot learn text."""
@@ -26,12 +29,16 @@ def sha(b):
 
 
 def public_result(full):
-    """Strip everything private or bulky. Keeps the numbers, the hashes and the honest loophole list."""
+    """Strip everything private or bulky. Keeps the numbers, the hashes and the honest loophole list.
+
+    The public label is always "CHSH game score". The raw result label is not copied.
+    """
     c = full.get("commitments") or {}
-    keep = ("backend", "classical_bound", "classical_control", "date_utc", "job_id", "job_tag", "label", "loopholes", "outcomes_sha256",
+    keep = ("backend", "classical_bound", "classical_control", "date_utc", "job_id", "job_tag", "loopholes", "outcomes_sha256",
             "quantum", "quantum_ideal", "quantum_seconds", "recorded_utc", "schema", "source_class",
             "counts", "counts_sha256", "commitments_verified", "recovery")
     out = {k: full[k] for k in keep if k in full}
+    out["label"] = "CHSH game score"
     out["commitments_sha256"] = {k: c[k] for k in ("alice_sha256", "bob_sha256") if k in c}
     out["withheld"] = "question lists, commitment salts and the per-round outcome list are not published; only their hashes are"
     return out
@@ -78,7 +85,12 @@ def build(artifact, out, tag, version, prev, run_url="", latest=None, bio_packet
     full_sha = sha(raw)
     o = Path(out)
     o.mkdir(parents=True, exist_ok=True)
-    w = lambda name, obj: (o / name).write_text(json.dumps(obj, indent=1, sort_keys=True) + "\n")
+    written = []
+
+    def w(name, obj):
+        (o / name).write_text(json.dumps(obj, indent=1, sort_keys=True) + "\n")
+        written.append(name)
+
     w("ibm-chsh-result-public.json", public_result(full))
     seed = spark_seed(full, full_sha)
     w("spark-seed.json", seed)
@@ -103,7 +115,7 @@ def build(artifact, out, tag, version, prev, run_url="", latest=None, bio_packet
               f"- **Heart seed v{version}** (`heart-seed-v{version}.json`): sha256 of the previous seed plus this job" +
               (" plus the measured numbers-only heartbeat packet hash." if bio else ". No heartbeat is in this seed (heartbeat: none, no pulse used and none invented); it is a recorded-IBM-only seed."),
               "  bb-deada969 only; bb-7f9c2a03 untouched. Order-only: it seeds batch order in the growth export, it does not change Gate v2.",
-              "- `spark-seed.json` is the compact record the Rigetti SIMULATED spark loop uses to move its angles once (each IBM job used once).",
+              "- Files written by this run: " + ", ".join(f"`{name}`" for name in [*written, "README.md"]) + ".",
               *([f"- **Recovered by job id** (`scripts/ibm_job_recover.py`, read-only): {full['recovery']} commitments_verified = {full.get('commitments_verified')}."] if full.get("recovery") else []),
               "- Not published: question lists, commitment salts, per-round outcomes, the private question files, raw media."]
     (o / "README.md").write_text("\n".join(readme) + "\n")
