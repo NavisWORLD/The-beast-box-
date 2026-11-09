@@ -5,12 +5,13 @@ export const WORLD_LIVE_PATHS:Readonly<{spark:{branch:string;file:string};liveTi
 export type LinkState='CONNECTED'|'STALE'|'DOWN';
 export type StallCause='source_age'|'missing'|'failed_status'|'live_tick_behind_diary';
 export type Stall={age_s:number|null;stale_after_s:number|null;cause:StallCause;[k:string]:unknown};
+export type RiverLag={age_s:null;stale_after_s:null;cause:'live_tick_behind_diary';lag_ticks:number;diary_tick:number;live_recorded_tick:number};
 export type SenseRow={id:string;label:string;in_this_read:boolean;note:string;state:LinkState|null};
 export type Link={state:LinkState;label:string;reason?:string;stall?:Stall;[k:string]:unknown};
 export type WorldDrive={source:'spark';label:'SIMULATED';tick:number;p0:number;p1:number;p2:number;odd:number;entropy:number};
-export type WorldLive={schema:string;at_ms:number;links:{spark:Link;liveTick:Link;diary:Link;brain:Link};drive:WorldDrive|null;all_connected:boolean;stalls:Record<string,Stall>|null;river:Stall|null;senses:SenseRow[];labels:Record<string,string>};
+export type WorldLive={schema:string;at_ms:number;links:{spark:Link;liveTick:Link;diary:Link;brain:Link};drive:WorldDrive|null;all_connected:boolean;stalls:Record<string,Stall>|null;river:RiverLag|null;senses:SenseRow[];labels:Record<string,string>};
 export const SENSE_TRACE:readonly {id:string;label:string;in_this_read:boolean;note:string}[];
-export function liveDiaryLag(diaryTick:number,liveRecordedTick:number):Stall|null;
+export function liveDiaryLag(diaryTick:number,liveRecordedTick:number):RiverLag|null;
 export function ageSeconds(nowMs:number,atMs:number):number|null;
 export function linkState(age:number|null|undefined,staleAfter:number):LinkState;
 export function countsFeatures(counts:unknown):{p0:number;p1:number;p2:number;odd:number;entropy:number;shots:number}|null;
