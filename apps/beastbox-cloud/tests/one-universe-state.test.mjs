@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';
+import {readFileSync, readdirSync, statSync} from 'node:fs';
+import {join} from 'node:path';
 import {
   ONE_UNIVERSE_FLAG_KEY,
   ONE_WORLD_KEY,
@@ -11,7 +12,10 @@ import {
   attachOneWorldRead,
   watchOneWorldRead,
   surfacesForPath,
+  beginSurfaceRead,
+  publishStandalone,
 } from '../public/universe/one-universe-state.mjs';
+import {pageStateOn, armStandalonePage} from '../public/universe/one-universe-gate.mjs';
 
 const read = (p) => readFileSync(new URL('../' + p, import.meta.url), 'utf8');
 const strip = (s) => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
@@ -159,31 +163,168 @@ test('every audited surface has a name, and look carries the pedestal', () => {
   for (const [path, name] of Object.entries(names)) assert.equal(surfacesForPath(path).join('+'), name, path);
 });
 
-test('the flag gates the new read, and Living and Tiny keep the clock they already have', () => {
-  const provider = strip(read('components/one-world-provider.tsx'));
-  const effects = provider.split('useEffect(');
-  assert.equal(effects.length, 3);
-  assert.match(effects[1], /oneWorldClock\(\{genesis:g,grow,storage:st\}\)/);
-  assert.doesNotMatch(effects[1], /oneUniverseStateOn/);
-  assert.match(effects[2], /if\(!oneUniverseStateOn\(browserSources\(\)\)\)return;/);
-  assert.match(effects[2], /whenWorldClock\(\)/);
-  assert.match(effects[2], /clock\.get\(\)/);
-  assert.match(effects[2], /data-look-pedestal/);
-  assert.match(effects[2], /data-pocket-dimension/);
-  assert.match(effects[2], /data-ar-canvas/);
-  const toy = strip(read('public/beach-two/toy.js'));
-  const spark = strip(read('public/spark/app.mjs'));
-  for (const src of [toy, spark]) {
-    assert.match(src, /one-universe-state\.mjs/);
-    assert.match(src, /oneUniverseStateOn\(browserSources\(\)\)/);
-    assert.match(src, /readClockState/);
-    assert.match(src, /watchOneWorldRead/);
-  }
-  assert.match(toy, /surface:'beach'/);
-  assert.match(spark, /surface:'spark'/);
+test('Living and Tiny keep the clock they already have', () => {
   for (const file of ['components/living-world.tsx', 'components/tiny-universe-view.tsx', 'components/use-one-world.ts', 'components/pocket-life.ts', 'lib/look/attach.ts']) {
     assert.doesNotMatch(read(file), /one-universe-state/);
     assert.match(read(file), /currentWorldClock|useOneWorld/);
   }
   assert.doesNotMatch(read('public/universe/one-universe-state.mjs'), /Math\.random/);
+  assert.doesNotMatch(strip(read('public/universe/one-universe-gate.mjs')), /Math\.random/);
+  assert.doesNotMatch(strip(read('public/universe/one-universe-gate.mjs')), /process\.env/);
+});
+
+test('flag off in the provider, Beach Two and Spark does not read, subscribe or write', async () => {
+  const world = {schema: 'tiny-universe/v1', seed: 'abc', tick: 3, planets: [{id: 'p'}], storms: []};
+  const node = {dataset: {pocketState: 'ready'}};
+  const before = JSON.stringify(node.dataset);
+  let clocks = 0;
+  let gets = 0;
+  let subs = 0;
+  let observes = 0;
+  const stop = beginSurfaceRead({
+    on: false,
+    whenClock: () => { clocks += 1; return {get() { gets += 1; return world; }, subscribe() { subs += 1; return () => {}; }}; },
+    readNode: () => { throw new Error('node'); },
+    nodesFor: () => { throw new Error('nodes'); },
+    surfaceFor: () => { throw new Error('surface'); },
+    subscribe: () => { subs += 1; return () => {}; },
+    observe: () => { observes += 1; return () => {}; },
+  });
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  stop();
+  assert.equal(clocks, 0);
+  assert.equal(gets, 0);
+  assert.equal(subs, 0);
+  assert.equal(observes, 0);
+  assert.equal(JSON.stringify(node.dataset), before);
+
+  let loads = 0;
+  let fetches = 0;
+  let armed = 0;
+  const standalone = {dataset: {keep: 'yes'}};
+  const off = await armStandalonePage({
+    on: pageStateOn({search: '', storage: storage({})}),
+    surface: 'spark',
+    load: () => { loads += 1; return Promise.reject(new Error('should not load')); },
+    win: {__bbOneWorld: {get() { gets += 1; return world; }, subscribe() { subs += 1; return () => {}; }}},
+    storage: storage({[ONE_WORLD_KEY]: JSON.stringify(world)}),
+    node: standalone,
+    fetchGenesis: () => { fetches += 1; return Promise.resolve(world); },
+    subscribe: () => { subs += 1; return () => {}; },
+  });
+  assert.equal(off.loaded, false);
+  assert.equal(off.failed, false);
+  assert.equal(loads, 0);
+  assert.equal(fetches, 0);
+  assert.equal(armed, 0);
+  assert.equal(gets, 0);
+  assert.equal(subs, 0);
+  assert.deepEqual(standalone.dataset, {keep: 'yes'});
+  assert.equal(pageStateOn({search: '', storage: storage({}), env: 'state'}), false);
+  assert.equal(oneUniverseStateOn({env: 'state', storage: storage({}), search: ''}), true);
+});
+
+test('a failed reader load does not throw or write when Beach Two or Spark would import it', async () => {
+  const node = {dataset: {keep: 'yes'}};
+  let subs = 0;
+  const failed = await armStandalonePage({
+    on: true,
+    surface: 'beach',
+    load: () => Promise.reject(new Error('module missing')),
+    win: {},
+    storage: storage({}),
+    node,
+    fetchGenesis: () => { throw new Error('fetched'); },
+    subscribe: () => { subs += 1; return () => {}; },
+  });
+  assert.equal(failed.loaded, false);
+  assert.equal(failed.armed, false);
+  assert.equal(failed.failed, true);
+  assert.equal(subs, 0);
+  assert.deepEqual(node.dataset, {keep: 'yes'});
+  for (const file of ['public/beach-two/toy.js', 'public/spark/app.mjs']) {
+    const src = read(file);
+    assert.match(src, /armStandalonePage\(/);
+    assert.match(src, /import\(\s*'\.\.\/universe\/one-universe-state\.mjs'\s*\)/);
+    assert.doesNotMatch(src, /from '\.\.\/universe\/one-universe-state\.mjs'/);
+  }
+});
+
+test('Spark and Beach Two publish the recorded genesis on their own when nothing is stored', async () => {
+  const genesis = JSON.parse(read('public/universe/tiny-universe-genesis.json'));
+  const node = {dataset: {}};
+  let fetches = 0;
+  let subs = 0;
+  const result = await armStandalonePage({
+    on: true,
+    surface: 'spark',
+    load: () => import('../public/universe/one-universe-state.mjs'),
+    win: {},
+    storage: storage({}),
+    node,
+    fetchGenesis: () => { fetches += 1; return Promise.resolve(genesis); },
+    subscribe: () => { subs += 1; return () => {}; },
+  });
+  assert.equal(result.armed, true);
+  assert.equal(fetches, 1);
+  assert.equal(subs, 0);
+  assert.equal(node.dataset.oneWorldRead, '1');
+  assert.equal(node.dataset.oneWorldSurface, 'spark');
+  assert.equal(node.dataset.oneWorldSeed, genesis.seed);
+  assert.equal(node.dataset.oneWorldSchema, genesis.schema);
+  assert.equal(node.dataset.oneWorldPlanets, genesis.planets.map((planet) => planet.id).join(','));
+  const direct = await publishStandalone({
+    surface: 'beach',
+    win: {},
+    storage: storage({}),
+    node: {dataset: {}},
+    fetchGenesis: () => Promise.resolve(genesis),
+  });
+  assert.equal(direct.source, 'genesis');
+});
+
+function nextPages(dir, prefix) {
+  const out = [];
+  for (const name of readdirSync(dir)) {
+    if (name === 'api' || name.startsWith('_') || name.startsWith('.')) continue;
+    const full = join(dir, name);
+    if (statSync(full).isDirectory()) {
+      const next = name.startsWith('(') && name.endsWith(')') ? prefix : prefix + '/' + name;
+      out.push(...nextPages(full, next));
+    } else if (name === 'page.tsx' || name === 'page.ts' || name === 'page.jsx') {
+      out.push(prefix || '/');
+    }
+  }
+  return out;
+}
+
+test('flag on: every Next route publishes the same seed, schema and planet ids', async () => {
+  const genesis = JSON.parse(read('public/universe/tiny-universe-genesis.json'));
+  const routes = nextPages(new URL('../app', import.meta.url).pathname, '');
+  assert.ok(routes.length >= 29, String(routes.length));
+  assert.equal(routes.includes('/spark/index.html'), false);
+  assert.equal(routes.includes('/beach-two/toy.html'), false);
+  const on = oneUniverseStateOn({env: '', storage: storage({}), search: '?oneUniverse=state'});
+  assert.equal(on, true);
+  const planetIds = genesis.planets.map((planet) => planet.id).join(',');
+  const seen = [];
+  for (const route of routes) {
+    const node = {dataset: {}};
+    let gets = 0;
+    beginSurfaceRead({
+      on,
+      whenClock: () => ({get() { gets += 1; return genesis; }, subscribe() { return () => {}; }}),
+      readNode: () => node,
+      surfaceFor: () => surfacesForPath(route).join('+'),
+      subscribe: (clock, apply) => clock.subscribe(apply),
+    });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    assert.equal(gets > 0, true, route);
+    assert.equal(node.dataset.oneWorldSeed, genesis.seed, route);
+    assert.equal(node.dataset.oneWorldSchema, genesis.schema, route);
+    assert.equal(node.dataset.oneWorldPlanets, planetIds, route);
+    seen.push(node.dataset.oneWorldSeed + '|' + node.dataset.oneWorldSchema + '|' + node.dataset.oneWorldPlanets);
+  }
+  assert.equal(new Set(seen).size, 1);
+  assert.equal(routes.length >= 29, true);
 });

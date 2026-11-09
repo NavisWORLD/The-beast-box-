@@ -1,8 +1,10 @@
 // Stage 1 of one universe. The flag defaults off. Off does not read lw:universe and does not write a surface.
 // On copies seed, tick, planets and storms from the one clock. The copy is a read: simulators keep their own state.
 // Deterministic. The copy uses the clock document only.
-export const ONE_UNIVERSE_FLAG_KEY = 'beastbox.oneUniverse.flags.v1';
-export const ONE_UNIVERSE_QUERY = 'oneUniverse';
+// NEXT_PUBLIC_ONE_UNIVERSE reaches only the Next client bundle, and only after a rebuild that inlines it.
+// toy.js and spark/app.mjs do not read it. Their gate is one-universe-gate.mjs (query and localStorage only).
+import {pageFlags, ONE_UNIVERSE_FLAG_KEY, ONE_UNIVERSE_QUERY} from './one-universe-gate.mjs';
+export {ONE_UNIVERSE_FLAG_KEY, ONE_UNIVERSE_QUERY};
 export const ONE_WORLD_KEY = 'lw:universe';
 
 const NAMED = {
@@ -39,7 +41,7 @@ const NAMED = {
   '/connect/meta-muse/pair': ['meta-muse-pair'],
 };
 
-function bits(value) {
+function envBits(value) {
   if (typeof value !== 'string' || !value) return [];
   const out = [];
   for (const part of value.split(',')) {
@@ -50,16 +52,7 @@ function bits(value) {
 }
 
 export function oneUniverseFlags({env = '', storage = null, search = ''} = {}) {
-  const out = bits(env);
-  try {
-    out.push(...bits(storage && typeof storage.getItem === 'function' ? storage.getItem(ONE_UNIVERSE_FLAG_KEY) || '' : ''));
-  } catch {}
-  try {
-    const raw = typeof search === 'string' ? search : '';
-    const params = new URLSearchParams(raw.charAt(0) === '?' ? raw.slice(1) : raw);
-    out.push(...bits(params.get(ONE_UNIVERSE_QUERY) || ''));
-  } catch {}
-  return out;
+  return [...envBits(env), ...pageFlags({search, storage})];
 }
 
 export function oneUniverseStateOn(sources) {
@@ -78,6 +71,7 @@ export function browserSources() {
     }
   } catch {}
   let env = '';
+  // Next inlines this name into the client bundle. The public file served to toy.js and spark/app.mjs has no build-time value.
   try { env = (typeof process !== 'undefined' && process.env && process.env.NEXT_PUBLIC_ONE_UNIVERSE) || ''; } catch {}
   return {env, storage, search};
 }
@@ -184,4 +178,67 @@ export function watchOneWorldRead({on = false, getClock, node, nodes, surface, s
     } catch { stop = () => {}; }
   }
   return () => { try { stop(); } catch {} };
+}
+
+/**
+ * Provider read. Flag off returns before the clock, the subscribe, and any surface write.
+ * @param {{on?: boolean, whenClock?: Function, readNode?: Function, nodesFor?: Function, surfaceFor?: Function, subscribe?: Function, observe?: Function}} [opts]
+ */
+export function beginSurfaceRead({on = false, whenClock, readNode, nodesFor, surfaceFor, subscribe, observe} = {}) {
+  if (!on) return () => {};
+  let dead = false;
+  let stop = () => {};
+  let extra = () => {};
+  Promise.resolve().then(() => (typeof whenClock === 'function' ? whenClock() : null)).then((clock) => {
+    if (dead || !clock || typeof clock.get !== 'function') return;
+    const apply = () => {
+      attachOneWorldRead({
+        on: true,
+        getClock: () => clock.get(),
+        node: typeof readNode === 'function' ? readNode() : null,
+        nodes: typeof nodesFor === 'function' ? nodesFor() : [],
+        surface: typeof surfaceFor === 'function' ? surfaceFor() : '',
+      });
+    };
+    apply();
+    try {
+      const unsub = typeof subscribe === 'function' ? subscribe(clock, apply) : (typeof clock.subscribe === 'function' ? clock.subscribe(apply) : null);
+      if (typeof unsub === 'function') stop = unsub;
+    } catch {}
+    try {
+      const unobs = typeof observe === 'function' ? observe(apply) : null;
+      if (typeof unobs === 'function') extra = unobs;
+    } catch {}
+  }).catch(() => {});
+  return () => { dead = true; try { stop(); } catch {} try { extra(); } catch {} };
+}
+
+/**
+ * Standalone page read. Prefers the live clock, then the stored lw:universe record, then the recorded genesis.
+ * Does not start grow() and does not write lw:universe.
+ * @param {{surface?: string, win?: any, storage?: any, node?: any, fetchGenesis?: Function, subscribe?: Function}} [opts]
+ */
+export async function publishStandalone({surface, win, storage, node, fetchGenesis, subscribe} = {}) {
+  let live = null;
+  try { live = win && win.__bbOneWorld; } catch { live = null; }
+  if (live && typeof live.get === 'function') {
+    watchOneWorldRead({
+      on: true,
+      getClock: () => readClockState(win, storage),
+      node,
+      surface,
+      subscribe: typeof subscribe === 'function' ? subscribe : (fn) => (typeof live.subscribe === 'function' ? live.subscribe(fn) : () => {}),
+    });
+    return {source: 'clock'};
+  }
+  const stored = storedWorld(storage);
+  if (stored) {
+    attachOneWorldRead({on: true, getClock: () => stored, node, surface});
+    return {source: 'stored'};
+  }
+  let genesis = null;
+  try { genesis = typeof fetchGenesis === 'function' ? await fetchGenesis() : null; } catch { genesis = null; }
+  if (!genesis) return {source: 'none'};
+  attachOneWorldRead({on: true, getClock: () => genesis, node, surface});
+  return {source: 'genesis'};
 }
