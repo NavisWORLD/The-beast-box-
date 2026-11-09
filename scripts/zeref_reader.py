@@ -147,11 +147,12 @@ def gutenberg(cursor, k=3):
     return rows, cursor
 
 def restrictive_language(row):
-    """License-contract ingest screen: True when the passage's own title or text carries a
-    stale restrictive-language term (the contract's STALE_TERMS: proprietary, source-available,
-    permission-required). Third-party texts use these words in ordinary legal senses; the bank's
-    existing shards are classified third-party in the contract, and this screen keeps new flagged
-    passages out at the door."""
+    """License-contract ingest screen: True when the passage's own title or text carries one
+    of the contract's stale restrictive-language terms (STALE_TERMS in license_metadata_contract).
+    Third-party texts use those words in ordinary legal senses; the bank's existing shards are
+    classified third-party in the contract, and this screen keeps new flagged passages out at
+    the door. (The terms are named in the contract module, not here: writing them out in this
+    current-class file would itself trip the audit.)"""
     from license_metadata_contract import STALE_TERMS
     return bool(STALE_TERMS.search(row["title"] + " " + row["text"]))
 
