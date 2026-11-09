@@ -56,6 +56,9 @@ test('the loop advances across many ticks without idling, repeating or escaping 
   assert.ok(s.moments_total>100&&s.moments_total<900,'surprises happen, but not every tick: '+s.moments_total);
   assert.deepEqual(verifyMoments(s.moments).ok,true);
   assert.ok(s.moments.length<=24);
+  assert.equal(s.moment_archive.length,s.moments_total);
+  assert.equal(verifyMoments(s.moment_archive).ok,true);
+  assert.equal(s.moment_archive.at(-1).hash,s.moments.at(-1).hash);
 });
 
 test('surprise moments are unscripted-looking but honest: SEEDED or SIMULATED, provenance, never "quantum random"', () => {

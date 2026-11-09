@@ -14,6 +14,7 @@ from pathlib import Path
 
 from .spark_bridge import load
 
+# Retired store cap. The JSON file keeps every record. search() k is the window.
 MAX_RECORDS = 200
 SCHEMA = "companion-memory-v1"
 
@@ -81,8 +82,6 @@ class CompanionMemory:
             "vector": embed(clean),
         }
         self.records.append(record)
-        if len(self.records) > MAX_RECORDS:
-            self.records = self.records[-MAX_RECORDS:]
         self.save()
         return record
 

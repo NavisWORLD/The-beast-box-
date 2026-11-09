@@ -99,8 +99,14 @@ export function stepLoop(state,inputs={}){
   last=moment.hash;
  }
  wells=normWells(wells);
+ // Window stays KEEP_MOMENTS. moment_archive is the append-only record of every moment
+ // this state has carried; it is never sliced. A state saved before the archive
+ // existed keeps the moments still in the window, and nothing already dropped is invented.
+ const priorArchive=Array.isArray(state.moment_archive)?state.moment_archive:(Array.isArray(state.moments)?state.moments:[]);
  return {...state,tick,sim_seconds:tick*TICK_SECONDS,head:mix,last_moment_hash:last,creatures,wells,
-  moments:moment?[...state.moments,moment].slice(-KEEP_MOMENTS):state.moments,moments_total:state.moments_total+(moment?1:0)};
+  moments:moment?[...state.moments,moment].slice(-KEEP_MOMENTS):state.moments,
+  moment_archive:moment?[...priorArchive,moment]:priorArchive,
+  moments_total:state.moments_total+(moment?1:0)};
 }
 
 /** Run n ticks back to back (no waits). `inputsFor(tick)` supplies that tick's real inputs. */

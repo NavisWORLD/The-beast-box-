@@ -189,13 +189,17 @@ export function finishTraining(session, hits, total = 6) {
 export function talk(session, text) {
   const name = shownName(session.beast);
   const safe = isKidSafe(text);
-  session.chat.push({ role: "you", text: String(text || "").slice(0, 400) });
+  const said = String(text || "");
+  if (!Array.isArray(session.chatArchive)) session.chatArchive = session.chat.slice();
+  session.chatArchive.push({ role: "you", text: said });
+  session.chat.push({ role: "you", text: said.slice(0, 400) });
   // Local Hebbian pattern update. Not inference-model training and not QBEAST identity.
   const reply = replyFromMind(session.mind, text, name);
   // Read prior experience before learning the current turn. Authored pattern prose
   // is not an external experience and must not recursively train itself.
   if (safe) observeText(session.mind, text,{seed:session.beast?.seed||''});
   session.chat.push({ role: "beast", text: reply });
+  session.chatArchive.push({ role: "beast", text: reply });
   if (session.chat.length > 80) session.chat.splice(0, session.chat.length - 80);
   if (session.beast && safe) {
     session.beast.bond = Math.min(100, session.beast.bond + 1);
@@ -213,6 +217,7 @@ export function exportSession(session) {
     beast: session.beast,
     bestiary: session.bestiary,
     chat: session.chat,
+    chatArchive: Array.isArray(session.chatArchive) ? session.chatArchive : session.chat,
     mind: session.mind,
     emulator: { mounted: true, ticks: session.emulator.ticks, booted: !!session.emulator.booted },
     train: session.train,
@@ -227,7 +232,8 @@ export function importSession(raw) {
   if (TABS.includes(raw.tab)) session.tab = raw.tab;
   session.beast = raw.beast ? structuredClone(raw.beast) : null;
   session.bestiary = Array.isArray(raw.bestiary) ? structuredClone(raw.bestiary) : [];
-  session.chat = Array.isArray(raw.chat) ? structuredClone(raw.chat.slice(-80)) : [];
+  session.chatArchive = Array.isArray(raw.chatArchive) ? structuredClone(raw.chatArchive) : (Array.isArray(raw.chat) ? structuredClone(raw.chat) : []);
+  session.chat = Array.isArray(raw.chat) ? structuredClone(raw.chat.slice(-80)) : session.chatArchive.slice(-80);
   session.mind = importMind(raw.mind);
   session.emulator.ticks = Number(raw.emulator?.ticks) || 0;
   session.emulator.booted = !!raw.emulator?.booted;
