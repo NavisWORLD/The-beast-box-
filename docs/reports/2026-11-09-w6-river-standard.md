@@ -1,6 +1,8 @@
 # W6 river standard — 2026-11-09
 
 Base: `origin/main` `0995ff2fb32115fd6c97daf18caf3a9f8363c3cf`.
+Implementation commit: `64f928f71bdc25b286302c5449331bbad15c6cd0`.
+`python3 scripts/security_audit.py` on that commit: 0 errors, 0 warnings.
 This change is the doors and reporting layer only. It does not edit `lib/zeref/live-tick.mjs`, `lib/zeref/live-tick-run.mjs`, the sensor loop, the quantum path, or the heart loop. It does not synthesise ticks.
 
 ## Live sample before this deploy
@@ -64,7 +66,7 @@ node --test tests/world-live.test.mjs tests/forever-connection.test.mjs
 
 29 pass, 0 fail. The fresh fixture (diary 124, live 124) still has `river` null, `stalls` null, and `all_connected` true. A fixture with diary 124 and live 123 has `lag_ticks` 1, both links CONNECTED, `all_connected` false, and the published live tick still 123.
 
-`python3 scripts/security_audit.py`: run with this commit. Result is in the PR.
+`python3 scripts/security_audit.py` on `64f928f71bdc25b286302c5449331bbad15c6cd0`: 0 errors, 0 warnings.
 
 ## Handoff — sensor, quantum, and heart seat
 
