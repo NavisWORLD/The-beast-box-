@@ -23,7 +23,7 @@ jobs:
     concurrency:
       group: zeref-006-single-approved-learning-lineage
       cancel-in-progress: false
-    if: ${{ github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && (github.head_ref == 'feature/zeref-resumable-continuous-learning-006-20261011' || startsWith(github.head_ref, 'feature/zeref-manual-cpu-'))) }}
+    if: ${{ github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && (github.head_ref == 'feature/zeref-resumable-continuous-learning-006-20261011' || startsWith(github.head_ref, 'feature/zeref-manual-cpu-') || startsWith(github.head_ref, 'cursor/w4-training-'))) }}
     runs-on: ubuntu-24.04
     # A round is one 320-attempt control plus four 320-attempt candidates.
     # The old 2400s candidate-start clock skipped candidates 2 and 3, and the
@@ -32,8 +32,13 @@ jobs:
     timeout-minutes: 280
     env:
       GH_TOKEN: ${{ github.token }}
-      OMP_NUM_THREADS: '2'
-      MKL_NUM_THREADS: '2'
+      # Hosted runners report 4 logical CPUs. Pinning 2 left half of them idle.
+      # Same architecture, deterministic, 8 layers, T=256, batch 16: 2 threads
+      # 1.708s/step, 4 threads 0.919s/step (1.86x). A 44-layer step on the slow
+      # SKU (EPYC 7763 was 6.96s/step at 40 layers) is predicted at 8.55s and
+      # 2736s for 320 updates, past the 2700s cap. Clocks stay 280/240/12000/2700.
+      OMP_NUM_THREADS: '4'
+      MKL_NUM_THREADS: '4'
       TOKENIZERS_PARALLELISM: 'false'
       NAVISWORLD_NATIVE_TRAINING_BEAST: zeref
       NAVISWORLD_NATIVE_TRAINING_CYCLE: ${{ github.run_id }}
@@ -77,45 +82,84 @@ jobs:
           # An EXACT fixed artifact name keeps canonical descendants
           # discoverable regardless of unrelated repo CI artifact volume.
           canonical_name="zeref-006-canonical-37ca3f8f"
-          # Training fix 002 (2026-10-17): parent AND anchor = the PUBLIC PIN's approved release.
-          # Unpromoted cycles never become parents (chaining off them drifted chat 3.946 -> 4.573).
+          # 2026-11-09: the public pin stays the gate bar. Weights resume from the
+          # newest gate-accepted zeref-006-cycle release at or after the pin's
+          # cycle. Requiring the parent sha AND step count to equal the pin threw
+          # those children away, so every round re-grew the whole backlog off the
+          # frozen 40-layer pin (run 42667810634: parent 40 layers, trained 44).
+          # The pin file is not modified. Unpromoted weights still cannot move the bar.
           pin_tag="$(python -c "import json;p=json.load(open('apps/beastbox-cloud/lib/rawrphos-public-pin.json'));print((p.get('promotion') or {}).get('release_tag') or '')")"
+          pin_ok=0
+          PIN=""
+          train_tag=""
           if [ -n "$pin_tag" ] && gh release view "$pin_tag" --repo "${{ github.repository }}" >/dev/null 2>&1; then
             echo "RESUME_PUBLIC_PIN_RELEASE=$pin_tag"
-            mkdir -p build/zeref-006/previous build/zeref-006/release
-            gh release download "$pin_tag" --repo "${{ github.repository }}" -D build/zeref-006/release
-            (cd build/zeref-006/release && sha256sum -c ./*.sha256)
-            tar -C build/zeref-006/previous -xzf build/zeref-006/release/*.tar.gz
-            canonical_name="__pin_used__"
+            mkdir -p build/zeref-006/pin-release build/zeref-006/pin
+            gh release download "$pin_tag" --repo "${{ github.repository }}" -D build/zeref-006/pin-release
+            (cd build/zeref-006/pin-release && sha256sum -c ./*.sha256)
+            tar -C build/zeref-006/pin -xzf build/zeref-006/pin-release/*.tar.gz
+            rm -f build/zeref-006/pin-release/*.tar.gz
+            PIN="$(find build/zeref-006/pin -type d -name accepted-checkpoint -print -quit)"
+            test -n "$PIN"
+            pin_ok=1
+            python - <<'PY' > build/zeref-006/train-parent-tag.txt
+          import json, os, re, subprocess
+          pin=json.load(open("apps/beastbox-cloud/lib/rawrphos-public-pin.json"))
+          tag=(pin.get("promotion") or {}).get("release_tag") or ""
+          m=re.fullmatch(r"zeref-006-cycle-(\d+)-[0-9a-f]+", tag)
+          pin_cycle=int(m.group(1)) if m else 0
+          raw=subprocess.check_output(["gh","release","list","--repo",os.environ["GITHUB_REPOSITORY"],"-L","300","--json","tagName"], text=True)
+          best=""; best_n=-1
+          for row in json.loads(raw):
+           mm=re.fullmatch(r"zeref-006-cycle-(\d+)-[0-9a-f]+", row["tagName"])
+           if not mm: continue
+           n=int(mm.group(1))
+           if n>=pin_cycle and n>best_n:
+            best_n=n; best=row["tagName"]
+          print(best)
+          PY
+            train_tag="$(tr -d '[:space:]' < build/zeref-006/train-parent-tag.txt)"
+            if [ -z "$train_tag" ]; then train_tag="$pin_tag"; fi
           fi
-          canonical_run=""; [ "$canonical_name" = "__pin_used__" ] || canonical_run="$(gh api "repos/${{ github.repository }}/actions/artifacts?name=$canonical_name&per_page=100" --jq '.artifacts | map(select(.expired == false and .name == "zeref-006-canonical-37ca3f8f")) | sort_by(.created_at) | last | .workflow_run.id // empty')"
-          if [ "$canonical_name" = "__pin_used__" ]; then
-            PARENT="$(find build/zeref-006/previous -type d -name accepted-checkpoint -print -quit)"
-          elif [ -n "$canonical_run" ]; then
-            case "$canonical_run" in ''|*[!0-9]*) echo "Invalid canonical lineage run id"; exit 1;; esac
-            echo "RESUME_CANONICAL_ZEREF_DESCENDANT_RUN=$canonical_run"
-            gh run download "$canonical_run" --repo "${{ github.repository }}" -n "$canonical_name" -D build/zeref-006/previous
-            PARENT="$(find build/zeref-006/previous -type d -name accepted-checkpoint -print -quit)"
-          elif rel="$(gh release list --repo "${{ github.repository }}" -L 100 --json tagName,createdAt --jq 'map(select(.tagName|startswith("zeref-006-cycle-")))|sort_by(.createdAt)|last|.tagName // empty')" && [ -n "$rel" ]; then
-            # Canonical artifact expired: resume from the newest DURABLE approved release.
-            echo "RESUME_DURABLE_RELEASE=$rel"
-            mkdir -p build/zeref-006/previous
-            gh release download "$rel" --repo "${{ github.repository }}" -D build/zeref-006/release
-            (cd build/zeref-006/release && sha256sum -c ./*.sha256)
-            tar -C build/zeref-006/previous -xzf build/zeref-006/release/*.tar.gz
+          if [ "$pin_ok" = 1 ] && [ "$train_tag" = "$pin_tag" ]; then
+            echo "RESUME_TRAINING_PARENT_IS_PIN=1"
+            PARENT="$PIN"
+          elif [ "$pin_ok" = 1 ]; then
+            echo "RESUME_ACCEPTED_TRAINING_PARENT=$train_tag"
+            mkdir -p build/zeref-006/parent-release build/zeref-006/previous
+            gh release download "$train_tag" --repo "${{ github.repository }}" -D build/zeref-006/parent-release
+            (cd build/zeref-006/parent-release && sha256sum -c ./*.sha256)
+            tar -C build/zeref-006/previous -xzf build/zeref-006/parent-release/*.tar.gz
+            rm -f build/zeref-006/parent-release/*.tar.gz
             PARENT="$(find build/zeref-006/previous -type d -name accepted-checkpoint -print -quit)"
           else
-            # Initial independently approved 006 child: 14K+004+006.
-            # NEVER fall back to 004, a sibling fork or randomly new weights.
-            echo "RESUME_PINNED_APPROVED_ZEREF_006_ROOT=37ca3f8fc9cdc0e78175508fc816ed02d5a12da1f3b106505715b7366fde5a48"
-            gh run download 38129248023 --repo "${{ github.repository }}" -n zeref-006-accepted-checkpoint-38129248023 -D build/zeref-006/bootstrap
-            PARENT="$(find build/zeref-006/bootstrap -type d -name accepted-checkpoint -print -quit)"
+            canonical_run="$(gh api "repos/${{ github.repository }}/actions/artifacts?name=$canonical_name&per_page=100" --jq '.artifacts | map(select(.expired == false and .name == "zeref-006-canonical-37ca3f8f")) | sort_by(.created_at) | last | .workflow_run.id // empty')"
+            if [ -n "$canonical_run" ]; then
+              case "$canonical_run" in ''|*[!0-9]*) echo "Invalid canonical lineage run id"; exit 1;; esac
+              echo "RESUME_CANONICAL_ZEREF_DESCENDANT_RUN=$canonical_run"
+              gh run download "$canonical_run" --repo "${{ github.repository }}" -n "$canonical_name" -D build/zeref-006/previous
+              PARENT="$(find build/zeref-006/previous -type d -name accepted-checkpoint -print -quit)"
+            elif rel="$(gh release list --repo "${{ github.repository }}" -L 100 --json tagName,createdAt --jq 'map(select(.tagName|startswith("zeref-006-cycle-")))|sort_by(.createdAt)|last|.tagName // empty')" && [ -n "$rel" ]; then
+              echo "RESUME_DURABLE_RELEASE=$rel"
+              mkdir -p build/zeref-006/previous build/zeref-006/release
+              gh release download "$rel" --repo "${{ github.repository }}" -D build/zeref-006/release
+              (cd build/zeref-006/release && sha256sum -c ./*.sha256)
+              tar -C build/zeref-006/previous -xzf build/zeref-006/release/*.tar.gz
+              PARENT="$(find build/zeref-006/previous -type d -name accepted-checkpoint -print -quit)"
+            else
+              # Initial independently approved 006 child: 14K+004+006.
+              # NEVER fall back to 004, a sibling fork or randomly new weights.
+              echo "RESUME_PINNED_APPROVED_ZEREF_006_ROOT=37ca3f8fc9cdc0e78175508fc816ed02d5a12da1f3b106505715b7366fde5a48"
+              gh run download 38129248023 --repo "${{ github.repository }}" -n zeref-006-accepted-checkpoint-38129248023 -D build/zeref-006/bootstrap
+              PARENT="$(find build/zeref-006/bootstrap -type d -name accepted-checkpoint -print -quit)"
+            fi
           fi
           test -n "$PARENT" || { echo "Canonical checkpoint artifact missing; refusing training"; exit 1; }
           test -s "$PARENT/manifest.json"
           test -s "$PARENT/training_state.pt"
           test -s "$(dirname "$PARENT")/approval.json"
           export BEAST_006_PARENT_PATH="$PARENT"
+          if [ "$pin_ok" = 1 ]; then export ZEREF_006_PIN_DIR="$PIN"; fi
           python - <<'PY'
           import os,json,hashlib
           from pathlib import Path
@@ -131,18 +175,27 @@ jobs:
            assert m['approved_cycle_count']==1 and a['approved_cycle_count']==1
           else:
            assert m['canonical_lineage_root_sha256']==a['canonical_lineage_root_sha256']==root
-          # Always-latest-pin guard (2026-10-19): when a public pin exists the parent MUST be exactly that checkpoint.
           pin=json.load(open('apps/beastbox-cloud/lib/rawrphos-public-pin.json'))
-          if (pin.get('promotion') or {}).get('release_tag'):
-           assert actual==pin['checkpoint_sha256'],'parent is not the current public pin; refusing to train from a stale checkpoint'
-           # 2026-10-24: the parent's step count must equal the pin's step count too (additive guard; Gate v2 and the bar are untouched).
-           if pin.get('training_steps') is not None and m.get('training_steps') is not None:
-            assert int(m['training_steps'])==int(pin['training_steps']),'parent step count %s != pin step count %s'%(m['training_steps'],pin['training_steps'])
-          print('ZEREF_PARENT_IS_CURRENT_PIN='+json.dumps({'pin_steps':pin.get('training_steps'),'parent_steps':m.get('training_steps'),'sha256':actual}),flush=True)
+          pin_actual=None
+          if os.environ.get('ZEREF_006_PIN_DIR'):
+           pin_dir=Path(os.environ['ZEREF_006_PIN_DIR'])
+           pm=json.loads((pin_dir/'metadata.json').read_text())
+           pa=json.loads((pin_dir.parent/'approval.json').read_text())
+           pin_actual=hashlib.sha256((pin_dir/'model.safetensors').read_bytes()).hexdigest()
+           assert pm['checkpoint_sha256']==pa['checkpoint_sha256']==pin_actual==pin['checkpoint_sha256']
+           assert pa['approved'] is True and pm['canonical_lineage_root_sha256']==root
+           if pin.get('training_steps') is not None:
+            assert int(pm['training_steps'])==int(pin['training_steps'])
+           assert int(m.get('training_steps') or 0)>=int(pm['training_steps']), 'training parent steps %s are behind the pin %s'%(m.get('training_steps'), pm['training_steps'])
+           if actual!=pin_actual:
+            assert int(m['approved_cycle_count'])>int(pm['approved_cycle_count']), 'training parent cycle is not ahead of the pin'
+            assert int(m['training_steps'])>int(pm['training_steps']), 'training parent steps are not ahead of the pin'
+          print('ZEREF_006_RESUME='+json.dumps({'gate_bar':'public_pin' if pin_actual else 'training_parent','pin_steps':pin.get('training_steps'),'pin_sha256':pin.get('checkpoint_sha256'),'training_parent_steps':m.get('training_steps'),'training_parent_sha256':actual,'training_parent_cycle':m.get('approved_cycle_count')}),flush=True)
           print('ZEREF_010_VERIFIED_CANONICAL_PARENT='+json.dumps({
            'sha256':actual,'canonical_root':root,'approved_cycle_count':m['approved_cycle_count']}),flush=True)
           PY
           echo "BEAST_006_PARENT_PATH=$PARENT" >> "$GITHUB_ENV"
+          if [ "$pin_ok" = 1 ]; then echo "ZEREF_006_PIN_DIR=$PIN" >> "$GITHUB_ENV"; fi
       - name: Build EXISTING Beast Box without changing original native cartridge
         working-directory: apps/beastbox-cloud
         run: |
@@ -284,8 +337,8 @@ jobs:
           ZEREF_GROW_LAYERS: ${{ steps.growth.outputs.add_layers || '0' }}
           ZEREF_GROWTH_WIP_IN: ${{ steps.growth.outputs.wip || '' }}
           ZEREF_GROWTH_WIP_OUT: build/zeref-006/growth/growth-wip-new.pt
-          # 2026-10-25 multi-candidate rounds: 4 candidates (seed/lr/lr-floor variants) resume from the SAME live pin;
-          # the best on set A goes to the UNCHANGED Gate v2 (set B strict, pin re-scored). Rounds are 320 updates from cycle 45.
+          # 2026-10-25 multi-candidate rounds: 4 candidates (seed/lr/lr-floor variants) resume the accepted training parent;
+          # the best on set A goes to the UNCHANGED Gate v2 (set B within 0.5%, pin re-scored). Rounds are 320 updates from cycle 45.
           ZEREF_006_CANDIDATES: '4'
           # Start budget must clear three finished variants or candidates 2 and 3 never run.
           # 3 x 2700s = 8100s, so 12000s still starts the fourth. Per-variant cap stays 2700s,
@@ -429,8 +482,8 @@ jobs:
       contents: read
       actions: read
     env:
-      OMP_NUM_THREADS: '2'
-      MKL_NUM_THREADS: '2'
+      OMP_NUM_THREADS: '4'
+      MKL_NUM_THREADS: '4'
       TOKENIZERS_PARALLELISM: 'false'
       NAVISWORLD_NATIVE_TRAINING_BEAST: zeref
       NAVISWORLD_NATIVE_TRAINING_CYCLE: ${{ github.run_id }}
@@ -472,6 +525,23 @@ jobs:
         run: |
           python -m pip install --index-url https://download.pytorch.org/whl/cpu torch==2.6.0
           python -m pip install -e . -e ./models/rawrphos
+      - name: Download the public pin as the unchanged gate bar
+        if: steps.download-recovery.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -Eeuo pipefail
+          pin_tag="$(python -c "import json;p=json.load(open('apps/beastbox-cloud/lib/rawrphos-public-pin.json'));print((p.get('promotion') or {}).get('release_tag') or '')")"
+          test -n "$pin_tag"
+          echo "RESUME_PUBLIC_PIN_RELEASE=$pin_tag"
+          mkdir -p build/zeref-006/pin-release build/zeref-006/pin
+          gh release download "$pin_tag" --repo "${{ github.repository }}" -D build/zeref-006/pin-release
+          (cd build/zeref-006/pin-release && sha256sum -c ./*.sha256)
+          tar -C build/zeref-006/pin -xzf build/zeref-006/pin-release/*.tar.gz
+          rm -f build/zeref-006/pin-release/*.tar.gz
+          PIN="$(find build/zeref-006/pin -type d -name accepted-checkpoint -print -quit)"
+          test -n "$PIN"
+          echo "ZEREF_006_PIN_DIR=$PIN" >> "$GITHUB_ENV"
       - name: Score latest saved raw checkpoint against the same unchanged gates
         if: steps.download-recovery.outcome == 'success'
         run: |
