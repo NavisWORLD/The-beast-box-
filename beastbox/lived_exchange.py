@@ -2,17 +2,20 @@
 
 The heard line is written before the model runs. The spoken line is written
 after, and only the delivered reply. Guest and visitor scopes never open the
-owner file. The host attachment is whatever ``host_attachment`` returns: a
-missing flag or ``verified`` other than True writes nothing.
+owner file. The attachment is the recomputed one: the flag must be exactly
+on, and ``verified`` must be True. Any other result writes nothing.
 """
 from __future__ import annotations
 
+import json
 import os
 import sqlite3
 from pathlib import Path
 from typing import Any, Callable, Mapping
 
 from .hashutil import sha256_text
+from .lived_attachment import host_attachment
+from .lived_chain_public import diary_export_path
 from .lived_events import (
     ACTIVATION_ENV,
     CANONICAL_SUBJECT,
@@ -20,7 +23,6 @@ from .lived_events import (
     ChainRejected,
     IdentityRejected,
     SampleRejected,
-    host_attachment,
 )
 from .lived_state import LivedStore
 
@@ -35,16 +37,42 @@ def _allows_write(attachment: Mapping[str, Any] | None) -> bool:
     return attachment.get("scope") == "owner" and attachment.get("subject_id") == CANONICAL_SUBJECT
 
 
-def _current_attachment() -> Mapping[str, Any] | None:
+def _export_entries(root: Path) -> list[dict[str, Any]] | None:
+    path = diary_export_path(root)
+    if path.is_symlink() or not path.is_file():
+        return None
+    try:
+        raw = path.read_text(encoding="utf-8")
+    except OSError:
+        return None
+    entries: list[dict[str, Any]] = []
+    for line in raw.split("\n"):
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            entry = json.loads(line)
+        except json.JSONDecodeError:
+            return None
+        if not isinstance(entry, dict):
+            return None
+        entries.append(entry)
+    return entries or None
+
+
+def _current_attachment(root: Path) -> Mapping[str, Any] | None:
     if os.environ.get(ACTIVATION_ENV, "off") != "on":
         return None
     try:
-        attachment = host_attachment()
-    except ActivationRejected:
+        result = host_attachment(_export_entries(root))
+    except (ActivationRejected, OSError, ValueError, TypeError):
         return None
-    if not _allows_write(attachment):
+    if not isinstance(result, Mapping) or result.get("verified") is not True:
         return None
-    return attachment
+    inner = result.get("attachment")
+    if not isinstance(inner, Mapping) or not _allows_write(inner):
+        return None
+    return inner
 
 
 def _host_fields(attachment: Mapping[str, Any]) -> dict[str, Any]:
@@ -97,7 +125,7 @@ def run_owner_exchange(
     del unchosen
     if scope != "owner":
         return _blank("isolated", reply=None, generated=False)
-    attachment = _current_attachment()
+    attachment = _current_attachment(Path(root))
     if attachment is None:
         produced = generate()
         return _blank("skipped", reply=_as_text(produced), generated=True)
@@ -204,7 +232,7 @@ def _commit(
 
 def speak_owner(root: str | Path, heard: str, generate: Callable[[], Any], *, now_ms: int) -> Any:
     """Owner chat hook. Flag-off and unverified attachments return the model result unchanged."""
-    if _current_attachment() is None:
+    if _current_attachment(Path(root)) is None:
         return generate()
     exchange_id = _exchange_id_for(Path(root), heard)
     held: dict[str, Any] = {}
@@ -236,7 +264,7 @@ def _exchange_id_for(root: Path, text: str) -> str:
     path = _owner_path(root)
     if not path.is_file():
         return sha256_text(f"lived-exchange-v1\nowner\nowner\n{text}\n0")[:32]
-    attachment = _current_attachment()
+    attachment = _current_attachment(root)
     if attachment is None:
         return sha256_text(f"lived-exchange-v1\nowner\nowner\n{text}\n0")[:32]
     store = LivedStore.open(path, _host_fields(attachment))
