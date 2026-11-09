@@ -1,6 +1,7 @@
 # W5 cap census — 2026-11-09
 
 Base: `origin/main` `0995ff2fb32115fd6c97daf18caf3a9f8363c3cf`.
+Implementation commit: `0a284c1469195fc50809b8866e94d0e714bef859`.
 Pattern: PR #845, commit `dd679b809` (`forever door: append-only full thread archive + own-thread retrieval of turns past the 40-turn window`). The window stays small. The archive is append-only. A reader reaches the full record.
 This change deletes no stored blob, file, or archive line. Records already dropped before an archive existed are not reconstructed.
 
