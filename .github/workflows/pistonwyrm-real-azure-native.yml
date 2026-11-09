@@ -12,6 +12,22 @@ permissions:
   actions: read
 jobs:
   genuine-pistonwyrm:
+    # Quarantined 2026-11-09. Do not run, and do not weaken the steps below.
+    # Artifact second-final-real-ibm-dragon-38001957043 from run 38001957043 is gone
+    # (actions artifact query total_count 0; download on run 42683653474:
+    # "Artifact not found for name: second-final-real-ibm-dragon-38001957043").
+    # Companion pistonwyrm-live-azure-qvm-38002300373 from run 38002300373 is gone too.
+    # Git history has never contained _ibm_second_final_dragon_20261009/ or
+    # experiment-evidence/second-final-real-dragon-20261009/. No release asset matches
+    # those names. The committed public shard
+    # apps/beastbox-cloud/public/spark/ibm-second-final-reality-probe-20261009.json
+    # sha256 a71a1161b4305d051d875d7cdaffc7e7975d880ef11e75e7c0b95bea5879712b
+    # (1033 bytes, schema spark-beasts-public-seed-shard-v1, two 4096-shot PUB rows)
+    # is not that artifact and is not a substitute. The 2026-11-08 re-upload
+    # pistonwyrm-ibm-azure-native-proof-42496118461 is browser evidence plus a
+    # derived proof.json, not the source artifact. if: false keeps this off the
+    # board instead of a permanent red until a byte-exact pin exists.
+    if: ${{ false }}
     runs-on: ubuntu-24.04
     timeout-minutes: 32
     defaults:
