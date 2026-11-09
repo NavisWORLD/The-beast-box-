@@ -15,3 +15,13 @@ for(const name of ['text','limits']){
  mkdirSync(new URL('.',dest),{recursive:true});
  writeFileSync(dest,readFileSync(src,'utf8'));
 }
+
+// beast-talk imports the lived-exchange receipt helpers from ../zeref/ (see lib/zeref/).
+// Without this copy the browser module graph 404s on /spark/zeref/lived-exchange.mjs,
+// app.mjs never runs, and the Spark page hangs at boot (006 capture stall, 2026-11-08).
+{
+ const src=new URL('../lib/zeref/lived-exchange.mjs',import.meta.url);
+ const dest=new URL('../public/spark/zeref/lived-exchange.mjs',import.meta.url);
+ mkdirSync(new URL('.',dest),{recursive:true});
+ writeFileSync(dest,readFileSync(src,'utf8'));
+}
