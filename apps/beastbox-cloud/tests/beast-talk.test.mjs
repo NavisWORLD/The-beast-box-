@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {birth} from '../lib/companion-local.mjs';
 import {adoptBeast,createSession} from '../lib/companion/session.mjs';
-import {framePrompt,personaFrame,readTalkLog,talkPersona,talkToBeast,validOllamaUrl,writeTalkLog,MAX_LOG} from '../lib/companion/beast-talk.mjs';
+import {framePrompt,personaFrame,readTalkArchive,readTalkLog,talkPersona,talkToBeast,validOllamaUrl,writeTalkLog,MAX_LOG} from '../lib/companion/beast-talk.mjs';
 
 const json=(value,status=200)=>new Response(JSON.stringify(value),{status,headers:{'Content-Type':'application/json'}});
 const verified={provider:'rawrphos-local',model:'rawrphos-native',step:14000,guest_stateless:true,reply:' Hello keeper!'};
@@ -101,6 +101,11 @@ test('chat log is per Beast, bounded, and survives a reload of storage',()=>{
  const rows=Array.from({length:40},(_,i)=>({role:i%2?'beast':'you',text:'t'+i}));
  assert.equal(writeTalkLog(storage,'spark:a',rows),true);
  assert.equal(readTalkLog(storage,'spark:a').length,MAX_LOG);
+ assert.equal(readTalkArchive(storage,'spark:a').length,40);
+ assert.equal(readTalkArchive(storage,'spark:a')[0].text,'t0');
+ assert.equal(writeTalkLog(storage,'spark:a',[]),true);
+ assert.equal(readTalkLog(storage,'spark:a').length,0);
+ assert.equal(readTalkArchive(storage,'spark:a').length,40);
  assert.deepEqual(readTalkLog(storage,'spark:b'),[]);
  storage.setItem('beastbox-talk-log-v1:bad','{not json');
  assert.deepEqual(readTalkLog(storage,'bad'),[]);

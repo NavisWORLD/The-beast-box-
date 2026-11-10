@@ -135,7 +135,6 @@ export class CompanionMemory {
       vector: embed(clean),
     };
     this.records.push(record);
-    if (this.records.length > 200) this.records = this.records.slice(-200);
     return record;
   }
   search(query, k = 4) {

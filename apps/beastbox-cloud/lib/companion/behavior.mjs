@@ -68,7 +68,9 @@ export function stepBehavior(value,beast,environment={}){
   s.position={x:round(clamp(s.position.x+dx,.05,.95)),y:round(clamp(s.position.y+dy,.05,.95))};
  }
  const event={tick:s.tick,kind:'behavior',place,action,input:{energy,curiosity,sound,toy,attention,comfort,memoryBonus,associations:structuredClone(associations)},scores:Object.fromEntries(ACTIONS.map(a=>[a,round(scores[a])])),result:{energy:s.energy,curiosity:s.curiosity,position:{...s.position}}};
- s.tick++;s.lastAction=action;s.events=[...s.events,event].slice(-32);
+ s.tick++;s.lastAction=action;
+ s.eventsArchive=[...(Array.isArray(s.eventsArchive)?s.eventsArchive:s.events),event];
+ s.events=s.eventsArchive.slice(-32);
  return {state:s,event};
 }
 export function feedbackBehavior(value,beast,{place='grove',reward=0,kind='interaction'}={}){
@@ -76,7 +78,9 @@ export function feedbackBehavior(value,beast,{place='grove',reward=0,kind='inter
  if(!['grove','nest','shore','observatory'].includes(place))throw Error('Unknown environment');
  const r=clamp(reward,-1,1);
  s.preferences[place]=round(clamp(s.preferences[place]+r,-8,8));
- s.memory=[...s.memory,{tick:s.tick,kind:String(kind).slice(0,32),place,reward:r}].slice(-24);
+ const remembered={tick:s.tick,kind:String(kind).slice(0,32),place,reward:r,kind_full:String(kind)};
+ s.memoryArchive=[...(Array.isArray(s.memoryArchive)?s.memoryArchive:s.memory),remembered];
+ s.memory=s.memoryArchive.map(({kind_full,...row})=>row).slice(-24);
  s.lastFeedback={tick:s.tick,kind:String(kind).slice(0,32)};
  // Operational behavior needs, separate from care XP and signed/native progress.
  const needDelta={'care:feed':12,'care:rest':18,'training':-4}[kind]||0;
