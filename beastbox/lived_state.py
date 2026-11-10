@@ -255,11 +255,15 @@ class LivedStore:
 
     def fail_exchange(
         self, *, exchange_id: str, now_ms: int, external_transaction: bool = False,
+        code: str = "undelivered",
     ) -> dict[str, Any]:
         self._check_clock(now_ms)
         self._owner_only()
         checked_id = _exchange_id(exchange_id)
-        return self._atomic(external_transaction, lambda: self._fail_exchange(checked_id, now_ms))
+        checked_code = code if code in {"undelivered", "invalid", "raw"} else "undelivered"
+        return self._atomic(
+            external_transaction, lambda: self._fail_exchange(checked_id, now_ms, checked_code),
+        )
 
     def acknowledge_exchange(self, exchange_id: str, *, external_transaction: bool = False) -> None:
         checked_id = _exchange_id(exchange_id)
@@ -675,7 +679,7 @@ class LivedStore:
         self._insert_snapshot(snapshot)
         return _public_exchange(body, event_id, snapshot, status="lived")
 
-    def _fail_exchange(self, exchange_id: str, now_ms: int) -> dict[str, Any]:
+    def _fail_exchange(self, exchange_id: str, now_ms: int, code: str = "undelivered") -> dict[str, Any]:
         row = self.exchange_row(exchange_id)
         if row is None or not row.get("heard_event_id"):
             raise ChainRejected("chain", "a failed exchange needs the heard line first")
@@ -688,7 +692,7 @@ class LivedStore:
         body = _exchange_event(
             "exchange_failure", "failed", None, exchange_id, None, previous, sequence, now_ms, self,
         )
-        body["code"] = "undelivered"
+        body["code"] = code
         event_id = self._insert_event(body)
         self.db.execute(
             "UPDATE lived_exchanges SET failure_event_id=?, status='failed', outbox=NULL WHERE exchange_id=?",

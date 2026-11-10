@@ -8,7 +8,9 @@
 .stage{margin:0 0 8px;color:#fff}
 .card meter{width:100%;height:12px}
 .small{margin:8px 0 0;font-size:12px;line-height:1.55;color:#a9b5d3;overflow-wrap:anywhere}
-.signals{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 0}
+/* Two chip rows. Digit width flips one row versus two, and that shove moves every
+   control under the diary — including the forge save — between press and release. */
+.signals{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 0;min-height:50px}
 .signals span{font-size:11px;padding:4px 8px;border-radius:999px;background:#1a2446;color:#cfd7f2;text-transform:capitalize}
 .thought{margin:0;font:600 15px/1.55 'Space Grotesk',sans-serif;color:#f1ebff;overflow-wrap:anywhere}
 .combos{margin:8px 0 0;padding-left:18px;font-size:12px;line-height:1.5;color:#d7ccff}
