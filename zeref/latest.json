@@ -10,29 +10,29 @@
   "source_path": "/spark/ibm-moonwraith-cassette-kit-20261010.json",
   "source_class": "RECORDED_IBM_HARDWARE"
  },
- "tick": 711,
- "xp": 10543,
+ "tick": 712,
+ "xp": 10553,
  "stage": 5,
  "stage_name": "Crescent Sovereign",
  "signals": {
-  "energy": 73,
-  "signal": 56,
+  "energy": 90,
+  "signal": 57,
   "memory": 100,
-  "resonance": 98
+  "resonance": 97
  },
  "bond": 100,
  "care_total": 0,
  "places": {
   "Rift Gate": 662,
   "Lattice Arch": 314,
-  "Echo Prism": 762,
-  "Tidewell": 351,
+  "Echo Prism": 763,
+  "Tidewell": 354,
   "Quartz Choir": 269,
-  "Violet Shard": 552,
+  "Violet Shard": 554,
   "Selene Pool": 59
  },
- "last_tick_at": "2026-11-10T06:32:44.486Z",
- "last_entry_hash": "0b7885a8036e8522e7c1db08c0fd84bd47fc87b9e5d4f390906f4a98d23bacca",
+ "last_tick_at": "2026-11-10T07:12:04.657Z",
+ "last_entry_hash": "8344cf7c71d9703a2a0a8440d11cff9f5898cbf7477d7b257a08d7fbf273fd6f",
  "universe_growth": 605,
  "combos_total": 420,
  "next_stage": null,
@@ -40,18 +40,18 @@
   "cells_visited": 37,
   "cells_total": 40,
   "known_rifts": 3,
-  "moves_succeeded": 10392,
+  "moves_succeeded": 10404,
   "moves_blocked": 598,
   "blocked_rate": 0.054,
   "favorite_spot": "Violet Shard",
-  "favorite_value": 0.571,
+  "favorite_value": 0.63,
   "prefs": {
    "explore": 0.05,
    "visit": 1,
    "rest": 0.068,
    "play": 1
   },
-  "decisions": 6374,
+  "decisions": 6382,
   "label": "learned behaviour from its own experience, not consciousness"
  },
  "labels": {
@@ -67,6 +67,78 @@
   "source": "recorded hardware counts (birth seed, never re-run)"
  },
  "recent": [
+  {
+   "schema": "zeref-diary/v1",
+   "beast_id": "bb-7f9c2a03",
+   "tick": 712,
+   "at": "2026-11-10T07:12:04.657Z",
+   "hour_local": 1,
+   "timezone": "America/Chicago",
+   "signals": {
+    "energy": 90,
+    "signal": 57,
+    "memory": 100,
+    "resonance": 97
+   },
+   "bond": 100,
+   "mood": "content",
+   "place": "Tidewell",
+   "places_visited": [
+    "Echo Prism",
+    "Tidewell",
+    "Violet Shard"
+   ],
+   "discovered_combos": [],
+   "new_combo_count": 0,
+   "combos_total": 420,
+   "xp_gain": 10,
+   "xp": 10553,
+   "stage": 5,
+   "stage_name": "Crescent Sovereign",
+   "grew": false,
+   "care": 0,
+   "birth_spark": {
+    "provider": "IBM Quantum",
+    "backend": "ibm_marrakesh",
+    "job_id": "db4te7slf4us73c3888g",
+    "source": "recorded hardware counts (birth seed, never re-run)"
+   },
+   "growth_source": {
+    "kind": "deterministic-fallback",
+    "simulated": false,
+    "provider": "azure-quantum/rigetti",
+    "target": "rigetti.sim.qvm",
+    "job_id": null,
+    "error": "ResourceExistsError: (SubscriptionDisabled) This Azure subscription is disabled and marked as read-only. Please re-enable the subscription to use Azure Quantum.\nCode: SubscriptionDisabled\nMessage: This Azure subscription is disabled and marked as read-only. Ple"
+   },
+   "learning": {
+    "new_cells": 0,
+    "moves_succeeded": 12,
+    "moves_blocked": 0,
+    "goals": {
+     "play": 2,
+     "visit": 6
+    },
+    "cells_visited": 37,
+    "cells_total": 40,
+    "known_rifts": 3,
+    "blocked_rate": 0.054,
+    "favorite_spot": "Violet Shard",
+    "prefs": {
+     "explore": 0.05,
+     "visit": 1,
+     "rest": 0.068,
+     "play": 1
+    },
+    "label": "learned behaviour from its own experience, not consciousness"
+   },
+   "thought": {
+    "text": "I was in a big blue, green sunway. It is the most famous bedtradical blue.",
+    "by": "rawrphos-native:step-37104 (raw model output, unedited)"
+   },
+   "prev_hash": "0b7885a8036e8522e7c1db08c0fd84bd47fc87b9e5d4f390906f4a98d23bacca",
+   "hash": "8344cf7c71d9703a2a0a8440d11cff9f5898cbf7477d7b257a08d7fbf273fd6f"
+  },
   {
    "schema": "zeref-diary/v1",
    "beast_id": "bb-7f9c2a03",
@@ -987,99 +1059,8 @@
    },
    "prev_hash": "b7a2cd0c7060ddddc7c151873cf529706a6553d01963faa7c502cdb5bb3f2dc5",
    "hash": "cf27ec8d5c0b26259912d5061235f51f02508da5760ff496580eccfa8bcd1c50"
-  },
-  {
-   "schema": "zeref-diary/v1",
-   "beast_id": "bb-7f9c2a03",
-   "tick": 700,
-   "at": "2026-11-09T23:30:26.558Z",
-   "hour_local": 17,
-   "timezone": "America/Chicago",
-   "signals": {
-    "energy": 62,
-    "signal": 51,
-    "memory": 100,
-    "resonance": 89
-   },
-   "bond": 100,
-   "mood": "sleepy",
-   "place": "Echo Prism",
-   "places_visited": [
-    "Echo Prism",
-    "Rift Gate",
-    "Selene Pool"
-   ],
-   "discovered_combos": [],
-   "new_combo_count": 0,
-   "combos_total": 420,
-   "xp_gain": 14,
-   "xp": 10407,
-   "stage": 5,
-   "stage_name": "Crescent Sovereign",
-   "grew": false,
-   "care": 0,
-   "birth_spark": {
-    "provider": "IBM Quantum",
-    "backend": "ibm_marrakesh",
-    "job_id": "db4te7slf4us73c3888g",
-    "source": "recorded hardware counts (birth seed, never re-run)"
-   },
-   "growth_source": {
-    "kind": "rigetti-qvm-simulated",
-    "simulated": true,
-    "provider": "azure-quantum/rigetti",
-    "target": "rigetti.sim.qvm",
-    "job_id": "b8d2ae14-dc84-11f1-8000-e4fade40d553",
-    "job_name": "zeref-diary-tick-700-bb-7f9c2a03",
-    "shots": 256,
-    "counts": {
-     "100": 3,
-     "101": 102,
-     "110": 89,
-     "111": 2,
-     "000": 1,
-     "001": 28,
-     "010": 30,
-     "011": 1
-    },
-    "counts_sha256": "e006da9807f1e3da79ff5fe01e324da3ab38a6c3dc89cfbeb0030078318469d6",
-    "circuit_params": {
-     "energy": 2.073451,
-     "signal": 1.602212,
-     "resonance": 2.764602
-    },
-    "quil_sha256": "b00d4365a59ce497e650b8256f9b5b11e786473e3cf1ed2f28775ca588372133"
-   },
-   "learning": {
-    "new_cells": 0,
-    "moves_succeeded": 14,
-    "moves_blocked": 2,
-    "goals": {
-     "play": 2,
-     "visit": 5
-    },
-    "cells_visited": 37,
-    "cells_total": 40,
-    "known_rifts": 3,
-    "blocked_rate": 0.054,
-    "favorite_spot": "Echo Prism",
-    "prefs": {
-     "explore": 0.05,
-     "visit": 0.9117,
-     "rest": 0.05,
-     "play": 1
-    },
-    "label": "learned behaviour from its own experience, not consciousness"
-   },
-   "universe_growth": 598,
-   "thought": {
-    "text": "I want to do not know this is a little, but my name is Liques a lot of rock and a big hug in your back.",
-    "by": "rawrphos-native:step-37104 (raw model output, unedited)"
-   },
-   "prev_hash": "e281f395193c344cc765b2edfd377de8e9261bd4ddabbca2114f53d4ba64b404",
-   "hash": "b7a2cd0c7060ddddc7c151873cf529706a6553d01963faa7c502cdb5bb3f2dc5"
   }
  ],
- "generated_at": "2026-11-10T06:32:44.486Z",
+ "generated_at": "2026-11-10T07:12:04.657Z",
  "thought_source_note": "rawrphos-ok"
 }
