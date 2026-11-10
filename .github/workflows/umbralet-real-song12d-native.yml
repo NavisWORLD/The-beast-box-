@@ -12,6 +12,19 @@ permissions:
   actions: read
 jobs:
   umbralet-native:
+    # Quarantined 2026-11-09. Do not run, and do not weaken the steps below.
+    # Artifact real-song-12d-ibm-new-beast-38009590963 from run 38009590963 is gone
+    # (actions artifact query total_count 0; download on run 42683653732:
+    # "Artifact not found for name: real-song-12d-ibm-new-beast-38009590963").
+    # Companion real-song12d-new-azure-qvm-38009805252 from run 38009805252 is gone
+    # too. Git history has never contained _ibm_cst12_music_birth_20261009/ or
+    # experiment-evidence/music-12d-ibm-20261009/. No release asset matches. The
+    # committed public shard ibm-real-song-cst12-umbralet-20261009.json sha256
+    # ae605b118552b3c1b1e502256073b4d5dbefff075b0b53b3fbc81bf734434ba6 is a two-PUB
+    # seed shard, not that artifact. The 2026-11-08 re-upload
+    # umbralet-real-game-birth-42496118615 is browser evidence plus a derived
+    # proof, not the source artifact.
+    if: ${{ false }}
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     defaults:
