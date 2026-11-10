@@ -2,7 +2,7 @@
 
 Step 1 of item 8 only. No consolidation code. Nothing in the app was removed or retargeted.
 
-Source is `main` at `f2b1774b7dfa605182428edb2f5847a55c372fc8` (merge of #901, 2026-11-09 14:45 -0600). App: `apps/beastbox-cloud`. Production build: Next.js 16.3.8 (`npm run build`, exit 0). The live host named in the directive is `www.beastboxcosmos.xyz`. These weights and boot times are from this commit’s production build, served by `next start` on this machine. They are not a capture of the live CDN.
+Source is `main` at `f2b1774b7dfa605182428edb2f5847a55c372fc8` (merge of #901, 2026-11-09 14:45 -0600). App: `apps/beastbox-cloud`. Production build: Next.js 16.3.8 (`npm run build`, exit 0). The live host named in the directive is `www.beastboxcosmos.xyz`. First-load weights are from this commit’s production build. Boot times and script transfer sizes are this agent’s own measurement on the EMULATED Pixel 5 profile below, from `next start` on this machine. They are not a third-party lab capture and not the live CDN.
 
 ## Headline
 
@@ -10,7 +10,7 @@ The growth document is already one clock. The pictures are not.
 
 `OneWorldProvider` (`components/one-world-provider.tsx`) is mounted from `app/layout.tsx` on every page. It fetches `/universe/tiny-universe-genesis.json` once and starts `oneWorldClock` (`lib/world/one-world-clock.mjs`): one in-memory state, one `localStorage` key `lw:universe`, one `grow()` step every 2000 ms, cap 4000. Living World and Tiny Universe already read that clock. Pocket, Look Closer, Beach Two, the field, and the pedestal do not advance it, and they do not share its sun, its creature list, or its render loop.
 
-First-load JS is the Next build diagnostic `.next/diagnostics/route-bundle-stats.json` (`firstLoadUncompressedJsBytes`). Gzip is the sum of gzip level 9 of those same chunk files. Next 16.3.8 did not print the old “First Load JS” table. Dynamic scene chunks (Living World, the Cage pocket, three.js inside them) are outside first-load and show up in the emulated transfer column.
+First-load JS is the Next build diagnostic `.next/diagnostics/route-bundle-stats.json` (`firstLoadUncompressedJsBytes`). Gzip is Node `zlib.gzipSync` at level 9, summed across those chunk files. Python’s gzip of the same bytes is smaller, so a Python recount will not match these figures. Next 16.3.8 did not print the old “First Load JS” table. Dynamic scene chunks (Living World, the Cage pocket, three.js inside them) are outside first-load and show up in the emulated transfer column.
 
 | | Uncompressed | Gzip |
 |---|---:|---:|
@@ -24,7 +24,7 @@ EMULATED phone profile, not a handset. Playwright device Pixel 5: viewport 393×
 
 EMULATED boot, two signals. “Ready” is `domContentLoadedEventEnd` when no connected canvas framed. “First frame” is two animation frames after `getContext` on a canvas that is in the document. The software-GL probe canvas is not in the document and is not counted.
 
-| Surface | EMULATED |
+| Surface | EMULATED Pixel 5 |
 |---|---|
 | Document pages with no scene canvas | ready 1.04–1.21 s |
 | `/universe` 2D map (details already open; no WebGL on SwiftShader) | first frame 4.0 s |
@@ -67,7 +67,7 @@ Every Next page also inherits the layout: the one-world clock (after genesis arr
 - **Sun and sky.** `oneSunAt(Date.now()/1000, localUp)` then `lightRigFor` drives the existing sun and hemisphere (`sky-view.mjs`). Sky dome `addSkyDome` / `addP2Sky` / `p2SkyAt`. Beach camera replaces that direction with a noon-ish vector built from the shore normal (`living-world.tsx` around line 726) while `__lwNoon` is not `night`. `__lwNoon` is a second override. Companion disc does not light (`COMPANION_DISC.lights` is false in `lib/universe/one-sun.mjs`).
 - **Render loop.** `frame` requestAnimationFrame, line 722. Draw at line 978: `post.render`, ASCII, or `renderer.render`.
 - **Creatures.** `ARTIST_RESIDENTS` as sprites (line 444) plus the session beast via `createCreatureLoop`, and a Zeref GLB at the second gathering point. Not Azure.
-- **Tick.** Per-frame `stepWorldField` (line 337). Every 2 s `applyTick` (line 556) reads the one-world clock when the seed matches, and calls `grow()` only if that clock is missing. Field moisture and weather move on this 2 s cadence even when growth comes from the clock.
+- **Tick.** Per-frame `stepWorldField` (line 337). Every 2 s `applyTick` (`living-world.tsx` line 558) reads the one-world clock when the seed matches, and calls `grow()` only if that clock is missing. Field moisture and weather move on this 2 s cadence even when growth comes from the clock.
 - **JS.** First-load 1,008,168 B, gzip 340,818 B, 15 chunks. Emulated transfer 746,227 B, 29 scripts (the dynamic living-world chunk is in the transfer).
 - **Boot.** EMULATED. WebGL first frame 6,714 ms on the full pass (`data-living-world=orbit`) and 6,461 ms on the scene pass.
 
@@ -75,8 +75,8 @@ Every Next page also inherits the layout: the one-world clock (after genesis arr
 
 - **World state.** Reads the one-world clock through `useOneWorld` (lines 37–43). Pause freezes this picture only. `↺ Genesis` copies the genesis snapshot into the view state. `localStorage` `u:3d` chooses 2D vs `Universe3D`. On software GL the default is 2D. A door can mount `LivingWorld` with `door` (`?door=1`, or a real GPU).
 - **Store.** `lw:universe` via the clock. `u:3d`.
-- **Sun and sky.** 2D: radial gradients in the canvas `draw` (line 46) and a planet terminator from the star position. 3D, when on: `genesis-sun.mjs` / `genesis-sun-three.ts` inside `components/universe-3d.tsx` (its own rAF at line 255). This run also showed `[data-seeded-land-2d]`.
-- **Render loop.** 2D `draw` rAF, line 77. Optional `Universe3D` `frame`. Optional door uses Living World `frame`.
+- **Sun and sky.** 2D: radial gradients in the canvas `draw` (`tiny-universe-view.tsx` line 45) and a planet terminator from the star position. 3D, when on: `genesis-sun.mjs` / `genesis-sun-three.ts` inside `components/universe-3d.tsx` (its own rAF at line 255). This run also showed `[data-seeded-land-2d]`.
+- **Render loop.** 2D `draw` at line 45, rAF at line 77. Optional `Universe3D` `frame`. Optional door uses Living World `frame`.
 - **Creatures.** A drawn Zeref marker on the map (`zerefStar`). No Azure beast list. Life worlds are fields on the universe document (`u.life`), simulated by `grow()`.
 - **Tick.** `oneWorldClock.step` every 2 s. The HUD prints `u.tick`.
 - **JS.** First-load 1,849,038 B, gzip 562,367 B, 18 chunks. Emulated transfer 569,128 B, 18 scripts.
@@ -124,7 +124,7 @@ Every Next page also inherits the layout: the one-world clock (after genesis arr
 
 No world scene.
 
-| Route | What it is | First-load uncompressed / gzip | EMULATED ready |
+| Route | What it is | First-load uncompressed / gzip | EMULATED Pixel 5 ready |
 |---|---|---:|---:|
 | `/beast-cage/talk` | Chat. Session. No rAF in the talk component. | 1,473,702 / 473,940 | 1,126 ms |
 | `/beast-cage/guest` | GBA guest lab. 2D preview is not created on first paint. | 1,442,860 / 462,527 | 1,207 ms |
@@ -153,7 +153,7 @@ The page file is the journey copy. The cartridge is the layout dock and stays on
 
 No scene of their own. Clock still starts from the layout. EMULATED ready is `domContentLoadedEventEnd`.
 
-| Route | First-load uncompressed / gzip | EMULATED ready | Transfer |
+| Route | First-load uncompressed / gzip | EMULATED Pixel 5 ready | Transfer |
 |---|---:|---:|---:|
 | `/account` | 1,006,016 / 340,224 | 1,158 ms | 345,508 B |
 | `/classroom` | 1,007,001 / 340,625 | 1,153 ms | 345,909 B |
@@ -284,6 +284,6 @@ Honesty that the later PRs have to keep: world growth is SIMULATED, IBM genesis 
 
 ## Method
 
-Build: `apps/beastbox-cloud`, `npm ci`, `npm run build` (Next.js 16.3.8, exit 0). `prebuild` refreshes `public/spark/shared/` from `lib/`. That refresh was left out of the commit. Next route bundles import `lib/`. Weights from `.next/diagnostics/route-bundle-stats.json`. Gzip computed locally from those chunk paths. `next-env.d.ts` type-path edits from the build were reverted.
+Build: `apps/beastbox-cloud`, `npm ci`, `npm run build` (Next.js 16.3.8, exit 0). `prebuild` refreshes `public/spark/shared/` from `lib/`. That refresh was left out of the commit. Next route bundles import `lib/`. Weights from `.next/diagnostics/route-bundle-stats.json`. Gzip is Node `zlib.gzipSync` level 9 summed per chunk. Python gzip of the same files is smaller. `next-env.d.ts` type-path edits from the build were reverted.
 
-Boot: `next start` on 127.0.0.1:3456. Playwright 1.55 Chromium headless, `--use-angle=swiftshader`. One route at a time so the CPU throttle is not shared. Fresh context per route, service workers blocked. Numbers above are that run. They are EMULATED.
+Boot and transfer: this agent’s own measurement. `next start` on 127.0.0.1:3456. Playwright 1.55 Chromium headless, `--use-angle=swiftshader`. One route at a time so the CPU throttle is not shared. Fresh context per route, service workers blocked. The boot and transfer numbers above are that measurement on the EMULATED Pixel 5 profile. They are not a third-party lab capture.
