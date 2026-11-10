@@ -363,19 +363,46 @@ export async function talkToBeast(input) {
   }
 }
 
-/** Bounded per-Beast chat log (verified replies only) so minimizing or navigating never wipes it. */
+/** Per-Beast chat log. The window key stays MAX_LOG for the prompt and the panel.
+ *  The archive key is append-only: a later write never drops a line already stored.
+ *  An empty write clears the window only. It does not delete the archive.
+ */
 export const LOG_PREFIX = "beastbox-talk-log-v1:";
+export const LOG_ARCHIVE_PREFIX = "beastbox-talk-log-archive-v1:";
 export const MAX_LOG = 24;
+function talkRows(raw){
+  return Array.isArray(raw) ? raw.filter((r) => r && (r.role === "you" || r.role === "beast") && typeof r.text === "string") : [];
+}
+function talkKey(row){
+  return row.id || JSON.stringify([row.role, row.text, row.at ?? null]);
+}
+export function readTalkArchive(storage, key) {
+  try { return talkRows(JSON.parse(storage?.getItem(LOG_ARCHIVE_PREFIX + key) || "[]")); }
+  catch { return []; }
+}
 export function readTalkLog(storage, key) {
   try {
-    const rows = JSON.parse(storage?.getItem(LOG_PREFIX + key) || "[]");
-    return Array.isArray(rows) ? rows.filter((r) => r && (r.role === "you" || r.role === "beast") && typeof r.text === "string").slice(-MAX_LOG) : [];
+    const rows = talkRows(JSON.parse(storage?.getItem(LOG_PREFIX + key) || "[]"));
+    return rows.slice(-MAX_LOG);
   } catch {
     return [];
   }
 }
 export function writeTalkLog(storage, key, rows) {
-  try { storage?.setItem(LOG_PREFIX + key, JSON.stringify(rows.slice(-MAX_LOG))); return true; } catch { return false; }
+  const incoming = talkRows(rows);
+  const archive = readTalkArchive(storage, key);
+  const seen = new Set(archive.map(talkKey));
+  for (const row of incoming) {
+    const id = talkKey(row);
+    if (seen.has(id)) continue;
+    seen.add(id);
+    archive.push(row);
+  }
+  let archived = true;
+  try { storage?.setItem(LOG_ARCHIVE_PREFIX + key, JSON.stringify(archive)); }
+  catch { archived = false; }
+  try { storage?.setItem(LOG_PREFIX + key, JSON.stringify(incoming.slice(-MAX_LOG))); return archived; }
+  catch { return false; }
 }
 
 export const TALK_RETENTION_KEY="beastbox-talk-retention-v1";

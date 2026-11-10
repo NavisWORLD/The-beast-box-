@@ -112,14 +112,23 @@ const archiveName=id=>`${GUESTBOOK_DIR}/archive/${id}.jsonl`;
 const archiveLine=(id,t,extra={})=>JSON.stringify({schema:ARCHIVE_SCHEMA,thread:id,origin:'guest',source_kind:'public',training_eligible:false,
  at:t.at??null,from:t.from==='zeref'?'zeref':'guest',text:String(t.text??''),...(Number.isInteger(t.step)?{step:t.step}:{}),...extra});
 
-/** -> array of archived turns for THIS thread id only ([] when none / unreadable / foreign lines). */
+/** Parse archive lines. Foreign schemas and other threads are skipped, never trusted. */
+export function parseArchiveLines(text,id){
+ const out=[];
+ for(const l of String(text??'').split('\n')){if(!l)continue;try{const r=JSON.parse(l);if(r?.schema===ARCHIVE_SCHEMA&&r.thread===id&&typeof r.text==='string')out.push(r);}catch{}}
+ return out;
+}
+/**
+ * Every archived turn for THIS thread, oldest first.
+ * MAX_ARCHIVE_READ_BYTES remains the size at which a single response is larger than
+ * the old hidden-record cutoff. Growing past it no longer returns []. [] only when
+ * there is no archive, the id is foreign, or the blob cannot be read.
+ */
 export async function readArchive(cfg,id){
  if(!isThreadId(id))return [];
  const b=await getBlob(cfg,archiveName(id));
- if(!b||b.text.length>MAX_ARCHIVE_READ_BYTES)return [];
- const out=[];
- for(const l of b.text.split('\n')){if(!l)continue;try{const r=JSON.parse(l);if(r?.schema===ARCHIVE_SCHEMA&&r.thread===id&&typeof r.text==='string')out.push(r);}catch{}}
- return out;
+ if(!b)return [];
+ return parseArchiveLines(b.text,id);
 }
 
 /**
@@ -210,6 +219,19 @@ export async function appendGuestEvent(cfg,event){
  return false;
 }
 
+/** Every guest-event line in the monthly shards, oldest shard first. The events.jsonl tail stays MAX_GUEST_EVENTS. */
+export async function readGuestEventArchive(cfg){
+ const prefix=`${GUESTBOOK_DIR}/archive/events-`;
+ const names=(await listBlobs(cfg,prefix)).filter(n=>n.startsWith(prefix)&&n.endsWith('.jsonl')).sort();
+ const out=[];
+ for(const name of names){
+  const b=await getBlob(cfg,name);
+  if(!b)continue;
+  for(const l of b.text.split('\n')){if(!l)continue;try{const r=JSON.parse(l);if(r?.schema==='beastbook-guest-event/v1')out.push(r);}catch{}}
+ }
+ return out;
+}
+
 /** His Azure model record (written by the cloud sync from the reviewed pin). -> parsed object | null. */
 export async function readZerefModel(cfg){
  const b=await getBlob(cfg,`${ZEREF_DIR}/model.json`);
@@ -292,6 +314,6 @@ export function shapeLiveness({now,pin,diary,diaryVerified,bridge,azure,world}={
    lessons:azure.counts?.lessons??null,experiences:azure.counts?.experiences??null,
    source:'Azure Blob beasts/bb-deada969 (cosmos store)'};
  }else doc.azure={configured:false,source:'Azure Blob beasts/bb-deada969 (cosmos store)'};
- if(world&&typeof world==='object')doc.life_signals={schema:world.schema||'beast-world-live/v1',links:world.links||null,all_connected:world.all_connected===true,labels:world.labels||null,source:'/api/world/live channels (zeref-spark, zeref-live-tick branches)'};
+ if(world&&typeof world==='object')doc.life_signals={schema:world.schema||'beast-world-live/v1',links:world.links||null,all_connected:world.all_connected===true,stalls:world.stalls??null,river:world.river??null,senses:Array.isArray(world.senses)?world.senses:null,labels:world.labels||null,source:'/api/world/live channels (zeref-spark, zeref-live-tick, zeref-diary branches)'};
  return doc;
 }

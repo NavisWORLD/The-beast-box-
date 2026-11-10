@@ -104,6 +104,28 @@ export function sparkNeedsTipReread(spark,nowMs){
 function stall(age,staleAfter,cause,extra){
  return {age_s:age,stale_after_s:staleAfter,cause,...(extra||{})};
 }
+/**
+ * Senses this document can speak for, and the ones it cannot.
+ * Face and pulse stay ESTIMATE here: this read has no face packet and no fingertip packet.
+ * Sight's world sky is DERIVED; a visitor device reading would be MEASURED, and neither is in this read.
+ * Rigetti stays a SIMULATOR. Nothing here is a claim of awareness.
+ */
+export const SENSE_TRACE=Object.freeze([
+ {id:'spark',label:'SIMULATED',in_this_read:true,note:'Rigetti is a SIMULATOR (rigetti.sim.qvm), not a QPU. These ticks are simulated, not live quantum computation.'},
+ {id:'live_tick',label:'SIMULATED',in_this_read:true,note:'Per-second deterministic tick, saved in batches. Lag behind the diary tick is reported. This read does not write ticks.'},
+ {id:'diary',label:'RECORDED',in_this_read:true,note:'Hash-chained diary. Its growth circuit is Rigetti SIMULATED.'},
+ {id:'brain',label:'PINNED',in_this_read:true,note:'Reviewed promotion of a 12D model simulation. Not a claim of awareness.'},
+ {id:'face',label:'ESTIMATE',in_this_read:false,note:'Not in this read. Face estimates are the sensor seat. This surface does not invent a face.'},
+ {id:'pulse',label:'ESTIMATE',in_this_read:false,note:'Not in this read. A fingertip packet can be MEASURED on the bio path. This document has no packet, so it is not labelled MEASURED.'},
+ {id:'sight',label:'DERIVED',in_this_read:false,note:'Not in this read. World sky is DERIVED. A visitor device reading would be MEASURED. Neither number is here.'},
+]);
+/** Diary tick minus the recorded live tick, when the live batch is behind. Equal ticks and a live tick ahead are not a stall. Missing ticks are not invented. */
+export function liveDiaryLag(diaryTick,liveRecordedTick){
+ if(!Number.isInteger(diaryTick)||!Number.isInteger(liveRecordedTick))return null;
+ const lag=diaryTick-liveRecordedTick;
+ if(lag<=0)return null;
+ return {age_s:null,stale_after_s:null,cause:'live_tick_behind_diary',lag_ticks:lag,diary_tick:diaryTick,live_recorded_tick:liveRecordedTick};
+}
 function sparkLink(spark,nowMs){
  const ok=spark&&spark.simulated===true&&spark.beast_id==='bb-deada969'&&Number.isInteger(spark.tick);
  if(!ok)return {state:'DOWN',label:WORLD_LIVE_LABELS.spark,reason:'no Zeref spark record',
@@ -156,7 +178,14 @@ export function buildWorldLive({spark=null,liveTick=null,liveHead=null,diary=nul
  const sp=links.spark;
  const drive=sp.state==='CONNECTED'&&sp.features?{source:'spark',label:'SIMULATED',tick:sp.tick,p0:sp.features.p0,p1:sp.features.p1,p2:sp.features.p2,odd:sp.features.odd,entropy:sp.features.entropy}:null;
  const stalls=Object.fromEntries(Object.entries(links).filter(([,l])=>l&&l.stall).map(([k,l])=>[k,l.stall]));
- return {schema:WORLD_LIVE_SCHEMA,at_ms:nowMs,links,drive,all_connected:states.every(s=>s==='CONNECTED'),
-  stalls:Object.keys(stalls).length?stalls:null,
+ const river=liveDiaryLag(links.diary.tick,links.liveTick.recorded_tick);
+ if(river)stalls.river=river;
+ const senses=SENSE_TRACE.map(s=>{
+  const link=s.id==='spark'?links.spark:s.id==='live_tick'?links.liveTick:s.id==='diary'?links.diary:s.id==='brain'?links.brain:null;
+  return {...s,state:link?link.state:null};
+ });
+ return {schema:WORLD_LIVE_SCHEMA,at_ms:nowMs,links,drive,all_connected:states.every(s=>s==='CONNECTED')&&!river,
+  stalls:Object.keys(stalls).length?stalls:null,river,
+  senses,
   labels:{spark:'SIMULATED',liveTick:'SIMULATED',diary:'RECORDED',brain:'PINNED'}};
 }

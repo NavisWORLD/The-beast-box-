@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {storageConfig} from '../lib/cosmos/azure-blob.mjs';
-import {appendClassExchange,classThreadId,classroomBridgeIdentity,readClassThread,CLASSROOM_DIR} from '../lib/cosmos/classroom-store.mjs';
+import {appendClassExchange,classThreadId,classroomBridgeIdentity,readClassArchive,readClassThread,CLASSROOM_DIR} from '../lib/cosmos/classroom-store.mjs';
 import {appendGuestEvent,bridgeIdentityForThread,exchangeId,GUESTBOOK_DIR} from '../lib/cosmos/forever-store.mjs';
 import {confusedState,deriveEmotions,EMOTIONS} from '../lib/companion/emotion.mjs';
 const read=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8');
@@ -73,6 +73,20 @@ test('public records are tagged public and deduped by exchange_id',async()=>with
  const lines=blobs.get(`${GUESTBOOK_DIR}/events.jsonl`).text.trim().split('\n');
  assert.equal(lines.length,1);assert.equal(JSON.parse(lines[0]).source_kind,'public');
  assert.notEqual(x,exchangeId('classroom','t',AT,'hi','hello'));
+}));
+
+test('classroom archive reader reaches shard lines after the tail window is emptied',async()=>withFake(async blobs=>{
+ const cfg=sasCfg();const id=classThreadId('zeref-class');
+ for(let i=0;i<3;i++){
+  const at=new Date(Date.parse(AT)+i*1000).toISOString();
+  const w=await appendClassExchange(cfg,id,'zeref-class',{at,teacherText:'lesson '+i,reply:'answer '+i,step:35184,checkpoint_sha256:'abc'});
+  assert.equal(w.recorded,true);
+ }
+ const tail=`${CLASSROOM_DIR}/experiences.jsonl`;
+ blobs.set(tail,{text:'',etag:blobs.get(tail).etag});
+ const all=await readClassArchive(cfg);
+ assert.deepEqual(all.map(r=>r.reply),['answer 0','answer 1','answer 2']);
+ assert.ok(all.every(r=>r.training_eligible===false));
 }));
 
 test('confused: opt-in, deterministic trigger, old emotions unchanged',()=>{
