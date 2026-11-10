@@ -11,15 +11,41 @@ export default function OneWorldProvider(){
   fetch('/universe/tiny-universe-genesis.json').then(r=>r.json()).then(g=>{if(!live||currentWorldClock())return;let st:any=null;try{st=localStorage;}catch{}
    oneWorldClock({genesis:g,grow,storage:st});window.dispatchEvent(new Event('beastbox:one-world'));}).catch(()=>{});
   return()=>{live=false;};},[]);
- useEffect(()=>beginSurfaceRead({
-  on:oneUniverseStateOn(browserSources()),
-  whenClock:()=>whenWorldClock(),
-  readNode:()=>document.documentElement,
-  nodesFor:()=>{const nodes=[];for(const sel of ['[data-look-pedestal]','[data-pocket-dimension]','[data-ar-canvas]','[data-living-world]']){const el=document.querySelector(sel);if(el)nodes.push(el);}return nodes;},
-  surfaceFor:()=>surfacesForPath(window.location.pathname).join('+'),
-  subscribe:(clock:any,apply:()=>void)=>clock.subscribe(apply),
-  observe:(apply:()=>void)=>{let queued=false;const schedule=()=>{if(queued)return;queued=true;requestAnimationFrame(()=>{queued=false;apply();});};const watch=new MutationObserver(schedule);watch.observe(document.documentElement,{childList:true,subtree:true});return()=>watch.disconnect();},
- }),[]);
+ useEffect(()=>{
+  // The page root carries the live read on each clock tick. Surface nodes are stamped when they
+  // appear. Rewriting them on every mutation forced a layout of the cage on the same frames the
+  // pocket paints, so a smooth scroll to the forge never finished and the creator grid took the hit.
+  const surfaceSelectors=['[data-look-pedestal]','[data-pocket-dimension]','[data-ar-canvas]','[data-living-world]'];
+  let stampSurfaces=false;
+  return beginSurfaceRead({
+   on:oneUniverseStateOn(browserSources()),
+   whenClock:()=>whenWorldClock(),
+   readNode:()=>document.documentElement,
+   nodesFor:()=>{
+    if(!stampSurfaces)return [];
+    const nodes=[];
+    for(const sel of surfaceSelectors){const el=document.querySelector(sel);if(el)nodes.push(el);}
+    return nodes;
+   },
+   surfaceFor:()=>surfacesForPath(window.location.pathname).join('+'),
+   subscribe:(clock:any,apply:()=>void)=>clock.subscribe(()=>{stampSurfaces=false;apply();}),
+   observe:(apply:()=>void)=>{
+    const stamp=()=>{stampSurfaces=true;try{apply();}finally{stampSurfaces=false;}};
+    const watch=new MutationObserver((records)=>{
+     for(const record of records){
+      for(const node of record.addedNodes){
+       if(!(node instanceof Element))continue;
+       const found=surfaceSelectors.some(sel=>node.matches(sel)||(node.firstElementChild&&node.querySelector(sel)));
+       if(found){stamp();return;}
+      }
+     }
+    });
+    watch.observe(document.documentElement,{childList:true,subtree:true});
+    stamp();
+    return()=>watch.disconnect();
+   },
+  });
+ },[]);
  useEffect(()=>{
   const sources=browserSources();
   const envOn=String(sources.env||'').split(',').some(part=>part.trim()==='tick');
