@@ -53,5 +53,7 @@ test('an offscreen pocket waits out the OPEN GAME tap, then still boots, and doe
   assert.match(src, /visible=inView\(\)/);
   assert.match(src, /!visible&&rendered/);
   assert.match(src, /if\(!inView\(\)\)\{rendered=true;setReady\(true\);\}/);
+  assert.match(src, /if\(!soft&&renderer\.extensions\.get\('KHR_parallel_shader_compile'\)\)/);
+  assert.match(src, /soft&&!inView\(\)/);
   assert.ok(!/Math\.random/.test(src));
 });

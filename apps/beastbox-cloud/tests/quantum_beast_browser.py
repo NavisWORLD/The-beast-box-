@@ -10,6 +10,14 @@ root=Path(__file__).resolve().parents[3]
 def open_advanced(page):
   adv=page.locator('[data-bridge-advanced]').first
   if not adv.evaluate('e=>e.open'):adv.locator('summary').first.click()
+def download_beast(page):
+  # The control stays disabled until verifySnapshot finishes. The panel publishes
+  # that moment as data-bridge-settled, which is the readiness signal to wait on.
+  open_advanced(page)
+  page.locator('[data-bridge-settled="yes"]').first.wait_for(state='attached')
+  button=page.get_by_role('button',name='DOWNLOAD QUANTUM BEAST',exact=True)
+  expect(button).to_be_enabled()
+  return button
 
 def fixture(script):
  result=subprocess.run(['node','-e',script,str(args.example.resolve())],cwd=root/'packages/quantum-beast',text=True,capture_output=True,check=True)
@@ -36,8 +44,8 @@ with sync_playwright() as p:
   response=page.goto('http://127.0.0.1:3100/beast-cage',wait_until='domcontentloaded');assert response.status==200
   page.wait_for_load_state('networkidle',timeout=30000)  # let the page hydrate before the first click
   page.get_by_label('Character seed').fill('quantum-beast-first-contact');page.get_by_label('Cosmic family').select_option('nebula');page.get_by_role('button',name='Generate from this seed',exact=True).click()
-  open_advanced(page)
-  with page.expect_download() as pending:page.get_by_role('button',name='DOWNLOAD QUANTUM BEAST',exact=True).click()
+  button=download_beast(page)
+  with page.expect_download() as pending:button.click()
   file=args.output/f'beast-{width}.qbeast';pending.value.save_as(file);original=json.loads(file.read_text())
   assert original['profile']['id']=='bb-f5a4cb6d' and original['events']==[]
   import_package(page,str(args.example.resolve()))
@@ -58,8 +66,8 @@ with sync_playwright() as p:
   expect(page.get_by_label('Quantum Beast portable companion bridge').get_by_role('alert')).to_contain_text('rewind or fork')
   import_package(page,str(args.example.resolve()));expect(receipt).to_contain_text('1 approved events')
   page.reload(wait_until='domcontentloaded');expect(receipt).to_contain_text('1 approved events')
-  open_advanced(page)
-  with page.expect_download() as pending:page.get_by_role('button',name='DOWNLOAD QUANTUM BEAST',exact=True).click()
+  button=download_beast(page)
+  with page.expect_download() as pending:button.click()
   restored=args.output/f'restored-{width}.qbeast';pending.value.save_as(restored);assert json.loads(restored.read_text())==snapshot
   open_advanced(page)
   with page.expect_download() as pending:page.get_by_role('button',name='Export this Beast to GBA',exact=True).click()
@@ -79,7 +87,7 @@ with sync_playwright() as p:
    (args.output/'failed-restore.json').write_text(json.dumps(diagnostics,indent=2)+'\n');print(json.dumps(diagnostics));raise
   import_package(second,{'name':'continued.qbeast','mimeType':'application/json','buffer':newer})
   expect(second.get_by_label('Portable Beast verification')).to_contain_text('2 approved events')
-  page.bring_to_front();open_advanced(page);page.get_by_role('button',name='DOWNLOAD QUANTUM BEAST',exact=True).click()
+  page.bring_to_front();download_beast(page).click()
   expect(page.get_by_label('Quantum Beast portable companion bridge').get_by_role('alert')).to_contain_text('Another tab changed')
   assert json.loads(json.loads(page.evaluate("localStorage.getItem('beastbox-quantum-beast-public-v1')"))['text'])['generation']==2
   second.close()

@@ -15,6 +15,7 @@ import * as THREE from 'three';
 import {createZerefDriver,ZEREF_GLB_URL} from '@/lib/creatures3d/zeref-glb-driver.mjs';
 import {seededRng} from '@/lib/physics/cst-integrator.mjs';
 import {guardCanvasTouch} from '@/lib/three/touch-guard';
+import {browserLightOn,paintKeyAndSky} from '@/public/universe/one-universe-light.mjs';
 
 export type ZerefMood='calm'|'happy'|'curious'|'scared'|'sleepy'|'angry'|'walk';
 type Tier='high'|'med'|'low';
@@ -65,7 +66,7 @@ export default function ZerefGlb3D({spin=true,angle=0,mood='calm',seed='zeref'}:
   scene.background=gradientTex([[0,'#3a2370'],[.55,'#1a1546'],[1,'#07061a']],4,256,true);
   scene.environment=cosmicEnvironment(renderer);scene.environmentIntensity=.5;
   // cinematic light rig: key + strong cyan/violet rims + soft blue fill
-  scene.add(new THREE.HemisphereLight(0xa996ff,0x0a0618,.2));
+  const hemi=new THREE.HemisphereLight(0xa996ff,0x0a0618,.2);scene.add(hemi);const zerefLight=browserLightOn();
   const key=new THREE.DirectionalLight(0xfff1ff,2.6);key.position.set(-2.2,3.2,3);scene.add(key);
   const fill=new THREE.DirectionalLight(0x6f8cff,.7);fill.position.set(2.6,1,2.4);scene.add(fill);
   const rim=new THREE.DirectionalLight(0x8fe8ff,4.2);rim.position.set(1.8,2.3,-3);scene.add(rim);
@@ -245,6 +246,7 @@ export default function ZerefGlb3D({spin=true,angle=0,mood='calm',seed='zeref'}:
     for(const p of pulseMats)p.mat.emissiveIntensity=p.base*(1+.7*uBeat.value*(.5+.5*cz.stir));
     const mp:any=driver.params;uWind.value.set(mp.wind.x*.25,0,mp.wind.z*.25);}
    tv.copy(rim.position).normalize().transformDirection(camera.matrixWorldInverse);uRimView.value.copy(tv);
+   if(zerefLight)paintKeyAndSky({on:true,sec:Date.now()/1000,up:[camera.up.x,camera.up.y,camera.up.z],key,hemi});
    if(composer&&TIERS[tier].bloom)composer.render(dt);else renderer.render(scene,camera);
    if(!(qManual&&now===0))raf=requestAnimationFrame(tick);
   }

@@ -9,6 +9,6 @@ test('gravity tunnel: exact endpoints, bent by wells, out-stay-back',()=>{const 
  const s=tunnelPath({x:0,y:0,z:0},to,[]),g=tunnelPath({x:0,y:0,z:0},to,w);assert.deepEqual(g[0],{x:0,y:0,z:0});assert.deepEqual(g.at(-1),to);assert.ok(g[32].z>s[32].z);
  const trip={out:g};assert.equal(travelPose(trip,1).phase,'go');assert.equal(travelPose(trip,12).phase,'stay');assert.equal(travelPose(trip,20).phase,'back');assert.ok(travelPose(trip,30).done);});
 test('cage wiring + mobile caps',()=>{const c=fs.readFileSync(new URL('../components/cage-pocket-dimension.tsx',import.meta.url),'utf8');
- assert.match(c,/buildWorlds\(THREE,scene,\{low/);assert.match(c,/uw\.bodies\(\)/);assert.match(c,/uwPose/);
+ assert.match(c,/buildWorlds\(THREE,scene,\{low/);assert.match(c,/\(!soft\|\|lcForced\)\?buildWorlds\(THREE,scene,\{low/);assert.match(c,/uw\.bodies\(\)/);assert.match(c,/uwPose/);
  const w=fs.readFileSync(new URL('../lib/worlds/worlds.ts',import.meta.url),'utf8');assert.match(w,/InstancedMesh/);assert.match(w,/new THREE\.LOD/);assert.match(w,/cloudsLow/);assert.match(w,/CANOPY_NEAR/);assert.match(w,/fade:true/);assert.match(w,/treeBodies/);assert.match(w,/pow\(vRimS/);
  assert.ok(LIMITS.homeTreesLow<=LIMITS.homeTreesHigh&&LIMITS.cloudsLow*LIMITS.puffs<=60);});
