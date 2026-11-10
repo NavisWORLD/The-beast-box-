@@ -2,7 +2,7 @@ import {createHmac} from 'node:crypto';
 import {bridgeConfigured,safeJson} from '@/lib/security';
 import PUBLIC_PIN from '@/lib/rawrphos-public-pin.json';
 import {chooseOneVoice,ONE_VOICE_SCHEMA,ONE_VOICE_RULE} from '@/lib/zeref/one-voice.mjs';
-import {mintExchangeId,speakLived} from '@/lib/zeref/lived-exchange.mjs';
+import {mintExchangeId,ownerChainWrite,speakLived} from '@/lib/zeref/lived-exchange.mjs';
 // Reviewed public checkpoint pin (14000 unless a chat-not-worse promotion PR changed it).
 const PIN_STEP:number=PUBLIC_PIN.training_steps,PIN_SHA:string=PUBLIC_PIN.checkpoint_sha256;
 export const runtime='nodejs';
@@ -86,6 +86,8 @@ export async function POST(request:Request){
   const identity=createHmac('sha256',secret).update(forwarded.slice(0,256)).digest('hex');
   const host=new URL('/api/guest-local',process.env.BEASTBOX_CLOUD_BRIDGE_URL!);
   const exchangeId=await mintExchangeId('guest',identity,text);
+  const ownerWrite=ownerChainWrite('guest');
+  if(ownerWrite.wrote||ownerWrite.reason!=='isolated')throw new Error('guest exchange stays off the owner chain');
   try{
    const send=(prompt:string)=>fetch(host,{method:'POST',redirect:'error',cache:'no-store',
     headers:{Authorization:'Bearer '+process.env.BEASTBOX_CLOUD_BRIDGE_TOKEN!,
