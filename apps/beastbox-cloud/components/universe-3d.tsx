@@ -15,6 +15,7 @@ import {isSoftwareGL} from '@/lib/three/soft-gl';
 import {homeOf,biomeOf} from '@/lib/universe/tiny-universe-view.mjs';
 import {doorProgress,doorPreload,doorZoomStep,DOOR_NEAR} from '@/lib/universe/door.mjs';
 import {blackBodyToRGB,sunIntensity,initSystem,advanceTo,orbitR as gOrbitR} from '@/lib/universe/genesis-sun.mjs';
+import {browserLightOn,paintKeyAndSky} from '@/public/universe/one-universe-light.mjs';
 import {starTexture,glowTexture,coronaMesh,atmosphereMesh,nightGlowOnly} from '@/lib/universe/genesis-sun-three';
 import {createPlanetKit} from '@/lib/universe/planet-body-three';
 import {pickType,variantFor,sunExposure,glowSet} from '@/lib/universe/planet-types.mjs';
@@ -63,7 +64,7 @@ export default function Universe3D({u,beast,onSelect,onAlive,doorOn=false,onDoor
  useEffect(()=>{const el=host.current;if(!el)return;
   const renderer=new THREE.WebGLRenderer({antialias:true,alpha:false});renderer.setPixelRatio(Math.min(2,devicePixelRatio||1));el.appendChild(renderer.domElement);
   renderer.domElement.style.cssText='display:block;width:100%;height:100%;touch-action:none;cursor:grab';
-  const scene=new THREE.Scene();scene.background=new THREE.Color(0x05030f);
+  const scene=new THREE.Scene();scene.background=new THREE.Color(0x05030f);let oneKey:THREE.DirectionalLight|null=null;const uniLight=browserLightOn();
   const cam=new THREE.PerspectiveCamera(55,1,0.05,6000);
   scene.add(new THREE.AmbientLight(0x8877bb,0.22)); // dim fill: the star is the light now, so night sides really go dark
   // E5b (Cosmo): screen-space gravitational lensing around a real black-hole remnant. Port of deepspace/lensing.glsl (art approximation,
@@ -252,6 +253,7 @@ vec3 c=texture2D(tScene,bhScreen+s).rgb;float ring=exp(-pow((r-1.5*rs)/(0.08*rs+
     if(s==='Planet'&&wider&&targetId)aliveRef.current?.(starObj.has(targetId)?'zoom_star':'zoom_planet');}
    {const f=threadsRef.current?threadFade(d):0;const on=f>.02;threads.visible=on;origin.visible=on;if(on)drawThreads(f);
     if(on!==wasShown){wasShown=on;setThreadsShown(on);el.dataset.threads=on?'shown':'hidden';if(on&&f>0)aliveRef.current?.('threads_visible');}}
+   if(uniLight){if(!oneKey){oneKey=new THREE.DirectionalLight(0xffffff,1);scene.add(oneKey);}paintKeyAndSky({on:true,sec:Date.now()/1000,up:[cam.up.x,cam.up.y,cam.up.z],key:oneKey,hemi:{color:scene.background}});}
    renderLensed();raf=requestAnimationFrame(frame);};
   raf=requestAnimationFrame(frame);
   return()=>{cancelAnimationFrame(raf);cv.removeEventListener('wheel',wheel);cv.removeEventListener('contextmenu',noMenu);removeEventListener('keydown',keyPan);window.removeEventListener('u3d-door-leave',leave);rt.dispose();lensMat.dispose();renderer.dispose();el.removeChild(cv);};

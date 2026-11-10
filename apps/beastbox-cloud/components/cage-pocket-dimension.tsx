@@ -11,6 +11,7 @@ import {inBlock as gjInBlock,islandGround,GJ as GJ_ALL} from '../lib/geyser/geys
 const GJ_V=GJ_ALL.volcano,GJ_G=GJ_ALL.geyser;
 import {addHeaven,HEAVEN} from '../lib/worlds/heaven';
 import {oneSunAt} from '../lib/universe/one-sun.mjs';
+import {browserLightOn,paintKeyAndSky} from '@/public/universe/one-universe-light.mjs';
 /** ONE SUN (SEEDED): the pocket's far sun sits where the living world's one sun is, not at a second seeded spot. */
 const pocketSunDir=():[number,number,number]=>{const d=oneSunAt(Date.now()/1000).dir;return [d[0],Math.max(.08,d[1]),d[2]];};
 /** By day keep only the sun disc (PR #688 treatment): the additive halo, rays, shaft, motes and flares hide; lights stay. */
@@ -40,6 +41,7 @@ import {environmentWeights,isFresh} from '../lib/environment/environment-link.mj
 import {getEnvironment} from '../lib/environment/environment-store.mjs';
 import {guardCanvasTouch} from '../lib/three/touch-guard';
 import {isSoftwareGL} from '../lib/three/soft-gl';
+import {glDebugDispose,glDebugOwner} from '../lib/three/gl-debug';
 import {whenShown} from '../lib/three/when-shown.mjs';
 import {createHop,stepHop} from '../lib/physics/ground-hop.mjs';
 import {useEffect,useRef,useState} from 'react';
@@ -259,8 +261,11 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     // panel. verifySnapshot does no fetching; its hash continuation just never
     // runs if this effect goes on into the shader link. Wait until that panel
     // marks the check finished. A page with no bridge does not wait.
-    const bridgeDeadline=performance.now()+20000;
-    while(!disposed&&performance.now()<bridgeDeadline){
+    // verifySnapshot only needs the main thread. A deadline that gives up and then
+    // links shaders is what froze the thread with the bridge still pending, so the
+    // download control never became enabled inside the click wait. Stay on timers
+    // until the panel says the check finished. A page with no bridge does not wait.
+    while(!disposed){
      const panel=document.querySelector('[data-bridge-settled]');
      if(!panel||panel.getAttribute('data-bridge-settled')==='yes')break;
      await new Promise(r=>setTimeout(r,40));
@@ -293,6 +298,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     // CPU rasteriser starves the main thread (taps, sound dock, game shell all time out), and antialias can't be undone later.
     const softProbe=isSoftwareGL();
     const phoneGpu=low&&!reduced&&!softProbe&&visualSettings.quality!=='low';
+    glDebugOwner('home-pocket');
     const renderer=new THREE.WebGLRenderer({canvas,alpha:false,antialias:(!low||phoneGpu)&&!softProbe,powerPreference:phoneGpu?'default':'low-power'});
     renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,low?(phoneGpu?1.25:1):1.5));
     // Software GL (CI SwiftShader, very old phones): force the low tier so the main thread never starves.
@@ -379,7 +385,10 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     rim.rotation.x=-Math.PI/2;rim.position.y=-.04;scene.add(rim);
     // Nebula shader adapted from Cory's "Genesis Engine: The Definitive Core" (createNebula: fbm noise,
     // additive, BackSide sphere) and tinted to the Lost COSMOS violet/cyan palette.
-    const nebulaMat=new THREE.ShaderMaterial({transparent:true,side:THREE.BackSide,depthWrite:false,fog:false,blending:THREE.AdditiveBlending,
+    // Software GL compiles this 5-octave fbm on the CPU. That one program, together
+    // with the universe shaders below, froze the cage's clicks and the pocket-state
+    // wait. Keep the shell; skip the custom program.
+    const nebulaMat=soft?new THREE.MeshBasicMaterial({color:0x2a1860,transparent:true,opacity:.35,side:THREE.BackSide,depthWrite:false}):new THREE.ShaderMaterial({transparent:true,side:THREE.BackSide,depthWrite:false,fog:false,blending:THREE.AdditiveBlending,
      uniforms:{time:{value:0},baseColor:{value:new THREE.Color(0x5b2fb0)},altColor:{value:new THREE.Color(0x1f8fb8)},noiseScale:{value:.09},density:{value:.85}},
      vertexShader:'varying vec3 vP;void main(){vP=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
      fragmentShader:'uniform float time;uniform vec3 baseColor;uniform vec3 altColor;uniform float noiseScale;uniform float density;varying vec3 vP;'+
@@ -397,7 +406,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     const dustPts=new THREE.Points(dustGeom,new THREE.PointsMaterial({color:0xd7b8ff,size:.07,transparent:true,opacity:.7,blending:THREE.AdditiveBlending,depthWrite:false}));
     scene.add(dustPts);
     // Shimmering fluid pool: a small cosmic spring off to one side of the creature.
-    const poolMat=new THREE.ShaderMaterial({transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,uniforms:{time:{value:0}},
+    const poolMat=soft?new THREE.MeshBasicMaterial({color:0x3a6ea5,transparent:true,opacity:.45,depthWrite:false}):new THREE.ShaderMaterial({transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,uniforms:{time:{value:0}},
      vertexShader:'varying vec2 vU;void main(){vU=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
      fragmentShader:'uniform float time;varying vec2 vU;void main(){vec2 q=vU-.5;float r=length(q)*2.0;if(r>1.0)discard;float w=.5+.5*sin(r*18.0-time*2.2)*sin(atan(q.y,q.x)*3.0+time*.7);'+
       'vec3 c=mix(vec3(.12,.55,.85),vec3(.65,.4,1.0),w);gl_FragColor=vec4(c*(1.0-r*.7),(1.0-r)*.55+.08);}'});
@@ -409,12 +418,30 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     const stepResidents=(t:number,theta:number,cam?:{x:number;z:number},beast?:{x:number;z:number;moment?:string|null}|null)=>{resi.stepResidents(t,theta,cam,beast);saved.step(t,cam);};
     const disturbers=()=>[...resi.disturbers(),...saved.disturbers()];const pickables=()=>[...resi.pickables(),...saved.pickables()];
     // God view: habitat on a small planet, orbiting its suns, inside a galaxy (Genesis Engine, recoloured).
-    const god=addGodView(THREE,scene,{rand:randomFor(key+':system'),low,counts:qvmCounts,stage:motion.current.stage||stage||1});
+    // The god-view planet is another 5-octave fbm. Software GL keeps the habitat
+    // camera on the creature instead of linking that program during the first frame.
+    const god=(!soft||lcForced)?addGodView(THREE,scene,{rand:randomFor(key+':system'),low,counts:qvmCounts,stage:motion.current.stage||stage||1}):{update(_elapsed:number,_zoom:number,habitatFocus:import('three').Vector3,out:import('three').Vector3){out.copy(habitatFocus);return out;}};
     const godFocus=new THREE.Vector3();
     // Home: the sprite-built 3D Zeref lives here, standing on the habitat floor (one world, one camera).
     const zHolder=new THREE.Group();zHolder.scale.setScalar(.45);zHolder.position.set(0,-.07,0);zHolder.rotation.y=.7;scene.add(zHolder);
     // Universe of worlds: home trees/clouds/sky dome/parallax haze + distant worlds with gravity wells; Zeref travels between them.
-    const neonU=neonUniforms();const uw=buildWorlds(THREE,scene,{low,universe:UNIVERSE_R,neon:neonU});const land=(!soft||lcForced)?buildTerrain(THREE,scene,{low}):null;if(lcForced)(window as any).__lcLand=land;const gj=(!soft||lcForced)?buildIsland(THREE,scene,{low,open:true}):null;const gjEv=gj?addGeyserEvents(THREE,gj,{low}):null;const gjLife=gj&&gjEv?addIslandLife(THREE,gj,gjEv.puff,{low}):null;const gjSnd=gj?createGeyserSound():null;gjEv?.on(e=>{gjSnd?.event(e==='geyser-tap'?'':e);if(e==='tremor'||e==='erupt')gjLife?.scare();});gjLife?.on(e=>gjSnd?.event(e));if(lcForced){(window as any).__geyser=gj;(window as any).__geyserEv=gjEv;(window as any).__geyserLife=gjLife;}
+    const neonU=neonUniforms();
+    // Software GL already skips the terrain and the island: those shaders take tens of
+    // seconds on the CPU. buildWorlds is the same work (plasma planets, onBeforeCompile
+    // tree programs, sky and cloud shaders) and was still constructed for the first
+    // frame, which stalled the bridge click and the pocket ready signal. Real GPUs
+    // keep the universe. ?livingcore=1 still forces it.
+    const quietWorlds={
+     update(_dt?:number,_t?:number,_cam?:unknown,_traveller?:unknown,_canAuto?:boolean){return null;},
+     ground(_p?:unknown){return {y:-.07,n:{x:0,y:1,z:0},kind:'floor' as const};},
+     bodies(){return [] as {x:number;y:number;z:number;r:number}[];},
+     flash(){return 0;},
+     pulseNear(_p?:unknown,_a?:number){},
+     sensorPoints(n:number){return Array.from({length:Math.max(1,n)},(_,i)=>({x:Math.cos(i),y:1,z:Math.sin(i)}));},
+     startTrip(_i?:number,_from?:unknown){return null;},
+     dispose(){},
+    };
+    const uw=(!soft||lcForced)?buildWorlds(THREE,scene,{low,universe:UNIVERSE_R,neon:neonU}):quietWorlds;const land=(!soft||lcForced)?buildTerrain(THREE,scene,{low}):null;if(lcForced)(window as any).__lcLand=land;const gj=(!soft||lcForced)?buildIsland(THREE,scene,{low,open:true}):null;const gjEv=gj?addGeyserEvents(THREE,gj,{low}):null;const gjLife=gj&&gjEv?addIslandLife(THREE,gj,gjEv.puff,{low}):null;const gjSnd=gj?createGeyserSound():null;gjEv?.on(e=>{gjSnd?.event(e==='geyser-tap'?'':e);if(e==='tremor'||e==='erupt')gjLife?.scare();});gjLife?.on(e=>gjSnd?.event(e));if(lcForced){(window as any).__geyser=gj;(window as any).__geyserEv=gjEv;(window as any).__geyserLife=gjLife;}
     const genesisLook=soft?null:(await import('../lib/look/attach')).attachGenesisLook(THREE,scene,{seed:String(key||'cage'),phone:window.innerWidth<=820,softGL:false,heightAt:(x:number,z:number)=>terrainHeight(x,z),reduced:()=>reduced,nowMs:()=>performance.now(),classicRoots:()=>land?.root?[land.root]:[],renderer});
     const onGj=(e:any)=>{const a=String(e?.detail?.action||'');if(a==='erupt')gjEv?.erupt();else if(a==='tremor')gjEv?.tremor();else if(a==='geyser')gjEv?.geyser();else if(a==='breach')gjLife?.breach();else if(a==='castoff')gjLife?.castoff();};window.addEventListener('beastbox:geyser',onGj);if(gj){(window as any).__geyserReady=true;window.dispatchEvent(new Event('beastbox:geyser-ready'));}
     // tap the geyser, volcano, whale or boat to trigger it (taps only; drags keep orbiting the camera)
@@ -516,6 +543,11 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     (window as any).__pocketFocus={id:null};
     // Test/QA hook: where each tappable creature currently is on screen (client px).
     (window as any).__pocketTargets=()=>{const rect=canvas.getBoundingClientRect();return pickables().map(c=>{c.obj.getWorldPosition(tgt);tgt.y+=.25;tgt.project(camera);return {id:c.id,x:rect.left+(tgt.x+1)/2*rect.width,y:rect.top+(1-tgt.y)/2*rect.height,on:tgt.z<1&&Math.abs(tgt.x)<.95&&Math.abs(tgt.y)<.95};});};
+    // Drawables still waiting for a software-GL link. null means the boot path
+    // already linked them, or this machine is a real GPU. undefined means the
+    // canvas was below the fold at boot and the queue has not been taken yet.
+    let warmQ:any[]|null|undefined=(soft&&!inView())?undefined:null;
+    const pocketLight=browserLightOn();const heavenKey=heaven.root.children.find((o:any)=>o.isDirectionalLight);
     const animate=(now:number)=>{
      if(disposed)return;
      frame=requestAnimationFrame(animate);
@@ -525,10 +557,19 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
      // bridge is actually importing into. Headless Chromium leaves every page
      // focused, so the newest cage claims the painter and this one parks
      // until it is clicked.
-     if(!lead||document.hidden||(!visible&&rendered)||now-lastPaint<(soft?120:low?66:33))return;
+     if(!lead||document.hidden||(!visible&&rendered))return;
+     if(!visible)return;
+     if(warmQ!==null){
+      if(!warmQ){warmQ=[];scene.traverse((o:any)=>{if(o.material&&(o.isMesh||o.isPoints||o.isLine||o.isSprite))warmQ!.push(o);});warmQ.sort((a,b)=>Number(!!a.material?.isShaderMaterial)-Number(!!b.material?.isShaderMaterial));warmQ.forEach(o=>{o.visible=false;});}
+      const next=warmQ.shift();
+      if(next){next.visible=true;try{renderer.render(scene,camera);}catch{setReady(false);setFailed(true);return;}if(!rendered){rendered=true;setReady(true);}return;}
+      warmQ=null;
+     }
+     if(now-lastPaint<(soft?120:low?66:33))return;
      lastPaint=now;beastNode.visible=insideCreatureVisible(creatureRef.current);
      if(!reduced)elapsed+=dt;
-     nebulaMat.uniforms.time.value=elapsed;poolMat.uniforms.time.value=elapsed;
+     const nebulaTime=(nebulaMat as {uniforms?:{time?:{value:number}}}).uniforms?.time;if(nebulaTime)nebulaTime.value=elapsed;
+     const poolTime=(poolMat as {uniforms?:{time?:{value:number}}}).uniforms?.time;if(poolTime)poolTime.value=elapsed;
      if(!reduced){for(let i=0;i<dustN;i++){let y=dust[i*3+1]+dt*(.12+(i%5)*.03);if(y>4.8)y=0;dust[i*3+1]=y;dust[i*3]+=Math.sin(elapsed*.4+i)*dt*.05;}dustGeom.attributes.position.needsUpdate=true;}
      if(autoOrbitRef.current&&!reduced&&now-lastDragAt.current>2500)cameraView.current.theta+=dt*.09*HEAVEN.orbit;
      motion.current.impulse=Math.max(0,motion.current.impulse-dt*.35);
@@ -567,7 +608,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
        else if(g.id!=='wander'){try{recordArrival(lcId,g.id);}catch{}}}
       if(lcS.goal)(zActor as any).target={x:lcS.goal.x,z:lcS.goal.z};
       stepLivingCore(lcS.LC,reduced?0:dt);lcS.syn?.step(reduced?0:dt);}
-     flowU.uTime.value+=reduced?0:dt*HEAVEN.flow;heaven.update(elapsed);pocketDayDiscOnly(heaven.root);
+     flowU.uTime.value+=reduced?0:dt*HEAVEN.flow;heaven.update(elapsed);pocketDayDiscOnly(heaven.root);if(pocketLight)paintKeyAndSky({on:true,sec:Date.now()/1000,up:[camera.up.x,camera.up.y,camera.up.z],key:heavenKey,hemi});
      land?.update(elapsed,camera);gj?.update(reduced?0:dt,elapsed);gjEv?.update(reduced?0:dt,elapsed);gjLife?.update(reduced?0:dt,elapsed);uwPose=uw.update(reduced?0:dt,elapsed,camera,{x:zHolder.position.x,y:zHolder.position.y,z:zHolder.position.z},!reduced&&!!(ze?.claimed||lcS.LC));
      extras.step(reduced?0:dt*HEAVEN.flow,{x:zHolder.position.x,z:zHolder.position.z});
      if(ze?.claimed||lcS.LC){
@@ -634,16 +675,23 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     // Link every shader program off the main thread before the first frame where the browser can (KHR_parallel_shader_compile):
     // a synchronous first-frame link of the whole pocket takes many seconds on software GL / weak GPUs and freezes the page
     // (taps, Zeref, the rest of the UI). Bounded so a driver that never reports completion still starts.
-    if(renderer.extensions.get('KHR_parallel_shader_compile')){try{await Promise.race([renderer.compileAsync(scene,camera),new Promise(r=>setTimeout(r,8000))]);}catch{}if(disposed)return;}
-    else{
-     // No parallel link (SwiftShader/llvmpipe, some mobile drivers): warm up progressively. Reveal the drawables a few at
-     // a time and render, yielding between batches, so each frame only links a handful of programs and input, Zeref and
-     // the rest of the page keep running. Visibility is restored exactly before the real loop starts.
-     const drawn:any[]=[];scene.traverse((o:any)=>{if(o.visible&&o.material&&(o.isMesh||o.isPoints||o.isLine||o.isSprite))drawn.push(o);});
-     drawn.forEach(o=>{o.visible=false;});
-     try{for(let i=0;i<drawn.length&&!disposed;i+=4){for(let j=i;j<Math.min(drawn.length,i+4);j++)drawn[j].visible=true;renderer.render(scene,camera);await new Promise(r=>setTimeout(r,0));}}
-     catch{}finally{drawn.forEach(o=>{o.visible=true;});}
-     if(disposed)return;
+    // SwiftShader reports KHR_parallel_shader_compile, then the first full render
+    // still links every remaining program in one call and the page stops answering
+    // clicks. Software GL always links one drawable per turn and publishes ready
+    // after the first of those turns. An offscreen canvas does not link at all:
+    // the phone cage never scrolls during the bridge click, and the loop below
+    // already parks while the canvas is below the fold.
+    if(!(soft&&!inView())){
+     if(!soft&&renderer.extensions.get('KHR_parallel_shader_compile')){try{await Promise.race([renderer.compileAsync(scene,camera),new Promise(r=>setTimeout(r,8000))]);}catch{}if(disposed)return;}
+     else{
+      const drawn:any[]=[];scene.traverse((o:any)=>{if(o.visible&&o.material&&(o.isMesh||o.isPoints||o.isLine||o.isSprite))drawn.push(o);});
+      drawn.sort((a,b)=>Number(!!a.material?.isShaderMaterial)-Number(!!b.material?.isShaderMaterial));
+      drawn.forEach(o=>{o.visible=false;});
+      try{for(let i=0;i<drawn.length&&!disposed;i++){drawn[i].visible=true;renderer.render(scene,camera);if(!rendered){rendered=true;setReady(true);}await new Promise(r=>setTimeout(r,0));}}
+      catch{}finally{drawn.forEach(o=>{o.visible=true;});}
+      warmQ=null;
+      if(disposed)return;
+     }
     }
     // Below the fold the warmed scene is real, but the per-frame world step is what starved OPEN GAME.
     // Leave that loop parked until the canvas is actually on screen. Scrolling in resumes it.
@@ -664,7 +712,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
        const m=o.material;(Array.isArray(m)?m:[m]).forEach(k=>materials.add(k));
       }
      });
-     texCache.forEach(t=>t.dispose());saved.dispose();sand.dispose();geometries.forEach(g=>g.dispose());materials.forEach(m=>m.dispose());renderer.dispose();
+     texCache.forEach(t=>t.dispose());saved.dispose();sand.dispose();geometries.forEach(g=>g.dispose());materials.forEach(m=>m.dispose());glDebugDispose('home-pocket');renderer.dispose();
     };
    }catch{
     if(!disposed){setFailed(true);setReady(false);}
@@ -704,7 +752,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
  <p className={styles.sandLabel} data-open={infoOpen||!ready} data-sand-source={sandSource}>{SAND_LABEL} · {sandSource==='receipt'?'IBM seed + this Beast\u2019s Rigetti simulator counts (SIMULATED)':'IBM seed only · no simulator receipt for this Beast'}</p>
  {infoOpen?<details className={styles.residentsBox} open={residentsOpen} onToggle={e=>setResidentsOpen((e.currentTarget as HTMLDetailsElement).open)}><summary aria-label={residentsOpen?"Minimize residents":"Show residents"}>{residentsOpen?"– Residents":"✦ Who lives here"}</summary>
  <ul className={styles.residents} aria-label="Everyone who lives in this pocket" data-artist-residents={ARTIST_RESIDENTS.length} data-creations={creations.length}>
-  {creations.length?creations.map(r=><li key={r.id} data-resident-id={r.id} data-resident-kind={r.kind} data-creation-source={r.kind==='active'||r.kind==='saved'?'saved-beast':'artist'}>{r.art?<img src={r.art} alt={`${r.name}: ${r.look||''}`} width={44} height={44} loading="lazy"/>:r.genome?<CreationThumb genome={r.genome} label={`${r.name}, a saved beast`}/>:<span aria-hidden="true" style={{width:30,height:30}}/>}<span><b>{r.name}</b><small>{r.kind==='trainer'?'Trainer':r.kind==='active'?'Your beast':r.kind==='saved'?'Saved beast':'Beast'} · {r.origin}</small></span></li>):<li data-creations-empty><b>{homeLabel(homeName)}</b></li>}
+  {creations.length?creations.map(r=><li key={r.id} data-resident-id={r.id} data-resident-kind={r.kind} data-creation-source={r.source?r.source:(r.kind==='active'||r.kind==='saved'?'saved-beast':'artist')} data-mood={r.mood||undefined} data-diary-tick={r.diaryTick??undefined}>{r.art?<img src={r.art} alt={`${r.name}: ${r.look||''}`} width={44} height={44} loading="lazy"/>:r.genome?<CreationThumb genome={r.genome} label={`${r.name}, a saved beast`}/>:<span aria-hidden="true" style={{width:30,height:30}}/>}<span><b>{r.name}</b><small>{r.kind==='trainer'?'Trainer':r.kind==='active'?'Your beast':r.kind==='saved'?'Saved beast':'Beast'} · {r.origin}{r.mood?` · ${r.mood}`:''}</small></span></li>):<li data-creations-empty><b>{homeLabel(homeName)}</b></li>}
  </ul></details>:null}
  </div>;
 }
