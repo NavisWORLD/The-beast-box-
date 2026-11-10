@@ -11,6 +11,7 @@ import {inBlock as gjInBlock,islandGround,GJ as GJ_ALL} from '../lib/geyser/geys
 const GJ_V=GJ_ALL.volcano,GJ_G=GJ_ALL.geyser;
 import {addHeaven,HEAVEN} from '../lib/worlds/heaven';
 import {oneSunAt} from '../lib/universe/one-sun.mjs';
+import {browserLightOn,paintKeyAndSky} from '@/public/universe/one-universe-light.mjs';
 /** ONE SUN (SEEDED): the pocket's far sun sits where the living world's one sun is, not at a second seeded spot. */
 const pocketSunDir=():[number,number,number]=>{const d=oneSunAt(Date.now()/1000).dir;return [d[0],Math.max(.08,d[1]),d[2]];};
 /** By day keep only the sun disc (PR #688 treatment): the additive halo, rays, shaft, motes and flares hide; lights stay. */
@@ -544,6 +545,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     // already linked them, or this machine is a real GPU. undefined means the
     // canvas was below the fold at boot and the queue has not been taken yet.
     let warmQ:any[]|null|undefined=(soft&&!inView())?undefined:null;
+    const pocketLight=browserLightOn();const heavenKey=heaven.root.children.find((o:any)=>o.isDirectionalLight);
     const animate=(now:number)=>{
      if(disposed)return;
      frame=requestAnimationFrame(animate);
@@ -604,7 +606,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
        else if(g.id!=='wander'){try{recordArrival(lcId,g.id);}catch{}}}
       if(lcS.goal)(zActor as any).target={x:lcS.goal.x,z:lcS.goal.z};
       stepLivingCore(lcS.LC,reduced?0:dt);lcS.syn?.step(reduced?0:dt);}
-     flowU.uTime.value+=reduced?0:dt*HEAVEN.flow;heaven.update(elapsed);pocketDayDiscOnly(heaven.root);
+     flowU.uTime.value+=reduced?0:dt*HEAVEN.flow;heaven.update(elapsed);pocketDayDiscOnly(heaven.root);if(pocketLight)paintKeyAndSky({on:true,sec:Date.now()/1000,up:[camera.up.x,camera.up.y,camera.up.z],key:heavenKey,hemi});
      land?.update(elapsed,camera);gj?.update(reduced?0:dt,elapsed);gjEv?.update(reduced?0:dt,elapsed);gjLife?.update(reduced?0:dt,elapsed);uwPose=uw.update(reduced?0:dt,elapsed,camera,{x:zHolder.position.x,y:zHolder.position.y,z:zHolder.position.z},!reduced&&!!(ze?.claimed||lcS.LC));
      extras.step(reduced?0:dt*HEAVEN.flow,{x:zHolder.position.x,z:zHolder.position.z});
      if(ze?.claimed||lcS.LC){

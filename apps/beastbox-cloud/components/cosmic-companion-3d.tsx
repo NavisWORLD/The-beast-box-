@@ -1,5 +1,6 @@
 'use client';
 import {stageRig,stageTimeOfHour,dirFromCam,STAGE_FLOOR} from '../lib/universe/open-stage-rig.mjs';
+import {browserLightOn,paintKeyAndSky} from '@/public/universe/one-universe-light.mjs';
 import {useUniverseMotion} from './use-universe-motion';
 import {useEffect,useRef,useState} from 'react';
 import {type CreatureProfile,validCreature} from '../lib/creature-profile';
@@ -48,12 +49,13 @@ export default function CosmicCompanion3D({state='idle',look='nebula',intensity=
     camera.position.set(0,0,7.6);
     // Look Closer / turntable: Cosmo's open-stage key / fill / rim / hemisphere (SEEDED look, picked by the local hour). Everywhere else keeps its old lights.
     const stageLit=!!(rotationRef.current.turntable||rotationRef.current.angle!==null);
+    let stageKey:any=null,stageHemi:any=null;const lookLight=browserLightOn();
     if(stageLit){
      const rigT=stageRig('thick',stageTimeOfHour(new Date().getHours()+new Date().getMinutes()/60)),tgt=dimensional0?new THREE.Vector3(0,.95,0):new THREE.Vector3(0,.05,0);
      renderer.toneMappingExposure=Math.max(rigT.exposure>0?rigT.exposure*1.2:1.2,rigT.floor>=1.5?1.7:0);
-     scene.add(new THREE.HemisphereLight(new THREE.Color(rigT.hemi.sky),new THREE.Color(rigT.hemi.ground),rigT.hemi.i*1.6));
+     stageHemi=new THREE.HemisphereLight(new THREE.Color(rigT.hemi.sky),new THREE.Color(rigT.hemi.ground),rigT.hemi.i*1.6);scene.add(stageHemi);
      if(rigT.floor>0)scene.add(new THREE.AmbientLight(new THREE.Color(STAGE_FLOOR.colour),rigT.floor));
-     for(const k of ['key','fill','rim'] as const){const l=rigT[k],d=dirFromCam(l.az,l.el);const light=new THREE.DirectionalLight(new THREE.Color(l.hex),l.i);light.position.set(tgt.x+d[0]*6,tgt.y+d[1]*6,tgt.z+d[2]*6);light.target.position.copy(tgt);scene.add(light,light.target);}
+     for(const k of ['key','fill','rim'] as const){const l=rigT[k],d=dirFromCam(l.az,l.el);const light=new THREE.DirectionalLight(new THREE.Color(l.hex),l.i);light.position.set(tgt.x+d[0]*6,tgt.y+d[1]*6,tgt.z+d[2]*6);light.target.position.copy(tgt);scene.add(light,light.target);if(k==='key')stageKey=light;}
     }else{
     scene.add(new THREE.AmbientLight(0xaacfff,1.5));
     const warm=new THREE.PointLight(0xffd6ef,30,14);warm.position.set(-2.1,2.5,3.4);scene.add(warm);
@@ -93,6 +95,7 @@ export default function CosmicCompanion3D({state='idle',look='nebula',intensity=
      if(pausedRef.current&&rendered)return;
      if(now-lastPaint<(quality==='low'?66:34))return;
      lastPaint=now;
+     if(lookLight)paintKeyAndSky({on:true,sec:Date.now()/1000,up:[0,1,0],key:stageKey,hemi:stageHemi});
      if(!pausedRef.current)motionTime+=dt;
      const mood=stateRef.current;
      const desired=mood==='halted'||mood==='sleeping'?0:intensityRef.current;
