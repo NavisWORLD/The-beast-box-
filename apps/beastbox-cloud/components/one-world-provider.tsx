@@ -5,7 +5,7 @@ import {useEffect} from 'react';
 import {grow} from '@/lib/universe/tiny-universe.mjs';
 import {oneWorldClock,currentWorldClock,whenWorldClock} from '@/lib/world/one-world-clock.mjs';
 import {oneUniverseStateOn,browserSources,beginSurfaceRead,surfacesForPath} from '@/public/universe/one-universe-state.mjs';
-import {pageTickOn} from '@/public/universe/one-universe-gate.mjs';
+import {pageTickOn,pageCamerasOn} from '@/public/universe/one-universe-gate.mjs';
 export default function OneWorldProvider(){
  useEffect(()=>{if(currentWorldClock())return;let live=true;
   fetch('/universe/tiny-universe-genesis.json').then(r=>r.json()).then(g=>{if(!live||currentWorldClock())return;let st:any=null;try{st=localStorage;}catch{}
@@ -33,6 +33,29 @@ export default function OneWorldProvider(){
     readClock:()=>currentWorldClock()||mod.storedUniverseClock(sources.storage),
     listen:(bind:()=>void)=>{const onReady=()=>bind();window.addEventListener('beastbox:one-world',onReady);return()=>window.removeEventListener('beastbox:one-world',onReady);},
    });
+  }).catch(()=>{});
+  return()=>{live=false;stop();};
+ },[]);
+ useEffect(()=>{
+  const sources=browserSources();
+  const envOn=String(sources.env||'').split(',').some(part=>part.trim()==='cameras');
+  if(!envOn&&!pageCamerasOn(sources))return;
+  let live=true;let stop=()=>{};
+  import('@/public/universe/one-universe-cameras.mjs').then(mod=>{
+   if(!live||!mod.browserCamerasOn())return;
+   const apply=()=>{
+    let stored:string|null=null;
+    try{stored=localStorage.getItem(mod.CAMERA_STORAGE);}catch{}
+    mod.publishUniverseCamera({on:true,path:location.pathname,stored,node:document.documentElement,clock:currentWorldClock()});
+   };
+   apply();
+   let unsub=()=>{};
+   const bind=()=>{unsub();const clock=currentWorldClock();unsub=clock&&typeof clock.subscribe==='function'?clock.subscribe(apply):()=>{};apply();};
+   bind();
+   const onReady=()=>bind();
+   window.addEventListener('beastbox:one-world',onReady);
+   window.addEventListener('beastbox:universe-camera',onReady);
+   stop=()=>{unsub();window.removeEventListener('beastbox:one-world',onReady);window.removeEventListener('beastbox:universe-camera',onReady);};
   }).catch(()=>{});
   return()=>{live=false;stop();};
  },[]);
