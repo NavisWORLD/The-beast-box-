@@ -16,6 +16,7 @@ import {MOONS_LABEL} from '@/lib/universe/moons.mjs';
 import {createAliveGate} from '@/lib/universe/alive-props.mjs';
 import {isSoftwareGL} from '@/lib/three/soft-gl';
 import {browserLightOn,applyCameraLight,cssColor} from '@/public/universe/one-universe-light.mjs';
+import {browserTickOn,displayTick} from '@/public/universe/one-universe-tick.mjs';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type U=any;
 const BIOME_COL:Record<string,[string,string]>={ember:['#ff7a2a','#3a0d05'],paper:['#e9d9b0','#7a6a48'],jelly:['#8fa8ff','#2a2a8a'],sunflower:['#ffd24a','#5a3aa0'],moss:['#8fd06a','#5a2a90'],glacier:['#dff2ff','#7aa0d8']};
@@ -92,7 +93,7 @@ export default function TinyUniverseView(){
   <div className={s.bottom} style={doorV>0?{opacity:1-doorV,pointerEvents:doorV>0.5?'none':undefined}:undefined}>
    {info?<div className={s.card}>{info}</div>:null}
    <div className={s.zeref} aria-live="polite">{line}</div>
-{err||!u?<span className={s.stat} title={err?String(err):undefined}>{err?'The universe didn’t open. Please try again in a moment.':'Opening the tiny universe…'}</span>:<details className={s.stat} data-universe-details><summary>Details</summary>{u?`tick ${u.tick} · ${u.stars.length} stars · ${u.planets.length} planets · ${allStorms(u).length} storms (${u.storms.length} grown by the simulation, ${allStorms(u).length-u.storms.length} SEEDED) · ${u.life.length} life worlds${last?` · sim E ${last.sim_E}`:` · IBM E ${u.entanglement_E}`}`:null}</details>}
+{err||!u?<span className={s.stat} title={err?String(err):undefined}>{err?'The universe didn’t open. Please try again in a moment.':'Opening the tiny universe…'}</span>:<details className={s.stat} data-universe-details><summary>Details</summary>{u?`tick ${browserTickOn()? (displayTick(u.tick)??'\u2014') : u.tick} · ${u.stars.length} stars · ${u.planets.length} planets · ${allStorms(u).length} storms (${u.storms.length} grown by the simulation, ${allStorms(u).length-u.storms.length} SEEDED) · ${u.life.length} life worlds${last?` · sim E ${last.sim_E}`:` · IBM E ${u.entanglement_E}`}`:null}</details>}
    <span className={s.stat} data-credit-line>Threads SIMULATED</span>
    <div className={s.row}><a className={s.btn} href="/beast-cage/world" data-spawn-in>✦ Spawn in</a>{u&&sel&&u.planets.some((x:any)=>x.id===sel)&&sel!==homeOf(u)&&sel!==[...u.planets].sort((a:any,b:any)=>(b.habitability||0)-(a.habitability||0))[0]?.id?<a className={s.btn} href={'/beast-cage/world?planet='+encodeURIComponent(sel)} data-visit-planet>🐾 Visit {sel} with your beast</a>:null}<button className={s.btn} onClick={()=>setThree(v=>{try{localStorage.setItem('u:3d',v?'0':'1');}catch{}return !v;})} data-universe-mode>{three?'2D map':'3D'}</button><button className={s.btn} onClick={()=>setRun(v=>!v)}>{run?'⏸ Pause':'▶ Grow'}</button><button className={s.btn} onClick={()=>{if(g0.current){uRef.current=g0.current;setU(g0.current);setLine('');}}}>↺ Genesis</button>
 </div>

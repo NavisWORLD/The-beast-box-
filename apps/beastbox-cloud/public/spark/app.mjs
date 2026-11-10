@@ -19,7 +19,7 @@ import {applyRecordedQvmStimulus,validateRecordedQvmStimulus,recordedQvmStimulus
 import {createSparkChatPopup} from './chat-popup.mjs';
 import {CATALOG_PATH,mountPicker} from './catalog-picker.mjs';
 import {deriveEmotions,diaryEntry,EMOTIONS} from './shared/emotion.mjs';
-import {pageStateOn,armStandalonePage} from '../universe/one-universe-gate.mjs';
+import {pageStateOn,armStandalonePage,pageTickOn} from '../universe/one-universe-gate.mjs';
 const STORE='spark-beasts-bestiary-v1',QVM_STORE='spark-qvm-growth-v1',SOUND_KEY='spark-beast-sound-v2',SCALE=4,$=id=>document.getElementById(id);
 const media=matchMedia('(prefers-reduced-motion: reduce)');
 const beastAudio=getBeastAudio();
@@ -704,3 +704,17 @@ armStandalonePage({
  fetchGenesis:()=>fetch('/universe/tiny-universe-genesis.json').then(r=>r.ok?r.json():null).catch(()=>null),
  subscribe:(fn)=>{try{const clock=window.__bbOneWorld;if(clock&&clock.subscribe)return clock.subscribe(fn);}catch{}const id=setInterval(fn,2000);return()=>clearInterval(id);},
 });
+void (async()=>{
+ try{
+  const sources={search:location.search,storage:localStorage};
+  if(!pageTickOn(sources))return;
+  const mod=await import('../universe/one-universe-tick.mjs');
+  if(!pageTickOn(sources))return;
+  mod.followUniverseTick({
+   on:true,
+   node:document.documentElement,
+   readClock:()=>{try{const clock=window.__bbOneWorld;if(clock&&typeof clock.get==='function')return clock;}catch{}return mod.storedUniverseClock(localStorage);},
+   listen:(bind)=>{const onReady=()=>bind();window.addEventListener('beastbox:one-world',onReady);return()=>window.removeEventListener('beastbox:one-world',onReady);},
+  });
+ }catch{}
+})();

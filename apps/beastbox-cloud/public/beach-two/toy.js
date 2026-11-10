@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import {PALETTE,PALETTE_OKLAB,L_WEIGHT} from './palette.js';
 import {SEEDS,loadSeed} from './seed.js';
-import {pageStateOn,armStandalonePage,pageLightOn,armCameraLight} from '../universe/one-universe-gate.mjs';
+import {pageStateOn,armStandalonePage,pageLightOn,armCameraLight,pageTickOn} from '../universe/one-universe-gate.mjs';
 const $=id=>document.getElementById(id);
 const LABEL='Seeded from recorded IBM Quantum outcomes. Recorded, not live. The physics is classical math; the quantum is the seed.';
 let COPY={};try{COPY=await (await fetch('./copy.json')).json();}catch{}
@@ -520,3 +520,18 @@ armCameraLight({
  up:[0,1,0],
  subscribe:(fn)=>{const id=setInterval(fn,2000);return()=>clearInterval(id);},
 });
+void (async()=>{
+ try{
+  const sources={search:location.search,storage:localStorage,parentSearch:(()=>{try{return parent&&parent!==window?parent.location.search:'';}catch{return '';}})()};
+  if(!pageTickOn(sources))return;
+  const mod=await import('../universe/one-universe-tick.mjs');
+  if(!pageTickOn(sources))return;
+  const host=beachHost();
+  mod.followUniverseTick({
+   on:true,
+   node:document.documentElement,
+   readClock:()=>{try{const clock=host.__bbOneWorld;if(clock&&typeof clock.get==='function')return clock;}catch{}return mod.storedUniverseClock(localStorage);},
+   listen:(bind)=>{const onReady=()=>bind();host.addEventListener('beastbox:one-world',onReady);return()=>host.removeEventListener('beastbox:one-world',onReady);},
+  });
+ }catch{}
+})();

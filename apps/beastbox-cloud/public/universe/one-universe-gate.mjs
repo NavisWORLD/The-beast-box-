@@ -45,6 +45,28 @@ export function pagePopulationOn(sources) {
   return pageFlags(sources).includes('population');
 }
 
+export function pageTickOn(sources) {
+  return pageFlags(sources).includes('tick');
+}
+
+/**
+ * Load the tick reader only when the tick flag is on.
+ * A failed load does not throw and does not write a tick.
+ * @param {{on?: boolean, node?: any, tick?: any, load?: Function}} [opts]
+ */
+export async function armTick({on = false, node = null, tick = null, load} = {}) {
+  if (!on) return {armed: false, failed: false};
+  let mod;
+  try { mod = await load(); }
+  catch { return {armed: false, failed: true}; }
+  try {
+    mod.publishUniverseTick({on: true, node, tick});
+    return {armed: true, failed: false};
+  } catch {
+    return {armed: true, failed: true};
+  }
+}
+
 /**
  * Load the Azure population reader only when the population flag is on.
  * A failed load does not throw and does not add a creature.

@@ -5,6 +5,7 @@ import {useEffect} from 'react';
 import {grow} from '@/lib/universe/tiny-universe.mjs';
 import {oneWorldClock,currentWorldClock,whenWorldClock} from '@/lib/world/one-world-clock.mjs';
 import {oneUniverseStateOn,browserSources,beginSurfaceRead,surfacesForPath} from '@/public/universe/one-universe-state.mjs';
+import {pageTickOn} from '@/public/universe/one-universe-gate.mjs';
 export default function OneWorldProvider(){
  useEffect(()=>{if(currentWorldClock())return;let live=true;
   fetch('/universe/tiny-universe-genesis.json').then(r=>r.json()).then(g=>{if(!live||currentWorldClock())return;let st:any=null;try{st=localStorage;}catch{}
@@ -19,5 +20,21 @@ export default function OneWorldProvider(){
   subscribe:(clock:any,apply:()=>void)=>clock.subscribe(apply),
   observe:(apply:()=>void)=>{let queued=false;const schedule=()=>{if(queued)return;queued=true;requestAnimationFrame(()=>{queued=false;apply();});};const watch=new MutationObserver(schedule);watch.observe(document.documentElement,{childList:true,subtree:true});return()=>watch.disconnect();},
  }),[]);
+ useEffect(()=>{
+  const sources=browserSources();
+  const envOn=String(sources.env||'').split(',').some(part=>part.trim()==='tick');
+  if(!envOn&&!pageTickOn(sources))return;
+  let live=true;let stop=()=>{};
+  import('@/public/universe/one-universe-tick.mjs').then(mod=>{
+   if(!live||!mod.browserTickOn())return;
+   stop=mod.followUniverseTick({
+    on:true,
+    node:document.documentElement,
+    readClock:()=>currentWorldClock()||mod.storedUniverseClock(sources.storage),
+    listen:(bind:()=>void)=>{const onReady=()=>bind();window.addEventListener('beastbox:one-world',onReady);return()=>window.removeEventListener('beastbox:one-world',onReady);},
+   });
+  }).catch(()=>{});
+  return()=>{live=false;stop();};
+ },[]);
  return null;
 }
