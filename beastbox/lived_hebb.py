@@ -1,0 +1,127 @@
+"""Co-firing of the shared dyn12 state with a recorded exchange.
+
+The rule is lived-hebb-v1. It is not the cosmetic CST outer matrix and it is
+not a guest thread's fast weights. Text becomes a computed drive by a fixed
+hash of its bytes. That drive is not a sensor measurement.
+"""
+from __future__ import annotations
+
+import hashlib
+from typing import Any, Mapping, Sequence
+
+from .dyn12 import update_dyn12
+from .lived_events import BASIS, reduce_sensor
+
+RULE = "lived-hebb-v1"
+PROJECTION = "text-drive-dyn12-v1"
+VERSION = 1
+DT_MAX = 0.05
+BLEND = 0.05
+_HALF = 0.5
+
+
+def initial_weights() -> list[list[float]]:
+    return [[0.0 for _ in range(12)] for _ in range(12)]
+
+
+def clip_dt(dt: float) -> float:
+    value = float(dt)
+    if value < 0.0:
+        return 0.0
+    if value > DT_MAX:
+        return DT_MAX
+    return value
+
+
+def text_drive(text: str) -> list[float]:
+    raw = text.encode("utf-8")
+    drive: list[float] = []
+    for index in range(12):
+        digest = hashlib.sha256(f"{PROJECTION}\n{index}\n".encode("utf-8") + raw).digest()
+        unit = int.from_bytes(digest[:8], "big") / float(2**64)
+        drive.append((unit * 2.0 - 1.0) / 16.0)
+    return drive
+
+
+def update_weights(
+    weights: Sequence[Sequence[float]],
+    pre: Sequence[float],
+    post: Sequence[float],
+    dt: float,
+) -> list[list[float]]:
+    step = clip_dt(dt)
+    out: list[list[float]] = []
+    for i in range(12):
+        row: list[float] = []
+        for j in range(12):
+            current = float(weights[i][j])
+            nxt = current + step * (_HALF * float(pre[i]) * float(post[j]) - _HALF * current)
+            if nxt < 0.0:
+                nxt = 0.0
+            elif nxt > 1.0:
+                nxt = 1.0
+            row.append(nxt)
+        out.append(row)
+    return out
+
+
+def _hebb_drive(weights: Sequence[Sequence[float]], state: Sequence[float]) -> list[float]:
+    drive: list[float] = []
+    for i in range(12):
+        total = 0.0
+        for j in range(12):
+            total += float(weights[i][j]) * float(state[j])
+        drive.append(total / 12.0)
+    return drive
+
+
+def recorded_transition(
+    state: Sequence[float],
+    weights: Sequence[Sequence[float]],
+    text: str,
+    dt: float,
+    step: int,
+    *,
+    use_weights: bool = True,
+) -> dict[str, Any]:
+    pre = [abs(float(item)) for item in state]
+    base = text_drive(text)
+    if use_weights:
+        hebb = _hebb_drive(weights, state)
+        mixed = [base[i] + BLEND * hebb[i] for i in range(12)]
+    else:
+        mixed = list(base)
+    nxt = update_dyn12(list(state), mixed, step=int(step))
+    post = [abs(float(item)) for item in nxt]
+    return {
+        "state12": nxt,
+        "weights": update_weights(weights, pre, post, dt),
+        "drive": mixed,
+        "pre_activation": pre,
+        "post_activation": post,
+        "dt": clip_dt(dt),
+        "drive_label": "computed",
+        "rule": RULE,
+        "basis": BASIS,
+        "version": VERSION,
+        "projection": PROJECTION,
+    }
+
+
+def replay_weights(initial_state: Sequence[float], events: Sequence[Mapping[str, Any]]) -> list[list[float]]:
+    """Walk a chain from its initial twelve and return the weight matrix."""
+    state = [float(item) for item in initial_state]
+    weights = initial_weights()
+    for body in events:
+        kind = body.get("kind")
+        if kind == "exchange" and body.get("label") == "RECORDED" and body.get("hebb_rule") == RULE:
+            stepped = recorded_transition(
+                state, weights, str(body.get("text") or ""), body.get("dt", 0.0), int(body["sequence"]),
+            )
+            weights = stepped["weights"]
+            state = stepped["state12"]
+        elif kind == "sensor":
+            _feelings, _drive, state, _mask = reduce_sensor(
+                {"state12": state}, body["sample"], step=int(body["sequence"]),
+            )
+    return weights

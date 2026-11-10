@@ -197,6 +197,7 @@ def test_sensor_during_inference_then_reply_keeps_newest_state(tmp_path, monkeyp
         store = open_existing(path)
         holder["sensor"] = store.admit_sensor(sample(face=face_record()), now_ms=NOW)
         holder["state"] = store.read_lived_snapshot("owner")["state12"]
+        holder["channels"] = store.read_lived_snapshot("owner")["channels"]
         store.close()
         return SPOKEN
 
@@ -211,7 +212,8 @@ def test_sensor_during_inference_then_reply_keeps_newest_state(tmp_path, monkeyp
         snap = spoken_state.read_lived_snapshot("owner")
     finally:
         spoken_state.close()
-    assert snap["state12"] == holder["state"]
+    assert snap["channels"] == holder["channels"]
+    assert snap["state12"] != holder["state"]
     assert snap["sequence"] == holder["sensor"]["sequence"] + 1
     assert first["receipt"]["state_sha256"] == snap["state_sha256"]
     second = run_owner_exchange(
