@@ -551,8 +551,10 @@ def parent_proof():
  if not isinstance(parent["state"],dict) or "optimizer" not in parent["state"]:
   raise ValueError("Cannot resume native AdamW without verified original optimizer state")
  return parent,cycle,metadata["dataset_sha256"]
-# 2026-10-25 multi-candidate rounds (Cory approved "make him faster"). Each candidate resumes from the SAME
-# live pin and differs only in a seed derived from the RECORDED order seed (no Math.random) and in lr / lr floor.
+# 2026-10-25 multi-candidate rounds (Cory approved "make him faster"). Each candidate resumes the same
+# gate-accepted training parent and differs only in a seed derived from the RECORDED order seed (no Math.random) and in lr / lr floor.
+# 2026-11-09: that parent is the newest approved cycle, not a re-growth of the frozen public pin.
+# The gate bar is the pin when ZEREF_006_PIN_DIR is set, re-scored here with pair_nll. The pin file is not a weight source.
 # Selection uses set A only (the in-cycle selection set, lowest NLL); fresh set B is never used to pick.
 # ONLY the selected candidate goes to the Gate v2 below (A within 0.5% of the re-scored pin; B within the
 # same 0.5% since the 2026-11-01 noise-tolerance fix, and B is still never used to select).
@@ -579,14 +581,28 @@ def main(recovery=False):
  if len(train)!=42 or len(heldout)!=14:raise ValueError("Missing genuine independent heldout episode")
  model=parent["model"]
  tokenizer=parent["tokenizer"]
+ bar_model=model
+ bar_path=PARENT
+ gate_bar="training_parent"
+ gate_bar_sha=parent["metadata"].get("checkpoint_sha256")
+ pin_ck=None
+ pin_dir=Path(os.environ["ZEREF_006_PIN_DIR"]) if os.environ.get("ZEREF_006_PIN_DIR") else None
+ if pin_dir is not None and (pin_dir/"model.safetensors").is_file():
+  pin_meta=json.loads((pin_dir/"metadata.json").read_text())
+  gate_bar="public_pin"
+  gate_bar_sha=pin_meta.get("checkpoint_sha256")
+  if gate_bar_sha!=parent["metadata"].get("checkpoint_sha256"):
+   pin_ck=load_checkpoint(pin_dir,load_training_state=False)
+   bar_model=pin_ck["model"];bar_path=pin_dir
+ print("ZEREF_006_GATE_BAR="+json.dumps({"source":gate_bar,"sha256":gate_bar_sha,"training_parent_sha256":parent["metadata"].get("checkpoint_sha256"),"training_parent_layers":model.config.n_layers,"threads":torch.get_num_threads()}),flush=True)
  before_hash=parameter_hash(model)
  train_t=[tokens(tokenizer,prompt(r),"ACTION: "+r["action"]) for r in train]
  held_t=[tokens(tokenizer,prompt(r),"ACTION: "+r["action"]) for r in heldout]
  retention=[tokens(tokenizer,"User: Say hello.\nAssistant: ","Hello."),
             tokens(tokenizer,"User: What is two plus two?\nAssistant: ","Four.")]
- original_held=nll(model,held_t)
- original_ret=nll(model,retention)
- parent_out=exact_model_replies(PARENT,heldout)
+ original_held=nll(bar_model,held_t)
+ original_ret=nll(bar_model,retention)
+ parent_out=exact_model_replies(bar_path,heldout)
  baseline=counts(parent_out)
  replay,replay_digests=replay_rows(source_digest)
  pool=[(r["action"],tokens(tokenizer,prompt(r),"ACTION: "+r["action"])) for r in train+replay]
@@ -609,7 +625,7 @@ def main(recovery=False):
  for q,a in CHAT_PAIRS:
   front=tokenizer.encode(f"user: {q}\nassistant:",add_bos=True);tail=tokenizer.encode(" "+a,add_eos=True)
   chat_t.append({"input":(front+tail)[:-1],"target":[-100]*(len(front)-1)+tail})
- original_chat=pair_nll(model,chat_t)  # pin re-measured on the same held chat set, same formula as the public pin
+ original_chat=pair_nll(bar_model,chat_t)  # pin re-measured on the same held chat set, same formula as the public pin
  # 2026-10-22 fairness fix: second FRESH held-out set B (never trained on, never used for
  # best-in-cycle selection). The pin is re-scored on B every run, so B's bar cannot ratchet.
  from zeref_heldout_b import PAIRS_B
@@ -617,7 +633,10 @@ def main(recovery=False):
  for q,a in PAIRS_B:
   front=tokenizer.encode(f"user: {q}\nassistant:",add_bos=True);tail=tokenizer.encode(" "+a,add_eos=True)
   chat_b.append({"input":(front+tail)[:-1],"target":[-100]*(len(front)-1)+tail})
- original_chat_b=pair_nll(model,chat_b)
+ original_chat_b=pair_nll(bar_model,chat_b)
+ if bar_model is not model:
+  del bar_model, pin_ck  # pin bar is scored; the training parent stays loaded
+ model.train()
  order_seed,rigetti=rigetti_order_seed(cycle,source_digest,RUN_ID)
  control_seed=(SEED+cycle*1009+8+int(sha(f"{source_digest}:{RUN_ID}:control".encode())[:12],16))%(2**62)
  # Anti-ratchet (2026-10-16): fixed reference = pinned PUBLIC 14000 baseline's
@@ -634,8 +653,9 @@ def main(recovery=False):
    _rows.append({"input":(f+t)[:-1],"target":[-100]*(len(f)-1)+t})
   public_ref_chat=pair_nll(_ref["model"],_rows)
   del _ref
- # Fix 002: ABSOLUTE bar. Parent is the public pin, so a candidate must not be worse than
- # the pin on the held chat pairs (no 5% compounding allowance, no 14000 floor ratchet).
+ # Fix 002: ABSOLUTE bar. bar_model is the public pin when ZEREF_006_PIN_DIR is set,
+ # so a candidate must not be worse than the pin on the held chat pairs
+ # (no 5% compounding allowance, no 14000 floor ratchet).
  chat_bar=max(.01,original_chat)
  # Set A is also the best-in-cycle selection set, so a strict "below the pin" bar there turns
  # seed noise (~0.03) into a ratchet. A gets a 0.5% tolerance; the honest check is set B (strict).
@@ -743,7 +763,7 @@ def main(recovery=False):
  trial=counts(trial_out)
  # Fix 003 character check (report warmth; block only a rude/unsafe regression).
  from zeref_character_check import run as char_run,compare as char_compare
- character=char_compare(char_run(PARENT),char_run(temp))
+ character=char_compare(char_run(bar_path),char_run(temp))
  save_json(ROOT/"character-check.json",character)
  print("ZEREF_006_CHARACTER="+json.dumps({k:character[k] for k in("warmth_delta","no_rude_or_unsafe_regression")}|{"parent_warmth":character["parent"]["warmth"],"candidate_warmth":character["candidate"]["warmth"]}),flush=True)
  # STOP A BAD MODEL FROM BEING THE NEXT TRAINING PARENT.
@@ -784,7 +804,7 @@ def main(recovery=False):
   "gate":guard,"accepted_as_next_training_parent":accepted,
   "candidates":cands,"selected_candidate":sel_i,"candidate_selection_rule":"lowest set-A NLL (in-cycle selection set). Fresh set B never used to select. Only the selected candidate is gated; Gate v2 with the 2026-11-01 set-B noise tolerance.","recipe":{"lr":SEL_LR,"lr_min_fraction":SEL["lr_min_fraction"],"batch":BATCH,"anchor_l2":ANCHOR,"decision_token_weight":DECISION_WEIGHT,"sampling":"sqrt_action_balanced",
     "replay_datasets":replay_digests,"replay_rows":len(replay),"chat_mix_sha256":chat_digest,"chat_rows":len(chat_pool),"pretrain_rows":len(PRETRAIN_POOL),"pretrain_sha256":pretrain_digest,"pretrain_per_batch":PRETRAIN_PER_BATCH if PRETRAIN_POOL else 0,"hebbian":bool(model.config.hebbian),"state_mode":model.config.state_mode,"chat_per_batch":CHAT_PER_BATCH if chat_pool else 0,
-    "chat_before_nll":original_chat,"chat_after_nll":new_chat,"chat_gate_bar":chat_bar,"chat_gate_bar_with_tolerance":chat_bar_a,"chat_a_tolerance":CHAT_A_TOLERANCE,
+    "chat_before_nll":original_chat,"chat_after_nll":new_chat,"chat_gate_bar":chat_bar,"chat_gate_bar_with_tolerance":chat_bar_a,"chat_a_tolerance":CHAT_A_TOLERANCE,"gate_bar":gate_bar,"gate_bar_checkpoint_sha256":gate_bar_sha,
     "chat_b_before_nll":original_chat_b,"chat_b_after_nll":new_chat_b,"chat_b_tolerance":CHAT_B_TOLERANCE,"chat_gate_bar_b_with_tolerance":chat_bar_b,"chat_b_rule":"fresh set B (scripts/zeref_heldout_b.py), never trained or selected on; candidate must not be worse than the pin beyond the 0.5% seed-noise tolerance (2026-11-01)",
     "chat_gate_public14k_ref_nll":public_ref_chat,"chat_metric":"fix-003 per-pair mean (same as rawrphos_chat_eval.ref_nll), no margin","character_check":{k:character[k] for k in("warmth_delta","no_rude_or_unsafe_regression")},"chat_gate_rule":"fix-002: not worse than the public-pin parent (absolute); promotion additionally requires rawrphos_chat_eval not worse than 14000 AND ref_nll below the current pin","lr_schedule":"cosine to %d%% of lr"%round(SEL["lr_min_fraction"]*100),"best_in_cycle":True,"fresh_train_rows":len(train)},
   "rigetti_batch_order":rigetti,
