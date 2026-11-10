@@ -10,48 +10,48 @@
   "source_path": "/spark/ibm-moonwraith-cassette-kit-20261010.json",
   "source_class": "RECORDED_IBM_HARDWARE"
  },
- "tick": 702,
- "xp": 10435,
+ "tick": 703,
+ "xp": 10449,
  "stage": 5,
  "stage_name": "Crescent Sovereign",
  "signals": {
-  "energy": 52,
+  "energy": 46,
   "signal": 51,
   "memory": 100,
-  "resonance": 90
+  "resonance": 91
  },
  "bond": 100,
  "care_total": 0,
  "places": {
-  "Rift Gate": 657,
+  "Rift Gate": 658,
   "Lattice Arch": 313,
-  "Echo Prism": 753,
+  "Echo Prism": 754,
   "Tidewell": 344,
   "Quartz Choir": 269,
   "Violet Shard": 549,
   "Selene Pool": 59
  },
- "last_tick_at": "2026-11-10T00:44:14.425Z",
- "last_entry_hash": "010c6d24d886a1634a29c53a40be8e6d7425d93f7a2e611d69107382b50aaf82",
- "universe_growth": 600,
+ "last_tick_at": "2026-11-10T01:24:24.586Z",
+ "last_entry_hash": "0a8bed11ae3d76e12602227f70665c2197b09301cd936aef8853309d41bf3710",
+ "universe_growth": 601,
  "combos_total": 420,
  "next_stage": null,
  "learning": {
   "cells_visited": 37,
   "cells_total": 40,
   "known_rifts": 3,
-  "moves_succeeded": 10267,
+  "moves_succeeded": 10284,
   "moves_blocked": 590,
   "blocked_rate": 0.054,
   "favorite_spot": "Echo Prism",
-  "favorite_value": 0.749,
+  "favorite_value": 0.641,
   "prefs": {
    "explore": 0.05,
    "visit": 1,
-   "rest": 0.05,
+   "rest": 0.086,
    "play": 1
   },
-  "decisions": 6304,
+  "decisions": 6309,
   "label": "learned behaviour from its own experience, not consciousness"
  },
  "labels": {
@@ -67,6 +67,98 @@
   "source": "recorded hardware counts (birth seed, never re-run)"
  },
  "recent": [
+  {
+   "schema": "zeref-diary/v1",
+   "beast_id": "bb-7f9c2a03",
+   "tick": 703,
+   "at": "2026-11-10T01:24:24.586Z",
+   "hour_local": 19,
+   "timezone": "America/Chicago",
+   "signals": {
+    "energy": 46,
+    "signal": 51,
+    "memory": 100,
+    "resonance": 91
+   },
+   "bond": 100,
+   "mood": "exploring",
+   "place": "Echo Prism",
+   "places_visited": [
+    "Echo Prism",
+    "Rift Gate"
+   ],
+   "discovered_combos": [],
+   "new_combo_count": 0,
+   "combos_total": 420,
+   "xp_gain": 14,
+   "xp": 10449,
+   "stage": 5,
+   "stage_name": "Crescent Sovereign",
+   "grew": false,
+   "care": 0,
+   "birth_spark": {
+    "provider": "IBM Quantum",
+    "backend": "ibm_marrakesh",
+    "job_id": "db4te7slf4us73c3888g",
+    "source": "recorded hardware counts (birth seed, never re-run)"
+   },
+   "growth_source": {
+    "kind": "rigetti-qvm-simulated",
+    "simulated": true,
+    "provider": "azure-quantum/rigetti",
+    "target": "rigetti.sim.qvm",
+    "job_id": "a64e83a2-dc94-11f1-8000-70a8a524cdb9",
+    "job_name": "zeref-diary-tick-703-bb-7f9c2a03",
+    "shots": 256,
+    "counts": {
+     "100": 2,
+     "101": 63,
+     "110": 73,
+     "111": 1,
+     "000": 1,
+     "001": 61,
+     "010": 54,
+     "011": 1
+    },
+    "counts_sha256": "f718c8aa5e684f4b7bc38ed663ac4f97240ed59dc8825fc19269596f624cbf3e",
+    "circuit_params": {
+     "energy": 1.633628,
+     "signal": 1.602212,
+     "resonance": 2.827433
+    },
+    "quil_sha256": "388c023a3892e0213efd4a7c53bcdbfe9472589d695aa2cefe120d9a6ac53e67"
+   },
+   "learning": {
+    "new_cells": 0,
+    "moves_succeeded": 17,
+    "moves_blocked": 0,
+    "goals": {
+     "explore": 1,
+     "play": 1,
+     "rest": 1,
+     "visit": 2
+    },
+    "cells_visited": 37,
+    "cells_total": 40,
+    "known_rifts": 3,
+    "blocked_rate": 0.054,
+    "favorite_spot": "Echo Prism",
+    "prefs": {
+     "explore": 0.05,
+     "visit": 1,
+     "rest": 0.086,
+     "play": 1
+    },
+    "label": "learned behaviour from its own experience, not consciousness"
+   },
+   "universe_growth": 601,
+   "thought": {
+    "text": "I stay there with a way! Rolky is so smart.",
+    "by": "rawrphos-native:step-37104 (raw model output, unedited)"
+   },
+   "prev_hash": "010c6d24d886a1634a29c53a40be8e6d7425d93f7a2e611d69107382b50aaf82",
+   "hash": "0a8bed11ae3d76e12602227f70665c2197b09301cd936aef8853309d41bf3710"
+  },
   {
    "schema": "zeref-diary/v1",
    "beast_id": "bb-7f9c2a03",
@@ -1064,104 +1156,8 @@
    },
    "prev_hash": "df9bae03aa0ec891d9bbff7775ed6629fe58408abe79274ba5f7e3441e9496bf",
    "hash": "a96f561e33e0a40c04343785edde5042e82d54f6d360923857a50df69f19fb67"
-  },
-  {
-   "schema": "zeref-diary/v1",
-   "beast_id": "bb-7f9c2a03",
-   "tick": 691,
-   "at": "2026-11-09T17:43:38.618Z",
-   "hour_local": 11,
-   "timezone": "America/Chicago",
-   "signals": {
-    "energy": 82,
-    "signal": 51,
-    "memory": 100,
-    "resonance": 86
-   },
-   "bond": 100,
-   "mood": "content",
-   "place": "Violet Shard",
-   "places_visited": [
-    "Echo Prism",
-    "Rift Gate",
-    "Violet Shard"
-   ],
-   "discovered_combos": [
-    {
-     "key": "hover|hover|moon-pool|folded|sway|open|o",
-     "name": "hovering · folded wings · sway tail · open eyes · o mouth at a moon pool"
-    }
-   ],
-   "new_combo_count": 1,
-   "combos_total": 420,
-   "xp_gain": 16,
-   "xp": 10284,
-   "stage": 5,
-   "stage_name": "Crescent Sovereign",
-   "grew": false,
-   "care": 0,
-   "birth_spark": {
-    "provider": "IBM Quantum",
-    "backend": "ibm_marrakesh",
-    "job_id": "db4te7slf4us73c3888g",
-    "source": "recorded hardware counts (birth seed, never re-run)"
-   },
-   "growth_source": {
-    "kind": "rigetti-qvm-simulated",
-    "simulated": true,
-    "provider": "azure-quantum/rigetti",
-    "target": "rigetti.sim.qvm",
-    "job_id": "46c4d2dc-dc54-11f1-8000-6045bdefe902",
-    "job_name": "zeref-diary-tick-691-bb-7f9c2a03",
-    "shots": 256,
-    "counts": {
-     "100": 5,
-     "101": 100,
-     "110": 123,
-     "111": 9,
-     "001": 8,
-     "010": 10,
-     "011": 1
-    },
-    "counts_sha256": "16bd37ae8a28962d446a3d745b4bcee212a48beebc8eb4cbdd815e2dba156175",
-    "circuit_params": {
-     "energy": 2.638938,
-     "signal": 1.602212,
-     "resonance": 2.70177
-    },
-    "quil_sha256": "165a1451fb7af7be82da1ea3e30f822c14c2a96ba7453c9999dc7b7ac5e32405"
-   },
-   "learning": {
-    "new_cells": 0,
-    "moves_succeeded": 12,
-    "moves_blocked": 4,
-    "goals": {
-     "explore": 1,
-     "play": 4,
-     "visit": 7
-    },
-    "cells_visited": 37,
-    "cells_total": 40,
-    "known_rifts": 3,
-    "blocked_rate": 0.055,
-    "favorite_spot": "Violet Shard",
-    "prefs": {
-     "explore": 0.05,
-     "visit": 1,
-     "rest": 0.05,
-     "play": 0.9113
-    },
-    "label": "learned behaviour from its own experience, not consciousness"
-   },
-   "universe_growth": 589,
-   "thought": {
-    "text": "Imaginely in the Cory is a quantential idea! I asked Runoly: \"What are some: Duhard in the Mars, Chaimate Sandh",
-    "by": "rawrphos-native:step-37104 (raw model output, unedited)"
-   },
-   "prev_hash": "2e33d0fa829a7a9aab36b3faa228599abe4edf8d21cdd56214489bfa73d88628",
-   "hash": "df9bae03aa0ec891d9bbff7775ed6629fe58408abe79274ba5f7e3441e9496bf"
   }
  ],
- "generated_at": "2026-11-10T00:44:14.425Z",
+ "generated_at": "2026-11-10T01:24:24.586Z",
  "thought_source_note": "rawrphos-ok"
 }
