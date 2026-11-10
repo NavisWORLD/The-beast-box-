@@ -5,6 +5,8 @@ on:
     paths:
       - 'apps/beastbox-cloud/tests/rawrphos-native-observed-play.cjs'
       - 'scripts/zeref_continuation_006.py'
+      - 'scripts/zeref_resume_parent.py'
+      - 'tests/test_zeref_resume_parent.py'
       - '.github/workflows/zeref-continuous-learning-006.yml'
       - 'tests/zeref_continuation_006_contract.test.cjs'
       - 'scripts/zeref_round_recovery.py'
@@ -32,11 +34,8 @@ jobs:
     timeout-minutes: 280
     env:
       GH_TOKEN: ${{ github.token }}
-      # Hosted runners report 4 logical CPUs. Pinning 2 left half of them idle.
-      # Same architecture, deterministic, 8 layers, T=256, batch 16: 2 threads
-      # 1.708s/step, 4 threads 0.919s/step (1.86x). A 44-layer step on the slow
-      # SKU (EPYC 7763 was 6.96s/step at 40 layers) is predicted at 8.55s and
-      # 2736s for 320 updates, past the 2700s cap. Clocks stay 280/240/12000/2700.
+      # 4 logical CPUs on the hosted runner. 2 left half of them idle in the update loop.
+      # Clocks, learning steps, the pin, and the gates are unchanged.
       OMP_NUM_THREADS: '4'
       MKL_NUM_THREADS: '4'
       TOKENIZERS_PARALLELISM: 'false'
@@ -72,7 +71,8 @@ jobs:
           set -Eeuo pipefail
           node --test tests/zeref_continuation_006_contract.test.cjs
           node --check apps/beastbox-cloud/tests/rawrphos-native-observed-play.cjs
-          python -m py_compile scripts/zeref_continuation_006.py
+          python -m py_compile scripts/zeref_continuation_006.py scripts/zeref_resume_parent.py
+          python -m unittest discover -s tests -p test_zeref_resume_parent.py
       - name: Resume ONLY the canonical SHA-pinned Zeref 006 model and AdamW state
         run: |
           set -Eeuo pipefail
@@ -82,11 +82,11 @@ jobs:
           # An EXACT fixed artifact name keeps canonical descendants
           # discoverable regardless of unrelated repo CI artifact volume.
           canonical_name="zeref-006-canonical-37ca3f8f"
-          # 2026-11-09: the public pin stays the gate bar. Weights resume from the
-          # newest gate-accepted zeref-006-cycle release at or after the pin's
-          # cycle. Requiring the parent sha AND step count to equal the pin threw
-          # those children away, so every round re-grew the whole backlog off the
-          # frozen 40-layer pin (run 42667810634: parent 40 layers, trained 44).
+          # 2026-11-09: the public pin stays the gate bar. Weights may resume from a
+          # later accepted zeref-006-cycle release, but only when its recorded
+          # parent sha chain leads back to this pin, its gate record accepted it,
+          # and the tarball and model shas match. A same-cycle sibling that fails
+          # that chain falls through. Nothing qualifying falls back to the pin.
           # The pin file is not modified. Unpromoted weights still cannot move the bar.
           pin_tag="$(python -c "import json;p=json.load(open('apps/beastbox-cloud/lib/rawrphos-public-pin.json'));print((p.get('promotion') or {}).get('release_tag') or '')")"
           pin_ok=0
@@ -102,22 +102,18 @@ jobs:
             PIN="$(find build/zeref-006/pin -type d -name accepted-checkpoint -print -quit)"
             test -n "$PIN"
             pin_ok=1
-            python - <<'PY' > build/zeref-006/train-parent-tag.txt
-          import json, os, re, subprocess
-          pin=json.load(open("apps/beastbox-cloud/lib/rawrphos-public-pin.json"))
-          tag=(pin.get("promotion") or {}).get("release_tag") or ""
-          m=re.fullmatch(r"zeref-006-cycle-(\d+)-[0-9a-f]+", tag)
-          pin_cycle=int(m.group(1)) if m else 0
-          raw=subprocess.check_output(["gh","release","list","--repo",os.environ["GITHUB_REPOSITORY"],"-L","300","--json","tagName"], text=True)
-          best=""; best_n=-1
-          for row in json.loads(raw):
-           mm=re.fullmatch(r"zeref-006-cycle-(\d+)-[0-9a-f]+", row["tagName"])
-           if not mm: continue
-           n=int(mm.group(1))
-           if n>=pin_cycle and n>best_n:
-            best_n=n; best=row["tagName"]
-          print(best)
-          PY
+            pin_sha="$(python -c "import json;print(json.load(open('apps/beastbox-cloud/lib/rawrphos-public-pin.json'))['checkpoint_sha256'])")"
+            pin_cycle="$(python -c "import json,re;t=(json.load(open('apps/beastbox-cloud/lib/rawrphos-public-pin.json')).get('promotion') or {}).get('release_tag') or '';m=re.fullmatch(r'zeref-006-cycle-(\d+)-[0-9a-f]+',t);print(m.group(1) if m else 0)")"
+            # Lineage check, not "newest tag at this cycle". A same-cycle sibling
+            # whose parent sha does not lead back to the pin is rejected. An empty
+            # result falls back to the pin below.
+            python scripts/zeref_resume_parent.py \
+              --repo "${{ github.repository }}" \
+              --pin-sha "$pin_sha" \
+              --pin-cycle "$pin_cycle" \
+              --pin-tag "$pin_tag" \
+              --work build/zeref-006/resume-candidates \
+              > build/zeref-006/train-parent-tag.txt
             train_tag="$(tr -d '[:space:]' < build/zeref-006/train-parent-tag.txt)"
             if [ -z "$train_tag" ]; then train_tag="$pin_tag"; fi
           fi
@@ -470,7 +466,8 @@ jobs:
       - run: |
           node --test tests/zeref_continuation_006_contract.test.cjs tests/zeref_round_recovery_contract.test.cjs tests/zeref_recovery_decision_contract.test.cjs
           PYTHONPATH=.:models python -m unittest discover -s models/rawrphos/tests -p test_round_recovery.py
-          python -m py_compile scripts/zeref_continuation_006.py scripts/zeref_round_recovery.py
+          python -m unittest discover -s tests -p test_zeref_resume_parent.py
+          python -m py_compile scripts/zeref_continuation_006.py scripts/zeref_round_recovery.py scripts/zeref_resume_parent.py
   score-interrupted:
     # Independent runner/timeout: job cancellation cannot consume the scoring reserve.
     # Never publishes weights or approval; the pin and every numeric gate stay untouched.
@@ -482,6 +479,7 @@ jobs:
       contents: read
       actions: read
     env:
+      # Same thread count as the train job, so a round that hits a limit is scored on the same count.
       OMP_NUM_THREADS: '4'
       MKL_NUM_THREADS: '4'
       TOKENIZERS_PARALLELISM: 'false'

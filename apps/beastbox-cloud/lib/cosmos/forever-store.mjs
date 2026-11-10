@@ -177,6 +177,24 @@ export async function appendShardLine(cfg,name,line,dedupe){
  return false;
 }
 
+const LIVED_REPLICA=`${ZEREF_DIR}/lived-replica/exchanges.jsonl`;
+
+/** Hash-only replica of an owner exchange receipt. Not the chain root, and not the diary. */
+export async function mirrorLivedExchange(cfg,receipt){
+ if(!receipt||receipt.scope!=='owner'||receipt.status!=='lived'||receipt.canonical===true)return {mirrored:false,status:'skipped',canonical:false};
+ if(receipt.text!=null||receipt.reply!=null||receipt.heard!=null||receipt.raw_video!=null||receipt.raw_audio!=null)return {mirrored:false,status:'unconfirmed',canonical:false};
+ const exchangeId=receipt.exchange_id,role=receipt.role;
+ if(typeof exchangeId!=='string'||!/^[0-9a-f]{32,64}$/.test(exchangeId))return {mirrored:false,status:'unconfirmed',canonical:false};
+ const line=JSON.stringify({schema:'lived-exchange-replica-v1',canonical:false,scope:'owner',exchange_id:exchangeId,role:typeof role==='string'?role:null,
+  event_id:typeof receipt.event_id==='string'?receipt.event_id:null,text_sha256:typeof receipt.text_sha256==='string'?receipt.text_sha256:null,
+  state_sha256:typeof receipt.state_sha256==='string'?receipt.state_sha256:null,label:receipt.label==='RECORDED'?'RECORDED':null,
+  counts:receipt.counts&&typeof receipt.counts==='object'?{chars:receipt.counts.chars??null,utf8_bytes:receipt.counts.utf8_bytes??null}:null});
+ try{
+  const ok=await appendShardLine(cfg,LIVED_REPLICA,line,`"exchange_id":${JSON.stringify(exchangeId)},"role":${JSON.stringify(typeof role==='string'?role:null)}`);
+  return ok?{mirrored:true,status:'replica',canonical:false}:{mirrored:false,status:'unconfirmed',canonical:false};
+ }catch{return {mirrored:false,status:'unconfirmed',canonical:false};}
+}
+
 /** Append one guest-origin event (counts only, never guest text). Best-effort by contract: callers treat false as "not recorded". */
 export async function appendGuestEvent(cfg,event){
  const line=JSON.stringify({schema:'beastbook-guest-event/v1',kind:'guest_exchange',origin:'guest',source_kind:'public',
@@ -296,6 +314,6 @@ export function shapeLiveness({now,pin,diary,diaryVerified,bridge,azure,world}={
    lessons:azure.counts?.lessons??null,experiences:azure.counts?.experiences??null,
    source:'Azure Blob beasts/bb-deada969 (cosmos store)'};
  }else doc.azure={configured:false,source:'Azure Blob beasts/bb-deada969 (cosmos store)'};
- if(world&&typeof world==='object')doc.life_signals={schema:world.schema||'beast-world-live/v1',links:world.links||null,all_connected:world.all_connected===true,labels:world.labels||null,source:'/api/world/live channels (zeref-spark, zeref-live-tick branches)'};
+ if(world&&typeof world==='object')doc.life_signals={schema:world.schema||'beast-world-live/v1',links:world.links||null,all_connected:world.all_connected===true,stalls:world.stalls??null,river:world.river??null,senses:Array.isArray(world.senses)?world.senses:null,labels:world.labels||null,source:'/api/world/live channels (zeref-spark, zeref-live-tick, zeref-diary branches)'};
  return doc;
 }

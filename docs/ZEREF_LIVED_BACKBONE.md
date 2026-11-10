@@ -74,3 +74,13 @@ Guest and visitor mouths do not open the owner chain. Their descriptor says unav
 ## Doors (PR B2)
 
 The guest, forever, and growing doors forward that receipt. They do not accept state text, and a visitor environment summary is not the canonical snapshot. One guest turn mints one exchange id and both drafts carry it. The one-voice rule is unchanged. A failed growing draft keeps the gated receipt and does not take another sample. Guest and visitor replies do not publish an owner sequence or state hash. An older bridge that omits the field leaves the door response without it. The door does not call the model again to guess the schema. `memory_used` stays the history flag.
+
+## Exchange (PR C1)
+
+An owner turn writes two RECORDED events on the same chain the senses use: the heard line, then only the delivered reply. Both carry the exchange id. A sensor sample that lands while the model runs stays between them, and the reply appends after that newer head. Speech does not invent a measurement channel. A recorded line moves the shared twelve by a computed text drive and co-fires with that state. A retry of the same exchange id keeps one heard line and one reply, and does not call the model again. A reply that was not delivered is an `exchange_failure`, not a RECORDED utterance, and it does not co-fire. The public receipt has hashes, the label, and counts. The private text stays in the chain file.
+
+The write runs only when `BEASTBOX_LIVED_BACKBONE` is exactly `on` and the recomputed `host_attachment` returns `verified: True`. The diary export beside the store is read for that check. It is not written and it is not re-keyed. Any other return writes nothing and does not create the chain file. Guest and visitor exchanges do not open the owner chain. The Azure copy is a hash replica with an outbox receipt. A replica failure does not move the canonical head.
+
+## Co-firing (PR C2)
+
+Recorded exchanges co-fire with the shared twelve-state, and that co-firing stays in the owner store. Replaying the chain restores the same weights. The text drive is a fixed hash of the text bytes, labelled computed, and it does not enter a sensor channel. A sensor sample does not reset those weights. Guest and visitor turns do not touch them. There is no cap that drops an older recorded line.

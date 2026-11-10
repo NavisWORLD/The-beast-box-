@@ -43,6 +43,13 @@ const safe=o=>o&&o.status==='observed'&&o.source==='native-emulator-display'
   &&['red','green','blue','mixed'].includes(o.dominant)
   &&['brightness','contrast','frameChange'].every(k=>Number.isInteger(o[k])&&o[k]>=0&&o[k]<=100);
 const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+function sparkBootWaitMs(){
+ const configured=Number(process.env.ZEREF_GAMEPLAY_WAIT_MS);
+ // Floor and fallback stay 120s. Boot attempts 2-5 set this to 180000.
+ // A missing or shorter setting must not shrink the spark-page wait.
+ if(Number.isFinite(configured)&&configured>120000)return configured;
+ return 120000;
+}
 (async()=>{
  await fs.mkdir(output,{recursive:true});
  const browser=await chromium.launch({headless:true,...(process.env.BEAST_BROWSER_EXECUTABLE?{executablePath:process.env.BEAST_BROWSER_EXECUTABLE}:{}),
@@ -55,16 +62,45 @@ const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
   const upstream=await route.fetch({url:mirror+target.pathname.slice(prefix.length)+target.search});
   await route.fulfill({response:upstream});
  });
- const page=await context.newPage(),errors=[],episodes=[],raw=[];
+ const page=await context.newPage(),errors=[],episodes=[],raw=[],consoleLines=[];
+ let waitingOn='spark page #view.dataset.creatureId';
  page.on('pageerror',e=>errors.push(String(e.message).slice(0,200)));
+ page.on('console',msg=>{
+  consoleLines.push((msg.type()+': '+msg.text()).slice(0,300));
+  if(consoleLines.length>24)consoleLines.shift();
+ });
+ async function logCaptureTimeout(error){
+  if(error?.name!=='TimeoutError')return null;
+  let pageUrl='',readiness=null;
+  try{pageUrl=page.url();}catch{}
+  try{
+   readiness=await page.evaluate(()=>{
+    const view=document.querySelector('#view');
+    return {viewPresent:!!view,creatureId:view?.dataset?.creatureId||'',readyState:document.readyState,
+     status:(document.querySelector('#status')?.textContent||'').slice(0,200)};
+   });
+  }catch(readError){readiness={unreadable:String(readError?.message||readError).slice(0,200)};}
+  const note={page_url:pageUrl,waiting_on:waitingOn,readiness,last_console:consoleLines.slice(-12)};
+  console.error('NATIVE_CAPTURE_TIMEOUT='+JSON.stringify(note));
+  return note;
+ }
  try{
   await page.goto(root+'/spark/index.html',{waitUntil:'domcontentloaded'});
   // 2026-11-08 fix: waitForFunction options belong in the THIRD argument. Passing
    // {timeout:45000} second silently made it the (ignored) arg, so the wait ran at the
    // 30s Playwright default and a slow spark-page init failed every boot attempt
-   // (heartbeat run 42529247991). 120s matches the workflow's gameplay-wait budget.
-   await page.waitForFunction(()=>document.querySelector('#view')?.dataset.creatureId,null,{timeout:120000});
+   // (heartbeat run 42529247991).
+  // The spark page sets #view.dataset.creatureId only after its module graph loads.
+  // Runs 42575399070, 42647500940 and 42662021660 each waited the hardcoded 120s
+  // five times while ZEREF_GAMEPLAY_WAIT_MS was 180000 on attempts 2-5, and creatureId
+  // never appeared. beast-talk.mjs imported /spark/zeref/lived-exchange.mjs; that public
+  // copy was absent, so the graph 404'd and app.mjs never ran. sync-spark-shared.mjs
+  // publishes that file. Capture then succeeded on 42667810634 (110s), 42683963864 (111s)
+  // and 42712285602 (109s). This wait now uses the configured setting, with 120s as the floor.
+  waitingOn='spark page #view.dataset.creatureId';
+  await page.waitForFunction(()=>document.querySelector('#view')?.dataset.creatureId,null,{timeout:sparkBootWaitMs()});
   await page.locator('#'+PROFILE.selector).click();
+  waitingOn='spark page #view.dataset.creatureId === '+PROFILE.id;
   await page.waitForFunction(want=>document.querySelector('#view')?.dataset.creatureId===want,PROFILE.id,{timeout:45000});
   const signed=await page.evaluate(()=>{
    const entry=JSON.parse(localStorage.getItem('beastbox-quantum-beast-public-v1'));
@@ -75,11 +111,14 @@ const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
   await page.goto(root+'/sol-game',{waitUntil:'domcontentloaded'});
   const shell=page.locator('[data-lost-cosmos-player-shell]');
   await shell.getByRole('button',{name:'SEND BEAST',exact:true}).click();
+  waitingOn='Lost COSMOS status: same Beast verified or identity validated';
   await shell.getByRole('status').filter({hasText:/same Beast verified|identity validated/}).waitFor({timeout:60000});
   await shell.getByRole('button',{name:'START LOST COSMOS',exact:true}).click();
+  waitingOn='Lost COSMOS player shell dataset.running === true';
   await page.waitForFunction(()=>document.querySelector('[data-lost-cosmos-player-shell]')?.dataset.running==='true',null,{timeout:90000});
   const core=page.frames().find(f=>f.url().includes('/sol-spark-gate/handheld.html'));
   assert.ok(core,'Original handheld.html iframe must actually mount');
+  waitingOn='handheld iframe window.EJS_emulator.gameManager.simulateInput';
   await core.waitForFunction(()=>!!window.EJS_emulator?.gameManager?.simulateInput,null,{timeout:90000});
   await core.evaluate(()=>{
    const gm=window.EJS_emulator.gameManager,old=gm.simulateInput.bind(gm);
@@ -87,6 +126,7 @@ const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
    gm.simulateInput=(player,index,value)=>{window.__nativeDecisionTrace.push([player,index,value]);return old(player,index,value);};
   });
   async function input(button,hold=145){
+   waitingOn='native controller ACK for '+button;
    assert.ok(button in nativeIndex);
    const before=await core.evaluate(()=>window.__nativeDecisionTrace.length);
    await page.evaluate(button=>window.dispatchEvent(new CustomEvent('beastbox:gba-input',
@@ -195,8 +235,9 @@ const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
     qbeast_id:manifest.qbeast_id,episodes:episodes.length,verified_pairs:raw.length,source_sha256:sha(jsonl),
     distinct_pre_frames:new Set(raw.map(v=>JSON.stringify(v.before))).size,progress_proven:false}));
  }catch(e){
+  const captureTimeout=await logCaptureTimeout(e);
   await fs.writeFile(output+'/failed-native-observation.json',JSON.stringify({
-   error_type:e?.name||'Error',message:String(e?.message||e).slice(0,500),errors,no_fake_data_created:true},null,2)+'\n');
+   error_type:e?.name||'Error',message:String(e?.message||e).slice(0,500),errors,capture_timeout:captureTimeout,no_fake_data_created:true},null,2)+'\n');
   console.error(e);process.exitCode=1;
  }finally{await context.close();await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1});

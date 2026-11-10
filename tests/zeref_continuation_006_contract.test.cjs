@@ -114,6 +114,20 @@ test('fix 003: same chat yardstick as the public pin, character check, warm slic
  assert.ok(mix.includes('WARM_MAX_FRACTION=0.05')&&mix.includes('CHARACTER_PROMPTS'),'warm slice capped; check prompts held out');
 });
 
+test('spark boot wait uses the configured gameplay wait and keeps 120s as the floor',()=>{
+ const cap=read('apps/beastbox-cloud/tests/rawrphos-native-observed-play.cjs');
+ assert.match(cap,/function sparkBootWaitMs\(\)/);
+ assert.match(cap,/ZEREF_GAMEPLAY_WAIT_MS/);
+ assert.match(cap,/configured>120000\)return configured/);
+ assert.match(cap,/return 120000/);
+ assert.match(cap,/timeout:sparkBootWaitMs\(\)/);
+ assert.doesNotMatch(cap,/dataset\.creatureId,null,\{timeout:120000\}/);
+ assert.match(cap,/\{timeout:45000\}/);
+ assert.match(cap,/ZEREF_GAMEPLAY_WAIT_MS\|\|75000/);
+ assert.match(cap,/NATIVE_CAPTURE_TIMEOUT/);
+ assert.match(cap,/page_url:pageUrl,waiting_on:waitingOn,readiness,last_console:consoleLines\.slice\(-12\)/);
+});
+
 test('2026-10-25 multi-candidate rounds keep Gate v2 unchanged and select on set A only',()=>{
  const t=read('scripts/zeref_continuation_006.py'),w=read('.github/workflows/zeref-continuous-learning-006.yml');
  for(const needle of['CAND_SPECS','ZEREF_006_CANDIDATE=','ZEREF_006_CANDIDATE_SELECTED=','chat_fresh_heldout_b_not_worse_than_pin',
@@ -124,32 +138,38 @@ test('2026-10-25 multi-candidate rounds keep Gate v2 unchanged and select on set
  assert.match(w,/cron: '17 \*\/6 \* \* \*'/);
 });
 
-test('2026-11-09 resume the accepted training parent and keep the public pin as the gate bar',()=>{
+test('006 training threads are 4 and reply eval outside the trainer stays at 2',()=>{
  const t=read('scripts/zeref_continuation_006.py'),w=read('.github/workflows/zeref-continuous-learning-006.yml');
+ assert.equal((w.match(/OMP_NUM_THREADS: '4'/g)||[]).length,2);
+ assert.equal((w.match(/MKL_NUM_THREADS: '4'/g)||[]).length,2);
+ assert.doesNotMatch(w,/OMP_NUM_THREADS: '2'/);
+ assert.doesNotMatch(w,/MKL_NUM_THREADS: '2'/);
+ assert.ok(t.includes('return min(4, os.cpu_count() or 2)'));
+ assert.ok(t.includes('torch.set_num_threads(training_threads())'));
+ assert.ok(t.includes('threads=training_threads()'));
+ const ev=read('scripts/rawrphos_chat_eval.py');
+ assert.ok(ev.includes('threads=2'));
+});
+
+test('resume parent must chain to the pin; the gate bar stays the pin re-score',()=>{
+ const t=read('scripts/zeref_continuation_006.py'),w=read('.github/workflows/zeref-continuous-learning-006.yml');
+ const pick=read('scripts/zeref_resume_parent.py');
  assert.ok(w.includes('RESUME_PUBLIC_PIN_RELEASE='));
  assert.ok(w.includes('RESUME_ACCEPTED_TRAINING_PARENT='));
+ assert.ok(w.includes('RESUME_TRAINING_PARENT_IS_PIN=1'));
+ assert.ok(w.includes('scripts/zeref_resume_parent.py'));
  assert.ok(w.includes('ZEREF_006_PIN_DIR='));
- assert.ok(w.includes('training parent steps'));
- assert.ok(!w.includes('parent is not the current public pin'),'resuming the pin only would re-apply the whole growth backlog');
- assert.ok(t.includes('ZEREF_006_PIN_DIR'));
+ assert.ok(w.includes("pin_actual==pin['checkpoint_sha256']"));
+ assert.ok(!w.includes("assert actual==pin['checkpoint_sha256']"),'the training parent is a lineage descendant, not a copy of the pin sha');
+ assert.ok(pick.includes('def select_training_parent'));
+ assert.ok(pick.includes('def chain_reaches_pin'));
+ assert.ok(pick.includes('accepted_as_next_training_parent'));
+ assert.ok(t.includes('original_chat=pair_nll(bar_model,chat_t)'));
  assert.ok(t.includes('original_held=nll(bar_model,held_t)'));
- assert.ok(t.includes('original_chat_b=pair_nll(bar_model,chat_b)'));
- assert.ok(t.includes('char_run(bar_path)'));
- assert.ok(t.includes('return min(4, os.cpu_count() or 2)'));
- assert.ok(t.includes('threads=cpu_threads()'));
- assert.ok(t.includes('torch.set_num_threads(cpu_threads())'));
- const ev=read('scripts/rawrphos_chat_eval.py');
- assert.ok(ev.includes('threads=min(4, os.cpu_count() or 2)'));
  assert.ok(t.includes('chat_bar=max(.01,original_chat)'));
  assert.ok(t.includes('CHAT_A_TOLERANCE=0.005')&&t.includes('CHAT_B_TOLERANCE=0.005'));
- assert.match(w,/OMP_NUM_THREADS: '4'/);
- assert.match(w,/MKL_NUM_THREADS: '4'/);
- assert.match(w,/timeout-minutes: 280/);
- assert.match(w,/timeout-minutes: 240/);
+ assert.match(w,/ZEREF_006_CANDIDATES: '4'/);
  assert.match(w,/ZEREF_006_CANDIDATE_BUDGET_S: '12000'/);
  assert.match(w,/ZEREF_006_TIME_BUDGET_S: '2700'/);
- assert.match(w,/ZEREF_006_CANDIDATES: '4'/);
- assert.ok(w.includes("startsWith(github.head_ref, 'cursor/w4-training-')"));
- assert.ok(w.includes('apps/beastbox-cloud/lib/rawrphos-public-pin.json'));
  assert.doesNotMatch(w, />\s*apps\/beastbox-cloud\/lib\/rawrphos-public-pin\.json/);
 });

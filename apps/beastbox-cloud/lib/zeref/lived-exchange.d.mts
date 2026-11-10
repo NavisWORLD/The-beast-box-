@@ -1,4 +1,5 @@
 export const LIVED_MOUTH_SCHEMA: string;
+export function ownerChainWrite(scope: string): {wrote: boolean; reason: string; chain: null};
 export function mintExchangeId(scope: string, identity: string, text: string): Promise<string>;
 export function environmentIsNotCanonical(environment: unknown): {ignored: boolean; snapshot: null};
 export function mouthReceipt(raw: unknown, options?: {

@@ -25,3 +25,10 @@ for(const name of ['text','limits']){
  mkdirSync(new URL('.',dest),{recursive:true});
  writeFileSync(dest,readFileSync(src,'utf8'));
 }
+
+// Beach Two's toy.js loads these as raw public files. Byte copies, not a second sun.
+for (const name of ['one-sun.mjs', 'light-rig.mjs']) {
+ const src=new URL(`../lib/universe/${name}`,import.meta.url);
+ const dest=new URL(`../public/universe/${name}`,import.meta.url);
+ writeFileSync(dest,readFileSync(src,'utf8'));
+}

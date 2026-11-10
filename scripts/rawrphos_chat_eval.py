@@ -7,7 +7,7 @@ allowed only if the candidate is not worse on every metric below.
 Usage: rawrphos_chat_eval.py BASE_DIR CANDIDATE_DIR OUT.json
 """
 from __future__ import annotations
-import json,os,re,sys
+import json,re,sys
 from pathlib import Path
 import torch
 from rawrphos.inference.engine import Engine
@@ -52,7 +52,7 @@ def reply_ok(r):
  if len(words)>=4 and len(set(words))/len(words)<.4:return False   # degenerate loop
  return True
 def replies(path):
- e=Engine(path,max_new_tokens=40,threads=min(4, os.cpu_count() or 2));out=[]
+ e=Engine(path,max_new_tokens=40,threads=2);out=[]
  for i,p in enumerate(CHAT):
   r=e.complete(fmt(p),max_tokens=40,temperature=0,seed=7+i,timeout=60)
   # A game-key word (UP/DOWN/LEFT/RIGHT/WAIT, a bare A/B, or ACTION:) in a chat

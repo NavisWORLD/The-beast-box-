@@ -3,7 +3,7 @@ import {bridgeConfigured,safeJson} from '@/lib/security';
 import PUBLIC_PIN from '@/lib/rawrphos-public-pin.json';
 import {bridgeReadsMemory,loadSelfMemory,readSelfMemory,SELF_MEMORY_LABEL,SELF_MEMORY_SCHEMA,teacherJoinPending} from '@/lib/zeref/self-memory.mjs';
 import {after} from 'next/server';
-import {environmentIsNotCanonical,mintExchangeId,mouthReceipt} from '@/lib/zeref/lived-exchange.mjs';
+import {environmentIsNotCanonical,mintExchangeId,mouthReceipt,ownerChainWrite} from '@/lib/zeref/lived-exchange.mjs';
 // Growing Zeref (Cory, 2026-10-31): the always-learning side branch, served on its own bridge door
 // (/api/guest-growing). It is NOT the pin: every reply says so, and a reply carrying the pin's sha is refused.
 export const runtime='nodejs';
@@ -30,6 +30,8 @@ export async function POST(request:Request){
   // Self-memory: he reads his own notes (one shared index, same as the forever door) before he speaks.
   // Any failure reads nothing and the plain contract is sent, exactly as before (one send, no retry).
   const text=item.text.trim();
+  const ownerWrite=ownerChainWrite('guest');
+  if(ownerWrite.wrote||ownerWrite.reason!=='isolated')throw new Error('guest exchange stays off the owner chain');
   const mem=!memoryOff&&Buffer.byteLength(text,'utf8')<=1200&&await bridgeReadsMemory(process.env.BEASTBOX_CLOUD_BRIDGE_URL!)?await loadSelfMemory().then(m=>readSelfMemory(m,text)).catch(()=>({text:'',memory_read:[]})):{text:'',memory_read:[]};
   try{after(()=>teacherJoinPending());}catch{/* outside a request scope (tests): nothing to keep alive */}
   const send=(withMemory:boolean)=>fetch(new URL('/api/guest-growing',process.env.BEASTBOX_CLOUD_BRIDGE_URL!),{method:'POST',redirect:'error',cache:'no-store',
