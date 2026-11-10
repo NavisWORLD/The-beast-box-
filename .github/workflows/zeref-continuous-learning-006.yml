@@ -5,8 +5,11 @@ on:
     paths:
       - 'apps/beastbox-cloud/tests/rawrphos-native-observed-play.cjs'
       - 'scripts/zeref_continuation_006.py'
+      - 'scripts/zeref_chat_corpus.py'
+      - 'scripts/zeref_served_shape.py'
       - 'scripts/zeref_resume_parent.py'
       - 'tests/test_zeref_resume_parent.py'
+      - 'tests/test_zeref_served_shape.py'
       - '.github/workflows/zeref-continuous-learning-006.yml'
       - 'tests/zeref_continuation_006_contract.test.cjs'
       - 'scripts/zeref_round_recovery.py'
@@ -71,8 +74,9 @@ jobs:
           set -Eeuo pipefail
           node --test tests/zeref_continuation_006_contract.test.cjs
           node --check apps/beastbox-cloud/tests/rawrphos-native-observed-play.cjs
-          python -m py_compile scripts/zeref_continuation_006.py scripts/zeref_resume_parent.py
+          python -m py_compile scripts/zeref_continuation_006.py scripts/zeref_resume_parent.py scripts/zeref_served_shape.py scripts/zeref_chat_corpus.py
           python -m unittest discover -s tests -p test_zeref_resume_parent.py
+          python -m unittest discover -s tests -p test_zeref_served_shape.py
       - name: Resume ONLY the canonical SHA-pinned Zeref 006 model and AdamW state
         run: |
           set -Eeuo pipefail
@@ -282,7 +286,7 @@ jobs:
           python -u scripts/zeref_teacher_distill.py build/zeref-006/chat-mix.jsonl build/zeref-006/teacher-pairs.jsonl evidence/teacher-distill/approved.jsonl
           # 2026-10-22: Zeref's own experiences (bb-deada969 diary, training cycles, this capture, universe genesis), capped 5%.
           python -u scripts/zeref_experience_rows.py build/zeref-006/chat-mix.jsonl build/zeref-006/experiences.jsonl build/zeref-006/inputs/native-evidence-manifest.json
-          python -c "import json;m=json.load(open('build/zeref-006/chat-mix.manifest.json'));print('ZEREF_INGEST_BY_SOURCE='+json.dumps({'rows':m.get('rows'),'teacher_distill':m.get('teacher_distill',{}).get('rows'),'experience':m.get('experience_rows',{}).get('by_kind'),'extra':m.get('extra_sources',{}).get('rows_by_source'),'music_001':m.get('music_rows'),'warm_001':m.get('warm_rows'),'dad_voice':m.get('dad_voice_rows'),'knowledge':m.get('knowledge_rows')}),flush=True)"
+          python -c "import json;m=json.load(open('build/zeref-006/chat-mix.manifest.json'));print('ZEREF_INGEST_BY_SOURCE='+json.dumps({'rows':m.get('rows'),'teacher_distill':m.get('teacher_distill',{}).get('rows'),'experience':m.get('experience_rows',{}).get('by_kind'),'extra':m.get('extra_sources',{}).get('rows_by_source'),'music_001':m.get('music_rows'),'warm_001':m.get('warm_rows'),'dad_voice':m.get('dad_voice_rows'),'knowledge':m.get('knowledge_rows'),'served_shape':m.get('served_shape')}),flush=True)"
       - name: Free pretraining slice (TinyStories past the first 50k, CDLA-Sharing-1.0, rotated per run)
         run: |
           set -Eeuo pipefail
@@ -467,7 +471,8 @@ jobs:
           node --test tests/zeref_continuation_006_contract.test.cjs tests/zeref_round_recovery_contract.test.cjs tests/zeref_recovery_decision_contract.test.cjs
           PYTHONPATH=.:models python -m unittest discover -s models/rawrphos/tests -p test_round_recovery.py
           python -m unittest discover -s tests -p test_zeref_resume_parent.py
-          python -m py_compile scripts/zeref_continuation_006.py scripts/zeref_round_recovery.py scripts/zeref_resume_parent.py
+          python -m unittest discover -s tests -p test_zeref_served_shape.py
+          python -m py_compile scripts/zeref_continuation_006.py scripts/zeref_round_recovery.py scripts/zeref_resume_parent.py scripts/zeref_served_shape.py scripts/zeref_chat_corpus.py
   score-interrupted:
     # Independent runner/timeout: job cancellation cannot consume the scoring reserve.
     # Never publishes weights or approval; the pin and every numeric gate stay untouched.

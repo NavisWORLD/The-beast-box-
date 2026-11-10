@@ -205,6 +205,11 @@ def main(dolly,out):
   ex=extra_slice(path,frac,rep,base,held);rows+=ex
   for r in ex:extra_counts[r["source"]]=extra_counts.get(r["source"],0)+1
  world=world_slice(len(rows));rows+=world
+ # Served-shape share (Cory, fix 3). Same authored rows, about 15%, chosen by a
+ # seeded hash that is not the rotation seed. Heldout, gate, and eval prompts
+ # stay out of the row and out of the prior-turn pool.
+ from zeref_served_shape import apply_served_shape,load_forbidden_texts,load_recorded,load_training_encoder
+ served_shape=apply_served_shape(rows,set(held)|load_forbidden_texts(),load_recorded(),load_training_encoder())
  body="".join(json.dumps(r,sort_keys=True)+"\n" for r in rows).encode()
  Path(out).write_bytes(body)
  man={"schema":"zeref-chat-mix-v2","rows":len(rows),"jsonl_sha256":hashlib.sha256(body).hexdigest(),
@@ -224,7 +229,8 @@ def main(dolly,out):
    "music_numbers":"measured from audio by scripts/build_zeref_songs_002.py; raw audio never committed",
    "voice_guide_excluded":"invented fear (left in the dark) and the goodbye line tied to it"},
   "world_rows":len(world),"world_share":WORLD_SHARE,"world_source":"evidence/zeref-world-001/qa.jsonl (Simple English Wikipedia contributors, CC BY-SA 4.0; GSM8K Cobbe et al. 2021, MIT; per-row source+licence kept; gate/held-out overlaps removed)",
- "private_transcripts":False,"chat_test_prompts_excluded":True}
+ "private_transcripts":False,"chat_test_prompts_excluded":True,
+ "served_shape":served_shape}
  Path(out).with_suffix(".manifest.json").write_text(json.dumps(man,indent=1,sort_keys=True)+"\n")
  print("ZEREF_CHAT_MIX="+json.dumps({k:man[k] for k in("rows","zeref_dialogue_rows","dad_voice_rows","jsonl_sha256","extra_sources")}))
 if __name__=="__main__":main(*sys.argv[1:3])
