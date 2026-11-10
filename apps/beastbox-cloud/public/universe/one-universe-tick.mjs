@@ -67,10 +67,58 @@ export function progressionTicks({diary = null, heartbeat = null} = {}) {
   };
 }
 
+const STORED_UNIVERSE_KEY = 'lw:universe';
+
+/** A stored clock record. A missing record or a non-integer tick is no clock. */
+export function storedUniverseClock(storage) {
+  try {
+    const raw = storage && typeof storage.getItem === 'function' ? storage.getItem(STORED_UNIVERSE_KEY) : null;
+    const doc = raw ? JSON.parse(raw) : null;
+    if (!doc || !Number.isInteger(doc.tick)) return null;
+    return {get() { return doc; }};
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Keep a node's tick on the clock. A clock that is absent now and arrives later is subscribed.
+ * Off does not read the clock. This does not advance the clock.
+ * @param {{on?: boolean, node?: any, readClock?: Function, listen?: Function}} [opts]
+ */
+export function followUniverseTick({on = false, node = null, readClock = null, listen = null} = {}) {
+  if (!on) return () => {};
+  let unsub = () => {};
+  let current = null;
+  const apply = () => {
+    const tick = current && typeof current.get === 'function' ? current.get()?.tick : null;
+    publishUniverseTick({on: true, node, tick});
+  };
+  const bind = () => {
+    unsub();
+    current = typeof readClock === 'function' ? readClock() : null;
+    apply();
+    unsub = current && typeof current.subscribe === 'function' ? current.subscribe(apply) : () => {};
+  };
+  bind();
+  let stopListen = () => {};
+  if (typeof listen === 'function') {
+    try {
+      const off = listen(bind);
+      if (typeof off === 'function') stopListen = off;
+    } catch { stopListen = () => {}; }
+  }
+  return () => {
+    unsub();
+    stopListen();
+  };
+}
+
 /**
  * Write the one tick onto a node. A missing tick removes the attribute.
  * @param {{on?: boolean, node?: any, tick?: any}} [opts]
  */
+
 export function publishUniverseTick({on = false, node = null, tick = null} = {}) {
   if (!on || !node || typeof node.setAttribute !== 'function') return {written: false, tick: null};
   const shown = displayTick(tick);

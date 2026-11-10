@@ -27,13 +27,12 @@ export default function OneWorldProvider(){
   let live=true;let stop=()=>{};
   import('@/public/universe/one-universe-tick.mjs').then(mod=>{
    if(!live||!mod.browserTickOn())return;
-   const apply=()=>{mod.publishUniverseTick({on:true,node:document.documentElement,tick:currentWorldClock()?.get?.()?.tick});};
-   apply();
-   const clock=currentWorldClock();
-   const unsub=clock?clock.subscribe(apply):()=>{};
-   const onReady=()=>apply();
-   window.addEventListener('beastbox:one-world',onReady);
-   stop=()=>{unsub();window.removeEventListener('beastbox:one-world',onReady);};
+   stop=mod.followUniverseTick({
+    on:true,
+    node:document.documentElement,
+    readClock:()=>currentWorldClock()||mod.storedUniverseClock(sources.storage),
+    listen:(bind:()=>void)=>{const onReady=()=>bind();window.addEventListener('beastbox:one-world',onReady);return()=>window.removeEventListener('beastbox:one-world',onReady);},
+   });
   }).catch(()=>{});
   return()=>{live=false;stop();};
  },[]);

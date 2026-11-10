@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {displayTick, nextWorldState, progressionTicks, publishUniverseTick, browserTickOn, oneUniverseTickOn} from '../public/universe/one-universe-tick.mjs';
+import {displayTick, nextWorldState, progressionTicks, publishUniverseTick, browserTickOn, oneUniverseTickOn, followUniverseTick, storedUniverseClock} from '../public/universe/one-universe-tick.mjs';
 import {pageTickOn, armTick} from '../public/universe/one-universe-gate.mjs';
 import {oneUniverseStateOn} from '../public/universe/one-universe-state.mjs';
 import {oneUniverseLightOn} from '../public/universe/one-universe-light.mjs';
@@ -94,6 +94,68 @@ test('a failed tick load does not write a tick', async () => {
   const down = await armTick({on: true, node, load: async () => ({publishUniverseTick() { throw new Error('down'); }})});
   assert.equal(down.failed, true);
   assert.equal(node.attrs['data-universe-tick'], undefined);
+});
+
+function tickNode() {
+  return {attrs: {}, setAttribute(k, v) { this.attrs[k] = v; }, removeAttribute(k) { delete this.attrs[k]; }};
+}
+
+test('a clock that arrives later is followed, and a missing clock writes no tick', () => {
+  const node = tickNode();
+  let clock = null;
+  let heard = null;
+  const stop = followUniverseTick({
+    on: true,
+    node,
+    readClock: () => clock,
+    listen(bind) { heard = bind; return () => { heard = null; }; },
+  });
+  assert.equal(node.attrs['data-universe-tick'], undefined);
+  assert.equal(typeof heard, 'function');
+  let live = 0;
+  clock = {
+    tick: 0,
+    get() { return {tick: this.tick}; },
+    subscribe(fn) { live += 1; this.fn = fn; return () => { live -= 1; this.fn = null; }; },
+  };
+  heard();
+  assert.equal(node.attrs['data-universe-tick'], '0');
+  assert.equal(live, 1);
+  clock.tick = 2;
+  clock.fn();
+  assert.equal(node.attrs['data-universe-tick'], '2');
+  const quiet = followUniverseTick({on: false, node, readClock() { throw new Error('read'); }, listen() { throw new Error('listened'); }});
+  quiet();
+  stop();
+  assert.equal(live, 0);
+  assert.equal(heard, null);
+});
+
+test('a stored universe record is a tick only when that tick is an integer', () => {
+  assert.equal(storedUniverseClock(null), null);
+  assert.equal(storedUniverseClock({getItem() { return null; }}), null);
+  assert.equal(storedUniverseClock({getItem() { return '{"tick":"4"}'; }}), null);
+  const clock = storedUniverseClock({getItem() { return '{"tick":4,"seed":"s"}'; }});
+  assert.equal(clock.get().tick, 4);
+  assert.equal(storedUniverseClock({getItem() { return '{"tick":0}'; }}).get().tick, 0);
+  assert.equal(storedUniverseClock({getItem() { return '{'; }}), null);
+});
+
+test('every surface follows the one tick and does not start its own', () => {
+  const provider = read('../components/one-world-provider.tsx');
+  const spark = read('../public/spark/app.mjs');
+  const beach = read('../public/beach-two/toy.js');
+  assert.match(provider, /followUniverseTick/);
+  assert.match(spark, /pageTickOn/);
+  assert.match(spark, /import\(\s*'\.\.\/universe\/one-universe-tick\.mjs'\s*\)/);
+  assert.doesNotMatch(spark, /from '\.\.\/universe\/one-universe-tick\.mjs'/);
+  assert.match(beach, /pageTickOn/);
+  assert.match(beach, /import\(\s*'\.\.\/universe\/one-universe-tick\.mjs'\s*\)/);
+  assert.doesNotMatch(beach, /from '\.\.\/universe\/one-universe-tick\.mjs'/);
+  assert.doesNotMatch(read('../public/universe/one-universe-tick.mjs'), /grow\(/);
+  const living = read('../components/living-world.tsx');
+  assert.match(living, /clock:currentWorldClock\(\)\|\|oneClock/);
+  assert.match(living, /displayTick\(\(currentWorldClock\(\)\|\|oneClock\)\?\.get\?\.\(\)\?\.tick\)/);
 });
 
 test('private grow stays for the flag-off path, and the diary chain is not folded into the clock', () => {
