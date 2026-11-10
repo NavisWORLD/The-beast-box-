@@ -1,6 +1,8 @@
 // Flag gate for pages that are not the Next bundle.
-// NEXT_PUBLIC_ONE_UNIVERSE is inlined into the Next client bundle at build time and is empty until that app is rebuilt with the variable set.
+// NEXT_PUBLIC_ONE_UNIVERSE is inlined into the Next client bundle at build time.
+// next.config.ts supplies state,light,population,tick,cameras when that variable is unset.
 // This file does not read that variable. toy.js and spark/app.mjs never see it. They turn on only from the query or localStorage.
+// The token off clears the bag, including flags named by the Next env.
 export const ONE_UNIVERSE_FLAG_KEY = 'beastbox.oneUniverse.flags.v1';
 export const ONE_UNIVERSE_QUERY = 'oneUniverse';
 
@@ -30,6 +32,7 @@ export function pageFlags({search = '', storage = null, parentSearch = ''} = {})
   } catch {}
   out.push(...queryBits(search));
   out.push(...queryBits(parentSearch));
+  if (out.includes('off')) return ['off'];
   return out;
 }
 
