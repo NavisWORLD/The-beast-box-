@@ -114,6 +114,20 @@ test('fix 003: same chat yardstick as the public pin, character check, warm slic
  assert.ok(mix.includes('WARM_MAX_FRACTION=0.05')&&mix.includes('CHARACTER_PROMPTS'),'warm slice capped; check prompts held out');
 });
 
+test('spark boot wait uses the configured gameplay wait and keeps 120s as the floor',()=>{
+ const cap=read('apps/beastbox-cloud/tests/rawrphos-native-observed-play.cjs');
+ assert.match(cap,/function sparkBootWaitMs\(\)/);
+ assert.match(cap,/ZEREF_GAMEPLAY_WAIT_MS/);
+ assert.match(cap,/configured>120000\)return configured/);
+ assert.match(cap,/return 120000/);
+ assert.match(cap,/timeout:sparkBootWaitMs\(\)/);
+ assert.doesNotMatch(cap,/dataset\.creatureId,null,\{timeout:120000\}/);
+ assert.match(cap,/\{timeout:45000\}/);
+ assert.match(cap,/ZEREF_GAMEPLAY_WAIT_MS\|\|75000/);
+ assert.match(cap,/NATIVE_CAPTURE_TIMEOUT/);
+ assert.match(cap,/page_url:pageUrl,waiting_on:waitingOn,readiness,last_console:consoleLines\.slice\(-12\)/);
+});
+
 test('2026-10-25 multi-candidate rounds keep Gate v2 unchanged and select on set A only',()=>{
  const t=read('scripts/zeref_continuation_006.py'),w=read('.github/workflows/zeref-continuous-learning-006.yml');
  for(const needle of['CAND_SPECS','ZEREF_006_CANDIDATE=','ZEREF_006_CANDIDATE_SELECTED=','chat_fresh_heldout_b_not_worse_than_pin',
