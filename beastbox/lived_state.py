@@ -57,6 +57,16 @@ CREATE TABLE IF NOT EXISTS lived_revocations (
   event_id TEXT NOT NULL,
   PRIMARY KEY (session_id, consent_epoch)
 );
+CREATE TABLE IF NOT EXISTS lived_exchanges (
+  exchange_id TEXT PRIMARY KEY,
+  text_sha256 TEXT NOT NULL,
+  heard_event_id TEXT,
+  spoken_event_id TEXT,
+  failure_event_id TEXT,
+  status TEXT NOT NULL,
+  outbox TEXT,
+  acknowledged INTEGER NOT NULL
+);
 """
 
 
@@ -203,6 +213,93 @@ class LivedStore:
         body = validate_study_arc(raw, subject_id=self.subject_id)
         return self._atomic(external_transaction, lambda: self._append_study("study_arc", body, now_ms))
 
+    def begin_exchange(
+        self, *, exchange_id: str, text: str, now_ms: int, external_transaction: bool = False,
+    ) -> dict[str, Any]:
+        self._check_clock(now_ms)
+        self._owner_only()
+        checked_id = _exchange_id(exchange_id)
+        checked = _exchange_text(text)
+        return self._atomic(
+            external_transaction, lambda: self._begin_exchange(checked_id, checked, now_ms),
+        )
+
+    def stage_exchange_reply(
+        self, exchange_id: str, reply: str, model: str | None, *, external_transaction: bool = False,
+    ) -> None:
+        checked_id = _exchange_id(exchange_id)
+        checked = _exchange_text(reply)
+        label = _model_label(model)
+        self._atomic(
+            external_transaction, lambda: self._stage_reply(checked_id, checked, label),
+        )
+
+    def finish_exchange(
+        self, *, exchange_id: str, reply: str, now_ms: int, model: str | None = None,
+        external_transaction: bool = False,
+    ) -> dict[str, Any]:
+        self._check_clock(now_ms)
+        self._owner_only()
+        checked_id = _exchange_id(exchange_id)
+        checked = _exchange_text(reply)
+        label = _model_label(model)
+        return self._atomic(
+            external_transaction, lambda: self._finish_exchange(checked_id, checked, now_ms, label),
+        )
+
+    def fail_exchange(
+        self, *, exchange_id: str, now_ms: int, external_transaction: bool = False,
+    ) -> dict[str, Any]:
+        self._check_clock(now_ms)
+        self._owner_only()
+        checked_id = _exchange_id(exchange_id)
+        return self._atomic(external_transaction, lambda: self._fail_exchange(checked_id, now_ms))
+
+    def acknowledge_exchange(self, exchange_id: str, *, external_transaction: bool = False) -> None:
+        checked_id = _exchange_id(exchange_id)
+        self._atomic(external_transaction, lambda: self._acknowledge(checked_id))
+
+    def exchange_row(self, exchange_id: str) -> dict[str, Any] | None:
+        row = self.db.execute(
+            "SELECT exchange_id, text_sha256, heard_event_id, spoken_event_id, failure_event_id, status, outbox, acknowledged FROM lived_exchanges WHERE exchange_id=?",
+            (_exchange_id(exchange_id),),
+        ).fetchone()
+        if row is None:
+            return None
+        if isinstance(row, tuple):
+            keys = (
+                "exchange_id", "text_sha256", "heard_event_id", "spoken_event_id",
+                "failure_event_id", "status", "outbox", "acknowledged",
+            )
+            return dict(zip(keys, row))
+        return {key: row[key] for key in row.keys()}
+
+    def staged_reply(self, exchange_id: str) -> dict[str, Any] | None:
+        row = self.exchange_row(exchange_id)
+        if row is None or not row.get("outbox") or row.get("spoken_event_id") or row.get("failure_event_id"):
+            return None
+        payload = self._load(str(row["outbox"]))
+        reply = payload.get("reply")
+        if type(reply) is not str:
+            return None
+        model = payload.get("model")
+        return {"reply": reply, "model": model if type(model) is str else None}
+
+    def exchange_reply(self, event_id: str) -> str:
+        body = self._event_body(event_id)
+        text = body.get("text")
+        if type(text) is not str:
+            raise ChainRejected("chain", "recorded exchange has no private text")
+        return text
+
+    def exchange_receipt(self, event_id: str) -> dict[str, Any]:
+        body = self._event_body(event_id)
+        snap = self._snapshot_at(int(body["sequence"]))
+        if snap is None:
+            raise ChainRejected("history", "refusing zero reconstruction of missing snapshot history")
+        status = "failed" if body.get("kind") == "exchange_failure" else "lived"
+        return _public_exchange(body, event_id, snap, status=status)
+
     def _atomic(self, external: bool, work):
         if external:
             return work()
@@ -327,7 +424,7 @@ class LivedStore:
                 presence_mask=mask,
                 initial_state_kind=str(previous["initial_state_kind"]),
             )
-        if kind in {"feed_off", "study_request", "study_lesson", "study_arc"}:
+        if kind in {"feed_off", "study_request", "study_lesson", "study_arc", "exchange", "exchange_failure"}:
             channels = blank_channels() if kind == "feed_off" else previous["channels"]
             face = None if kind == "feed_off" else previous["face"]
             feelings = None if kind == "feed_off" else previous["feelings"]
@@ -501,6 +598,121 @@ class LivedStore:
         receipt["kind"] = kind
         return receipt
 
+    def _owner_only(self) -> None:
+        if self.scope != "owner":
+            raise IdentityRejected("identity", "this chain does not accept another scope")
+
+    def _begin_exchange(self, exchange_id: str, text: str, now_ms: int) -> dict[str, Any]:
+        row = self.exchange_row(exchange_id)
+        if row is not None and row.get("heard_event_id"):
+            return self.exchange_receipt(str(row["heard_event_id"]))
+        previous = self.read_lived_snapshot(self.scope)
+        sequence = int(previous["sequence"]) + 1
+        body = _exchange_event(
+            "exchange", "heard", "RECORDED", exchange_id, text, previous, sequence, now_ms, self,
+        )
+        event_id = self._insert_event(body)
+        self.db.execute(
+            "INSERT INTO lived_exchanges(exchange_id, text_sha256, heard_event_id, spoken_event_id, failure_event_id, status, outbox, acknowledged) VALUES(?, ?, ?, NULL, NULL, 'open', NULL, 0)",
+            (exchange_id, sha256_text(text), event_id),
+        )
+        snapshot = self._carry_snapshot(previous, sequence, event_id)
+        self._insert_snapshot(snapshot)
+        return _public_exchange(body, event_id, snapshot, status="lived")
+
+    def _stage_reply(self, exchange_id: str, reply: str, model: str | None) -> None:
+        row = self.exchange_row(exchange_id)
+        if row is None or not row.get("heard_event_id") or row.get("spoken_event_id") or row.get("failure_event_id"):
+            raise ChainRejected("chain", "an exchange reply needs an open heard line")
+        payload = {"reply": reply}
+        if model is not None:
+            payload["model"] = model
+        self.db.execute(
+            "UPDATE lived_exchanges SET outbox=? WHERE exchange_id=? AND spoken_event_id IS NULL AND failure_event_id IS NULL",
+            (canonical_json(payload), exchange_id),
+        )
+
+    def _finish_exchange(self, exchange_id: str, reply: str, now_ms: int, model: str | None) -> dict[str, Any]:
+        row = self.exchange_row(exchange_id)
+        if row is None or not row.get("heard_event_id"):
+            raise ChainRejected("chain", "a spoken line needs the heard line first")
+        if row.get("spoken_event_id"):
+            return self.exchange_receipt(str(row["spoken_event_id"]))
+        if row.get("failure_event_id"):
+            raise ChainRejected("chain", "a failed exchange cannot be rewritten as speech")
+        previous = self.read_lived_snapshot(self.scope)
+        sequence = int(previous["sequence"]) + 1
+        causation = {
+            "heard_event_id": str(row["heard_event_id"]),
+            "snapshot_sequence": int(previous["sequence"]),
+            "state_sha256": previous["state_sha256"],
+        }
+        body = _exchange_event(
+            "exchange", "spoken", "RECORDED", exchange_id, reply, previous, sequence, now_ms, self,
+            model=model, causation=causation,
+        )
+        event_id = self._insert_event(body)
+        self.db.execute(
+            "UPDATE lived_exchanges SET spoken_event_id=?, status='spoken' WHERE exchange_id=?",
+            (event_id, exchange_id),
+        )
+        snapshot = self._carry_snapshot(previous, sequence, event_id)
+        self._insert_snapshot(snapshot)
+        return _public_exchange(body, event_id, snapshot, status="lived")
+
+    def _fail_exchange(self, exchange_id: str, now_ms: int) -> dict[str, Any]:
+        row = self.exchange_row(exchange_id)
+        if row is None or not row.get("heard_event_id"):
+            raise ChainRejected("chain", "a failed exchange needs the heard line first")
+        if row.get("failure_event_id"):
+            return self.exchange_receipt(str(row["failure_event_id"]))
+        if row.get("spoken_event_id"):
+            raise ChainRejected("chain", "a spoken exchange cannot be rewritten as a failure")
+        previous = self.read_lived_snapshot(self.scope)
+        sequence = int(previous["sequence"]) + 1
+        body = _exchange_event(
+            "exchange_failure", "failed", None, exchange_id, None, previous, sequence, now_ms, self,
+        )
+        body["code"] = "undelivered"
+        event_id = self._insert_event(body)
+        self.db.execute(
+            "UPDATE lived_exchanges SET failure_event_id=?, status='failed', outbox=NULL WHERE exchange_id=?",
+            (event_id, exchange_id),
+        )
+        snapshot = self._carry_snapshot(previous, sequence, event_id)
+        self._insert_snapshot(snapshot)
+        return _public_exchange(body, event_id, snapshot, status="failed")
+
+    def _acknowledge(self, exchange_id: str) -> None:
+        self.db.execute(
+            "UPDATE lived_exchanges SET acknowledged=1, outbox=? WHERE exchange_id=? AND spoken_event_id IS NOT NULL",
+            (canonical_json({"ack": True}), exchange_id),
+        )
+
+    def _carry_snapshot(self, previous: Mapping[str, Any], sequence: int, event_id: str) -> dict[str, Any]:
+        return make_snapshot(
+            subject_id=self.subject_id,
+            scope=self.scope,
+            sequence=sequence,
+            state12=list(previous["state12"]),
+            chain_head=event_id,
+            origin_commitment=self.attachment["origin_commitment"],
+            prior_head=self.attachment["prior_head"],
+            channels=previous["channels"],
+            face=previous["face"],
+            feelings=previous["feelings"],
+            presence_mask=previous["presence_mask"],
+            initial_state_kind=str(previous["initial_state_kind"]),
+        )
+
+    def _event_body(self, event_id: str) -> dict[str, Any]:
+        row = self.db.execute(
+            "SELECT payload FROM lived_events WHERE event_id=?", (event_id,)
+        ).fetchone()
+        if row is None:
+            raise ChainRejected("chain", "lived exchange event is missing")
+        return self._load(row["payload"] if not isinstance(row, tuple) else row[0])
+
     def _insert_event(self, body: dict[str, Any]) -> str:
         payload = canonical_json(body)
         digest = sha256_text(payload)
@@ -565,3 +777,98 @@ class LivedStore:
         if not isinstance(value, dict):
             raise ChainRejected("chain", "lived payload was not an object")
         return value
+
+
+def _exchange_id(value: str) -> str:
+    if type(value) is not str or len(value) not in (32, 64):
+        raise SampleRejected("invalid", "exchange id must be a hex digest")
+    if any(ch not in "0123456789abcdef" for ch in value):
+        raise SampleRejected("invalid", "exchange id must be a hex digest")
+    return value
+
+
+def _exchange_text(value: str) -> str:
+    if type(value) is not str or not value.strip() or len(value) > 8192 or "\x00" in value:
+        raise SampleRejected("invalid", "exchange text is empty or too long")
+    lowered = value.lower()
+    if "<html" in lowered or "<!doctype" in lowered:
+        raise SampleRejected("raw", "exchange text cannot carry raw web text")
+    return value
+
+
+def _model_label(value: str | None) -> str | None:
+    if value is None:
+        return None
+    if type(value) is not str:
+        raise SampleRejected("invalid", "model label must be text")
+    cleaned = value.strip()
+    if not cleaned or len(cleaned) > 180 or any(ord(ch) < 33 for ch in cleaned):
+        raise SampleRejected("invalid", "model label is empty or too long")
+    return cleaned
+
+
+def _exchange_event(
+    kind: str, role: str, label: str | None, exchange_id: str, text: str | None,
+    previous: Mapping[str, Any], sequence: int, now_ms: int, store: LivedStore, *,
+    model: str | None = None, causation: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    body: dict[str, Any] = {
+        "schema": "lived-event-v1",
+        "kind": kind,
+        "role": role,
+        "sequence": sequence,
+        "previous": previous["chain_head"],
+        "subject_id": store.subject_id,
+        "scope": store.scope,
+        "basis": "dyn12-v1",
+        "origin_commitment": store.attachment["origin_commitment"],
+        "admitted_at_ms": now_ms,
+        "exchange_id": exchange_id,
+        "state12": [float(item) for item in previous["state12"]],
+        "state_sha256": previous["state_sha256"],
+    }
+    if label is not None:
+        body["label"] = label
+    if text is not None:
+        body["text"] = text
+        body["text_sha256"] = sha256_text(text)
+        body["counts"] = {"chars": len(text), "utf8_bytes": len(text.encode("utf-8"))}
+    if model is not None:
+        body["model"] = model
+    if causation is not None:
+        body["causation"] = {
+            "heard_event_id": causation["heard_event_id"],
+            "snapshot_sequence": int(causation["snapshot_sequence"]),
+            "state_sha256": causation["state_sha256"],
+        }
+    return body
+
+
+def _public_exchange(body: Mapping[str, Any], event_id: str, snapshot: Mapping[str, Any], *, status: str) -> dict[str, Any]:
+    receipt: dict[str, Any] = {
+        "schema": "lived-exchange-receipt-v1",
+        "status": status,
+        "role": body.get("role"),
+        "exchange_id": body["exchange_id"],
+        "event_id": event_id,
+        "sequence": snapshot["sequence"],
+        "previous": body["previous"],
+        "chain_head": snapshot["chain_head"],
+        "state_sha256": snapshot["state_sha256"],
+        "scope": snapshot["scope"],
+        "wrote": True,
+    }
+    if body.get("label"):
+        receipt["label"] = body["label"]
+    if body.get("text_sha256"):
+        receipt["text_sha256"] = body["text_sha256"]
+        receipt["counts"] = dict(body["counts"])
+    if body.get("model"):
+        receipt["model"] = body["model"]
+    if body.get("causation"):
+        receipt["causation"] = {
+            "heard_event_id": body["causation"]["heard_event_id"],
+            "snapshot_sequence": body["causation"]["snapshot_sequence"],
+            "state_sha256": body["causation"]["state_sha256"],
+        }
+    return receipt
