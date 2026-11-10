@@ -1,0 +1,91 @@
+"""Electrical spec data (single source) -> docs/BOM_electrical.csv, BOM.csv append, docs/electrical_spec.md
+DESIGN TARGET — values marked ESTIMATE are calculated, not measured on hardware."""
+import csv, os
+ROOT = "/workspace/zeref-spark"
+H = ["Designator", "Sheet", "Value / part", "Type", "Package", "Power / voltage rating", "Tolerance", "Qty", "OB/ADD", "ESTIMATE?", "Location", "Calculation / note"]
+R = [
+ # power
+ ["J1","A","USB-C 16-pin receptacle breakout (5.1k CC pull-downs on board)","Connector","breakout","5 V / 3 A","—",1,"ADD (module)","","Pedestal rear","CC 5.1k = [OB]; only VBUS/GND/D+/D− used"],
+ ["D1","A","USBLC6-2SC6","ESD array","SOT-23-6","5.25 V working","—",1,"ADD","","Pedestal, next to J1","on D+/D−; VBUS pin to VBUS"],
+ ["D2","A","SMBJ5.0A","TVS diode","SMB (DO-214AA)","5.0 V standoff, 600 W pk","—",1,"ADD","","Pedestal, after J1","clamps hot-plug spikes on VBUS"],
+ ["F1","A","PTC resettable fuse 2.0 A hold / ~4 A trip","Polyfuse","1812","6 V","—",1,"ADD","ESTIMATE","Pedestal","VBUS peak ≈1.87 A (charger limit 1.8 A + station LEDs 60 mA)"],
+ ["C1","A","10 µF","MLCC X5R","0805","10 V","±10%",1,"ADD","","Pedestal after F1","VBUS local decoupling"],
+ ["C2","A","47 µF","Polymer / low-ESR electrolytic","radial 6.3 mm","10 V","±20%",1,"ADD","","Head, at U1 USB pad","absorbs cable inductance at charger input"],
+ ["U1","A","Adafruit PowerBoost 1000C (ZS-B02)","Module","PCB 36×23 mm","in 5 V, out 5.2 V ≈1 A","—",1,"ADD (module)","","Head power bay","MCP73871 + TPS61090; on-board caps, EN & LBO pull-ups [OB]"],
+ ["BT1","A","1S LiPo 503450 ≈1000 mAh, with PCM (ZS-B01)","Battery","50×34×5 mm","3.0–4.2 V","—",1,"ADD","","Head power bay","PCM (over-charge/discharge/short) is [OB] in the cell"],
+ ["F2","A","PTC 2.0 A hold","Polyfuse","1812","6 V","—",1,"ADD (optional)","ESTIMATE","Battery lead","backup to cell PCM"],
+ ["SW1","A","SS12D00 SPDT slide switch","Switch","through-hole 2.54 mm","50 V / 0.5 A","—",1,"ADD","","Head rear","EN to GND = OFF (switch closed = OFF). Charging still works when OFF."],
+ ["C3","A","220 µF","Polymer / low-ESR electrolytic","radial 6.3 mm","10 V","±20%",1,"ADD","","At U1 5V out","boost output reservoir for LED + amp peaks"],
+ ["C4","A","100 nF","MLCC X7R","0603","16 V","±10%",1,"ADD","","At U1 5V out","HF decoupling"],
+ ["C6","A","10 µF","MLCC X5R","0805","10 V","±10%",1,"ADD","","At U0 5V pin","DevKit input decoupling"],
+ ["R1","A","100 kΩ","Thick film","0603","0.1 W","±1%",1,"ADD","","Torso harness","divider top: VBAT → VBAT_SENSE"],
+ ["R2","A","100 kΩ","Thick film","0603","0.1 W","±1%",1,"ADD","","Torso harness","Vadc = VBAT·R2/(R1+R2) = VBAT/2 → 1.50–2.10 V; I = 4.2/200k = 21 µA"],
+ ["C5","A","100 nF","MLCC X7R","0603","16 V","±10%",1,"ADD","","At GPIO5","ADC sample-hold reservoir; τ = 50k·100n = 5 ms"],
+ # i2c0
+ ["R3","B","2.2 kΩ (DNP if breakouts' parallel pull-ups ≤ 3.3 kΩ)","Thick film","0603","0.1 W","±1%",1,"ADD / DNP","","Torso sled","SDA0 pull-up; tr = 0.847·R·C = 0.847·2.2k·100pF = 186 ns ≤ 300 ns (400 kHz)"],
+ ["R4","B","2.2 kΩ (DNP rule as R3)","Thick film","0603","0.1 W","±1%",1,"ADD / DNP","","Torso sled","SCL0 pull-up; sink current 3.3/2.2k = 1.5 mA ≤ 3 mA"],
+ ["C7","B","100 nF at U3 IMU","MLCC X7R","0603","16 V","±10%",1,"OB (usually) / ADD","","U3","add only if breakout lacks it"],
+ ["C8","B","100 nF at U4 BME280","MLCC X7R","0603","16 V","±10%",1,"OB / ADD","","U4",""],
+ ["C9","B","100 nF at U5 BH1750","MLCC X7R","0603","16 V","±10%",1,"OB / ADD","","U5",""],
+ ["C10","B","100 nF at U6 MAX30102","MLCC X7R","0603","16 V","±10%",1,"OB / ADD","","U6","MAX30102 LED pulses need local cap"],
+ ["C11","B","10 µF at U7 GNSS","MLCC X5R","0805","10 V","±10%",1,"ADD (optional)","","U7","GNSS acquisition current bursts"],
+ # audio
+ ["R5","C","33 Ω","Thick film","0603","0.1 W","±1%",1,"ADD (optional)","","Near U0","I2S0 BCLK series damping (long pod run)"],
+ ["R6","C","33 Ω","Thick film","0603","0.1 W","±1%",1,"ADD (optional)","","Near U0","I2S0 WS series damping"],
+ ["R7","C","22 kΩ","Thick film","0603","0.1 W","±1%",1,"ADD","ESTIMATE","At U9 SD","boot-mute pull-down: V = 5·22k/(1M+22k) = 0.108 V below 0.16 V shutdown threshold (assumes 1M [OB] pull-up — verify on your board)"],
+ ["C12","C","100 µF","Aluminium electrolytic","radial 5 mm","10 V","±20%",1,"ADD","","At U9 VIN","class-D supply reservoir"],
+ ["C13","C","10 µF","MLCC X5R","0805","10 V","±10%",1,"ADD","","At U9 VIN",""],
+ # led
+ ["U2","D","SN74AHCT1G125 (or 1 gate of 74AHCT125)","Logic buffer","SOT-23-5 / DIP-14","VCC 5 V","—",1,"ADD","","Torso","3.3 V → 5 V level shift (VIH = 2.0 V at 5 V)"],
+ ["C14","D","100 nF","MLCC X7R","0603","16 V","±10%",1,"ADD","","At U2",""],
+ ["R8","D","330 Ω (300–500 Ω range)","Thick film","0603","0.1 W","±1%",1,"ADD","","At first LED DIN","damps ringing / protects first WS2812 input"],
+ ["C15","D","1000 µF","Aluminium electrolytic","radial 8 mm","10 V","±20%",1,"ADD","","Chest ring 5V/GND","LED bulk — inrush & surge protection"],
+ ["C16","D","100 µF","Aluminium electrolytic","radial 5 mm","10 V","±20%",1,"ADD","","Pod ring L",""],
+ ["C17","D","100 µF","Aluminium electrolytic","radial 5 mm","10 V","±20%",1,"ADD","","Pod ring R",""],
+ ["C18","D","100 µF","Aluminium electrolytic","radial 5 mm","10 V","±20%",1,"ADD","","Eye boards",""],
+ ["LED1–48","D","WS2812B (100 nF per LED on ring PCBs)","Smart LED","5050","5 V, 60 mA max each","—",48,"OB (ring modules)","ESTIMATE","Chest 12, eyes 2×5, pods 2×12, crown 2","48·60 mA·8% brightness cap = 0.23 A peak (cap 10→8 % on 2026-11-09, D1)"],
+ # station
+ ["U10","E","AS7341 breakout (ZS-S01)","Sensor module","breakout","VIN 3.3–5 V (on-board LDO)","—",1,"ADD (module)","","Shield ZS-602","I2C 0x39 fixed; on-board 10k pull-ups and 1.8 V/3.3 V regs [OB]"],
+ ["J2","E","4-pin magnetic pogo pair","Connector","2.54 mm pitch","2 A per pin (typ.)","—",1,"ADD","ESTIMATE","Pedestal ↔ shield","VBUS, GND, SDA1_P, SCL1_P"],
+ ["R9","E","4.7 kΩ","Thick film","0603","0.1 W","±1%",1,"ADD","","Pedestal driver bay","SDA1 pull-up; in parallel with [OB] 10k → 3.2k"],
+ ["R10","E","4.7 kΩ","Thick film","0603","0.1 W","±1%",1,"ADD","","Pedestal driver bay","SCL1 pull-up"],
+ ["R11","E","100 Ω","Thick film","0603","0.1 W","±1%",1,"ADD","","Pedestal","SDA1 series (hot-plug current limit)"],
+ ["R12","E","100 Ω","Thick film","0603","0.1 W","±1%",1,"ADD","","Pedestal","SCL1 series"],
+ ["R13","E","10 kΩ (DNP if board has INT pull-up)","Thick film","0603","0.1 W","±1%",1,"ADD / DNP","","Pedestal","AS_INT open-drain pull-up"],
+ ["D3","E","TPD4E05U06","ESD array","USON-10 / SOT","5.5 V working","—",1,"ADD","","At J2","ESD on exposed pogo pins"],
+ ["C19","E","10 µF","MLCC X5R","0805","10 V","±10%",1,"ADD","","At J2 (pedestal)","pogo VIN bulk"],
+ ["C20","E","100 nF","MLCC X7R","0603","16 V","±10%",1,"ADD","","At J2",""],
+ ["Q1","E","AO3400A (white)","N-MOSFET logic level","SOT-23","30 V, 5.7 A, Rds 33 mΩ @ 4.5 V","—",1,"ADD","","Driver board ZS-S08","Vgs(th) ≤ 1.45 V → fully on at 3.3 V for 20 mA"],
+ ["Q2","E","AO3400A (UV)","N-MOSFET","SOT-23","30 V","—",1,"ADD","","Driver board",""],
+ ["Q3","E","AO3400A (IR, optional)","N-MOSFET","SOT-23","30 V","—",1,"ADD","","Driver board","gate on GPIO21 (v0.3)"],
+ ["R14","E","100 Ω","Thick film","0603","0.1 W","±1%",1,"ADD","","Driver board","Q1 gate series"],
+ ["R15","E","100 Ω","Thick film","0603","0.1 W","±1%",1,"ADD","","Driver board","Q2 gate series"],
+ ["R16","E","100 Ω","Thick film","0603","0.1 W","±1%",1,"ADD","","Driver board","Q3 gate series"],
+ ["R17","E","100 kΩ","Thick film","0603","0.1 W","±1%",1,"ADD","","Driver board","Q1 gate pull-down (LED OFF at boot / floating)"],
+ ["R18","E","100 kΩ","Thick film","0603","0.1 W","±1%",1,"ADD","","Driver board","Q2 gate pull-down"],
+ ["R19","E","100 kΩ","Thick film","0603","0.1 W","±1%",1,"ADD","","Driver board","Q3 gate pull-down"],
+ ["D4","E","White LED 3 mm / 3528 (ZS-S04)","LED","3 mm","Vf ≈3.0 V @ 20 mA","—",1,"ADD","ESTIMATE Vf","Station LED board",""],
+ ["D5","E","365 nm UV-A LED (ZS-S05)","LED","3535","Vf ≈3.6 V @ 20 mA","—",1,"ADD","ESTIMATE Vf","Station LED board","check IEC 62471 risk group"],
+ ["D6","E","940 nm IR LED (ZS-S06, optional)","LED","3 mm","Vf ≈1.3 V @ 20 mA","—",1,"ADD (optional)","ESTIMATE Vf","Station LED board",""],
+ ["R20","E","100 Ω","Thick film","0805","0.125 W","±1%",1,"ADD","ESTIMATE","LED board","(5.0−3.0)/0.020 = 100 Ω → 20 mA; P = 0.02²·100 = 0.04 W"],
+ ["R21","E","68 Ω","Thick film","0805","0.125 W","±1%",1,"ADD","ESTIMATE","LED board","(5.0−3.6)/0.020 = 70 Ω → E12 68 Ω → 20.6 mA; P = 0.029 W"],
+ ["R22","E","180 Ω","Thick film","0805","0.125 W","±1%",1,"ADD","ESTIMATE","LED board","(5.0−1.3)/0.020 = 185 Ω → 180 Ω → 20.6 mA; P = 0.076 W"],
+ ["S1","E","Glass reed switch NO ~12 mm (ZS-S09)","Reed switch","axial","≥100 V / 0.5 A","—",1,"ADD","","Pedestal reed slot","in SERIES with UV LED supply: VBUS → S1 → UV_5V (hardware interlock)"],
+ ["R23","E","12 kΩ","Thick film","0603","0.1 W","±1%",1,"ADD","","Driver board","SHIELD_SENSE = 5·20k/32k = 3.13 V (HIGH) when S1 closed; I = 0.16 mA"],
+ ["R24","E","20 kΩ","Thick film","0603","0.1 W","±1%",1,"ADD","","Driver board","pulls SHIELD_SENSE to 0 V when S1 open. If VBUS = 5.25 V → 3.28 V (≤ 3.6 V abs max OK)"],
+ ["C21","E","10 µF","MLCC X5R","0805","10 V","±10%",1,"ADD","","LED board","LED switching decoupling"],
+]
+def write():
+    with open(f"{ROOT}/docs/BOM_electrical.csv", "w", newline="") as f:
+        w = csv.writer(f); w.writerow(H); w.writerows(R)
+    b = open(f"{ROOT}/BOM.csv").read()
+    if "v0.3 electrical" not in b:
+        with open(f"{ROOT}/BOM.csv", "a", newline="") as f:
+            w = csv.writer(f)
+            for r in R:
+                if r[0] in ("U1", "BT1", "U10"):  # already in BOM as modules
+                    continue
+                w.writerow([r[0], r[2], r[7], "Electrical / passive (v0.3 electrical)", f"{r[3]} {r[4]} {r[5]} {r[6]}".strip(), r[10], r[11], r[8] + (" · " + r[9] if r[9] else ""), f"Sheet {r[1]} — see docs/BOM_electrical.csv & docs/schematics/"])
+    print("rows", len(R))
+if __name__ == "__main__":
+    write()

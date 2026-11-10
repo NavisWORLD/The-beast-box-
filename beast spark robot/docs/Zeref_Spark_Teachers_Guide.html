@@ -1,0 +1,389 @@
+<!doctype html><html><head><meta charset='utf-8'><title>ZEREF SPARK Teacher's Guide</title><style>
+@page { size: Letter; margin: 15mm 13mm 17mm 13mm;
+  @top-center { content: "DESIGN TARGET — not printed or test-fitted · CONCEPT DESIGN / NOT BUILT HARDWARE"; font: 7.5pt sans-serif; color: #b0006a; }
+  @bottom-left { content: "System logic & concept: Cory Davis (NavisWORLD) · CAD geometry: AI-generated (CadQuery) · PX = third-party module proxy"; font: 7pt sans-serif; color: #555; }
+  @bottom-right { content: counter(page) " / " counter(pages); font: 8pt sans-serif; } }
+body { font-family: 'DejaVu Sans', sans-serif; font-size: 9.6pt; line-height: 1.38; color: #111827; }
+h1 { color: #101633; border-bottom: 3px solid #ff2d9b; padding-bottom: 3px; page-break-before: always; font-size: 19pt; }
+h1.nobreak, .cover h1 { page-break-before: avoid; border: none; }
+h2 { color: #1d2a6b; font-size: 13.5pt; margin-top: 16px; } h3 { color: #3b2a6b; font-size: 11pt; }
+table { border-collapse: collapse; width: 100%; font-size: 7.8pt; margin: 6px 0 10px; page-break-inside: auto; }
+th { background: #101633; color: #e7ecff; text-align: left; padding: 3px 4px; } td { border-bottom: 1px solid #dde1ee; padding: 2.5px 4px; vertical-align: top; }
+tr { page-break-inside: avoid; } tr:nth-child(even) td { background: #f6f7fb; }
+img { max-width: 100%; } .sch { page-break-inside: avoid; margin: 8px 0; } .sch img { width: 100%; border: 1px solid #ccd; }
+.cap { font-size: 8pt; color: #555; text-align: center; margin: 2px 0 8px; }
+.step { page-break-before: always; } .step img { width: 100%; border: 1px solid #ccd; }
+.box { border-left: 4px solid #ff2d9b; background: #fff3fa; padding: 6px 10px; margin: 8px 0; }
+.chk { border-left: 4px solid #0a9d6e; background: #effbf6; padding: 6px 10px; margin: 8px 0; }
+.warn { border: 2px solid #d12; background: #fff0f0; padding: 8px 12px; margin: 8px 0; }
+.cards { display: grid; grid-template-columns: 1fr; gap: 6px; } .cards img { width: 100%; height: auto; page-break-inside: avoid; border: 1px solid #ddd; }
+.cover { text-align: center; } .cover img { width: 82%; } .tag { display: inline-block; background: #101633; color: #7ff6ff; padding: 4px 10px; border-radius: 4px; margin: 3px; font-size: 9pt; }
+code { background: #eef; padding: 0 3px; font-size: 8.6pt; } pre { background: #f4f5fa; padding: 6px; font-size: 7.6pt; white-space: pre-wrap; }
+</style></head><body><div class="cover">
+<h1 class="nobreak">ZEREF SPARK — Teacher's Guide</h1>
+<p><strong>Build-and-learn unit: CAD, 3D printing, embedded sensors, spectroscopy and honest data</strong></p>
+<p><span class="tag">DESIGN TARGET — not printed or test-fitted</span> <span class="tag">CONCEPT DESIGN / NOT BUILT HARDWARE</span></p>
+<p><img src="img/exploded_numbered.png" style="width:62%"></p>
+<p><strong>System logic and concept: Cory Davis (NavisWORLD).</strong> CAD geometry, renders and this guide: <strong>AI-generated</strong> from that logic. <strong>PX</strong> parts are third-party modules (Espressif, TDK, Bosch, ROHM, ADI, ams-OSRAM, Adafruit, u-blox …) shown as proxies.
+Use with the <em>ZEREF SPARK Assembly Guide</em> (same folder). Nothing here has been classroom-tested yet — time estimates are ESTIMATES.</p>
+</div>
+<h1>1. Unit overview and learning objectives</h1>
+<p>Students build (or study, if hardware is not available) a 314 mm companion robot whose <strong>brain runs on a host computer</strong> (the Beast Box) while the robot is the <strong>nervous system</strong>: sensors, lights, speaker and a crystal-reading station that report data over USB / Wi-Fi.</p>
+<p>By the end, students can:</p>
+<ol>
+<li><strong>CAD</strong> — read a parametric model, explain why parameters (not hand-drawn shapes) make a design editable, and change one parameter safely.</li>
+<li><strong>3D printing</strong> — choose orientation, supports, walls and infill for strength and finish, and justify the choice.</li>
+<li><strong>Electronics</strong> — read a schematic with designators (R1, C1, Q1…), explain pull-ups, decoupling, current-limit resistors, MOSFET switches, voltage dividers, fuses and ESD protection, and calculate R = (V − Vf)/I.</li>
+<li><strong>Buses</strong> — explain I2C (addresses, two wires, pull-ups) and I2S (digital audio clocks), and why the station gets its own I2C bus.</li>
+<li><strong>Power</strong> — build a power budget (typical vs peak), explain why the 1 A boost is "marginal", and reason about LiPo safety.</li>
+<li><strong>Spectroscopy basics</strong> — describe how an 11-channel sensor measures light in bands, and compute transmission T = (S − D)/(W − D).</li>
+<li><strong>Honest data</strong> — label every number MEASURED, DERIVED or ESTIMATE, and explain why a classification is never a measurement.</li>
+<li><strong>Architecture</strong> — explain "brain on the host, models are mouths": the robot does not think; the host interprets data, and AI language models only <em>voice</em> results.</li>
+</ol>
+<h1>2. Suitability, supervision and prerequisites</h1>
+<table>
+<thead>
+<tr>
+<th>Audience</th>
+<th>Fit</th>
+<th>How</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Grades 6–8 (age 11–14)</td>
+<td>Concepts + CAD/printing + pre-wired modules</td>
+<td>Teacher pre-solders; students do CAD, printing, plug-in JST/STEMMA wiring, data labelling. <strong>No LiPo or UV handling by students.</strong></td>
+</tr>
+<tr>
+<td>Grades 9–12 (age 14–18)</td>
+<td>Full unit</td>
+<td>Students solder passives under supervision; adult does LiPo install and UV station first power-up</td>
+</tr>
+<tr>
+<td>Post-secondary / makerspace</td>
+<td>Full unit + extensions</td>
+<td>Firmware additions, calibration study, power measurements</td>
+</tr>
+</tbody>
+</table>
+<div class="warn">
+<p><strong>Adult supervision is REQUIRED</strong> for: LiPo battery handling, charging and installation · any 365 nm UV LED operation · soldering · heat-set inserts (hot brass) · first power-on of each stage. Keep the UV station out of reach of young children; never let anyone look at the UV LED.</p>
+</div>
+<p>Prerequisites: basic algebra (Ohm's law), using a multimeter (can be taught in Session 4), any prior block or text coding helps for Session 9.</p>
+<h1>3. Lesson sequence (ESTIMATE times)</h1>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Session</th>
+<th>Time</th>
+<th>Students do</th>
+<th>Uses</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>The system: brain on the host, robot as nervous system</td>
+<td>50 min</td>
+<td>map the data path sensor → ESP32 → USB/Wi-Fi → host → voice; discuss "models are mouths"</td>
+<td>wiring.md diagram</td>
+</tr>
+<tr>
+<td>2</td>
+<td>CAD: parameters and parts</td>
+<td>2 × 50 min</td>
+<td>open <code>cad/zs_parts.py</code>, read parameter dict P, predict and check what changing one value does; read part cards</td>
+<td>parts catalog</td>
+</tr>
+<tr>
+<td>3</td>
+<td>3D printing plan</td>
+<td>50 min + print time (≈30–45 h total, ESTIMATE)</td>
+<td>choose orientation/supports for 3 parts and justify; print test joints</td>
+<td>print plan</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Electricity toolkit: meter, Ohm's law, power</td>
+<td>50 min</td>
+<td>measure resistors, compute LED resistors R20–R22</td>
+<td>Electrical Specs</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Reading schematics</td>
+<td>50 min</td>
+<td>trace a net across sheets A–E; find every designator in the BOM</td>
+<td>schematics</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Buses: I2C and I2S</td>
+<td>50 min</td>
+<td>address map, pull-up rise-time calc, why bus 1 for the station</td>
+<td>Sheets B, C, E</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Power and safety</td>
+<td>50 min</td>
+<td>build the power budget; LiPo safety demo (teacher)</td>
+<td>power tables</td>
+</tr>
+<tr>
+<td>8–10</td>
+<td>Build sessions (steps 1–16)</td>
+<td>3–5 × 50 min</td>
+<td>assemble in teams, pass each CHECK before moving on</td>
+<td>Assembly Guide</td>
+</tr>
+<tr>
+<td>11</td>
+<td>Firmware and bring-up</td>
+<td>2 × 50 min</td>
+<td>flash Stage 0, run tests, read JSON</td>
+<td>§10</td>
+</tr>
+<tr>
+<td>12</td>
+<td>Spectroscopy lab</td>
+<td>2 × 50 min</td>
+<td>calibrate (dark/white), measure 3 samples, compute T, label data</td>
+<td>§11</td>
+</tr>
+<tr>
+<td>13</td>
+<td>Honest-data review + presentations</td>
+<td>50 min</td>
+<td>present results with MEASURED / DERIVED / ESTIMATE labels</td>
+<td>rubric</td>
+</tr>
+</tbody>
+</table>
+<p>Total ≈ 18–22 class periods (ESTIMATE). A no-hardware version (Sessions 1, 2, 4–7, 13 + simulated data) takes ≈ 9 periods.</p>
+<h1>4. Key concepts (teacher notes)</h1>
+<h2>CAD (parametric design)</h2>
+<p>The robot is code: CadQuery scripts build each solid from named parameters (e.g. pedestal radius <code>ped_R = 95</code>). Change a parameter, rebuild, and every dependent part updates. A <em>fit check</em> then tests every pair of parts for overlap. Point out the honesty label: <strong>DESIGN TARGET — not printed or test-fitted</strong> — a model is a plan, not proof.</p>
+<h2>3D printing</h2>
+<p>Layer lines are weakest across layers, so pegs print upright and shells print split-face down. Walls carry strength more than infill. Heat-set inserts give durable threads in plastic. Light-tight parts (the shield) need opaque filament and 100 % top layers.</p>
+<h2>I2C and I2S</h2>
+<ul>
+<li><strong>I2C</strong>: two wires (SDA data, SCL clock) shared by many devices, each with a 7-bit <strong>address</strong> (BH1750 0x23, MAX30102 0x57, IMU 0x68, BME280 0x76; AS7341 0x39). Lines are open-drain, so <strong>pull-up resistors</strong> (R3/R4, R9/R10) pull them high; too-weak pull-ups make slow edges (rise time ≈ 0.847·R·C).</li>
+<li><strong>I2S</strong>: a digital-audio bus with a bit clock (BCLK), a word-select/left-right clock (WS/LRC) and data. The mic uses I2S0; the amplifier uses I2S1.</li>
+<li>The station's sensor is on a <strong>second I2C bus</strong> because its cable plugs/unplugs (pogo) and is longer — a fault there can't freeze the main sensors.</li>
+</ul>
+<h2>Sensors</h2>
+<p>IMU (motion), BME280 (temperature/humidity/pressure), BH1750 (light, lux), MAX30102 (pulse-oximetry optics), INMP441 (sound), GNSS (position), AS7341 (colour spectrum). Each produces <strong>raw readings</strong> — the starting point of honesty.</p>
+<h2>Spectroscopy basics</h2>
+<p>White light is a mix of wavelengths. The AS7341 has 8 visible channels (≈415–680 nm), Clear, and NIR (≈910 nm). Shine light <strong>through</strong> a crystal (transmission) and compare with a white reference: <code>T = (S − D)/(W − D)</code> where S = sample, D = dark, W = white (PTFE). Under 365 nm UV some materials <strong>fluoresce</strong> (re-emit longer wavelengths); a UV-cut filter blocks the UV so only that glow is measured.</p>
+<h2>Power</h2>
+<p>USB-C supplies 5 V. The PowerBoost charges the LiPo and boosts 3.7 V → 5.2 V (≈1 A max). The power budget shows ≈0.30 A typical and ≈0.97 A peak — <strong>tight</strong>, so firmware caps LED brightness at 8 % (decided 2026-11-09). Fuses (F1, F2), the cell's protection circuit, TVS/ESD diodes and bulk capacitors keep it safe.</p>
+<h2>MEASURED vs DERIVED vs ESTIMATE</h2>
+<table>
+<thead>
+<tr>
+<th>Label</th>
+<th>Meaning</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>MEASURED</td>
+<td>read directly from a sensor or meter</td>
+<td>AS7341 raw counts, battery volts on a meter</td>
+</tr>
+<tr>
+<td>DERIVED</td>
+<td>calculated from measurements</td>
+<td>T ratios, VBAT = 2 × Vadc</td>
+</tr>
+<tr>
+<td>ESTIMATE</td>
+<td>a model, guess, or classification with uncertainty</td>
+<td>"closest match: amethyst (62 %)", CAD dimensions, power budget</td>
+</tr>
+</tbody>
+</table>
+<p>No metaphysical or energy claims are made about crystals — the station measures <em>light</em>.</p>
+<h2>Architecture: "brain on the host, models are mouths"</h2>
+<p>The ESP32 streams JSON; the Beast Box host stores, compares and decides. AI language models can describe results but are not the source of truth — the data and its labels are. Ask students: <em>what would go wrong if the voice invented data?</em></p>
+<h1>5. Hands-on activities</h1>
+<ol>
+<li><strong>Parameter hunt (CAD).</strong> Change <code>ped_R</code> by +5 mm in a copy of <code>zs_lib.py</code>, rebuild, re-run <code>check.py</code>. Did anything collide? Record before/after.</li>
+<li><strong>Orientation debate (printing).</strong> Teams pick orientations for the leg, the visor and the shield; print the leg peg two ways and try to snap them (with eye protection).</li>
+<li><strong>LED resistor lab.</strong> Measure a real LED's Vf at 20 mA with a bench supply + resistor; recompute R20–R22. Compare to the guide's ESTIMATE.</li>
+<li><strong>I2C address map.</strong> Run an I2C scanner on the Stage 1 harness; draw the bus and label each address. Add a second BME280 — what happens and how would you fix it?</li>
+<li><strong>Pull-up scope / meter lab (advanced).</strong> Measure total pull-up resistance with breakouts connected; decide whether R3/R4 are needed (the DNP rule).</li>
+<li><strong>Power budget audit.</strong> Measure 5V_SYS current at idle, LEDs at 8 % (the firmware cap), and during speech audio; compare with the budget table.</li>
+<li><strong>Divider lab.</strong> Measure VBAT and GPIO5; verify Vadc = VBAT/2.</li>
+<li><strong>Spectroscopy lab.</strong> Dark → white → 3 samples (clear glass, coloured acrylic, a crystal). Compute T per channel; plot T vs wavelength; repeat 3× for repeatability.</li>
+<li><strong>Honest labelling.</strong> Students label a mixed list of 15 numbers from the project as MEASURED/DERIVED/ESTIMATE and defend their choices.</li>
+<li><strong>Safety walkthrough.</strong> Students write the interlock logic: when can the UV LED light? Trace S1, R23/R24 and the firmware conditions.</li>
+</ol>
+<h1>6. Discussion questions</h1>
+<ol>
+<li>Why does the robot's "brain" live on the host instead of on the ESP32? What are the trade-offs?</li>
+<li>What does "models are mouths" mean, and how does it protect against made-up answers?</li>
+<li>Why is the CAD labelled DESIGN TARGET — not printed or test-fitted? When could that label be removed?</li>
+<li>Why do I2C lines need pull-up resistors but I2S lines do not?</li>
+<li>Why give the crystal station its own I2C bus?</li>
+<li>Why is the UV interlock done in hardware (reed switch in series) <em>and</em> in firmware?</li>
+<li>The power budget says peak ≈0.97 A on a ≈1 A boost, even with LEDs capped at 8 %. What are three ways to get more margin?</li>
+<li>If the station says "looks like amethyst", is that MEASURED? What would make you trust it more?</li>
+<li>What is the difference between a crystal "absorbing" light and "fluorescing"?</li>
+<li>Who designed what in this project, and why does crediting matter (Cory's logic vs AI-generated CAD vs third-party modules)?</li>
+</ol>
+<h1>7. Assessment rubric</h1>
+<table>
+<thead>
+<tr>
+<th>Criterion</th>
+<th>4 — Exceeds</th>
+<th>3 — Meets</th>
+<th>2 — Approaching</th>
+<th>1 — Beginning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CAD understanding</td>
+<td>modifies a parameter, predicts and verifies effects, explains fit check</td>
+<td>explains parameters and reads part cards</td>
+<td>identifies parts and materials</td>
+<td>names parts only</td>
+</tr>
+<tr>
+<td>Printing decisions</td>
+<td>justifies orientation with layer-strength reasoning and tests it</td>
+<td>picks reasonable settings</td>
+<td>follows the plan</td>
+<td>needs full guidance</td>
+</tr>
+<tr>
+<td>Circuit calculations</td>
+<td>correct R, P, divider and rise-time math with units and margins</td>
+<td>correct R = (V − Vf)/I and divider</td>
+<td>partial calculations</td>
+<td>cannot set up the equation</td>
+</tr>
+<tr>
+<td>Schematic reading</td>
+<td>traces any net across sheets and matches designators to the BOM</td>
+<td>traces nets in one sheet</td>
+<td>finds components</td>
+<td>cannot read symbols</td>
+</tr>
+<tr>
+<td>Build quality and checks</td>
+<td>passes every CHECK first time; neat, labelled harness</td>
+<td>passes checks with minor rework</td>
+<td>skips some checks</td>
+<td>unsafe or incomplete</td>
+</tr>
+<tr>
+<td>Data honesty</td>
+<td>every value labelled correctly with reasons and uncertainty</td>
+<td>labels MEASURED/DERIVED/ESTIMATE correctly</td>
+<td>some mislabels</td>
+<td>no labels / overclaims</td>
+</tr>
+<tr>
+<td>Safety practice</td>
+<td>anticipates hazards, helps others</td>
+<td>follows all rules</td>
+<td>needs reminders</td>
+<td>unsafe behaviour (stop work)</td>
+</tr>
+<tr>
+<td>Communication</td>
+<td>clear presentation with data, credits and limits</td>
+<td>clear presentation</td>
+<td>incomplete</td>
+<td>missing</td>
+</tr>
+</tbody>
+</table>
+<h1>8. Safety and supervision checklist (teacher signs each)</h1>
+<table>
+<thead>
+<tr>
+<th>✔</th>
+<th>Item</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>☐</td>
+<td>Fire-safe area; LiPo-safe bag and sand/metal tin available; no unattended charging</td>
+</tr>
+<tr>
+<td>☐</td>
+<td>Battery is a <strong>protected</strong> cell, polarity checked, 3.6–4.2 V before install (adult)</td>
+</tr>
+<tr>
+<td>☐</td>
+<td>Fume extraction for soldering; eye protection for clipping and snapping tests</td>
+</tr>
+<tr>
+<td>☐</td>
+<td>Heat-set iron in a stand; students briefed that brass stays hot &gt; 1 min</td>
+</tr>
+<tr>
+<td>☐</td>
+<td>UV glasses (UV400) available; UV LED only with shield seated; interlock tested (shield off → UV_5V = 0 V) before any student use</td>
+</tr>
+<tr>
+<td>☐</td>
+<td>5 V / 3 A USB-C supply used (not PC ports) for powered tests</td>
+</tr>
+<tr>
+<td>☐</td>
+<td>5V↔GND and 3V3↔GND resistance &gt; 1 kΩ before every first power-on</td>
+</tr>
+<tr>
+<td>☐</td>
+<td>Station stored where young children cannot open the shield</td>
+</tr>
+<tr>
+<td>☐</td>
+<td>First-aid kit and burn procedure posted</td>
+</tr>
+</tbody>
+</table>
+<h1>9. Differentiation</h1>
+<ul>
+<li><strong>Support:</strong> pre-soldered modules on STEMMA/Qwiic cables; worked examples for every calculation; partner reading of schematics; a printed "net-label" cheat sheet; skip GNSS and IR.</li>
+<li><strong>Extension:</strong> write the missing firmware (LED, amp, battery, station) with honesty labels in the JSON; design a screw-retained shield; measure runtime and compare to the 1.9 h ESTIMATE; replace the boost with a 2 A design and redo the budget; build a spectral library with uncertainty.</li>
+<li><strong>No-hardware path:</strong> CAD + simulated datasets + calculations + labelling; use renders and part cards instead of printed parts.</li>
+<li><strong>Language support:</strong> glossary (designator, pull-up, decoupling, rail, net, address, transmission, fluorescence, ESTIMATE).</li>
+<li><strong>Accessibility:</strong> colour-blind-safe labels (all callouts also carry text and numbers); seated build stations.</li>
+</ul>
+<h1>10. Answer key</h1>
+<p><strong>Learning-check answers</strong></p>
+<ol>
+<li><strong>LED resistor, white:</strong> R = (5.0 − 3.0)/0.020 = <strong>100 Ω</strong>, P = 0.02² × 100 = <strong>0.04 W</strong> → 0.125 W part OK. <strong>UV:</strong> (5.0 − 3.6)/0.020 = 70 Ω → nearest E12 <strong>68 Ω</strong> → 20.6 mA. <strong>IR:</strong> (5.0 − 1.3)/0.020 = 185 Ω → <strong>180 Ω</strong> → 20.6 mA.</li>
+<li><strong>Battery divider:</strong> Vadc = VBAT × 100k/(100k + 100k) = VBAT/2 → 4.2 V → <strong>2.10 V</strong>, 3.0 V → <strong>1.50 V</strong>. Current = 4.2/200 k = <strong>21 µA</strong>.</li>
+<li><strong>I2C rise time:</strong> 0.847 × 2.2 kΩ × 100 pF ≈ <strong>186 ns</strong> &lt; 300 ns (fast mode) ✔.</li>
+<li><strong>Shield sense:</strong> 5.0 × 20k/(12k + 20k) = <strong>3.13 V</strong> → HIGH; shield off → 0 V.</li>
+<li><strong>LED current cap:</strong> 48 × 60 mA × 8 % = <strong>0.23 A</strong> (firmware cap 20/255 ≈ 7.8 %).</li>
+<li><strong>Power budget peak:</strong> 0.35 + 0.05 + 0.23 + 0.25 + 0.05 + 0.04 = <strong>0.97 A</strong> — just under the ≈1 A boost limit → tight (ESTIMATE).</li>
+<li><strong>Runtime:</strong> 1.0 Ah × 3.7 V × 0.85 / (5.2 V × 0.30 A) ≈ <strong>2.0 h</strong> (ESTIMATE).</li>
+<li><strong>Transmission:</strong> S = 2400, D = 400, W = 4400 → T = (2400 − 400)/(4400 − 400) = <strong>0.50</strong> (DERIVED).</li>
+</ol>
+<p><strong>Discussion answers (key points)</strong></p>
+<ol>
+<li>Host has far more compute, storage and models; the ESP32 stays simple, cheap, low-power and reliable. Trade-off: needs a link to the host.</li>
+<li>Language models <em>voice</em> results but are not the source of truth; data + labels are, so invented answers can be checked and rejected.</li>
+<li>Because nothing has been printed or test-fitted; remove only after a printed, assembled and measured build passes the checks.</li>
+<li>I2C is open-drain (devices only pull low), so something must pull high; I2S is push-pull.</li>
+<li>Hot-plug isolation (pogo) and a longer cable: a fault can't freeze the main sensor bus; it can also run slower (100 kHz).</li>
+<li>Defence in depth: firmware can crash or have bugs; the reed in series physically cuts UV current when the shield is off.</li>
+<li>Keep the 8 % LED cap, drop GNSS, limit speech volume (firmware gain 0.5), use a 2 A boost, or stagger loads.</li>
+<li>No — it's an ESTIMATE from nearest-match. Trust rises with calibrated, repeatable measurements, labelled reference samples, confidence values and raw data shown.</li>
+<li>Absorption removes some wavelengths from light passing through (lower T); fluorescence re-emits light at longer wavelengths after excitation (e.g. UV in → visible out).</li>
+<li>System logic and concept: Cory Davis (NavisWORLD). CAD geometry: AI-generated. Modules: their manufacturers. Credit gives accurate responsibility and respects people's work.</li>
+</ol>
+<p><strong>Activity 9 sample answers:</strong> AS7341 raw counts = MEASURED · T ratios = DERIVED · CAD 314 mm height = ESTIMATE (DESIGN TARGET) · meter reading of VBAT = MEASURED · VBAT from GPIO5 ×2 = DERIVED · power budget = ESTIMATE · crystal-type label = ESTIMATE · LED Vf from datasheet = ESTIMATE until measured.</p></body></html>

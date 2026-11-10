@@ -1,0 +1,4246 @@
+<!doctype html><html><head><meta charset='utf-8'><title>ZEREF SPARK Assembly Guide</title><style>
+@page { size: Letter; margin: 15mm 13mm 17mm 13mm;
+  @top-center { content: "DESIGN TARGET — not printed or test-fitted · CONCEPT DESIGN / NOT BUILT HARDWARE"; font: 7.5pt sans-serif; color: #b0006a; }
+  @bottom-left { content: "System logic & concept: Cory Davis (NavisWORLD) · CAD geometry: AI-generated (CadQuery) · PX = third-party module proxy"; font: 7pt sans-serif; color: #555; }
+  @bottom-right { content: counter(page) " / " counter(pages); font: 8pt sans-serif; } }
+body { font-family: 'DejaVu Sans', sans-serif; font-size: 9.6pt; line-height: 1.38; color: #111827; }
+h1 { color: #101633; border-bottom: 3px solid #ff2d9b; padding-bottom: 3px; page-break-before: always; font-size: 19pt; }
+h1.nobreak, .cover h1 { page-break-before: avoid; border: none; }
+h2 { color: #1d2a6b; font-size: 13.5pt; margin-top: 16px; } h3 { color: #3b2a6b; font-size: 11pt; }
+table { border-collapse: collapse; width: 100%; font-size: 7.8pt; margin: 6px 0 10px; page-break-inside: auto; }
+th { background: #101633; color: #e7ecff; text-align: left; padding: 3px 4px; } td { border-bottom: 1px solid #dde1ee; padding: 2.5px 4px; vertical-align: top; }
+tr { page-break-inside: avoid; } tr:nth-child(even) td { background: #f6f7fb; }
+img { max-width: 100%; } .sch { page-break-inside: avoid; margin: 8px 0; } .sch img { width: 100%; border: 1px solid #ccd; }
+.cap { font-size: 8pt; color: #555; text-align: center; margin: 2px 0 8px; }
+.step { page-break-before: always; } .step img { width: 100%; border: 1px solid #ccd; }
+.box { border-left: 4px solid #ff2d9b; background: #fff3fa; padding: 6px 10px; margin: 8px 0; }
+.chk { border-left: 4px solid #0a9d6e; background: #effbf6; padding: 6px 10px; margin: 8px 0; }
+.warn { border: 2px solid #d12; background: #fff0f0; padding: 8px 12px; margin: 8px 0; }
+.cards { display: grid; grid-template-columns: 1fr; gap: 6px; } .cards img { width: 100%; height: auto; page-break-inside: avoid; border: 1px solid #ddd; }
+.cover { text-align: center; } .cover img { width: 82%; } .tag { display: inline-block; background: #101633; color: #7ff6ff; padding: 4px 10px; border-radius: 4px; margin: 3px; font-size: 9pt; }
+code { background: #eef; padding: 0 3px; font-size: 8.6pt; } pre { background: #f4f5fa; padding: 6px; font-size: 7.6pt; white-space: pre-wrap; }
+</style></head><body><div class="cover">
+<h1 class="nobreak">ZEREF SPARK — Assembly Guide</h1>
+<p><strong>Chibi companion robot on a floating pedestal with a crystal-reading station · v0.4 (all decisions made, firmware zs-0.4.0)</strong></p>
+<p><span class="tag">DESIGN TARGET — not printed or test-fitted</span> <span class="tag">CONCEPT DESIGN / NOT BUILT HARDWARE</span></p>
+<p><img src="../renders/01_hero_three_quarter.png"></p>
+<p><strong>System logic, architecture and concept: Cory Davis (NavisWORLD)</strong> — Reality Bridge / Beast Box (“the brain lives on the host; models are mouths”).
+CAD geometry, renders and this guide were <strong>AI-generated</strong> from Cory's logic (CadQuery). Parts marked <strong>PX</strong> are <strong>third-party modules</strong> shown as simplified proxy shapes — measure your purchased boards.
+Height target 314 mm (robot) · ≈371 mm with pedestal. Every dimension and electrical value marked ESTIMATE is unverified.</p>
+</div>
+<h1>1. Safety — read before you start</h1>
+<div class="warn">
+<p><strong>Adult supervision is required for every soldering, LiPo, heat-set and UV step.</strong></p>
+</div>
+<h2>LiPo battery (BT1)</h2>
+<ul>
+<li>Use only a <strong>protected</strong> 1S cell (PCM board under the wrap). Never puncture, bend, crush or screw into it; mount with foam tape only.</li>
+<li>Charge only through the PowerBoost (U1) — never a bare supply. Never charge unattended or on a flammable surface; a LiPo-safe bag is recommended for first charges.</li>
+<li>Check polarity of the JST-PH lead before connecting (no industry standard). A reversed cell can destroy U1 instantly.</li>
+<li>Swollen, hot, hissing or smelling cell → disconnect (if safe), move outside onto sand/concrete, do not reuse.</li>
+<li>Keep F2 (optional) and the cell PCM in place; never bypass them.</li>
+</ul>
+<h2>UV-A 365 nm (D5)</h2>
+<ul>
+<li>365 nm is barely visible, so your eyes don't blink or look away from it. <strong>Never look at the UV LED, lit or not,</strong> and never run it with the shield off. The reed interlock cuts its current in hardware, and firmware also requires shield sense + AS7341 ACK.</li>
+<li>Firmware limits: UV on ≤ 2 s per reading, ≥ 5 s off between readings, a watchdog forces it off, and it stays off at boot.</li>
+<li>For bench work with the shield off, power the UV LED <strong>only</strong> through a current-limited supply ≤ 20 mA, wear UV-blocking safety glasses (EN 166 / ANSI Z87 + UV400), and keep skin out of the beam.</li>
+<li>Check the LED's datasheet photobiological risk group (IEC 62471). Use a low-power 20 mA part, not a high-power "UV torch" LED.</li>
+<li>Keep the station out of reach of young children. Cory's family: Caleb should not be able to open the shield while the robot is powered. Use a screw-retained shield if needed (open decision).</li>
+<li>Fluorescence work is low-power only. Don't use the station to cure resin or sterilise anything.</li>
+</ul>
+<h2>Soldering</h2>
+<ul>
+<li>Ventilate / use a fume extractor; lead-free solder recommended; wash hands after.</li>
+<li>Iron rests in its stand; the tip is ~350 °C. Wear eye protection when clipping leads.</li>
+<li>Never solder on a powered circuit or with the LiPo connected.</li>
+</ul>
+<h2>Heat-set inserts</h2>
+<ul>
+<li>Insert tip ≈ 220 °C (PLA) / 245 °C (PETG). The brass stays hot for over a minute — use tweezers, never fingers.</li>
+<li>Push straight; if an insert tilts, reheat and correct immediately.</li>
+</ul>
+<h2>Electrical</h2>
+<ul>
+<li>USB-C supply: 5 V / 3 A. Do not connect the DevKit's own USB 5 V to the robot while 5V_SYS is powered (back-feed). The USB pigtail carries D+/D−/GND only.</li>
+<li>Before first power-on of each stage, measure 5V↔GND and 3V3↔GND resistance: &gt; 1 kΩ (after caps charge).</li>
+</ul>
+<h1>2. Tools and consumables</h1>
+<table>
+<thead>
+<tr>
+<th>Tool</th>
+<th>Used for</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>FDM printer (≥ 200 × 200 mm bed), PETG + PLA (+ clear resin optional)</td>
+<td>all printed parts</td>
+</tr>
+<tr>
+<td>Temperature-controlled soldering iron, fine tip, lead-free solder, flux, desoldering braid</td>
+<td>wiring, passives</td>
+</tr>
+<tr>
+<td>Heat-set insert tip for M3</td>
+<td>ZS-F01 inserts</td>
+</tr>
+<tr>
+<td>Multimeter (V, Ω, continuity, diode test)</td>
+<td>every check</td>
+</tr>
+<tr>
+<td>Hex/Phillips drivers (M2, M2.5, M3), small pliers, flush cutters</td>
+<td>fasteners</td>
+</tr>
+<tr>
+<td>Wire strippers 22–30 AWG, crimp tool for JST-PH / JST-SH (or pre-crimped leads)</td>
+<td>harness</td>
+</tr>
+<tr>
+<td>Heat-shrink 1.5–6 mm, Kapton tape, foam tape, hot-glue gun, CA glue, clear silicone</td>
+<td>insulation, mounting</td>
+</tr>
+<tr>
+<td>Hobby knife, files, 400–1000 grit paper, isopropyl alcohol</td>
+<td>cleanup, window cleaning</td>
+</tr>
+<tr>
+<td>UV-blocking safety glasses (UV400, EN 166 / ANSI Z87)</td>
+<td>any bench UV work</td>
+</tr>
+<tr>
+<td>LiPo-safe bag, fume extractor</td>
+<td>safety</td>
+</tr>
+<tr>
+<td>Computer with VS Code + PlatformIO, USB-C data cable (RB-009), 5 V / 3 A USB-C supply</td>
+<td>firmware, power</td>
+</tr>
+<tr>
+<td>PTFE white reference disc (ZS-S12) and dark plug ZS-605</td>
+<td>calibration</td>
+</tr>
+</tbody>
+</table>
+<h1>3. Bill of materials (complete)</h1>
+<p>Mechanical, module and printed rows first, then every electrical/passive part (v0.3). Full electrical detail: <code>docs/BOM_electrical.csv</code>.</p>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Part</th>
+<th>Qty</th>
+<th>Type</th>
+<th>Material / source</th>
+<th>Location in robot</th>
+<th>Function</th>
+<th>Status</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>RB-001</td>
+<td>ESP32-S3 DevKitC-1 or compatible</td>
+<td>1</td>
+<td>Purchased (Reality Bridge)</td>
+<td>Espressif or compatible</td>
+<td>Torso – back face of ZS-303 cradle (USB end down)</td>
+<td>MCU / Wi-Fi / USB – the nervous system</td>
+<td>Required</td>
+<td>Proxy 26x14x69 mm ESTIMATE incl. headers; verify the purchased board. Retained by rails + 2 zip ties</td>
+</tr>
+<tr>
+<td>RB-002</td>
+<td>ICM-42688-P breakout</td>
+<td>1</td>
+<td>Purchased (Reality Bridge)</td>
+<td>breakout</td>
+<td>Torso – ZS-304 sensor sled (z~100 near body centre)</td>
+<td>6-axis IMU (motion / tilt / tap)</td>
+<td>Required</td>
+<td>Proxy 23x18x4 ESTIMATE</td>
+</tr>
+<tr>
+<td>RB-003</td>
+<td>BH1750 breakout</td>
+<td>1</td>
+<td>Purchased (Reality Bridge)</td>
+<td>breakout</td>
+<td>Right ear pod (ZS-202) behind 8 mm window in ZS-205</td>
+<td>Ambient light</td>
+<td>Required</td>
+<td>Proxy 18x16x4 ESTIMATE; LED-ring light leak – firmware must sample with pod LEDs off</td>
+</tr>
+<tr>
+<td>RB-004</td>
+<td>BME280 breakout</td>
+<td>1</td>
+<td>Purchased (Reality Bridge)</td>
+<td>breakout</td>
+<td>Torso – lower sensor sled behind front belly vents</td>
+<td>Temp / humidity / pressure</td>
+<td>Required</td>
+<td>Kept away from ESP32 heat; readings will still be biased by internal heat (ESTIMATE)</td>
+</tr>
+<tr>
+<td>RB-005</td>
+<td>MAX30102 breakout</td>
+<td>1</td>
+<td>Purchased (Reality Bridge)</td>
+<td>breakout</td>
+<td>Torso – behind chest core centre (looks out through ZS-307)</td>
+<td>Optical waveform – NOT MEDICAL</td>
+<td>Optional</td>
+<td>Proxy 22x18x5 ESTIMATE; 11 mm light pipe may be too long for a usable signal – open decision</td>
+</tr>
+<tr>
+<td>RB-006</td>
+<td>INMP441 breakout</td>
+<td>1</td>
+<td>Purchased (Reality Bridge)</td>
+<td>breakout</td>
+<td>Left ear pod (ZS-201) behind mic holes in ZS-204</td>
+<td>I2S microphone</td>
+<td>Required</td>
+<td>Proxy 23x15x4 ESTIMATE; L/R pin to GND</td>
+</tr>
+<tr>
+<td>RB-007</td>
+<td>NEO-M9N-class GNSS breakout</td>
+<td>1</td>
+<td>Purchased (Reality Bridge)</td>
+<td>breakout</td>
+<td>Head – back face of ZS-103 near crown</td>
+<td>GNSS</td>
+<td>Optional</td>
+<td>Proxy 30x25x6 ESTIMATE; indoor reception will be poor</td>
+</tr>
+<tr>
+<td>RB-008</td>
+<td>M3 x 8 mm screws</td>
+<td>8</td>
+<td>Fastener (Reality Bridge)</td>
+<td>steel</td>
+<td>4 torso split bosses + 4 head split bosses</td>
+<td>Close shells (clamp bulkheads + captured pegs)</td>
+<td>Reference</td>
+<td>Used through back-half clearance bosses into front-half heat-set inserts</td>
+</tr>
+<tr>
+<td>RB-009</td>
+<td>USB-C data/power cable</td>
+<td>1</td>
+<td>Purchased (Reality Bridge)</td>
+<td></td>
+<td>Pedestal USB-C port to host / 5 V supply</td>
+<td>Power + data to Beast Box host</td>
+<td>Required</td>
+<td>Use a 5 V / 3 A capable cable + supply</td>
+</tr>
+<tr>
+<td>ZS-101</td>
+<td>Head shell front</td>
+<td>1</td>
+<td>Printed</td>
+<td>PETG or PLA matte navy</td>
+<td>Head</td>
+<td>Helmet front + visor ledge + accent-pipe holes</td>
+<td>Design target</td>
+<td>4 x M3 heat-set inserts</td>
+</tr>
+<tr>
+<td>ZS-102</td>
+<td>Head shell back</td>
+<td>1</td>
+<td>Printed</td>
+<td>PETG or PLA matte navy</td>
+<td>Head</td>
+<td>Helmet back + speaker grille/ring</td>
+<td>Design target</td>
+<td></td>
+</tr>
+<tr>
+<td>ZS-103</td>
+<td>Head bulkhead</td>
+<td>1</td>
+<td>Printed</td>
+<td>PETG</td>
+<td>Head split plane</td>
+<td>Mount plate: face carrier / amp / GNSS / optional LiPo</td>
+<td>Design target</td>
+<td>Clamped between head shells</td>
+</tr>
+<tr>
+<td>ZS-104</td>
+<td>Visor</td>
+<td>1</td>
+<td>Printed or thermoformed</td>
+<td>smoked translucent PETG (or 1.5 mm smoked PETG sheet vacuum-formed)</td>
+<td>Head front</td>
+<td>Black glossy face; eyes glow through</td>
+<td>Design target</td>
+<td>Glue / silicone onto ZS-101 ledge</td>
+</tr>
+<tr>
+<td>ZS-105</td>
+<td>Face carrier</td>
+<td>1</td>
+<td>Printed</td>
+<td>PETG black</td>
+<td>Behind visor</td>
+<td>Holds eye LED strips + light pipes</td>
+<td>Design target</td>
+<td>2 x 2.5 mm PT screws into ZS-103</td>
+</tr>
+<tr>
+<td>ZS-106</td>
+<td>Eye light pipe (happy arc)</td>
+<td>2</td>
+<td>Printed</td>
+<td>clear PETG / clear resin</td>
+<td>Behind visor</td>
+<td>Cyan happy-closed-eye arcs</td>
+<td>Design target</td>
+<td></td>
+</tr>
+<tr>
+<td>ZS-107</td>
+<td>Accent light pipe</td>
+<td>2</td>
+<td>Printed</td>
+<td>clear resin</td>
+<td>Top of head</td>
+<td>Magenta accent lights</td>
+<td>Design target</td>
+<td>Flange retained inside head</td>
+</tr>
+<tr>
+<td>ZS-108</td>
+<td>Neck coupler</td>
+<td>1</td>
+<td>Printed</td>
+<td>PETG</td>
+<td>Neck</td>
+<td>Captured between both shell pairs; 14 mm harness bore</td>
+<td>Design target</td>
+<td></td>
+</tr>
+<tr>
+<td>ZS-201</td>
+<td>Ear pod L (mic)</td>
+<td>1</td>
+<td>Printed</td>
+<td>PETG matte navy</td>
+<td>Left side of head</td>
+<td>Houses INMP441 + LED ring; flanged peg captured by head split</td>
+<td>Design target</td>
+<td></td>
+</tr>
+<tr>
+<td>ZS-202</td>
+<td>Ear pod R (light)</td>
+<td>1</td>
+<td>Printed</td>
+<td>PETG matte navy</td>
+<td>Right side of head</td>
+<td>Houses BH1750 + LED ring</td>
+<td>Design target</td>
+<td></td>
+</tr>
+<tr>
+<td>ZS-203</td>
+<td>Pod rim diffuser</td>
+<td>2</td>
+<td>Printed</td>
+<td>translucent white/violet PETG</td>
+<td>Pod outer rim</td>
+<td>Violet rim light</td>
+<td>Design target</td>
+<td></td>
+</tr>
+<tr>
+<td>ZS-204</td>
+<td>Pod cap L (mic holes)</td>
+<td>1</td>
+<td>Printed</td>
+<td>PETG gloss black</td>
+<td>Left pod face</td>
+<td>Mic port array</td>
+<td>Design target</td>
+<td>Snap/glue into rim</td>
+</tr>
+<tr>
+<td>ZS-205</td>
+<td>Pod cap R (light window)</td>
+<td>1</td>
+<td>Printed</td>
+<td>PETG gloss black + clear window</td>
+<td>Right pod face</td>
+<td>BH1750 window</td>
+<td>Design target</td>
+<td></td>
+</tr>
+<tr>
+<td>ZS-206</td>
+<td>Ear (rabbit)</td>
+<td>2</td>
+<td>Printed</td>
+<td>PETG matte navy</td>
+<td>On top of pods</td>
+<td>Tall ears with inner-face slot row</td>
+<td>Design target</td>
+<td>1 x M3 x 10 self-tap each from inside pod</td>
+</tr>
+<tr>
+<td>ZS-301</td>
+<td>Torso shell front</td>
+<td>1</td>
+<td>Printed</td>
+<td>PETG matte navy</td>
+<td>Torso</td>
+<td>Egg front + chest hole + BME vents</td>
+<td>Design target</td>
+<td>4 x M3 heat-set inserts</td>
+</tr>
+<tr>
+<td>ZS-302</td>
+<td>Torso shell back</td>
+<td>1</td>
+<td>Printed</td>
+<td>PETG matte navy</td>
+<td>Torso</td>
+<td>Egg back + ESP32 vents</td>
+<td>Design target</td>
+<td></td>
+</tr>
+<tr>
+<td>ZS-303</td>
+<td>Torso bulkhead / ESP32 cradle</td>
+<td>1</td>
+<td>Printed</td>
+<td>PETG</td>
+<td>Torso split plane</td>
+<td>ESP32 rails on back; sensor sled on front</td>
+<td>Design target</td>
+<td></td>
+</tr>
+<tr>
+<td>ZS-304</td>
+<td>Sensor sled</td>
+<td>1</td>
+<td>Printed</td>
+<td>PETG</td>
+<td>Torso front of bulkhead</td>
+<td>IMU + BME280 carrier</td>
+<td>Design target</td>
+<td>2 x M2 x 6 self-tap</td>
+</tr>
+<tr>
+<td>ZS-305</td>
+<td>Chest core housing</td>
+<td>1</td>
+<td>Printed</td>
+<td>PETG black</td>
+<td>Chest</td>
+<td>Cup + optical baffle; LED ring and diffuser load from front</td>
+<td>Design target</td>
+<td></td>
+</tr>
+<tr>
+<td>ZS-306</td>
+<td>Chest ring diffuser</td>
+<td>1</td>
+<td>Printed</td>
+<td>translucent white PETG</td>
+<td>Chest</td>
+<td>Cyan ring glow</td>
+<td>Design target</td>
+<td>Press/glue</td>
+</tr>
+<tr>
+<td>ZS-307</td>
+<td>Chest centre lens</td>
+<td>1</td>
+<td>Printed</td>
+<td>clear (if MAX30102) or violet translucent</td>
+<td>Chest centre</td>
+<td>Magenta/violet centre / optical window</td>
+<td>Design target</td>
+<td></td>
+</tr>
+<tr>
+<td>ZS-401</td>
+<td>Arm</td>
+<td>2</td>
+<td>Printed</td>
+<td>PETG matte navy</td>
+<td>Shoulders</td>
+<td>Stubby arm + mitten hand; flanged peg captured by torso split</td>
+<td>Design target</td>
+<td>Static (no servo) in this revision</td>
+</tr>
+<tr>
+<td>ZS-402</td>
+<td>Leg</td>
+<td>2</td>
+<td>Printed</td>
+<td>PETG matte navy</td>
+<td>Hips</td>
+<td>Stubby leg + rounded foot; flanged peg captured</td>
+<td>Design target</td>
+<td>Static</td>
+</tr>
+<tr>
+<td>ZS-501</td>
+<td>Pedestal (rock hex) v0.2</td>
+<td>1</td>
+<td>Printed</td>
+<td>PLA dark grey/black 15% infill (station walls 100%)</td>
+<td>Base</td>
+<td>Floating base + crystal station cup / window seat / groove / pogo + reed pockets / driver bay / harness channels</td>
+<td>Design target</td>
+<td>Now 190 x 164.5 x 45 mm (ESTIMATE); 3 x 16 mm felt pads</td>
+</tr>
+<tr>
+<td>ZS-502</td>
+<td>Support tube</td>
+<td>1</td>
+<td>Purchased + cut</td>
+<td>clear acrylic tube 12 OD x 8 ID x 75 mm</td>
+<td>Pedestal to torso</td>
+<td>Floating support + 4-wire USB harness</td>
+<td>Design target</td>
+<td>Stiffness unverified – see open decisions</td>
+</tr>
+<tr>
+<td>ZS-E01</td>
+<td>WS2812B 12-LED ring (~37 mm OD)</td>
+<td>3</td>
+<td>Purchased</td>
+<td></td>
+<td>Chest + both pods</td>
+<td>Cyan chest ring / violet pod rims</td>
+<td>Proposed</td>
+<td>OD 37 / ID 23 ESTIMATE – verify ring you buy</td>
+</tr>
+<tr>
+<td>ZS-E02</td>
+<td>WS2812B strip segment (5 LEDs)</td>
+<td>2</td>
+<td>Purchased</td>
+<td></td>
+<td>Face carrier behind eye pipes</td>
+<td>Eye glow</td>
+<td>Proposed</td>
+<td></td>
+</tr>
+<tr>
+<td>ZS-E03</td>
+<td>WS2812B 2-LED accent board</td>
+<td>1</td>
+<td>Purchased/custom</td>
+<td></td>
+<td>Head crown inside</td>
+<td>Magenta accents</td>
+<td>Proposed</td>
+<td></td>
+</tr>
+<tr>
+<td>ZS-E04</td>
+<td>74AHCT125 (or SN74AHCT1G125) level shifter</td>
+<td>1</td>
+<td>Purchased</td>
+<td></td>
+<td>Torso harness</td>
+<td>3.3 V -&gt; 5 V LED data</td>
+<td>Proposed</td>
+<td></td>
+</tr>
+<tr>
+<td>ZS-E05</td>
+<td>MAX98357A I2S amp breakout</td>
+<td>1</td>
+<td>Purchased</td>
+<td></td>
+<td>Head bulkhead back</td>
+<td>Speaker amp</td>
+<td>Proposed</td>
+<td>Needs firmware addition (I2S1)</td>
+</tr>
+<tr>
+<td>ZS-E06</td>
+<td>28 mm 8 ohm ~1 W speaker</td>
+<td>1</td>
+<td>Purchased</td>
+<td></td>
+<td>Head back shell ring</td>
+<td>Voice / sounds from Beast Box host</td>
+<td>Proposed</td>
+<td>28 x 6 mm ESTIMATE</td>
+</tr>
+<tr>
+<td>ZS-E07</td>
+<td>USB-C receptacle breakout (with 5.1 k CC pull-downs)</td>
+<td>1</td>
+<td>Purchased</td>
+<td></td>
+<td>Pedestal back pocket</td>
+<td>Power + data entry</td>
+<td>Proposed</td>
+<td></td>
+</tr>
+<tr>
+<td>ZS-F01</td>
+<td>M3 heat-set insert (short)</td>
+<td>8</td>
+<td>Fastener</td>
+<td>brass</td>
+<td>Front shell bosses</td>
+<td></td>
+<td>Proposed</td>
+<td>4.0 mm pilot ESTIMATE – match your insert</td>
+</tr>
+<tr>
+<td>ZS-F02</td>
+<td>M3 x 10 self-tapping (plastic)</td>
+<td>2</td>
+<td>Fastener</td>
+<td></td>
+<td>Ears to pods</td>
+<td></td>
+<td>Proposed</td>
+<td></td>
+</tr>
+<tr>
+<td>ZS-F03</td>
+<td>M2 x 6 self-tapping</td>
+<td>2</td>
+<td>Fastener</td>
+<td></td>
+<td>Sensor sled</td>
+<td></td>
+<td>Proposed</td>
+<td></td>
+</tr>
+<tr>
+<td>ZS-F04</td>
+<td>2.5 mm PT screw x 12</td>
+<td>2</td>
+<td>Fastener</td>
+<td></td>
+<td>Face carrier posts</td>
+<td></td>
+<td>Proposed</td>
+<td></td>
+</tr>
+<tr>
+<td>ZS-F05</td>
+<td>Zip tie 2.5 mm</td>
+<td>2</td>
+<td>Fastener</td>
+<td></td>
+<td>ESP32 cradle</td>
+<td></td>
+<td>Proposed</td>
+<td></td>
+</tr>
+<tr>
+<td>ZS-W01</td>
+<td>Silicone wire 28 AWG assorted + JST-SH/PH connectors</td>
+<td>1 set</td>
+<td>Wiring</td>
+<td></td>
+<td>Neck + pods + tube</td>
+<td>Harness</td>
+<td>Proposed</td>
+<td>~14 conductors through 14 mm neck bore</td>
+</tr>
+<tr>
+<td>ZS-109</td>
+<td>Battery tray</td>
+<td>1</td>
+<td>Printed</td>
+<td>PETG</td>
+<td>Head bulkhead back</td>
+<td>Holds 503450 LiPo (slides in from top)</td>
+<td>Design target</td>
+<td>2 x M2 x 6 into ZS-103</td>
+</tr>
+<tr>
+<td>ZS-B01</td>
+<td>1S LiPo 503450 ~1000 mAh WITH protection PCM (DW01-class)</td>
+<td>1</td>
+<td>Purchased</td>
+<td></td>
+<td>ZS-109 tray</td>
+<td>Untethered power</td>
+<td>Approved</td>
+<td>503450 = 5.0 x 34 x 50 mm nominal; must have built-in protection (over-charge / over-discharge / over-current / short); JST-PH 2-pin matching PowerBoost polarity – CHECK polarity</td>
+</tr>
+<tr>
+<td>ZS-B02</td>
+<td>Adafruit PowerBoost 1000C (MCP73871 charger + load-sharing power path + TPS61090 5.2 V boost)</td>
+<td>1</td>
+<td>Purchased</td>
+<td>Adafruit #2465</td>
+<td>Head bulkhead back (x 12..48 z 158..181)</td>
+<td>Charge + power path + 5 V boost</td>
+<td>Approved</td>
+<td>~36 x 23 x 5 mm without USB-A (ESTIMATE; Adafruit lists 23 x 45 x 10 with USB-A); 1 A boost output limit; MCP73871 datasheet DS20002090; 2 x M2.5/M2 screws</td>
+</tr>
+<tr>
+<td>ZS-B03</td>
+<td>SS12D00-class slide switch</td>
+<td>1</td>
+<td>Purchased</td>
+<td></td>
+<td>Head back shell slot (x~30 z~176)</td>
+<td>PowerBoost EN to GND = OFF</td>
+<td>Approved</td>
+<td>Signal-level switch only (EN pin)</td>
+</tr>
+<tr>
+<td>ZS-B04</td>
+<td>Resistors 100 k + 100 k (0.1%) + 100 nF</td>
+<td>1 set</td>
+<td>Purchased</td>
+<td></td>
+<td>Torso harness</td>
+<td>Battery voltage divider to GPIO5 (ADC1_CH4)</td>
+<td>Approved</td>
+<td></td>
+</tr>
+<tr>
+<td>ZS-601</td>
+<td>Station LED plug</td>
+<td>1</td>
+<td>Printed</td>
+<td>white PETG (mixing cavity white or PTFE-tape lined)</td>
+<td>Pedestal underside at station</td>
+<td>Holds white / 365 nm / 940 nm LED board under window</td>
+<td>Design target</td>
+<td>2 x M3 x 8 self-tap</td>
+</tr>
+<tr>
+<td>ZS-602</td>
+<td>Light shield (removable)</td>
+<td>1</td>
+<td>Printed</td>
+<td>opaque black PETG or PLA (check with torch for pinholes; paint inside matte black)</td>
+<td>Over crystal cup</td>
+<td>Ambient shade + carries AS7341; skirt in groove = light trap</td>
+<td>Design target</td>
+<td>Lift 5 mm then slide forward (removal path checked: 4.2 mm to torso)</td>
+</tr>
+<tr>
+<td>ZS-603</td>
+<td>Sensor mount disc</td>
+<td>1</td>
+<td>Printed</td>
+<td>matte black PETG</td>
+<td>Inside shield top</td>
+<td>AS7341 board + 12 mm aperture + optional 20 mm UV-cut filter recess</td>
+<td>Design target</td>
+<td>2 x M2 x 5</td>
+</tr>
+<tr>
+<td>ZS-604</td>
+<td>Driver bay cover</td>
+<td>1</td>
+<td>Printed</td>
+<td>PLA</td>
+<td>Pedestal bottom</td>
+<td>Closes MOSFET driver bay</td>
+<td>Design target</td>
+<td>2 x M2 x 6 self-tap</td>
+</tr>
+<tr>
+<td>ZS-605</td>
+<td>Dark-reference plug</td>
+<td>1</td>
+<td>Printed</td>
+<td>opaque black PLA (100% infill)</td>
+<td>Crystal cup (instead of crystal)</td>
+<td>Stray-light / dark-reference check</td>
+<td>Design target</td>
+<td></td>
+</tr>
+<tr>
+<td>ZS-S01</td>
+<td>AS7341 11-channel spectral sensor breakout (Adafruit #4698 or equivalent)</td>
+<td>1</td>
+<td>Purchased</td>
+<td>ams-OSRAM AS7341 datasheet DS000504</td>
+<td>ZS-603 in shield looking down</td>
+<td>Crystal transmission / fluorescence raw channel counts F1-F8 (415-680 nm) + Clear + NIR (910 nm) + flicker</td>
+<td>Approved</td>
+<td>I2C 0x39 (fixed); board ~25.6 x 17.8 mm ESTIMATE; alternative AS7343 (14 ch) – verify its address and register map in its own ams-OSRAM datasheet before swapping</td>
+</tr>
+<tr>
+<td>ZS-S02</td>
+<td>Borosilicate (or fused-silica) window disc 29.6 x 2 mm</td>
+<td>1</td>
+<td>Purchased</td>
+<td></td>
+<td>Cup bottom window seat</td>
+<td>Passes 365 nm UV + visible + 940 nm</td>
+<td>Approved</td>
+<td>Do NOT use standard acrylic – it absorbs much of 365 nm</td>
+</tr>
+<tr>
+<td>ZS-S03</td>
+<td>UV-cut longpass filter disc 20 x 2 mm (e.g. ~420 nm longpass or UV-blocking acrylic)</td>
+<td>1</td>
+<td>Purchased</td>
+<td></td>
+<td>ZS-603 recess</td>
+<td>Blocks 365 nm leak into sensor in fluorescence mode</td>
+<td>Optional</td>
+<td>Remove for transmission mode</td>
+</tr>
+<tr>
+<td>ZS-S04</td>
+<td>White LED 3.5 x 3.5 mm (high-CRI preferred)</td>
+<td>1</td>
+<td>Purchased</td>
+<td></td>
+<td>Station LED board</td>
+<td>Transmission source</td>
+<td>Approved</td>
+<td>~20 mA (ESTIMATE – set by resistor)</td>
+</tr>
+<tr>
+<td>ZS-S05</td>
+<td>365 nm UV-A LED 3.5 x 3.5 mm low-power (~20 mA)</td>
+<td>1</td>
+<td>Purchased</td>
+<td></td>
+<td>Station LED board</td>
+<td>Fluorescence excitation</td>
+<td>Approved</td>
+<td>Check LED datasheet photobiological risk group (IEC 62471); see UV safety in ASSEMBLY.md</td>
+</tr>
+<tr>
+<td>ZS-S06</td>
+<td>940 nm IR LED 3.5 x 3.5 mm</td>
+<td>1</td>
+<td>Purchased</td>
+<td></td>
+<td>Station LED board</td>
+<td>NIR transmission</td>
+<td>Optional</td>
+<td></td>
+</tr>
+<tr>
+<td>ZS-S07</td>
+<td>Station LED board 20 x 20 mm (perfboard or custom)</td>
+<td>1</td>
+<td>Purchased/custom</td>
+<td></td>
+<td>ZS-601 pocket</td>
+<td>Carries ZS-S04/05/06</td>
+<td>Proposed</td>
+<td></td>
+</tr>
+<tr>
+<td>ZS-S08</td>
+<td>Driver board: 3 x AO3400A logic-level N-MOSFET + 3 x 100 R gate + 3 x 100 k pull-down + LED resistors (white 100 R / UV 68 R / IR 180 R at 5 V ESTIMATE)</td>
+<td>1</td>
+<td>Purchased/custom</td>
+<td></td>
+<td>Pedestal driver bay</td>
+<td>Low-side LED switches from GPIO 1 / 2 / 21 (v0.3)</td>
+<td>Approved</td>
+<td>Recompute resistors from the real LED Vf</td>
+</tr>
+<tr>
+<td>ZS-S09</td>
+<td>Glass reed switch ~12 mm (normally open)</td>
+<td>1</td>
+<td>Purchased</td>
+<td></td>
+<td>Pedestal reed slot (x -32)</td>
+<td>UV HARDWARE interlock (in series with UV LED) + shield sense</td>
+<td>Approved</td>
+<td>Glass – handle carefully</td>
+</tr>
+<tr>
+<td>ZS-S10</td>
+<td>Neodymium magnet 6 x 2 mm</td>
+<td>1</td>
+<td>Purchased</td>
+<td></td>
+<td>Shield flange pocket above reed</td>
+<td>Closes reed only when shield is seated</td>
+<td>Approved</td>
+<td></td>
+</tr>
+<tr>
+<td>ZS-S11</td>
+<td>4-pin magnetic pogo connector pair (receptacle + pads)</td>
+<td>1</td>
+<td>Purchased</td>
+<td></td>
+<td>Pedestal pocket (x 29..34) / shield flange</td>
+<td>AS7341 VIN GND SDA SCL to removable shield</td>
+<td>Approved</td>
+<td>~2.54 mm pitch ESTIMATE – pocket sized 5 x 8 mm</td>
+</tr>
+<tr>
+<td>ZS-S12</td>
+<td>PTFE white reference disc 25.4 x 3 mm (virgin PTFE sheet)</td>
+<td>1</td>
+<td>Purchased</td>
+<td></td>
+<td>Crystal cup (calibration only)</td>
+<td>White / diffuse-transmission reference</td>
+<td>Approved</td>
+<td>Keep clean; store in bag</td>
+</tr>
+<tr>
+<td>ZS-W02</td>
+<td>30 AWG silicone wire (11 conductors through tube) + twisted D+/D- pair</td>
+<td>1 set</td>
+<td>Wiring</td>
+<td></td>
+<td>ZS-502 tube</td>
+<td>USB + station harness</td>
+<td>Proposed</td>
+<td></td>
+</tr>
+<tr>
+<td>J1</td>
+<td>USB-C 16-pin receptacle breakout (5.1k CC pull-downs on board)</td>
+<td>1</td>
+<td>Electrical / passive (v0.3 electrical)</td>
+<td>Connector breakout 5 V / 3 A —</td>
+<td>Pedestal rear</td>
+<td>CC 5.1k = [OB]; only VBUS/GND/D+/D− used</td>
+<td>ADD (module)</td>
+<td>Sheet A — see docs/BOM_electrical.csv &amp; docs/schematics/</td>
+</tr>
+<tr>
+<td>D1</td>
+<td>USBLC6-2SC6</td>
+<td>1</td>
+<td>Electrical / passive (v0.3 electrical)</td>
+<td>ESD array SOT-23-6 5.25 V working —</td>
+<td>Pedestal, next to J1</td>
+<td>on D+/D−; VBUS pin to VBUS</td>
+<td>ADD</td>
+<td>Sheet A — see docs/BOM_electrical.csv &amp; docs/schematics/</td>
+</tr>
+<tr>
+<td>D2</td>
+<td>SMBJ5.0A</td>
+<td>1</td>
+<td>Electrical / passive (v0.3 electrical)</td>
+<td>TVS diode SMB (DO-214AA) 5.0 V standoff, 600 W pk —</td>
+<td>Pedestal, after J1</td>
+<td>clamps hot-plug spikes on VBUS</td>
+<td>ADD</td>
+<td>Sheet A — see docs/BOM_electrical.csv &amp; docs/schematics/</td>
+</tr>
+<tr>
+<td>F1</td>
+<td>PTC resettable fuse 2.0 A hold / ~4 A trip</td>
+<td>1</td>
+<td>Electrical / passive (v0.3 electrical)</td>
+<td>Polyfuse 1812 6 V —</td>
+<td>Pedestal</td>
+<td>VBUS peak ≈1.87 A (charger limit 1.8 A + station LEDs 60 mA)</td>
+<td>ADD · ESTIMATE</td>
+<td>Sheet A — see docs/BOM_electrical.csv &amp; docs/schematics/</td>
+</tr>
+<tr>
+<td>C1</td>
+<td>10 µF</td>
+<td>1</td>
+<td>Electrical / passive (v0.3 electrical)</td>
+<td>MLCC X5R 0805 10 V ±10%</td>
+<td>Pedestal after F1</td>
+<td>VBUS local decoupling</td>
+<td>ADD</td>
+<td>Sheet A — see docs/BOM_electrical.csv &amp; docs/schematics/</td>
+</tr>
+<tr>
+<td>C2</td>
+<td>47 µF</td>
+<td>1</td>
+<td>Electrical / passive (v0.3 electrical)</td>
+<td>Polymer / low-ESR electrolytic radial 6.3 mm 10 V ±20%</td>
+<td>Head, at U1 USB pad</td>
+<td>absorbs cable inductance at charger input</td>
+<td>ADD</td>
+<td>Sheet A — see docs/BOM_electrical.csv &amp; docs/schematics/</td>
+</tr>
+<tr>
+<td>F2</td>
+<td>PTC 2.0 A hold</td>
+<td>1</td>
+<td>Electrical / passive (v0.3 electrical)</td>
+<td>Polyfuse 1812 6 V —</td>
+<td>Battery lead</td>
+<td>backup to cell PCM</td>
+<td>ADD (optional) · ESTIMATE</td>
+<td>Sheet A — see docs/BOM_electrical.csv &amp; docs/schematics/</td>
+</tr>
+<tr>
+<td>SW1</td>
+<td>SS12D00 SPDT slide switch</td>
+<td>1</td>
+<td>Electrical / passive (v0.3 electrical)</td>
+<td>Switch through-hole 2.54 mm 50 V / 0.5 A —</td>
+<td>Head rear</td>
+<td>EN to GND = OFF (switch closed = OFF). Charging still works when OFF.</td>
+<td>ADD</td>
+<td>Sheet A — see docs/BOM_electrical.csv &amp; docs/schematics/</td>
+</tr>
+<tr>
+<td>C3</td>
+<td>220 µF</td>
+<td>1</td>
+<td>Electrical / passive (v0.3 electrical)</td>
+<td>Polymer / low-ESR electrolytic radial 6.3 mm 10 V ±20%</td>
+<td>At U1 5V out</td>
+<td>boost output reservoir for LED + amp peaks</td>
+<td>ADD</td>
+<td>Sheet A — see docs/BOM_electrical.csv &amp; docs/schematics/</td>
+</tr>
+<tr>
+<td>C4</td>
+<td>100 nF</td>
+<td>1</td>
+<td>Electrical / passive (v0.3 electrical)</td>
+<td>MLCC X7R 0603 16 V ±10%</td>
+<td>At U1 5V out</td>
+<td>HF decoupling</td>
+<td>ADD</td>
+<td>Sheet A — see docs/BOM_electrical.csv &amp; docs/schematics/</td>
+</tr>
+<tr>
+<td>C6</td>
+<td>10 µF</td>
+<td>1</td>
+<td>Electrical / passive (v0.3 electrical)</td>
+<td>MLCC X5R 0805 10 V ±10%</td>
+<td>At U0 5V pin</td>
+<td>DevKit input decoupling</td>
+<td>ADD</td>
+<td>Sheet A — see docs/BOM_electrical.csv &amp; docs/schematics/</td>
+</tr>
+<tr>
+<td>R1</td>
+<td>100 kΩ</td>
+<td>1</td>
+<td>Electrical / passive (v0.3 electrical)</td>
+<td>Thick film 0603 0.1 W ±1%</td>
+<td>Torso harness</td>
+<td>divider top: VBAT → VBAT_SENSE</td>
+<td>ADD</td>
+<td>Sheet A — see docs/BOM_electrical.csv &amp; docs/schematics/</td>
+</tr>
+<tr>
+<td>R2</td>
+<td>100 kΩ</td>
+<td>1</td>
+<td>Electrical / passive (v0.3 electrical)</td>
+<td>Thick film 0603 0.1 W ±1%</td>
+<td>Torso harness</td>
+<td>Vadc = VBAT·R2/(R1+R2) = VBAT/2 → 1.50–2.10 V; I = 4.2/200k = 21 µA</td>
+<td>ADD</td>
+<td>Sheet A — see docs/BOM_electrical.csv &amp; docs/schematics/</td>
+</tr>
+<tr>
+<td>C5</td>
+<td>100 nF</td>
+<td>1</td>
+<td>Electrical / passive (v0.3 electrical)</td>
+<td>MLCC X7R 0603 16 V ±10%</td>
+<td>At GPIO5</td>
+<td>ADC sample-hold reservoir; τ = 50k·100n = 5 ms</td>
+<td>ADD</td>
+<td>Sheet A — see docs/BOM_electrical.csv &amp; docs/schematics/</td>
+</tr>
+<tr>
+<td>R3</td>
+<td>2.2 kΩ (DNP if breakouts' parallel pull-ups ≤ 3.3 kΩ)</td>
+<td>1</td>
+<td>Electrical / passive (v0.3 electrical)</td>
+<td>Thick film 0603 0.1 W ±1%</td>
+<td>Torso sled</td>
+<td>SDA0 pull-up; tr = 0.847·R·C = 0.847·2.2k·100pF = 186 ns ≤ 300 ns (400 kHz)</td>
+<td>ADD / DNP</td>
+<td>Sheet B — see docs/BOM_electrical.csv &amp; docs/schematics/</td>
+</tr>
+<tr>
+<td>R4</td>
+<td>2.2 kΩ (DNP rule as R3)</td>
+<td>1</td>
+<td>Electrical / passive (v0.3 electrical)</td>
+<td>Thick film 0603 0.1 W ±1%</td>
+<td>Torso sled</td>
+<td>SCL0 pull-up; sink current 3.3/2.2k = 1.5 mA ≤ 3 mA</td>
+<td>ADD / DNP</td>
+<td>Sheet B — see docs/BOM_electrical.csv &amp; docs/schematics/</td>
+</tr>
+<tr>
+<td>C7</td>
+<td>100 nF at U3 IMU</td>
+<td>1</td>
+<td>Electrical / passive (v0.3 electrical)</td>
+<td>MLCC X7R 0603 16 V ±10%</td>
+<td>U3</td>
+<td>add only if breakout lacks it</td>
+<td>OB (usually) / ADD</td>
+<td>Sheet B — see docs/BOM_electrical.csv &amp; docs/schematics/</td>
+</tr>
+<tr>
+<td>C8</td>
+<td>100 nF at U4 BME280</td>
+<td>1</td>
+<td>Electrical / passive (v0.3 electrical)</td>
+<td>MLCC X7R 0603 16 V ±10%</td>
+<td>U4</td>
+<td></td>
+<td>OB / ADD</td>
+<td>Sheet B — see docs/BOM_electrical.csv &amp; docs/schematics/</td>
+</tr>
+<tr>
+<td>C9</td>
+<td>100 nF at U5 BH1750</td>
+<td>1</td>
+<td>Electrical / passive (v0.3 electrical)</td>
+<td>MLCC X7R 0603 16 V ±10%</td>
+<td>U5</td>
+<td></td>
+<td>OB / ADD</td>
+<td>Sheet B — see docs/BOM_electrical.csv &amp; docs/schematics/</td>
+</tr>
+<tr>
+<td>C10</td>
+<td>100 nF at U6 MAX30102</td>
+<td>1</td>
+<td>Electrical / passive (v0.3 electrical)</td>
+<td>MLCC X7R 0603 16 V ±10%</td>
+<td>U6</td>
+<td>MAX30102 LED pulses need local cap</td>
+<td>OB / ADD</td>
+<td>Sheet B — see docs/BOM_electrical.csv &amp; docs/schematics/</td>
+</tr>
+<tr>
+<td>C11</td>
+<td>10 µF at U7 GNSS</td>
+<td>1</td>
+<td>Electrical / passive (v0.3 electrical)</td>
+<td>MLCC X5R 0805 10 V ±10%</td>
+<td>U7</td>
+<td>GNSS acquisition current bursts</td>
+<td>ADD (optional)</td>
+<td>Sheet B — see docs/BOM_electrical.csv &amp; docs/schematics/</td>
+</tr>
+<tr>
+<td>R5</td>
+<td>33 Ω</td>
+<td>1</td>
+<td>Electrical / passive (v0.3 electrical)</td>
+<td>Thick film 0603 0.1 W ±1%</td>
+<td>Near U0</td>
+<td>I2S0 BCLK series damping (long pod run)</td>
+<td>ADD (optional)</td>
+<td>Sheet C — see docs/BOM_electrical.csv &amp; docs/schematics/</td>
+</tr>
+<tr>
+<td>R6</td>
+<td>33 Ω</td>
+<td>1</td>
+<td>Electrical / passive (v0.3 electrical)</td>
+<td>Thick film 0603 0.1 W ±1%</td>
+<td>Near U0</td>
+<td>I2S0 WS series damping</td>
+<td>ADD (optional)</td>
+<td>Sheet C — see docs/BOM_electrical.csv &amp; docs/schematics/</td>
+</tr>
+<tr>
+<td>R7</td>
+<td>22 kΩ</td>
+<td>1</td>
+<td>Electrical / passive (v0.3 electrical)</td>
+<td>Thick film 0603 0.1 W ±1%</td>
+<td>At U9 SD</td>
+<td>boot-mute pull-down: V = 5·22k/(1M+22k) = 0.108 V below 0.16 V shutdown threshold (assumes 1M [OB] pull-up — verify on your board)</td>
+<td>ADD · ESTIMATE</td>
+<td>Sheet C — see docs/BOM_electrical.csv &amp; docs/schematics/</td>
+</tr>
+<tr>
+<td>C12</td>
+<td>100 µF</td>
+<td>1</td>
+<td>Electrical / passive (v0.3 electrical)</td>
+<td>Aluminium electrolytic radial 5 mm 10 V ±20%</td>
+<td>At U9 VIN</td>
+<td>class-D supply reservoir</td>
+<td>ADD</td>
+<td>Sheet C — see docs/BOM_electrical.csv &amp; docs/schematics/</td>
+</tr>
+<tr>
+<td>C13</td>
+<td>10 µF</td>
+<td>1</td>
+<td>Electrical / passive (v0.3 electrical)</td>
+<td>MLCC X5R 0805 10 V ±10%</td>
+<td>At U9 VIN</td>
+<td></td>
+<td>ADD</td>
+<td>Sheet C — see docs/BOM_electrical.csv &amp; docs/schematics/</td>
+</tr>
+<tr>
+<td>U2</td>
+<td>SN74AHCT1G125 (or 1 gate of 74AHCT125)</td>
+<td>1</td>
+<td>Electrical / passive (v0.3 electrical)</td>
+<td>Logic buffer SOT-23-5 / DIP-14 VCC 5 V —</td>
+<td>Torso</td>
+<td>3.3 V → 5 V level shift (VIH = 2.0 V at 5 V)</td>
+<td>ADD</td>
+<td>Sheet D — see docs/BOM_electrical.csv &amp; docs/schematics/</td>
+</tr>
+<tr>
+<td>C14</td>
+<td>100 nF</td>
+<td>1</td>
+<td>Electrical / passive (v0.3 electrical)</td>
+<td>MLCC X7R 0603 16 V ±10%</td>
+<td>At U2</td>
+<td></td>
+<td>ADD</td>
+<td>Sheet D — see docs/BOM_electrical.csv &amp; docs/schematics/</td>
+</tr>
+<tr>
+<td>R8</td>
+<td>330 Ω (300–500 Ω range)</td>
+<td>1</td>
+<td>Electrical / passive (v0.3 electrical)</td>
+<td>Thick film 0603 0.1 W ±1%</td>
+<td>At first LED DIN</td>
+<td>damps ringing / protects first WS2812 input</td>
+<td>ADD</td>
+<td>Sheet D — see docs/BOM_electrical.csv &amp; docs/schematics/</td>
+</tr>
+<tr>
+<td>C15</td>
+<td>1000 µF</td>
+<td>1</td>
+<td>Electrical / passive (v0.3 electrical)</td>
+<td>Aluminium electrolytic radial 8 mm 10 V ±20%</td>
+<td>Chest ring 5V/GND</td>
+<td>LED bulk — inrush &amp; surge protection</td>
+<td>ADD</td>
+<td>Sheet D — see docs/BOM_electrical.csv &amp; docs/schematics/</td>
+</tr>
+<tr>
+<td>C16</td>
+<td>100 µF</td>
+<td>1</td>
+<td>Electrical / passive (v0.3 electrical)</td>
+<td>Aluminium electrolytic radial 5 mm 10 V ±20%</td>
+<td>Pod ring L</td>
+<td></td>
+<td>ADD</td>
+<td>Sheet D — see docs/BOM_electrical.csv &amp; docs/schematics/</td>
+</tr>
+<tr>
+<td>C17</td>
+<td>100 µF</td>
+<td>1</td>
+<td>Electrical / passive (v0.3 electrical)</td>
+<td>Aluminium electrolytic radial 5 mm 10 V ±20%</td>
+<td>Pod ring R</td>
+<td></td>
+<td>ADD</td>
+<td>Sheet D — see docs/BOM_electrical.csv &amp; docs/schematics/</td>
+</tr>
+<tr>
+<td>C18</td>
+<td>100 µF</td>
+<td>1</td>
+<td>Electrical / passive (v0.3 electrical)</td>
+<td>Aluminium electrolytic radial 5 mm 10 V ±20%</td>
+<td>Eye boards</td>
+<td></td>
+<td>ADD</td>
+<td>Sheet D — see docs/BOM_electrical.csv &amp; docs/schematics/</td>
+</tr>
+<tr>
+<td>LED1–48</td>
+<td>WS2812B (100 nF per LED on ring PCBs)</td>
+<td>48</td>
+<td>Electrical / passive (v0.3 electrical)</td>
+<td>Smart LED 5050 5 V, 60 mA max each —</td>
+<td>Chest 12, eyes 2×5, pods 2×12, crown 2</td>
+<td>48·60 mA·8% brightness cap = 0.23 A peak (cap 10→8 % on 2026-11-09</td>
+<td>D1)</td>
+<td>OB (ring modules) · ESTIMATE</td>
+</tr>
+<tr>
+<td>J2</td>
+<td>4-pin magnetic pogo pair</td>
+<td>1</td>
+<td>Electrical / passive (v0.3 electrical)</td>
+<td>Connector 2.54 mm pitch 2 A per pin (typ.) —</td>
+<td>Pedestal ↔ shield</td>
+<td>VBUS, GND, SDA1_P, SCL1_P</td>
+<td>ADD · ESTIMATE</td>
+<td>Sheet E — see docs/BOM_electrical.csv &amp; docs/schematics/</td>
+</tr>
+<tr>
+<td>R9</td>
+<td>4.7 kΩ</td>
+<td>1</td>
+<td>Electrical / passive (v0.3 electrical)</td>
+<td>Thick film 0603 0.1 W ±1%</td>
+<td>Pedestal driver bay</td>
+<td>SDA1 pull-up; in parallel with [OB] 10k → 3.2k</td>
+<td>ADD</td>
+<td>Sheet E — see docs/BOM_electrical.csv &amp; docs/schematics/</td>
+</tr>
+<tr>
+<td>R10</td>
+<td>4.7 kΩ</td>
+<td>1</td>
+<td>Electrical / passive (v0.3 electrical)</td>
+<td>Thick film 0603 0.1 W ±1%</td>
+<td>Pedestal driver bay</td>
+<td>SCL1 pull-up</td>
+<td>ADD</td>
+<td>Sheet E — see docs/BOM_electrical.csv &amp; docs/schematics/</td>
+</tr>
+<tr>
+<td>R11</td>
+<td>100 Ω</td>
+<td>1</td>
+<td>Electrical / passive (v0.3 electrical)</td>
+<td>Thick film 0603 0.1 W ±1%</td>
+<td>Pedestal</td>
+<td>SDA1 series (hot-plug current limit)</td>
+<td>ADD</td>
+<td>Sheet E — see docs/BOM_electrical.csv &amp; docs/schematics/</td>
+</tr>
+<tr>
+<td>R12</td>
+<td>100 Ω</td>
+<td>1</td>
+<td>Electrical / passive (v0.3 electrical)</td>
+<td>Thick film 0603 0.1 W ±1%</td>
+<td>Pedestal</td>
+<td>SCL1 series</td>
+<td>ADD</td>
+<td>Sheet E — see docs/BOM_electrical.csv &amp; docs/schematics/</td>
+</tr>
+<tr>
+<td>R13</td>
+<td>10 kΩ (DNP if board has INT pull-up)</td>
+<td>1</td>
+<td>Electrical / passive (v0.3 electrical)</td>
+<td>Thick film 0603 0.1 W ±1%</td>
+<td>Pedestal</td>
+<td>AS_INT open-drain pull-up</td>
+<td>ADD / DNP</td>
+<td>Sheet E — see docs/BOM_electrical.csv &amp; docs/schematics/</td>
+</tr>
+<tr>
+<td>D3</td>
+<td>TPD4E05U06</td>
+<td>1</td>
+<td>Electrical / passive (v0.3 electrical)</td>
+<td>ESD array USON-10 / SOT 5.5 V working —</td>
+<td>At J2</td>
+<td>ESD on exposed pogo pins</td>
+<td>ADD</td>
+<td>Sheet E — see docs/BOM_electrical.csv &amp; docs/schematics/</td>
+</tr>
+<tr>
+<td>C19</td>
+<td>10 µF</td>
+<td>1</td>
+<td>Electrical / passive (v0.3 electrical)</td>
+<td>MLCC X5R 0805 10 V ±10%</td>
+<td>At J2 (pedestal)</td>
+<td>pogo VIN bulk</td>
+<td>ADD</td>
+<td>Sheet E — see docs/BOM_electrical.csv &amp; docs/schematics/</td>
+</tr>
+<tr>
+<td>C20</td>
+<td>100 nF</td>
+<td>1</td>
+<td>Electrical / passive (v0.3 electrical)</td>
+<td>MLCC X7R 0603 16 V ±10%</td>
+<td>At J2</td>
+<td></td>
+<td>ADD</td>
+<td>Sheet E — see docs/BOM_electrical.csv &amp; docs/schematics/</td>
+</tr>
+<tr>
+<td>Q1</td>
+<td>AO3400A (white)</td>
+<td>1</td>
+<td>Electrical / passive (v0.3 electrical)</td>
+<td>N-MOSFET logic level SOT-23 30 V, 5.7 A, Rds 33 mΩ @ 4.5 V —</td>
+<td>Driver board ZS-S08</td>
+<td>Vgs(th) ≤ 1.45 V → fully on at 3.3 V for 20 mA</td>
+<td>ADD</td>
+<td>Sheet E — see docs/BOM_electrical.csv &amp; docs/schematics/</td>
+</tr>
+<tr>
+<td>Q2</td>
+<td>AO3400A (UV)</td>
+<td>1</td>
+<td>Electrical / passive (v0.3 electrical)</td>
+<td>N-MOSFET SOT-23 30 V —</td>
+<td>Driver board</td>
+<td></td>
+<td>ADD</td>
+<td>Sheet E — see docs/BOM_electrical.csv &amp; docs/schematics/</td>
+</tr>
+<tr>
+<td>Q3</td>
+<td>AO3400A (IR, optional)</td>
+<td>1</td>
+<td>Electrical / passive (v0.3 electrical)</td>
+<td>N-MOSFET SOT-23 30 V —</td>
+<td>Driver board</td>
+<td>gate on GPIO21 (v0.3)</td>
+<td>ADD</td>
+<td>Sheet E — see docs/BOM_electrical.csv &amp; docs/schematics/</td>
+</tr>
+<tr>
+<td>R14</td>
+<td>100 Ω</td>
+<td>1</td>
+<td>Electrical / passive (v0.3 electrical)</td>
+<td>Thick film 0603 0.1 W ±1%</td>
+<td>Driver board</td>
+<td>Q1 gate series</td>
+<td>ADD</td>
+<td>Sheet E — see docs/BOM_electrical.csv &amp; docs/schematics/</td>
+</tr>
+<tr>
+<td>R15</td>
+<td>100 Ω</td>
+<td>1</td>
+<td>Electrical / passive (v0.3 electrical)</td>
+<td>Thick film 0603 0.1 W ±1%</td>
+<td>Driver board</td>
+<td>Q2 gate series</td>
+<td>ADD</td>
+<td>Sheet E — see docs/BOM_electrical.csv &amp; docs/schematics/</td>
+</tr>
+<tr>
+<td>R16</td>
+<td>100 Ω</td>
+<td>1</td>
+<td>Electrical / passive (v0.3 electrical)</td>
+<td>Thick film 0603 0.1 W ±1%</td>
+<td>Driver board</td>
+<td>Q3 gate series</td>
+<td>ADD</td>
+<td>Sheet E — see docs/BOM_electrical.csv &amp; docs/schematics/</td>
+</tr>
+<tr>
+<td>R17</td>
+<td>100 kΩ</td>
+<td>1</td>
+<td>Electrical / passive (v0.3 electrical)</td>
+<td>Thick film 0603 0.1 W ±1%</td>
+<td>Driver board</td>
+<td>Q1 gate pull-down (LED OFF at boot / floating)</td>
+<td>ADD</td>
+<td>Sheet E — see docs/BOM_electrical.csv &amp; docs/schematics/</td>
+</tr>
+<tr>
+<td>R18</td>
+<td>100 kΩ</td>
+<td>1</td>
+<td>Electrical / passive (v0.3 electrical)</td>
+<td>Thick film 0603 0.1 W ±1%</td>
+<td>Driver board</td>
+<td>Q2 gate pull-down</td>
+<td>ADD</td>
+<td>Sheet E — see docs/BOM_electrical.csv &amp; docs/schematics/</td>
+</tr>
+<tr>
+<td>R19</td>
+<td>100 kΩ</td>
+<td>1</td>
+<td>Electrical / passive (v0.3 electrical)</td>
+<td>Thick film 0603 0.1 W ±1%</td>
+<td>Driver board</td>
+<td>Q3 gate pull-down</td>
+<td>ADD</td>
+<td>Sheet E — see docs/BOM_electrical.csv &amp; docs/schematics/</td>
+</tr>
+<tr>
+<td>D4</td>
+<td>White LED 3 mm / 3528 (ZS-S04)</td>
+<td>1</td>
+<td>Electrical / passive (v0.3 electrical)</td>
+<td>LED 3 mm Vf ≈3.0 V @ 20 mA —</td>
+<td>Station LED board</td>
+<td></td>
+<td>ADD · ESTIMATE Vf</td>
+<td>Sheet E — see docs/BOM_electrical.csv &amp; docs/schematics/</td>
+</tr>
+<tr>
+<td>D5</td>
+<td>365 nm UV-A LED (ZS-S05)</td>
+<td>1</td>
+<td>Electrical / passive (v0.3 electrical)</td>
+<td>LED 3535 Vf ≈3.6 V @ 20 mA —</td>
+<td>Station LED board</td>
+<td>check IEC 62471 risk group</td>
+<td>ADD · ESTIMATE Vf</td>
+<td>Sheet E — see docs/BOM_electrical.csv &amp; docs/schematics/</td>
+</tr>
+<tr>
+<td>D6</td>
+<td>940 nm IR LED (ZS-S06, optional)</td>
+<td>1</td>
+<td>Electrical / passive (v0.3 electrical)</td>
+<td>LED 3 mm Vf ≈1.3 V @ 20 mA —</td>
+<td>Station LED board</td>
+<td></td>
+<td>ADD (optional) · ESTIMATE Vf</td>
+<td>Sheet E — see docs/BOM_electrical.csv &amp; docs/schematics/</td>
+</tr>
+<tr>
+<td>R20</td>
+<td>100 Ω</td>
+<td>1</td>
+<td>Electrical / passive (v0.3 electrical)</td>
+<td>Thick film 0805 0.125 W ±1%</td>
+<td>LED board</td>
+<td>(5.0−3.0)/0.020 = 100 Ω → 20 mA; P = 0.02²·100 = 0.04 W</td>
+<td>ADD · ESTIMATE</td>
+<td>Sheet E — see docs/BOM_electrical.csv &amp; docs/schematics/</td>
+</tr>
+<tr>
+<td>R21</td>
+<td>68 Ω</td>
+<td>1</td>
+<td>Electrical / passive (v0.3 electrical)</td>
+<td>Thick film 0805 0.125 W ±1%</td>
+<td>LED board</td>
+<td>(5.0−3.6)/0.020 = 70 Ω → E12 68 Ω → 20.6 mA; P = 0.029 W</td>
+<td>ADD · ESTIMATE</td>
+<td>Sheet E — see docs/BOM_electrical.csv &amp; docs/schematics/</td>
+</tr>
+<tr>
+<td>R22</td>
+<td>180 Ω</td>
+<td>1</td>
+<td>Electrical / passive (v0.3 electrical)</td>
+<td>Thick film 0805 0.125 W ±1%</td>
+<td>LED board</td>
+<td>(5.0−1.3)/0.020 = 185 Ω → 180 Ω → 20.6 mA; P = 0.076 W</td>
+<td>ADD · ESTIMATE</td>
+<td>Sheet E — see docs/BOM_electrical.csv &amp; docs/schematics/</td>
+</tr>
+<tr>
+<td>S1</td>
+<td>Glass reed switch NO ~12 mm (ZS-S09)</td>
+<td>1</td>
+<td>Electrical / passive (v0.3 electrical)</td>
+<td>Reed switch axial ≥100 V / 0.5 A —</td>
+<td>Pedestal reed slot</td>
+<td>in SERIES with UV LED supply: VBUS → S1 → UV_5V (hardware interlock)</td>
+<td>ADD</td>
+<td>Sheet E — see docs/BOM_electrical.csv &amp; docs/schematics/</td>
+</tr>
+<tr>
+<td>R23</td>
+<td>12 kΩ</td>
+<td>1</td>
+<td>Electrical / passive (v0.3 electrical)</td>
+<td>Thick film 0603 0.1 W ±1%</td>
+<td>Driver board</td>
+<td>SHIELD_SENSE = 5·20k/32k = 3.13 V (HIGH) when S1 closed; I = 0.16 mA</td>
+<td>ADD</td>
+<td>Sheet E — see docs/BOM_electrical.csv &amp; docs/schematics/</td>
+</tr>
+<tr>
+<td>R24</td>
+<td>20 kΩ</td>
+<td>1</td>
+<td>Electrical / passive (v0.3 electrical)</td>
+<td>Thick film 0603 0.1 W ±1%</td>
+<td>Driver board</td>
+<td>pulls SHIELD_SENSE to 0 V when S1 open. If VBUS = 5.25 V → 3.28 V (≤ 3.6 V abs max OK)</td>
+<td>ADD</td>
+<td>Sheet E — see docs/BOM_electrical.csv &amp; docs/schematics/</td>
+</tr>
+<tr>
+<td>C21</td>
+<td>10 µF</td>
+<td>1</td>
+<td>Electrical / passive (v0.3 electrical)</td>
+<td>MLCC X5R 0805 10 V ±10%</td>
+<td>LED board</td>
+<td>LED switching decoupling</td>
+<td>ADD</td>
+<td>Sheet E — see docs/BOM_electrical.csv &amp; docs/schematics/</td>
+</tr>
+</tbody>
+</table>
+<h1>4. Print plan</h1>
+<table>
+<thead>
+<tr>
+<th>Part</th>
+<th>Material</th>
+<th>Orientation / notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ZS-101/102 head shells</td>
+<td>matte navy PETG, 3–4 walls, 0.2 mm</td>
+<td>split face down on bed, tree supports inside</td>
+</tr>
+<tr>
+<td>ZS-301/302 torso shells</td>
+<td>matte navy PETG</td>
+<td>split face down</td>
+</tr>
+<tr>
+<td>ZS-103/303 bulkheads, ZS-304 sled, ZS-105 face carrier</td>
+<td>PETG</td>
+<td>flat</td>
+</tr>
+<tr>
+<td>ZS-104 visor</td>
+<td>smoked translucent PETG, or vacuum-form 1.5 mm smoked PETG over a printed buck</td>
+<td>convex side up, fine layers / sand + clear coat for gloss</td>
+</tr>
+<tr>
+<td>ZS-106/107 light pipes, ZS-307 lens</td>
+<td>clear resin (best) or clear PETG</td>
+<td>polish faces</td>
+</tr>
+<tr>
+<td>ZS-203/306 diffusers</td>
+<td>translucent white PETG (violet/cyan come from LEDs)</td>
+<td>flat</td>
+</tr>
+<tr>
+<td>ZS-201/202 pods, ZS-204/205 caps</td>
+<td>navy / gloss black PETG</td>
+<td>outer face up</td>
+</tr>
+<tr>
+<td>ZS-206 ears</td>
+<td>navy PETG</td>
+<td>lying on the back face, inner-face slots up</td>
+</tr>
+<tr>
+<td>ZS-401 arms, ZS-402 legs</td>
+<td>navy PETG</td>
+<td>peg up, supports under hands/feet</td>
+</tr>
+<tr>
+<td>ZS-501 pedestal</td>
+<td>dark grey/black PLA 15 % infill</td>
+<td>bottom down; optional stone-texture paint</td>
+</tr>
+<tr>
+<td>ZS-502 tube</td>
+<td>buy 12 OD × 8 ID acrylic, cut 75 mm</td>
+<td>deburr; see open decision on stiffness</td>
+</tr>
+<tr>
+<td>ZS-109 battery tray</td>
+<td>PETG</td>
+<td>lips up</td>
+</tr>
+<tr>
+<td>ZS-601 station LED plug</td>
+<td>white PETG</td>
+<td>flange down; line the cavity with PTFE tape or white paint</td>
+</tr>
+<tr>
+<td>ZS-602 light shield</td>
+<td><strong>opaque</strong> black PETG/PLA, 4 walls, 100 % top</td>
+<td>top down; hold a torch inside in a dark room to check pinholes; paint inside matte black</td>
+</tr>
+<tr>
+<td>ZS-603 sensor mount, ZS-605 dark plug</td>
+<td>matte black, 100 % infill</td>
+<td>flat</td>
+</tr>
+<tr>
+<td>ZS-604 driver-bay cover</td>
+<td>PLA</td>
+<td>flat</td>
+</tr>
+</tbody>
+</table>
+<h3>Per-part settings (from the parts catalog)</h3>
+<table>
+<thead>
+<tr>
+<th>Part</th>
+<th>Name</th>
+<th>Material / colour</th>
+<th>Orientation / settings</th>
+<th>Qty</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ZS-101</td>
+<td>Head shell, front</td>
+<td>PETG matte navy #161C33</td>
+<td>Split face down; 0.2 mm, 4 walls, 20% gyroid, tree supports inside</td>
+<td>1</td>
+</tr>
+<tr>
+<td>ZS-102</td>
+<td>Head shell, back</td>
+<td>PETG matte navy #161C33</td>
+<td>Split face down; 0.2 mm, 4 walls, 20%, tree supports</td>
+<td>1</td>
+</tr>
+<tr>
+<td>ZS-103</td>
+<td>Head bulkhead (mount plate)</td>
+<td>PETG grey</td>
+<td>Flat; 0.2 mm, 3 walls, 30%</td>
+<td>1</td>
+</tr>
+<tr>
+<td>ZS-104</td>
+<td>Visor</td>
+<td>Smoked translucent PETG (or vacuum-formed 1.5 mm sheet)</td>
+<td>Convex side up; 0.12 mm, 100%, sand + clear coat</td>
+<td>1</td>
+</tr>
+<tr>
+<td>ZS-105</td>
+<td>Face carrier (eye LEDs)</td>
+<td>PETG black</td>
+<td>Plate down; 0.2 mm, 3 walls</td>
+<td>1</td>
+</tr>
+<tr>
+<td>ZS-106</td>
+<td>Eye light pipe, left (happy arc)</td>
+<td>Clear resin or clear PETG</td>
+<td>Flat face down; resin 0.05 mm or PETG 100%</td>
+<td>1</td>
+</tr>
+<tr>
+<td>ZS-106</td>
+<td>Eye light pipe, right (happy arc)</td>
+<td>Clear resin or clear PETG</td>
+<td>Flat face down; resin 0.05 mm or PETG 100%</td>
+<td>1</td>
+</tr>
+<tr>
+<td>ZS-107</td>
+<td>Crown accent light pipe, left</td>
+<td>Clear resin</td>
+<td>Flange down; 100%</td>
+<td>1</td>
+</tr>
+<tr>
+<td>ZS-107</td>
+<td>Crown accent light pipe, right</td>
+<td>Clear resin</td>
+<td>Flange down; 100%</td>
+<td>1</td>
+</tr>
+<tr>
+<td>ZS-108</td>
+<td>Neck coupler</td>
+<td>PETG black</td>
+<td>Upright; 0.2 mm, 100%</td>
+<td>1</td>
+</tr>
+<tr>
+<td>ZS-109</td>
+<td>Battery tray</td>
+<td>PETG grey</td>
+<td>Back down, lips up; 0.2 mm, 3 walls</td>
+<td>1</td>
+</tr>
+<tr>
+<td>ZS-201</td>
+<td>Ear pod, left (mic)</td>
+<td>PETG matte navy #161C33</td>
+<td>Outer face up; 0.2 mm, 4 walls, supports under peg</td>
+<td>1</td>
+</tr>
+<tr>
+<td>ZS-202</td>
+<td>Ear pod, right (light)</td>
+<td>PETG matte navy #161C33</td>
+<td>Outer face up; 0.2 mm, 4 walls</td>
+<td>1</td>
+</tr>
+<tr>
+<td>ZS-203</td>
+<td>Pod rim diffuser, left</td>
+<td>Translucent white PETG (violet from LEDs)</td>
+<td>Flat; 0.2 mm, 100%</td>
+<td>1</td>
+</tr>
+<tr>
+<td>ZS-203</td>
+<td>Pod rim diffuser, right</td>
+<td>Translucent white PETG</td>
+<td>Flat; 0.2 mm, 100%</td>
+<td>1</td>
+</tr>
+<tr>
+<td>ZS-204</td>
+<td>Pod cap, left (mic holes)</td>
+<td>PETG gloss black</td>
+<td>Outer face up; 0.12 mm</td>
+<td>1</td>
+</tr>
+<tr>
+<td>ZS-205</td>
+<td>Pod cap, right (light window)</td>
+<td>PETG gloss black + clear window</td>
+<td>Outer face up; 0.12 mm</td>
+<td>1</td>
+</tr>
+<tr>
+<td>ZS-206</td>
+<td>Rabbit ear, left</td>
+<td>PETG matte navy #161C33</td>
+<td>Lying on back face, slots up; 0.16 mm, 4 walls</td>
+<td>1</td>
+</tr>
+<tr>
+<td>ZS-206</td>
+<td>Rabbit ear, right</td>
+<td>PETG matte navy #161C33</td>
+<td>Lying on back face, slots up; 0.16 mm</td>
+<td>1</td>
+</tr>
+<tr>
+<td>ZS-301</td>
+<td>Torso shell, front</td>
+<td>PETG matte navy #161C33</td>
+<td>Split face down; 0.2 mm, 4 walls, supports</td>
+<td>1</td>
+</tr>
+<tr>
+<td>ZS-302</td>
+<td>Torso shell, back</td>
+<td>PETG matte navy #161C33</td>
+<td>Split face down; 0.2 mm, 4 walls</td>
+<td>1</td>
+</tr>
+<tr>
+<td>ZS-303</td>
+<td>Torso bulkhead / ESP32 cradle</td>
+<td>PETG grey</td>
+<td>Flat, rails up; 0.2 mm, 30%</td>
+<td>1</td>
+</tr>
+<tr>
+<td>ZS-304</td>
+<td>Sensor sled (IMU + BME280)</td>
+<td>PETG grey</td>
+<td>Flat; 0.2 mm</td>
+<td>1</td>
+</tr>
+<tr>
+<td>ZS-305</td>
+<td>Chest core housing</td>
+<td>PETG black</td>
+<td>Flange down; 0.16 mm, 100%</td>
+<td>1</td>
+</tr>
+<tr>
+<td>ZS-306</td>
+<td>Chest ring diffuser</td>
+<td>Translucent white PETG (cyan from LEDs)</td>
+<td>Flat; 100%</td>
+<td>1</td>
+</tr>
+<tr>
+<td>ZS-307</td>
+<td>Chest centre lens</td>
+<td>Clear (if MAX30102) or violet translucent</td>
+<td>Dome up; resin or PETG 100%</td>
+<td>1</td>
+</tr>
+<tr>
+<td>ZS-401</td>
+<td>Arm + mitten hand, left</td>
+<td>PETG matte navy #161C33</td>
+<td>Peg up; 0.16 mm, supports under hand</td>
+<td>1</td>
+</tr>
+<tr>
+<td>ZS-401</td>
+<td>Arm + mitten hand, right</td>
+<td>PETG matte navy #161C33</td>
+<td>Peg up; 0.16 mm</td>
+<td>1</td>
+</tr>
+<tr>
+<td>ZS-402</td>
+<td>Leg + foot, left</td>
+<td>PETG matte navy #161C33</td>
+<td>Peg up; 0.16 mm, supports under foot</td>
+<td>1</td>
+</tr>
+<tr>
+<td>ZS-402</td>
+<td>Leg + foot, right</td>
+<td>PETG matte navy #161C33</td>
+<td>Peg up; 0.16 mm</td>
+<td>1</td>
+</tr>
+<tr>
+<td>ZS-501</td>
+<td>Pedestal (rock hex) + station body</td>
+<td>PLA dark grey/black; 15% infill, station walls 100%</td>
+<td>Bottom down; 0.28 mm, 3 walls</td>
+<td>1</td>
+</tr>
+<tr>
+<td>ZS-502</td>
+<td>Support tube (bought, cut)</td>
+<td>Clear acrylic tube 12 OD x 8 ID x 75</td>
+<td>Cut + deburr (not printed)</td>
+<td>1</td>
+</tr>
+<tr>
+<td>ZS-601</td>
+<td>Station LED plug</td>
+<td>White PETG; cavity PTFE-tape lined</td>
+<td>Flange down; 0.2 mm, 100%</td>
+<td>1</td>
+</tr>
+<tr>
+<td>ZS-602</td>
+<td>Light shield (removable)</td>
+<td>Opaque black PETG/PLA; inside matte black</td>
+<td>Top down; 4 walls, 100% top</td>
+<td>1</td>
+</tr>
+<tr>
+<td>ZS-603</td>
+<td>Sensor mount disc (AS7341)</td>
+<td>Matte black PETG</td>
+<td>Flat; 100%</td>
+<td>1</td>
+</tr>
+<tr>
+<td>ZS-604</td>
+<td>Driver bay cover</td>
+<td>PLA black</td>
+<td>Flat; 0.2 mm</td>
+<td>1</td>
+</tr>
+<tr>
+<td>ZS-605</td>
+<td>Dark-reference plug</td>
+<td>Opaque black PLA 100%</td>
+<td>Knob up; 100%</td>
+<td>1</td>
+</tr>
+</tbody>
+</table>
+<p>Test-print first: one leg peg + socket, one pod peg, one split boss with insert, the neck coupler and the shield-groove ring. Adjust clearances before printing full shells.</p>
+<h1>5. Parts catalog — every part labeled and shown</h1>
+<h2>Exploded view, every part numbered</h2>
+<p><img src='img/exploded_numbered.png'></p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Part no.</th>
+<th>Name</th>
+<th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>ZS-101</td>
+<td>Head shell, front</td>
+<td>printed (AI-generated CAD)</td>
+</tr>
+<tr>
+<td>2</td>
+<td>ZS-102</td>
+<td>Head shell, back</td>
+<td>printed (AI-generated CAD)</td>
+</tr>
+<tr>
+<td>3</td>
+<td>ZS-103</td>
+<td>Head bulkhead (mount plate)</td>
+<td>printed (AI-generated CAD)</td>
+</tr>
+<tr>
+<td>4</td>
+<td>ZS-104</td>
+<td>Visor</td>
+<td>printed (AI-generated CAD)</td>
+</tr>
+<tr>
+<td>5</td>
+<td>ZS-105</td>
+<td>Face carrier (eye LEDs)</td>
+<td>printed (AI-generated CAD)</td>
+</tr>
+<tr>
+<td>6</td>
+<td>ZS-106</td>
+<td>Eye light pipe, left (happy arc)</td>
+<td>printed (AI-generated CAD)</td>
+</tr>
+<tr>
+<td>7</td>
+<td>ZS-106</td>
+<td>Eye light pipe, right (happy arc)</td>
+<td>printed (AI-generated CAD)</td>
+</tr>
+<tr>
+<td>8</td>
+<td>ZS-107</td>
+<td>Crown accent light pipe, left</td>
+<td>printed (AI-generated CAD)</td>
+</tr>
+<tr>
+<td>9</td>
+<td>ZS-107</td>
+<td>Crown accent light pipe, right</td>
+<td>printed (AI-generated CAD)</td>
+</tr>
+<tr>
+<td>10</td>
+<td>ZS-108</td>
+<td>Neck coupler</td>
+<td>printed (AI-generated CAD)</td>
+</tr>
+<tr>
+<td>11</td>
+<td>ZS-109</td>
+<td>Battery tray</td>
+<td>printed (AI-generated CAD)</td>
+</tr>
+<tr>
+<td>12</td>
+<td>ZS-201</td>
+<td>Ear pod, left (mic)</td>
+<td>printed (AI-generated CAD)</td>
+</tr>
+<tr>
+<td>13</td>
+<td>ZS-202</td>
+<td>Ear pod, right (light)</td>
+<td>printed (AI-generated CAD)</td>
+</tr>
+<tr>
+<td>14</td>
+<td>ZS-203</td>
+<td>Pod rim diffuser, left</td>
+<td>printed (AI-generated CAD)</td>
+</tr>
+<tr>
+<td>15</td>
+<td>ZS-203</td>
+<td>Pod rim diffuser, right</td>
+<td>printed (AI-generated CAD)</td>
+</tr>
+<tr>
+<td>16</td>
+<td>ZS-204</td>
+<td>Pod cap, left (mic holes)</td>
+<td>printed (AI-generated CAD)</td>
+</tr>
+<tr>
+<td>17</td>
+<td>ZS-205</td>
+<td>Pod cap, right (light window)</td>
+<td>printed (AI-generated CAD)</td>
+</tr>
+<tr>
+<td>18</td>
+<td>ZS-206</td>
+<td>Rabbit ear, left</td>
+<td>printed (AI-generated CAD)</td>
+</tr>
+<tr>
+<td>19</td>
+<td>ZS-206</td>
+<td>Rabbit ear, right</td>
+<td>printed (AI-generated CAD)</td>
+</tr>
+<tr>
+<td>20</td>
+<td>ZS-301</td>
+<td>Torso shell, front</td>
+<td>printed (AI-generated CAD)</td>
+</tr>
+<tr>
+<td>21</td>
+<td>ZS-302</td>
+<td>Torso shell, back</td>
+<td>printed (AI-generated CAD)</td>
+</tr>
+<tr>
+<td>22</td>
+<td>ZS-303</td>
+<td>Torso bulkhead / ESP32 cradle</td>
+<td>printed (AI-generated CAD)</td>
+</tr>
+<tr>
+<td>23</td>
+<td>ZS-304</td>
+<td>Sensor sled (IMU + BME280)</td>
+<td>printed (AI-generated CAD)</td>
+</tr>
+<tr>
+<td>24</td>
+<td>ZS-305</td>
+<td>Chest core housing</td>
+<td>printed (AI-generated CAD)</td>
+</tr>
+<tr>
+<td>25</td>
+<td>ZS-306</td>
+<td>Chest ring diffuser</td>
+<td>printed (AI-generated CAD)</td>
+</tr>
+<tr>
+<td>26</td>
+<td>ZS-307</td>
+<td>Chest centre lens</td>
+<td>printed (AI-generated CAD)</td>
+</tr>
+<tr>
+<td>27</td>
+<td>ZS-401</td>
+<td>Arm + mitten hand, left</td>
+<td>printed (AI-generated CAD)</td>
+</tr>
+<tr>
+<td>28</td>
+<td>ZS-401</td>
+<td>Arm + mitten hand, right</td>
+<td>printed (AI-generated CAD)</td>
+</tr>
+<tr>
+<td>29</td>
+<td>ZS-402</td>
+<td>Leg + foot, left</td>
+<td>printed (AI-generated CAD)</td>
+</tr>
+<tr>
+<td>30</td>
+<td>ZS-402</td>
+<td>Leg + foot, right</td>
+<td>printed (AI-generated CAD)</td>
+</tr>
+<tr>
+<td>31</td>
+<td>ZS-501</td>
+<td>Pedestal (rock hex) + station body</td>
+<td>printed (AI-generated CAD)</td>
+</tr>
+<tr>
+<td>32</td>
+<td>ZS-502</td>
+<td>Support tube (bought, cut)</td>
+<td>printed (AI-generated CAD)</td>
+</tr>
+<tr>
+<td>33</td>
+<td>ZS-601</td>
+<td>Station LED plug</td>
+<td>printed (AI-generated CAD)</td>
+</tr>
+<tr>
+<td>34</td>
+<td>ZS-602</td>
+<td>Light shield (removable)</td>
+<td>printed (AI-generated CAD)</td>
+</tr>
+<tr>
+<td>35</td>
+<td>ZS-603</td>
+<td>Sensor mount disc (AS7341)</td>
+<td>printed (AI-generated CAD)</td>
+</tr>
+<tr>
+<td>36</td>
+<td>ZS-604</td>
+<td>Driver bay cover</td>
+<td>printed (AI-generated CAD)</td>
+</tr>
+<tr>
+<td>37</td>
+<td>PX</td>
+<td>AS7341 11-ch spectral breakout (ZS-S01)</td>
+<td>third-party module proxy</td>
+</tr>
+<tr>
+<td>38</td>
+<td>PX</td>
+<td>ESP32-S3 DevKitC-1 (RB-001)</td>
+<td>third-party module proxy</td>
+</tr>
+<tr>
+<td>39</td>
+<td>PX</td>
+<td>ICM-42688-P IMU breakout (RB-002)</td>
+<td>third-party module proxy</td>
+</tr>
+<tr>
+<td>40</td>
+<td>PX</td>
+<td>BH1750 light breakout (RB-003)</td>
+<td>third-party module proxy</td>
+</tr>
+<tr>
+<td>41</td>
+<td>PX</td>
+<td>BME280 breakout (RB-004)</td>
+<td>third-party module proxy</td>
+</tr>
+<tr>
+<td>42</td>
+<td>PX</td>
+<td>MAX30102 breakout (RB-005, optional, non-medical)</td>
+<td>third-party module proxy</td>
+</tr>
+<tr>
+<td>43</td>
+<td>PX</td>
+<td>INMP441 I2S mic breakout (RB-006)</td>
+<td>third-party module proxy</td>
+</tr>
+<tr>
+<td>44</td>
+<td>PX</td>
+<td>NEO-M9N-class GNSS (RB-007, optional)</td>
+<td>third-party module proxy</td>
+</tr>
+<tr>
+<td>45</td>
+<td>PX</td>
+<td>Crystal sample (example only)</td>
+<td>third-party module proxy</td>
+</tr>
+<tr>
+<td>46</td>
+<td>PX</td>
+<td>Window disc 29.6 x 2 (ZS-S02)</td>
+<td>third-party module proxy</td>
+</tr>
+<tr>
+<td>47</td>
+<td>PX</td>
+<td>Crown accent LED board, 2x WS2812B (ZS-E03)</td>
+<td>third-party module proxy</td>
+</tr>
+<tr>
+<td>48</td>
+<td>PX</td>
+<td>Eye LED strip L, 5x WS2812B (ZS-E02)</td>
+<td>third-party module proxy</td>
+</tr>
+<tr>
+<td>49</td>
+<td>PX</td>
+<td>Eye LED strip R, 5x WS2812B (ZS-E02)</td>
+<td>third-party module proxy</td>
+</tr>
+<tr>
+<td>50</td>
+<td>PX</td>
+<td>940 nm IR LED (ZS-S06, optional)</td>
+<td>third-party module proxy</td>
+</tr>
+<tr>
+<td>51</td>
+<td>PX</td>
+<td>WS2812B 12-LED ring, chest (ZS-E01)</td>
+<td>third-party module proxy</td>
+</tr>
+<tr>
+<td>52</td>
+<td>PX</td>
+<td>WS2812B 12-LED ring, left pod (ZS-E01)</td>
+<td>third-party module proxy</td>
+</tr>
+<tr>
+<td>53</td>
+<td>PX</td>
+<td>WS2812B 12-LED ring, right pod (ZS-E01)</td>
+<td>third-party module proxy</td>
+</tr>
+<tr>
+<td>54</td>
+<td>PX</td>
+<td>365 nm UV-A LED (ZS-S05) — EYE HAZARD</td>
+<td>third-party module proxy</td>
+</tr>
+<tr>
+<td>55</td>
+<td>PX</td>
+<td>White LED (ZS-S04)</td>
+<td>third-party module proxy</td>
+</tr>
+<tr>
+<td>56</td>
+<td>PX</td>
+<td>1S LiPo 503450 ~1000 mAh, protected (ZS-B01)</td>
+<td>third-party module proxy</td>
+</tr>
+<tr>
+<td>57</td>
+<td>PX</td>
+<td>Magnet 6 x 2 mm (ZS-S10)</td>
+<td>third-party module proxy</td>
+</tr>
+<tr>
+<td>58</td>
+<td>PX</td>
+<td>MAX98357A I2S amp breakout (ZS-E05)</td>
+<td>third-party module proxy</td>
+</tr>
+<tr>
+<td>59</td>
+<td>PX</td>
+<td>Pogo pads 4-pin (ZS-S11)</td>
+<td>third-party module proxy</td>
+</tr>
+<tr>
+<td>60</td>
+<td>PX</td>
+<td>Pogo receptacle 4-pin (ZS-S11)</td>
+<td>third-party module proxy</td>
+</tr>
+<tr>
+<td>61</td>
+<td>PX</td>
+<td>Adafruit PowerBoost 1000C (ZS-B02)</td>
+<td>third-party module proxy</td>
+</tr>
+<tr>
+<td>62</td>
+<td>PX</td>
+<td>Reed switch (ZS-S09) — UV interlock</td>
+<td>third-party module proxy</td>
+</tr>
+<tr>
+<td>63</td>
+<td>PX</td>
+<td>Slide switch EN (ZS-B03)</td>
+<td>third-party module proxy</td>
+</tr>
+<tr>
+<td>64</td>
+<td>PX</td>
+<td>28 mm 8 ohm speaker (ZS-E06)</td>
+<td>third-party module proxy</td>
+</tr>
+<tr>
+<td>65</td>
+<td>PX</td>
+<td>Station driver board, Q1-Q3 (ZS-S08)</td>
+<td>third-party module proxy</td>
+</tr>
+<tr>
+<td>66</td>
+<td>PX</td>
+<td>Station LED board 20x20 (ZS-S07)</td>
+<td>third-party module proxy</td>
+</tr>
+<tr>
+<td>67</td>
+<td>PX</td>
+<td>USB-C receptacle breakout (ZS-E07)</td>
+<td>third-party module proxy</td>
+</tr>
+<tr>
+<td>68</td>
+<td>PX</td>
+<td>UV-cut filter 20 x 2 (ZS-S03, optional)</td>
+<td>third-party module proxy</td>
+</tr>
+</tbody>
+</table>
+<h2>Part cards</h2>
+<p>Each card shows part number, name, material, print orientation, quantity, fasteners and sub-assembly. Printed parts = AI-generated CAD; PX = third-party module proxy (envelope ESTIMATE).</p>
+<div class='cards'><img src='parts/ZS-101_head_shell_front.png'><img src='parts/ZS-102_head_shell_back.png'><img src='parts/ZS-103_head_bulkhead.png'><img src='parts/ZS-104_visor.png'><img src='parts/ZS-105_face_carrier.png'><img src='parts/ZS-106_eye_lightpipe_L.png'><img src='parts/ZS-106_eye_lightpipe_R.png'><img src='parts/ZS-107_accent_lightpipe_L.png'><img src='parts/ZS-107_accent_lightpipe_R.png'><img src='parts/ZS-108_neck_coupler.png'><img src='parts/ZS-109_battery_tray.png'><img src='parts/ZS-201_ear_pod_L_mic.png'><img src='parts/ZS-202_ear_pod_R_light.png'><img src='parts/ZS-203_pod_rim_diffuser_L.png'><img src='parts/ZS-203_pod_rim_diffuser_R.png'><img src='parts/ZS-204_pod_cap_L_mic.png'><img src='parts/ZS-205_pod_cap_R_light.png'><img src='parts/ZS-206_ear_L.png'><img src='parts/ZS-206_ear_R.png'><img src='parts/ZS-301_torso_shell_front.png'><img src='parts/ZS-302_torso_shell_back.png'><img src='parts/ZS-303_torso_bulkhead_esp32_cradle.png'><img src='parts/ZS-304_sensor_sled.png'><img src='parts/ZS-305_chest_core_housing.png'><img src='parts/ZS-306_chest_ring_diffuser.png'><img src='parts/ZS-307_chest_center_lens.png'><img src='parts/ZS-401_arm_L.png'><img src='parts/ZS-401_arm_R.png'><img src='parts/ZS-402_leg_L.png'><img src='parts/ZS-402_leg_R.png'><img src='parts/ZS-501_pedestal.png'><img src='parts/ZS-502_support_tube_acrylic.png'><img src='parts/ZS-601_station_led_plug.png'><img src='parts/ZS-602_light_shield.png'><img src='parts/ZS-603_sensor_mount.png'><img src='parts/ZS-604_driver_bay_cover.png'><img src='parts/ZS-605_dark_reference_plug.png'><img src='parts/PX_AS7341_breakout.png'><img src='parts/PX_RB-001_esp32s3_devkitc1.png'><img src='parts/PX_RB-002_icm42688_imu.png'><img src='parts/PX_RB-003_bh1750_podR.png'><img src='parts/PX_RB-004_bme280.png'><img src='parts/PX_RB-005_max30102.png'><img src='parts/PX_RB-006_inmp441_podL.png'><img src='parts/PX_RB-007_gnss_head.png'><img src='parts/PX_crystal_sample.png'><img src='parts/PX_crystal_window_borosilicate.png'><img src='parts/PX_led_accent_pcb.png'><img src='parts/PX_led_eyeL.png'><img src='parts/PX_led_eyeR.png'><img src='parts/PX_led_ir940.png'><img src='parts/PX_led_ring12_chest.png'><img src='parts/PX_led_ring12_podL.png'><img src='parts/PX_led_ring12_podR.png'><img src='parts/PX_led_uv365.png'><img src='parts/PX_led_white.png'><img src='parts/PX_lipo_503450_protected.png'><img src='parts/PX_magnet_6x2.png'><img src='parts/PX_max98357a_amp.png'><img src='parts/PX_pogo_pads_4p.png'><img src='parts/PX_pogo_receptacle_4p.png'><img src='parts/PX_powerboost_1000c.png'><img src='parts/PX_ptfe_white_reference_25x3.png'><img src='parts/PX_reed_switch.png'><img src='parts/PX_slide_switch_EN.png'><img src='parts/PX_speaker28.png'><img src='parts/PX_station_driver_board.png'><img src='parts/PX_station_led_board.png'><img src='parts/PX_usbc_breakout_pedestal.png'><img src='parts/PX_uv_cut_filter_optional.png'></div>
+
+<h1>6. Sub-assemblies</h1>
+<h2>Head (incl. power bay)</h2>
+<p><img src='img/sub_head.png'></p>
+<h2>Ear pods</h2>
+<p><img src='img/sub_ear_pods.png'></p>
+<h2>Torso / chest</h2>
+<p><img src='img/sub_torso_chest.png'></p>
+<h2>Limbs</h2>
+<p><img src='img/sub_limbs.png'></p>
+<h2>Pedestal + crystal station</h2>
+<p><img src='img/sub_pedestal_station.png'></p>
+<h2>Power</h2>
+<p><img src='img/sub_power.png'></p>
+<h1>7. Assembly steps</h1>
+<p>Each step: image (highlighted = new parts), fasteners, actions, wiring for that step (with its schematic sheet), and a check you must pass before moving on.</p>
+<div class="step">
+<h2>Step 1 — Heat-set inserts in all shell halves</h2>
+<p><img src='img/step_01.png'></p>
+<p><strong>Parts added:</strong> ZS-101 Head shell, front, ZS-301 Torso shell, front</p>
+<p><strong>Fasteners:</strong> 8 × ZS-F01 M3 heat-set inserts (short, brass): 4 in the ZS-101 head front bosses, 4 in the ZS-301 torso front bosses. Pilot 4.0 mm (ESTIMATE — match your insert).</p>
+<p><strong>Do:</strong></p>
+<ol>
+<li>Iron at ~220 °C (PLA) / ~245 °C (PETG). Push each insert straight down with the insert tip; stop 0.2 mm proud and flatten with a flat block while warm.</li>
+<li>Let cool 1 min before handling. Clear any plastic that squeezed into the thread with an M3 screw.</li>
+</ol>
+<p><strong>Wiring:</strong> None.</p>
+<div class="chk">
+<p><strong>CHECK before moving on:</strong> An M3 screw threads fully into every insert by hand; no insert spins or tilts.</p>
+</div>
+</div>
+<div class="step">
+<h2>Step 2 — Visor and accent light-pipes into the front head shell</h2>
+<p><img src='img/step_02.png'></p>
+<p><strong>Parts added:</strong> ZS-104 Visor, ZS-107 Crown accent light pipe, left, ZS-107 Crown accent light pipe, right, PX Crown accent LED board, 2x WS2812B (ZS-E03)</p>
+<p><strong>Fasteners:</strong> Visor: clear silicone or CA onto the ZS-101 ledge. Accent pipes: press-fit.</p>
+<p><strong>Do:</strong></p>
+<ol>
+<li>Insert the visor from the inside of ZS-101 so the lip sits on the inner ledge.</li>
+<li>Press both accent pipes into their slots; the flat faces point inward to the accent LED PCB.</li>
+<li>Seat the accent PCB (crown pair, last 2 LEDs in the chain) behind the pipes.</li>
+</ol>
+<p><strong>Wiring:</strong> Accent PCB: 5V_SYS / GND / DIN from eye R DOUT (26 AWG power, 30 AWG data). See Sheet D.</p>
+<div class="sch"><img src='schematics/D_led_chain.png'><p class='cap'>Wiring for this step: docs/schematics/D_led_chain (pin labels = ESP32-S3 GPIO numbers)</p></div>
+<div class="chk">
+<p><strong>CHECK before moving on:</strong> Visor sits flush with no light gap; pipes do not rattle.</p>
+</div>
+</div>
+<div class="step">
+<h2>Step 3 — Face carrier, eye light-pipes and eye LED boards</h2>
+<p><img src='img/step_03.png'></p>
+<p><strong>Parts added:</strong> ZS-105 Face carrier (eye LEDs), ZS-106 Eye light pipe, left (happy arc), ZS-106 Eye light pipe, right (happy arc), PX Eye LED strip L, 5x WS2812B (ZS-E02), PX Eye LED strip R, 5x WS2812B (ZS-E02)</p>
+<p><strong>Fasteners:</strong> Face carrier: 2 × 2.5 mm PT × 12 (ZS-F04) into ZS-103 posts. Eye boards: hot glue or M2 × 4 (ESTIMATE).</p>
+<p><strong>Do:</strong></p>
+<ol>
+<li>Press the eye pipes into the face carrier.</li>
+<li>Mount eye L and eye R LED boards (5 LEDs each) against the pipe ends.</li>
+<li>Fit C18 (100 µF 10 V) across 5V/GND at the eye boards.</li>
+</ol>
+<p><strong>Wiring:</strong> Chain: chest ring DOUT → eye L DIN → eye L DOUT → eye R DIN → … (Sheet D). C18 at eyes.</p>
+<div class="sch"><img src='schematics/D_led_chain.png'><p class='cap'>Wiring for this step: docs/schematics/D_led_chain (pin labels = ESP32-S3 GPIO numbers)</p></div>
+<div class="chk">
+<p><strong>CHECK before moving on:</strong> Pipes aligned with LEDs; continuity 5V_SYS ↔ every eye LED 5V pin; no short 5V↔GND (&gt; 1 kΩ).</p>
+</div>
+</div>
+<div class="step">
+<h2>Step 4 — Power bay: battery tray, protected LiPo, PowerBoost 1000C, EN switch</h2>
+<p><img src='img/step_04.png'></p>
+<p><strong>Parts added:</strong> ZS-109 Battery tray, PX 1S LiPo 503450 ~1000 mAh, protected (ZS-B01), PX Adafruit PowerBoost 1000C (ZS-B02), PX Slide switch EN (ZS-B03)</p>
+<p><strong>Fasteners:</strong> Battery tray: 2 × M2 × 6 into ZS-103. PowerBoost: 2 × M2 to ZS-103. Cell: foam tape only — never screws or clamps on the cell.</p>
+<p><strong>Do:</strong></p>
+<ol>
+<li>ADULT step. Check the cell is a PROTECTED cell (PCM board under the yellow tape) and reads 3.6–4.2 V before installing.</li>
+<li>Fit SW1 so OFF = EN tied to GND. Solder F2 (optional) in the battery + lead, then BT1 to U1 BAT via JST-PH 2.0.</li>
+<li>Solder C2 (47 µF) at U1 USB input, C3 (220 µF) + C4 (100 nF) at U1 5V output.</li>
+</ol>
+<p><strong>Wiring:</strong> Sheet A. BAT: 24 AWG ≤ 75 mm. 5V_SYS and VBUS: 2 × 26 AWG in parallel. EN: 30 AWG.</p>
+<div class="sch"><img src='schematics/A_power.png'><p class='cap'>Wiring for this step: docs/schematics/A_power (pin labels = ESP32-S3 GPIO numbers)</p></div>
+<div class="chk">
+<p><strong>CHECK before moving on:</strong> SW1 OFF: U1 5V output &lt; 0.3 V. SW1 ON (no USB): 5.1–5.25 V, blue LED on. Plug USB: charge LED on, 5V stays up.</p>
+</div>
+</div>
+<div class="step">
+<h2>Step 5 — Head bulkhead: amplifier, speaker, GNSS</h2>
+<p><img src='img/step_05.png'></p>
+<p><strong>Parts added:</strong> ZS-103 Head bulkhead (mount plate), PX MAX98357A I2S amp breakout (ZS-E05), PX 28 mm 8 ohm speaker (ZS-E06), PX NEO-M9N-class GNSS (RB-007, optional)</p>
+<p><strong>Fasteners:</strong> Bulkhead ZS-103 is clamped later by the 4 × RB-008 shell screws. Amp + GNSS: M2 × 4 or VHB tape (ESTIMATE). Speaker: hot glue ring.</p>
+<p><strong>Do:</strong></p>
+<ol>
+<li>Fix the bulkhead into the back head shell.</li>
+<li>Mount U9 MAX98357A; fit R7 22 kΩ SD → GND, C12 100 µF + C13 10 µF at VIN.</li>
+<li>Mount speaker SPK1; mount optional U7 GNSS with antenna side up, C11 10 µF at its VIN.</li>
+</ol>
+<p><strong>Wiring:</strong> Sheet C (I2S1 GPIO15/16/7, SD GPIO6) and Sheet B (GNSS UART GPIO17/18). Speaker 26 AWG.</p>
+<div class="sch"><img src='schematics/C_audio.png'><p class='cap'>Wiring for this step: docs/schematics/C_audio (pin labels = ESP32-S3 GPIO numbers)</p></div>
+<div class="chk">
+<p><strong>CHECK before moving on:</strong> R7 measured 21.8–22.2 kΩ to GND; 8 Ω ±2 across SPK1; no short on 5V_SYS.</p>
+</div>
+</div>
+<div class="step">
+<h2>Step 6 — Ear pods: mic, light sensor, LED rings, caps and ears</h2>
+<p><img src='img/step_06.png'></p>
+<p><strong>Parts added:</strong> ZS-201 Ear pod, left (mic), ZS-202 Ear pod, right (light), ZS-203 Pod rim diffuser, left, ZS-203 Pod rim diffuser, right, ZS-204 Pod cap, left (mic holes), ZS-205 Pod cap, right (light window), ZS-206 Rabbit ear, left, ZS-206 Rabbit ear, right, PX BH1750 light breakout (RB-003), PX INMP441 I2S mic breakout (RB-006), PX WS2812B 12-LED ring, left pod (ZS-E01), PX WS2812B 12-LED ring, right pod (ZS-E01)</p>
+<p><strong>Fasteners:</strong> Ears to pods: 2 × ZS-F02 M3 × 10 self-tapping. Pod caps: snap / glue into the rims.</p>
+<p><strong>Do:</strong></p>
+<ol>
+<li>Left pod: INMP441 (U8) with its port facing the cap hole, L/R tied to GND.</li>
+<li>Right pod: BH1750 (U5) behind the window, ADDR → GND for 0x23.</li>
+<li>Mount both 12-LED rings behind the rim diffusers; C16/C17 100 µF on each ring.</li>
+</ol>
+<p><strong>Wiring:</strong> Sheet B (BH1750 on I2C0), Sheet C (INMP441 on I2S0 12/13/14), Sheet D (rings). 30 AWG signals, 26 AWG ring power.</p>
+<div class="sch"><img src='schematics/B_i2c0_sensors.png'><p class='cap'>Wiring for this step: docs/schematics/B_i2c0_sensors (pin labels = ESP32-S3 GPIO numbers)</p></div>
+<div class="chk">
+<p><strong>CHECK before moving on:</strong> Continuity per pin from the pod connector to the module; mic port unobstructed; window clean.</p>
+</div>
+</div>
+<div class="step">
+<h2>Step 7 — Close the head</h2>
+<p><img src='img/step_07.png'></p>
+<p><strong>Parts added:</strong> ZS-102 Head shell, back, ZS-108 Neck coupler</p>
+<p><strong>Fasteners:</strong> 4 × RB-008 M3 × 8 through the back-shell clearance bosses into the ZS-F01 inserts. Neck coupler ZS-108 is captured by both shell pairs (no screws).</p>
+<p><strong>Do:</strong></p>
+<ol>
+<li>Route the head harness through the neck coupler first.</li>
+<li>Close the back shell onto the front shell, pod pegs captured by the split.</li>
+<li>Tighten diagonally, snug only (PLA cracks).</li>
+</ol>
+<p><strong>Wiring:</strong> Head harness exits the neck: 5V_SYS, GND, VBUS, D+, D−, LED DIN, I2S0 ×3, I2S1 ×3, AMP_SD, SDA0, SCL0, GNSS ×2, VBAT_SENSE (ESTIMATE 17 conductors).</p>
+<div class="chk">
+<p><strong>CHECK before moving on:</strong> No pinched wire visible at the seam; the head harness pulls freely 5 mm.</p>
+</div>
+</div>
+<div class="step">
+<h2>Step 8 — ESP32-S3 DevKitC-1 into the torso cradle</h2>
+<p><img src='img/step_08.png'></p>
+<p><strong>Parts added:</strong> ZS-303 Torso bulkhead / ESP32 cradle, PX ESP32-S3 DevKitC-1 (RB-001)</p>
+<p><strong>Fasteners:</strong> DevKit: 2 × ZS-F05 2.5 mm zip ties in the cradle rails. Cradle ZS-303 is clamped later by the torso RB-008 screws.</p>
+<p><strong>Do:</strong></p>
+<ol>
+<li>Fit C6 10 µF across the DevKit 5V/GND pins.</li>
+<li>Fit the level-shifter U2 + C14 and R8 330 Ω on the LED data line.</li>
+<li>Fit R1/R2 100 kΩ + C5 100 nF battery divider at GPIO5.</li>
+</ol>
+<p><strong>Wiring:</strong> Sheets A + D. Use the USB-C port marked USB (native, GPIO19/20) for the pigtail: D+/D−/GND only — do NOT connect pigtail VBUS.</p>
+<div class="sch"><img src='schematics/A_power.png'><p class='cap'>Wiring for this step: docs/schematics/A_power (pin labels = ESP32-S3 GPIO numbers)</p></div>
+<div class="chk">
+<p><strong>CHECK before moving on:</strong> DevKit powers from 5V_SYS only; GPIO5 reads VBAT/2 (1.5–2.1 V) with a multimeter.</p>
+</div>
+</div>
+<div class="step">
+<h2>Step 9 — Sensor sled: IMU + BME280</h2>
+<p><img src='img/step_09.png'></p>
+<p><strong>Parts added:</strong> ZS-304 Sensor sled (IMU + BME280), PX ICM-42688-P IMU breakout (RB-002), PX BME280 breakout (RB-004)</p>
+<p><strong>Fasteners:</strong> Sled: 2 × M2 × 6 PT (ZS-F03) into ZS-303. Breakouts: M2 × 4 or nylon standoffs (ESTIMATE).</p>
+<p><strong>Do:</strong></p>
+<ol>
+<li>Mount U3 ICM-42688-P flat, axis arrows recorded in your notes (needed for firmware).</li>
+<li>Mount U4 BME280 near the vent slot, away from the ESP32 (self-heating).</li>
+<li>Daisy-chain STEMMA-QT / Qwiic cables; fit R3/R4 2.2 kΩ only if needed (see Electrical).</li>
+</ol>
+<p><strong>Wiring:</strong> Sheet B: I2C0 SDA GPIO8 / SCL GPIO9, 3V3, GND. JST-SH 1.0 mm.</p>
+<div class="sch"><img src='schematics/B_i2c0_sensors.png'><p class='cap'>Wiring for this step: docs/schematics/B_i2c0_sensors (pin labels = ESP32-S3 GPIO numbers)</p></div>
+<div class="chk">
+<p><strong>CHECK before moving on:</strong> I2C scan on bus 0 shows 0x68 (or 0x69) and 0x76 (or 0x77).</p>
+</div>
+</div>
+<div class="step">
+<h2>Step 10 — Chest core: LED ring, diffuser, lens, MAX30102</h2>
+<p><img src='img/step_10.png'></p>
+<p><strong>Parts added:</strong> ZS-305 Chest core housing, ZS-306 Chest ring diffuser, ZS-307 Chest centre lens, PX WS2812B 12-LED ring, chest (ZS-E01), PX MAX30102 breakout (RB-005, optional, non-medical)</p>
+<p><strong>Fasteners:</strong> Chest core flange is captured behind the torso front shell (no screws). Diffuser + lens: press-fit.</p>
+<p><strong>Do:</strong></p>
+<ol>
+<li>Seat the 12-LED chest ring; solder C15 1000 µF 10 V across its 5V/GND input (watch polarity).</li>
+<li>Fit MAX30102 (optional) behind the lens with its window touching the lens.</li>
+<li>Press in diffuser and lens.</li>
+</ol>
+<p><strong>Wiring:</strong> Sheet D (chest ring = first LED, DIN from R8). Sheet B (MAX30102 0x57).</p>
+<div class="sch"><img src='schematics/D_led_chain.png'><p class='cap'>Wiring for this step: docs/schematics/D_led_chain (pin labels = ESP32-S3 GPIO numbers)</p></div>
+<div class="chk">
+<p><strong>CHECK before moving on:</strong> C15 polarity checked twice; 5V↔GND &gt; 1 kΩ after the cap charges.</p>
+</div>
+</div>
+<div class="step">
+<h2>Step 11 — Close the torso, capturing arms and legs</h2>
+<p><img src='img/step_11.png'></p>
+<p><strong>Parts added:</strong> ZS-401 Arm + mitten hand, left, ZS-401 Arm + mitten hand, right, ZS-402 Leg + foot, left, ZS-402 Leg + foot, right, ZS-302 Torso shell, back</p>
+<p><strong>Fasteners:</strong> 4 × RB-008 M3 × 8 into the torso ZS-F01 inserts. Limbs are captured by their flanged pegs — no screws.</p>
+<p><strong>Do:</strong></p>
+<ol>
+<li>Place all four limb pegs into the front shell sockets.</li>
+<li>Join head harness to torso harness at the JST-PH joints.</li>
+<li>Close the back shell; tighten diagonally.</li>
+</ol>
+<p><strong>Wiring:</strong> Harness table in the Electrical Specifications section: torso ↔ head and torso ↔ tube.</p>
+<div class="chk">
+<p><strong>CHECK before moving on:</strong> Each limb rotates with light friction and does not fall out.</p>
+</div>
+</div>
+<div class="step">
+<h2>Step 12 — Pedestal: USB-C entry and support tube</h2>
+<p><img src='img/step_12.png'></p>
+<p><strong>Parts added:</strong> ZS-501 Pedestal (rock hex) + station body, PX USB-C receptacle breakout (ZS-E07), ZS-502 Support tube (bought, cut)</p>
+<p><strong>Fasteners:</strong> USB-C breakout: glued in the pedestal back pocket. Tube ZS-502: glued into the pedestal; slip fit into the torso.</p>
+<p><strong>Do:</strong></p>
+<ol>
+<li>Mount J1, then F1, D2, C1 and D1 right behind it.</li>
+<li>Feed the 11-conductor station/robot harness up the tube.</li>
+<li>Press the tube into the pedestal socket.</li>
+</ol>
+<p><strong>Wiring:</strong> Sheet A (VBUS_IN → F1 → VBUS). VBUS/GND 2 × 26 AWG; D+/D− twisted 30 AWG.</p>
+<div class="sch"><img src='schematics/A_power.png'><p class='cap'>Wiring for this step: docs/schematics/A_power (pin labels = ESP32-S3 GPIO numbers)</p></div>
+<div class="chk">
+<p><strong>CHECK before moving on:</strong> With a 5 V/3 A adapter: VBUS 4.75–5.25 V at the tube top; VBUS↔GND not shorted.</p>
+</div>
+</div>
+<div class="step">
+<h2>Step 13 — Crystal station: LED plug, window</h2>
+<p><img src='img/step_13.png'></p>
+<p><strong>Parts added:</strong> ZS-601 Station LED plug, PX Station LED board 20x20 (ZS-S07), PX White LED (ZS-S04), PX 365 nm UV-A LED (ZS-S05) — EYE HAZARD, PX 940 nm IR LED (ZS-S06, optional), PX Window disc 29.6 x 2 (ZS-S02)</p>
+<p><strong>Fasteners:</strong> LED plug ZS-601: 2 × M3 × 8 PT into the pedestal. Window: inserted from BELOW into its seat (the cup lip holds it from above); no glue on the optical faces.</p>
+<p><strong>Do:</strong></p>
+<ol>
+<li>Solder D4 white + R20 100 Ω, D5 UV + R21 68 Ω, D6 IR + R22 180 Ω (optional), C21 10 µF on the LED board.</li>
+<li>Clean the borosilicate window with isopropyl alcohol and insert it from below into its seat.</li>
+<li>Push ZS-601 up behind the window and fix it.</li>
+</ol>
+<p><strong>Wiring:</strong> Sheet E (anodes to VBUS; UV anode to UV_5V after S1).</p>
+<div class="sch"><img src='schematics/E_crystal_station.png'><p class='cap'>Wiring for this step: docs/schematics/E_crystal_station (pin labels = ESP32-S3 GPIO numbers)</p></div>
+<div class="chk">
+<p><strong>CHECK before moving on:</strong> Diode-test each LED (white/UV glow faintly; IR seen through a phone camera). Do not look at the UV LED.</p>
+</div>
+</div>
+<div class="step">
+<h2>Step 14 — Station: pogo receptacle, reed switch, driver board, cover</h2>
+<p><img src='img/step_14.png'></p>
+<p><strong>Parts added:</strong> PX Pogo receptacle 4-pin (ZS-S11), PX Reed switch (ZS-S09) — UV interlock, PX Station driver board, Q1-Q3 (ZS-S08), ZS-604 Driver bay cover</p>
+<p><strong>Fasteners:</strong> Driver board sits in the bay under ZS-604; cover: 2 × M2 × 6 PT. Reed: hot glue in its slot (glass — no pressure). Pogo receptacle: pocket at x 29…34, glue.</p>
+<p><strong>Do:</strong></p>
+<ol>
+<li>Build the driver board: Q1–Q3 AO3400A, R14–R16 100 Ω, R17–R19 100 kΩ, R23 12 kΩ / R24 20 kΩ, R9/R10 4.7 kΩ, R11/R12 100 Ω.</li>
+<li>Mount J2 pogo receptacle + D3 + C19/C20.</li>
+<li>Reed S1 in SERIES with the UV LED supply.</li>
+</ol>
+<p><strong>Wiring:</strong> Sheet E. Gates GPIO1 / GPIO2 / GPIO21; SHIELD_SENSE GPIO40; I2C1 GPIO10/11; INT GPIO41.</p>
+<div class="sch"><img src='schematics/E_crystal_station.png'><p class='cap'>Wiring for this step: docs/schematics/E_crystal_station (pin labels = ESP32-S3 GPIO numbers)</p></div>
+<div class="chk">
+<p><strong>CHECK before moving on:</strong> Shield off: SHIELD_SENSE 0 V and UV_5V 0 V. Magnet held at the reed: SHIELD_SENSE ≈ 3.1 V.</p>
+</div>
+</div>
+<div class="step">
+<h2>Step 15 — Light shield and sensor mount (AS7341)</h2>
+<p><img src='img/step_15.png'></p>
+<p><strong>Parts added:</strong> ZS-602 Light shield (removable), ZS-603 Sensor mount disc (AS7341), PX AS7341 11-ch spectral breakout (ZS-S01), PX Pogo pads 4-pin (ZS-S11), PX Magnet 6 x 2 mm (ZS-S10), PX UV-cut filter 20 x 2 (ZS-S03, optional)</p>
+<p><strong>Fasteners:</strong> AS7341 board: 2 × M2 × 5 to ZS-603; ZS-603 glued into the shield top. Magnet Ø6 × 2: glued into the flange pocket above the reed.</p>
+<p><strong>Do:</strong></p>
+<ol>
+<li>Mount the AS7341 breakout in ZS-603, sensor facing down through the aperture.</li>
+<li>Insert the optional UV-cut filter for fluorescence mode only.</li>
+<li>Press the magnet into the shield flange above the reed position.</li>
+</ol>
+<p><strong>Wiring:</strong> Sheet E (pogo: VBUS, GND, SDA1_P, SCL1_P).</p>
+<div class="sch"><img src='schematics/E_crystal_station.png'><p class='cap'>Wiring for this step: docs/schematics/E_crystal_station (pin labels = ESP32-S3 GPIO numbers)</p></div>
+<div class="chk">
+<p><strong>CHECK before moving on:</strong> Seat the shield: I2C scan on bus 1 shows 0x39 AND GPIO40 reads HIGH. Lift it: both go away.</p>
+</div>
+</div>
+<div class="step">
+<h2>Step 16 — Mount the robot on the pedestal</h2>
+<p><img src='img/step_16.png'></p>
+<p><strong>Parts added:</strong> ZS-108 Neck coupler, ZS-502 Support tube (bought, cut)</p>
+<p><strong>Fasteners:</strong> Robot slides onto the tube (slip fit, no screws). Optionally 1 drop of removable adhesive (ESTIMATE).</p>
+<p><strong>Do:</strong></p>
+<ol>
+<li>Join the tube harness to the torso harness.</li>
+<li>Lower the robot onto the tube, front facing the station.</li>
+<li>Final dress of wires; nothing touching the station window.</li>
+</ol>
+<p><strong>Wiring:</strong> All sheets. Final continuity check per the harness table.</p>
+<div class="chk">
+<p><strong>CHECK before moving on:</strong> Robot stands without wobble; total height 314 mm ±2 (DESIGN TARGET).</p>
+</div>
+</div>
+<h1>8. Electrical Specifications</h1>
+<blockquote>
+<p><strong>DESIGN TARGET — not built or bench-tested.</strong> Values marked <strong>ESTIMATE</strong> are calculated from datasheet typicals, not measured. <strong>[OB]</strong> = part already on a bought module (do not add). <strong>[ADD]</strong> = part you add. <strong>DNP</strong> = do not populate unless the check says so. Designators match <code>docs/BOM_electrical.csv</code> and the schematics.</p>
+<p><strong>Changed 2026-11-09:</strong> LED brightness cap 10 % → <strong>8 %</strong> everywhere (firmware 20/255), decided by Robot X under Cory's delegation (docs/DESIGN_DECISIONS.md D1). Peak 5V_SYS budget 1.03 A → 0.97 A (ESTIMATE).</p>
+</blockquote>
+<h2>Pin map — DECIDED (Robot X under Cory's delegation, 2026-11-09)</h2>
+<p>All pins below are <strong>DECIDED</strong> (docs/DESIGN_DECISIONS.md D3). REPO = Cory's Reality Bridge Probe v0.2 pins, unchanged. The firmware (<code>firmware/zeref_spark_fw/include/spark_pins.h</code>, zs-0.4.0) uses exactly this table. Not yet checked on a powered board.</p>
+<table>
+<thead>
+<tr>
+<th>Signal</th>
+<th>GPIO</th>
+<th>Goes to</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>I2C0 SDA / SCL</td>
+<td>8 / 9</td>
+<td>ICM-42688-P, BME280, BH1750, MAX30102</td>
+<td>REPO</td>
+</tr>
+<tr>
+<td>I2S0 BCLK / WS / SD</td>
+<td>12 / 13 / 14</td>
+<td>INMP441 mic</td>
+<td>REPO</td>
+</tr>
+<tr>
+<td>GNSS RX / TX</td>
+<td>17 / 18</td>
+<td>GNSS (unwired by default, <code>SPARK_GNSS_WIRED=0</code>)</td>
+<td>REPO</td>
+</tr>
+<tr>
+<td>LED data</td>
+<td>4</td>
+<td>74AHCT125 → 48 × WS2812B (cap 8 %)</td>
+<td>DECIDED (approved by Cory)</td>
+</tr>
+<tr>
+<td>I2S1 BCLK / LRC / DIN</td>
+<td>15 / 16 / 7</td>
+<td>MAX98357A (tones + streamed speech)</td>
+<td>DECIDED (approved by Cory)</td>
+</tr>
+<tr>
+<td>Amp SD (mute)</td>
+<td>6</td>
+<td>MAX98357A SD, LOW = muted, muted at boot</td>
+<td>DECIDED (approved by Cory)</td>
+</tr>
+<tr>
+<td>Battery sense</td>
+<td>5 (ADC1_CH4)</td>
+<td>100 k / 100 k divider, VBAT = 2 × Vadc</td>
+<td>DECIDED</td>
+</tr>
+<tr>
+<td>I2C1 SDA / SCL</td>
+<td>10 / 11</td>
+<td>AS7341 (0x39) via pogo, 100 kHz</td>
+<td>DECIDED</td>
+</tr>
+<tr>
+<td>AS7341 INT</td>
+<td>41</td>
+<td>AS7341 INT, open drain</td>
+<td>DECIDED</td>
+</tr>
+<tr>
+<td>White / UV 365 / IR 940 gate</td>
+<td>1 / 2 / 21</td>
+<td>AO3400A Q1 / Q2 / Q3</td>
+<td>DECIDED</td>
+</tr>
+<tr>
+<td>Shield sense</td>
+<td>40</td>
+<td>HIGH = shield seated (after reed S1)</td>
+<td>DECIDED</td>
+</tr>
+<tr>
+<td>USB D+ / D−</td>
+<td>19 / 20</td>
+<td>native USB CDC (host link)</td>
+<td>DevKit</td>
+</tr>
+</tbody>
+</table>
+<h2>Voltage rails</h2>
+<table>
+<thead>
+<tr>
+<th>Rail</th>
+<th>Range</th>
+<th>Source</th>
+<th>Max load</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>VBUS_IN / VBUS</td>
+<td>4.75–5.25 V</td>
+<td>USB-C J1 → F1 (2 A hold)</td>
+<td>≈1.87 A peak (ESTIMATE)</td>
+<td>Needs a <strong>5 V / 3 A</strong> USB-C supply. A PC USB2 port (0.5 A) is NOT enough.</td>
+</tr>
+<tr>
+<td>VBAT</td>
+<td>3.0–4.2 V (3.7 V nom.)</td>
+<td>BT1 protected LiPo</td>
+<td>≈1.5 A to the boost at 1 A out (ESTIMATE)</td>
+<td>Cell PCM cuts at ≈2.5–3.0 V</td>
+</tr>
+<tr>
+<td>VS (load-share)</td>
+<td>VBUS or VBAT</td>
+<td>MCP73871 inside U1</td>
+<td>—</td>
+<td>internal to the PowerBoost</td>
+</tr>
+<tr>
+<td>5V_SYS</td>
+<td>5.2 V ±2%</td>
+<td>U1 TPS61090 boost</td>
+<td>≈1 A</td>
+<td>Peak budget ≈0.97 A with the 8 % LED cap — tight, see power budget</td>
+</tr>
+<tr>
+<td>3V3</td>
+<td>3.3 V</td>
+<td>DevKit on-board LDO [OB]</td>
+<td>keep external load &lt; 100 mA (ESTIMATE)</td>
+<td>feeds I2C0 sensors, mic, GNSS</td>
+</tr>
+<tr>
+<td>AS7341 internal</td>
+<td>3.3 V / 1.8 V</td>
+<td>breakout regulators [OB]</td>
+<td>—</td>
+<td>fed from VBUS through the pogo</td>
+</tr>
+<tr>
+<td>UV_5V</td>
+<td>0 V or VBUS</td>
+<td>reed S1 (shield seated)</td>
+<td>≈21 mA</td>
+<td>hardware UV interlock</td>
+</tr>
+</tbody>
+</table>
+<h2>Power budget (ESTIMATE)</h2>
+<p><strong>5V_SYS (boost output, ≈1 A limit)</strong></p>
+<table>
+<thead>
+<tr>
+<th>Load</th>
+<th>Typical</th>
+<th>Peak</th>
+<th>Basis</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ESP32-S3 + Wi-Fi</td>
+<td>0.10 A</td>
+<td>0.35 A</td>
+<td>datasheet TX burst</td>
+</tr>
+<tr>
+<td>WS2812B quiescent (48 × ≈1 mA)</td>
+<td>0.05 A</td>
+<td>0.05 A</td>
+<td></td>
+</tr>
+<tr>
+<td>WS2812B light, 8 % brightness cap (firmware 20/255)</td>
+<td>0.08 A</td>
+<td>0.23 A</td>
+<td>48 × 60 mA × 8 %</td>
+</tr>
+<tr>
+<td>MAX98357A + 8 Ω speaker</td>
+<td>0.03 A</td>
+<td>0.25 A</td>
+<td>≈1 W peaks</td>
+</tr>
+<tr>
+<td>Sensors + mic (via 3V3 LDO)</td>
+<td>0.01 A</td>
+<td>0.05 A</td>
+<td>MAX30102 LED pulses</td>
+</tr>
+<tr>
+<td>GNSS (optional)</td>
+<td>0.03 A</td>
+<td>0.04 A</td>
+<td>acquisition</td>
+</tr>
+<tr>
+<td><strong>Total 5V_SYS</strong></td>
+<td><strong>≈0.30 A</strong></td>
+<td><strong>≈0.97 A</strong></td>
+<td><strong>tight vs ≈1 A</strong> with the 8 % LED cap (DECIDED, D1); drop GNSS if brown-outs</td>
+</tr>
+</tbody>
+</table>
+<p><strong>VBUS (USB-C input)</strong></p>
+<table>
+<thead>
+<tr>
+<th>Load</th>
+<th>Typical</th>
+<th>Peak</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>MCP73871 charger + load-share (input limit)</td>
+<td>0.6 A</td>
+<td>1.8 A</td>
+</tr>
+<tr>
+<td>Station LEDs (one at a time, 20 mA)</td>
+<td>0.00 A</td>
+<td>0.02 A (0.06 A if all on)</td>
+</tr>
+<tr>
+<td>AS7341 breakout</td>
+<td>&lt;0.01 A</td>
+<td>&lt;0.01 A</td>
+</tr>
+<tr>
+<td><strong>Total VBUS</strong></td>
+<td><strong>≈0.6 A</strong></td>
+<td><strong>≈1.87 A</strong></td>
+</tr>
+</tbody>
+</table>
+<p>Battery runtime (ESTIMATE): 1000 mAh × 3.7 V × 0.85 boost efficiency / (5.2 V × 0.30 A) ≈ <strong>2.0 h typical</strong>, ≈0.6 h at sustained peak.</p>
+<h2>Resistors (every one)</h2>
+<table>
+<thead>
+<tr>
+<th>Ref</th>
+<th>Sheet</th>
+<th>Value</th>
+<th>Pkg</th>
+<th>Power</th>
+<th>Tol.</th>
+<th>OB/ADD</th>
+<th>ESTIMATE?</th>
+<th>Calculation / purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>R1</td>
+<td>A</td>
+<td>100 kΩ</td>
+<td>0603</td>
+<td>0.1 W</td>
+<td>±1%</td>
+<td>ADD</td>
+<td></td>
+<td>divider top: VBAT → VBAT_SENSE</td>
+</tr>
+<tr>
+<td>R2</td>
+<td>A</td>
+<td>100 kΩ</td>
+<td>0603</td>
+<td>0.1 W</td>
+<td>±1%</td>
+<td>ADD</td>
+<td></td>
+<td>Vadc = VBAT·R2/(R1+R2) = VBAT/2 → 1.50–2.10 V; I = 4.2/200k = 21 µA</td>
+</tr>
+<tr>
+<td>R3</td>
+<td>B</td>
+<td>2.2 kΩ (DNP if breakouts' parallel pull-ups ≤ 3.3 kΩ)</td>
+<td>0603</td>
+<td>0.1 W</td>
+<td>±1%</td>
+<td>ADD / DNP</td>
+<td></td>
+<td>SDA0 pull-up; tr = 0.847·R·C = 0.847·2.2k·100pF = 186 ns ≤ 300 ns (400 kHz)</td>
+</tr>
+<tr>
+<td>R4</td>
+<td>B</td>
+<td>2.2 kΩ (DNP rule as R3)</td>
+<td>0603</td>
+<td>0.1 W</td>
+<td>±1%</td>
+<td>ADD / DNP</td>
+<td></td>
+<td>SCL0 pull-up; sink current 3.3/2.2k = 1.5 mA ≤ 3 mA</td>
+</tr>
+<tr>
+<td>R5</td>
+<td>C</td>
+<td>33 Ω</td>
+<td>0603</td>
+<td>0.1 W</td>
+<td>±1%</td>
+<td>ADD (optional)</td>
+<td></td>
+<td>I2S0 BCLK series damping (long pod run)</td>
+</tr>
+<tr>
+<td>R6</td>
+<td>C</td>
+<td>33 Ω</td>
+<td>0603</td>
+<td>0.1 W</td>
+<td>±1%</td>
+<td>ADD (optional)</td>
+<td></td>
+<td>I2S0 WS series damping</td>
+</tr>
+<tr>
+<td>R7</td>
+<td>C</td>
+<td>22 kΩ</td>
+<td>0603</td>
+<td>0.1 W</td>
+<td>±1%</td>
+<td>ADD</td>
+<td>ESTIMATE</td>
+<td>boot-mute pull-down: V = 5·22k/(1M+22k) = 0.108 V below 0.16 V shutdown threshold (assumes 1M [OB] pull-up — verify on your board)</td>
+</tr>
+<tr>
+<td>R8</td>
+<td>D</td>
+<td>330 Ω (300–500 Ω range)</td>
+<td>0603</td>
+<td>0.1 W</td>
+<td>±1%</td>
+<td>ADD</td>
+<td></td>
+<td>damps ringing / protects first WS2812 input</td>
+</tr>
+<tr>
+<td>R9</td>
+<td>E</td>
+<td>4.7 kΩ</td>
+<td>0603</td>
+<td>0.1 W</td>
+<td>±1%</td>
+<td>ADD</td>
+<td></td>
+<td>SDA1 pull-up; in parallel with [OB] 10k → 3.2k</td>
+</tr>
+<tr>
+<td>R10</td>
+<td>E</td>
+<td>4.7 kΩ</td>
+<td>0603</td>
+<td>0.1 W</td>
+<td>±1%</td>
+<td>ADD</td>
+<td></td>
+<td>SCL1 pull-up</td>
+</tr>
+<tr>
+<td>R11</td>
+<td>E</td>
+<td>100 Ω</td>
+<td>0603</td>
+<td>0.1 W</td>
+<td>±1%</td>
+<td>ADD</td>
+<td></td>
+<td>SDA1 series (hot-plug current limit)</td>
+</tr>
+<tr>
+<td>R12</td>
+<td>E</td>
+<td>100 Ω</td>
+<td>0603</td>
+<td>0.1 W</td>
+<td>±1%</td>
+<td>ADD</td>
+<td></td>
+<td>SCL1 series</td>
+</tr>
+<tr>
+<td>R13</td>
+<td>E</td>
+<td>10 kΩ (DNP if board has INT pull-up)</td>
+<td>0603</td>
+<td>0.1 W</td>
+<td>±1%</td>
+<td>ADD / DNP</td>
+<td></td>
+<td>AS_INT open-drain pull-up</td>
+</tr>
+<tr>
+<td>R14</td>
+<td>E</td>
+<td>100 Ω</td>
+<td>0603</td>
+<td>0.1 W</td>
+<td>±1%</td>
+<td>ADD</td>
+<td></td>
+<td>Q1 gate series</td>
+</tr>
+<tr>
+<td>R15</td>
+<td>E</td>
+<td>100 Ω</td>
+<td>0603</td>
+<td>0.1 W</td>
+<td>±1%</td>
+<td>ADD</td>
+<td></td>
+<td>Q2 gate series</td>
+</tr>
+<tr>
+<td>R16</td>
+<td>E</td>
+<td>100 Ω</td>
+<td>0603</td>
+<td>0.1 W</td>
+<td>±1%</td>
+<td>ADD</td>
+<td></td>
+<td>Q3 gate series</td>
+</tr>
+<tr>
+<td>R17</td>
+<td>E</td>
+<td>100 kΩ</td>
+<td>0603</td>
+<td>0.1 W</td>
+<td>±1%</td>
+<td>ADD</td>
+<td></td>
+<td>Q1 gate pull-down (LED OFF at boot / floating)</td>
+</tr>
+<tr>
+<td>R18</td>
+<td>E</td>
+<td>100 kΩ</td>
+<td>0603</td>
+<td>0.1 W</td>
+<td>±1%</td>
+<td>ADD</td>
+<td></td>
+<td>Q2 gate pull-down</td>
+</tr>
+<tr>
+<td>R19</td>
+<td>E</td>
+<td>100 kΩ</td>
+<td>0603</td>
+<td>0.1 W</td>
+<td>±1%</td>
+<td>ADD</td>
+<td></td>
+<td>Q3 gate pull-down</td>
+</tr>
+<tr>
+<td>R20</td>
+<td>E</td>
+<td>100 Ω</td>
+<td>0805</td>
+<td>0.125 W</td>
+<td>±1%</td>
+<td>ADD</td>
+<td>ESTIMATE</td>
+<td>(5.0−3.0)/0.020 = 100 Ω → 20 mA; P = 0.02²·100 = 0.04 W</td>
+</tr>
+<tr>
+<td>R21</td>
+<td>E</td>
+<td>68 Ω</td>
+<td>0805</td>
+<td>0.125 W</td>
+<td>±1%</td>
+<td>ADD</td>
+<td>ESTIMATE</td>
+<td>(5.0−3.6)/0.020 = 70 Ω → E12 68 Ω → 20.6 mA; P = 0.029 W</td>
+</tr>
+<tr>
+<td>R22</td>
+<td>E</td>
+<td>180 Ω</td>
+<td>0805</td>
+<td>0.125 W</td>
+<td>±1%</td>
+<td>ADD</td>
+<td>ESTIMATE</td>
+<td>(5.0−1.3)/0.020 = 185 Ω → 180 Ω → 20.6 mA; P = 0.076 W</td>
+</tr>
+<tr>
+<td>R23</td>
+<td>E</td>
+<td>12 kΩ</td>
+<td>0603</td>
+<td>0.1 W</td>
+<td>±1%</td>
+<td>ADD</td>
+<td></td>
+<td>SHIELD_SENSE = 5·20k/32k = 3.13 V (HIGH) when S1 closed; I = 0.16 mA</td>
+</tr>
+<tr>
+<td>R24</td>
+<td>E</td>
+<td>20 kΩ</td>
+<td>0603</td>
+<td>0.1 W</td>
+<td>±1%</td>
+<td>ADD</td>
+<td></td>
+<td>pulls SHIELD_SENSE to 0 V when S1 open. If VBUS = 5.25 V → 3.28 V (≤ 3.6 V abs max OK)</td>
+</tr>
+</tbody>
+</table>
+<h3>LED current-limit resistors, worked: R = (V − Vf) / If, P = If² · R</h3>
+<table>
+<thead>
+<tr>
+<th>LED</th>
+<th>V supply</th>
+<th>Vf (ESTIMATE)</th>
+<th>If target</th>
+<th>R calc</th>
+<th>Chosen (E12)</th>
+<th>Actual If</th>
+<th>P in R</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>D4 white</td>
+<td>5.0 V</td>
+<td>3.0 V</td>
+<td>20 mA</td>
+<td>(5.0−3.0)/0.020 = 100 Ω</td>
+<td>R20 100 Ω</td>
+<td>20.0 mA</td>
+<td>0.040 W</td>
+</tr>
+<tr>
+<td>D5 UV 365 nm</td>
+<td>5.0 V</td>
+<td>3.6 V</td>
+<td>20 mA</td>
+<td>(5.0−3.6)/0.020 = 70 Ω</td>
+<td>R21 68 Ω</td>
+<td>20.6 mA</td>
+<td>0.029 W</td>
+</tr>
+<tr>
+<td>D6 IR 940 nm</td>
+<td>5.0 V</td>
+<td>1.3 V</td>
+<td>20 mA</td>
+<td>(5.0−1.3)/0.020 = 185 Ω</td>
+<td>R22 180 Ω</td>
+<td>20.6 mA</td>
+<td>0.076 W</td>
+</tr>
+</tbody>
+</table>
+<p>Use 0805 0.125 W parts (≥ 1.6× margin). Check your LEDs' real Vf at 20 mA and recompute; AO3400A drop (≈0.7 mV at 20 mA) is negligible.</p>
+<h3>Other resistor math</h3>
+<ul>
+<li><strong>Battery sense (R1/R2 100 k / 100 k, C5 100 nF):</strong> Vadc = VBAT × 100k / 200k → 1.50 V (3.0 V) … 2.10 V (4.2 V). Inside the ESP32-S3 ADC 11 dB range (≈0–2.9 V usable, ESTIMATE). Divider current 4.2 V / 200 kΩ = 21 µA (≈0.5 mAh/day). Firmware: VBAT = 2 × Vadc (calibrate with a multimeter once).</li>
+<li><strong>I2C0 pull-ups (R3/R4 2.2 kΩ):</strong> rise time tr = 0.847 × R × Cbus = 0.847 × 2.2 kΩ × 100 pF ≈ 186 ns (I2C fast mode limit 300 ns). Most breakouts already carry 10 kΩ (or 4.7 kΩ) each — measure SDA→3V3 with power off: if ≤ 3.3 kΩ already, leave R3/R4 out (DNP).</li>
+<li><strong>I2C1 pull-ups (R9/R10 4.7 kΩ ∥ on-board 10 kΩ = 3.2 kΩ):</strong> longer pogo + tube run (≈30 cm, ESTIMATE ≈150 pF): tr ≈ 0.847 × 3.2k × 150 pF ≈ 0.41 µs → run I2C1 at <strong>100 kHz</strong> (limit 1 µs). R11/R12 100 Ω series limit hot-plug current.</li>
+<li><strong>MOSFET gates:</strong> R14–R16 100 Ω limit GPIO edge current into the gate; R17–R19 100 kΩ hold the LEDs OFF while the ESP32 boots (pins float).</li>
+<li><strong>Shield sense (R23 12 kΩ / R24 20 kΩ):</strong> shield seated → S1 closed → SHIELD_SENSE = 5.0 × 20/(12+20) = 3.13 V (HIGH; 3.28 V at 5.25 V — below 3.6 V abs. max). Shield off → R24 pulls to 0 V (LOW). Current 0.16 mA.</li>
+<li><strong>Amp boot-mute (R7 22 kΩ):</strong> with the breakout's 1 MΩ SD pull-up [OB] to VIN: V = 5 × 22k / 1.022M = 0.108 V &lt; 0.16 V shutdown threshold → amp OFF until GPIO6 drives HIGH. ESTIMATE — verify your breakout's pull-up value.</li>
+<li><strong>NeoPixel data (R8 330 Ω):</strong> in the 300–500 Ω range; sits at the first LED's DIN to damp ringing on the 3.3→5 V buffered line.</li>
+</ul>
+<h2>Capacitors (every one)</h2>
+<table>
+<thead>
+<tr>
+<th>Ref</th>
+<th>Sheet</th>
+<th>Value</th>
+<th>Type</th>
+<th>Pkg</th>
+<th>Voltage</th>
+<th>Tol.</th>
+<th>OB/ADD</th>
+<th>Location / purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>C1</td>
+<td>A</td>
+<td>10 µF</td>
+<td>MLCC X5R</td>
+<td>0805</td>
+<td>10 V</td>
+<td>±10%</td>
+<td>ADD</td>
+<td>Pedestal after F1 — VBUS local decoupling</td>
+</tr>
+<tr>
+<td>C2</td>
+<td>A</td>
+<td>47 µF</td>
+<td>Polymer / low-ESR electrolytic</td>
+<td>radial 6.3 mm</td>
+<td>10 V</td>
+<td>±20%</td>
+<td>ADD</td>
+<td>Head, at U1 USB pad — absorbs cable inductance at charger input</td>
+</tr>
+<tr>
+<td>C3</td>
+<td>A</td>
+<td>220 µF</td>
+<td>Polymer / low-ESR electrolytic</td>
+<td>radial 6.3 mm</td>
+<td>10 V</td>
+<td>±20%</td>
+<td>ADD</td>
+<td>At U1 5V out — boost output reservoir for LED + amp peaks</td>
+</tr>
+<tr>
+<td>C4</td>
+<td>A</td>
+<td>100 nF</td>
+<td>MLCC X7R</td>
+<td>0603</td>
+<td>16 V</td>
+<td>±10%</td>
+<td>ADD</td>
+<td>At U1 5V out — HF decoupling</td>
+</tr>
+<tr>
+<td>C6</td>
+<td>A</td>
+<td>10 µF</td>
+<td>MLCC X5R</td>
+<td>0805</td>
+<td>10 V</td>
+<td>±10%</td>
+<td>ADD</td>
+<td>At U0 5V pin — DevKit input decoupling</td>
+</tr>
+<tr>
+<td>C5</td>
+<td>A</td>
+<td>100 nF</td>
+<td>MLCC X7R</td>
+<td>0603</td>
+<td>16 V</td>
+<td>±10%</td>
+<td>ADD</td>
+<td>At GPIO5 — ADC sample-hold reservoir; τ = 50k·100n = 5 ms</td>
+</tr>
+<tr>
+<td>C7</td>
+<td>B</td>
+<td>100 nF at U3 IMU</td>
+<td>MLCC X7R</td>
+<td>0603</td>
+<td>16 V</td>
+<td>±10%</td>
+<td>OB (usually) / ADD</td>
+<td>U3 — add only if breakout lacks it</td>
+</tr>
+<tr>
+<td>C8</td>
+<td>B</td>
+<td>100 nF at U4 BME280</td>
+<td>MLCC X7R</td>
+<td>0603</td>
+<td>16 V</td>
+<td>±10%</td>
+<td>OB / ADD</td>
+<td>U4</td>
+</tr>
+<tr>
+<td>C9</td>
+<td>B</td>
+<td>100 nF at U5 BH1750</td>
+<td>MLCC X7R</td>
+<td>0603</td>
+<td>16 V</td>
+<td>±10%</td>
+<td>OB / ADD</td>
+<td>U5</td>
+</tr>
+<tr>
+<td>C10</td>
+<td>B</td>
+<td>100 nF at U6 MAX30102</td>
+<td>MLCC X7R</td>
+<td>0603</td>
+<td>16 V</td>
+<td>±10%</td>
+<td>OB / ADD</td>
+<td>U6 — MAX30102 LED pulses need local cap</td>
+</tr>
+<tr>
+<td>C11</td>
+<td>B</td>
+<td>10 µF at U7 GNSS</td>
+<td>MLCC X5R</td>
+<td>0805</td>
+<td>10 V</td>
+<td>±10%</td>
+<td>ADD (optional)</td>
+<td>U7 — GNSS acquisition current bursts</td>
+</tr>
+<tr>
+<td>C12</td>
+<td>C</td>
+<td>100 µF</td>
+<td>Aluminium electrolytic</td>
+<td>radial 5 mm</td>
+<td>10 V</td>
+<td>±20%</td>
+<td>ADD</td>
+<td>At U9 VIN — class-D supply reservoir</td>
+</tr>
+<tr>
+<td>C13</td>
+<td>C</td>
+<td>10 µF</td>
+<td>MLCC X5R</td>
+<td>0805</td>
+<td>10 V</td>
+<td>±10%</td>
+<td>ADD</td>
+<td>At U9 VIN</td>
+</tr>
+<tr>
+<td>C14</td>
+<td>D</td>
+<td>100 nF</td>
+<td>MLCC X7R</td>
+<td>0603</td>
+<td>16 V</td>
+<td>±10%</td>
+<td>ADD</td>
+<td>At U2</td>
+</tr>
+<tr>
+<td>C15</td>
+<td>D</td>
+<td>1000 µF</td>
+<td>Aluminium electrolytic</td>
+<td>radial 8 mm</td>
+<td>10 V</td>
+<td>±20%</td>
+<td>ADD</td>
+<td>Chest ring 5V/GND — LED bulk — inrush &amp; surge protection</td>
+</tr>
+<tr>
+<td>C16</td>
+<td>D</td>
+<td>100 µF</td>
+<td>Aluminium electrolytic</td>
+<td>radial 5 mm</td>
+<td>10 V</td>
+<td>±20%</td>
+<td>ADD</td>
+<td>Pod ring L</td>
+</tr>
+<tr>
+<td>C17</td>
+<td>D</td>
+<td>100 µF</td>
+<td>Aluminium electrolytic</td>
+<td>radial 5 mm</td>
+<td>10 V</td>
+<td>±20%</td>
+<td>ADD</td>
+<td>Pod ring R</td>
+</tr>
+<tr>
+<td>C18</td>
+<td>D</td>
+<td>100 µF</td>
+<td>Aluminium electrolytic</td>
+<td>radial 5 mm</td>
+<td>10 V</td>
+<td>±20%</td>
+<td>ADD</td>
+<td>Eye boards</td>
+</tr>
+<tr>
+<td>C19</td>
+<td>E</td>
+<td>10 µF</td>
+<td>MLCC X5R</td>
+<td>0805</td>
+<td>10 V</td>
+<td>±10%</td>
+<td>ADD</td>
+<td>At J2 (pedestal) — pogo VIN bulk</td>
+</tr>
+<tr>
+<td>C20</td>
+<td>E</td>
+<td>100 nF</td>
+<td>MLCC X7R</td>
+<td>0603</td>
+<td>16 V</td>
+<td>±10%</td>
+<td>ADD</td>
+<td>At J2</td>
+</tr>
+<tr>
+<td>C21</td>
+<td>E</td>
+<td>10 µF</td>
+<td>MLCC X5R</td>
+<td>0805</td>
+<td>10 V</td>
+<td>±10%</td>
+<td>ADD</td>
+<td>LED board — LED switching decoupling</td>
+</tr>
+</tbody>
+</table>
+<p>Rule: voltage rating ≥ 2× rail for MLCC (DC-bias derating), ≥ 1.6× for electrolytics/polymer. Watch polarity on C2, C3, C12, C15–C18.</p>
+<h2>Diodes, fuses, switches, ICs, connectors</h2>
+<table>
+<thead>
+<tr>
+<th>Ref</th>
+<th>Sheet</th>
+<th>Part</th>
+<th>Type</th>
+<th>Pkg</th>
+<th>Rating</th>
+<th>OB/ADD</th>
+<th>Note</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>J1</td>
+<td>A</td>
+<td>USB-C 16-pin receptacle breakout (5.1k CC pull-downs on board)</td>
+<td>Connector</td>
+<td>breakout</td>
+<td>5 V / 3 A</td>
+<td>ADD (module)</td>
+<td>CC 5.1k = [OB]; only VBUS/GND/D+/D− used</td>
+</tr>
+<tr>
+<td>D1</td>
+<td>A</td>
+<td>USBLC6-2SC6</td>
+<td>ESD array</td>
+<td>SOT-23-6</td>
+<td>5.25 V working</td>
+<td>ADD</td>
+<td>on D+/D−; VBUS pin to VBUS</td>
+</tr>
+<tr>
+<td>D2</td>
+<td>A</td>
+<td>SMBJ5.0A</td>
+<td>TVS diode</td>
+<td>SMB (DO-214AA)</td>
+<td>5.0 V standoff, 600 W pk</td>
+<td>ADD</td>
+<td>clamps hot-plug spikes on VBUS</td>
+</tr>
+<tr>
+<td>F1</td>
+<td>A</td>
+<td>PTC resettable fuse 2.0 A hold / ~4 A trip</td>
+<td>Polyfuse</td>
+<td>1812</td>
+<td>6 V</td>
+<td>ADD</td>
+<td>VBUS peak ≈1.87 A (charger limit 1.8 A + station LEDs 60 mA)</td>
+</tr>
+<tr>
+<td>U1</td>
+<td>A</td>
+<td>Adafruit PowerBoost 1000C (ZS-B02)</td>
+<td>Module</td>
+<td>PCB 36×23 mm</td>
+<td>in 5 V, out 5.2 V ≈1 A</td>
+<td>ADD (module)</td>
+<td>MCP73871 + TPS61090; on-board caps, EN &amp; LBO pull-ups [OB]</td>
+</tr>
+<tr>
+<td>BT1</td>
+<td>A</td>
+<td>1S LiPo 503450 ≈1000 mAh, with PCM (ZS-B01)</td>
+<td>Battery</td>
+<td>50×34×5 mm</td>
+<td>3.0–4.2 V</td>
+<td>ADD</td>
+<td>PCM (over-charge/discharge/short) is [OB] in the cell</td>
+</tr>
+<tr>
+<td>F2</td>
+<td>A</td>
+<td>PTC 2.0 A hold</td>
+<td>Polyfuse</td>
+<td>1812</td>
+<td>6 V</td>
+<td>ADD (optional)</td>
+<td>backup to cell PCM</td>
+</tr>
+<tr>
+<td>SW1</td>
+<td>A</td>
+<td>SS12D00 SPDT slide switch</td>
+<td>Switch</td>
+<td>through-hole 2.54 mm</td>
+<td>50 V / 0.5 A</td>
+<td>ADD</td>
+<td>EN to GND = OFF (switch closed = OFF). Charging still works when OFF.</td>
+</tr>
+<tr>
+<td>U2</td>
+<td>D</td>
+<td>SN74AHCT1G125 (or 1 gate of 74AHCT125)</td>
+<td>Logic buffer</td>
+<td>SOT-23-5 / DIP-14</td>
+<td>VCC 5 V</td>
+<td>ADD</td>
+<td>3.3 V → 5 V level shift (VIH = 2.0 V at 5 V)</td>
+</tr>
+<tr>
+<td>LED1–48</td>
+<td>D</td>
+<td>WS2812B (100 nF per LED on ring PCBs)</td>
+<td>Smart LED</td>
+<td>5050</td>
+<td>5 V, 60 mA max each</td>
+<td>OB (ring modules)</td>
+<td>48·60 mA·8% brightness cap = 0.23 A peak (cap 10→8 % on 2026-11-09</td>
+</tr>
+<tr>
+<td>U10</td>
+<td>E</td>
+<td>AS7341 breakout (ZS-S01)</td>
+<td>Sensor module</td>
+<td>breakout</td>
+<td>VIN 3.3–5 V (on-board LDO)</td>
+<td>ADD (module)</td>
+<td>I2C 0x39 fixed; on-board 10k pull-ups and 1.8 V/3.3 V regs [OB]</td>
+</tr>
+<tr>
+<td>J2</td>
+<td>E</td>
+<td>4-pin magnetic pogo pair</td>
+<td>Connector</td>
+<td>2.54 mm pitch</td>
+<td>2 A per pin (typ.)</td>
+<td>ADD</td>
+<td>VBUS, GND, SDA1_P, SCL1_P</td>
+</tr>
+<tr>
+<td>D3</td>
+<td>E</td>
+<td>TPD4E05U06</td>
+<td>ESD array</td>
+<td>USON-10 / SOT</td>
+<td>5.5 V working</td>
+<td>ADD</td>
+<td>ESD on exposed pogo pins</td>
+</tr>
+<tr>
+<td>Q1</td>
+<td>E</td>
+<td>AO3400A (white)</td>
+<td>N-MOSFET logic level</td>
+<td>SOT-23</td>
+<td>30 V, 5.7 A, Rds 33 mΩ @ 4.5 V</td>
+<td>ADD</td>
+<td>Vgs(th) ≤ 1.45 V → fully on at 3.3 V for 20 mA</td>
+</tr>
+<tr>
+<td>Q2</td>
+<td>E</td>
+<td>AO3400A (UV)</td>
+<td>N-MOSFET</td>
+<td>SOT-23</td>
+<td>30 V</td>
+<td>ADD</td>
+<td></td>
+</tr>
+<tr>
+<td>Q3</td>
+<td>E</td>
+<td>AO3400A (IR, optional)</td>
+<td>N-MOSFET</td>
+<td>SOT-23</td>
+<td>30 V</td>
+<td>ADD</td>
+<td>gate on GPIO21 (v0.3)</td>
+</tr>
+<tr>
+<td>D4</td>
+<td>E</td>
+<td>White LED 3 mm / 3528 (ZS-S04)</td>
+<td>LED</td>
+<td>3 mm</td>
+<td>Vf ≈3.0 V @ 20 mA</td>
+<td>ADD</td>
+<td></td>
+</tr>
+<tr>
+<td>D5</td>
+<td>E</td>
+<td>365 nm UV-A LED (ZS-S05)</td>
+<td>LED</td>
+<td>3535</td>
+<td>Vf ≈3.6 V @ 20 mA</td>
+<td>ADD</td>
+<td>check IEC 62471 risk group</td>
+</tr>
+<tr>
+<td>D6</td>
+<td>E</td>
+<td>940 nm IR LED (ZS-S06, optional)</td>
+<td>LED</td>
+<td>3 mm</td>
+<td>Vf ≈1.3 V @ 20 mA</td>
+<td>ADD (optional)</td>
+<td></td>
+</tr>
+<tr>
+<td>S1</td>
+<td>E</td>
+<td>Glass reed switch NO ~12 mm (ZS-S09)</td>
+<td>Reed switch</td>
+<td>axial</td>
+<td>≥100 V / 0.5 A</td>
+<td>ADD</td>
+<td>in SERIES with UV LED supply: VBUS → S1 → UV_5V (hardware interlock)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Flyback diodes:</strong> none needed — there are no motors, relays or other inductive loads; the speaker is driven by a class-D bridge with its own protection. <strong>ESD/TVS:</strong> D1 (USB data), D2 (VBUS surge), D3 (exposed pogo pins). <strong>Fuses:</strong> F1 on VBUS, F2 (optional) on the battery lead, plus the cell's own PCM.</p>
+<h2>Connectors and pitches</h2>
+<table>
+<thead>
+<tr>
+<th>Where</th>
+<th>Connector</th>
+<th>Pitch</th>
+<th>Pins / note</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>I2C breakouts (U3–U6, U10 side)</td>
+<td>JST-SH (STEMMA QT / Qwiic)</td>
+<td>1.0 mm</td>
+<td>4: GND, 3V3, SDA, SCL</td>
+</tr>
+<tr>
+<td>Battery BT1 → U1</td>
+<td>JST-PH</td>
+<td>2.0 mm</td>
+<td>2 (check polarity — no standard!)</td>
+</tr>
+<tr>
+<td>LED rings / eye boards</td>
+<td>JST-PH</td>
+<td>2.0 mm</td>
+<td>3: 5V, DIN/DOUT, GND</td>
+</tr>
+<tr>
+<td>Head ↔ torso, torso ↔ tube harness joints</td>
+<td>JST-PH (or JST-GH for locking)</td>
+<td>2.0 mm (1.25 mm GH)</td>
+<td>split into ≤ 6-pin groups</td>
+</tr>
+<tr>
+<td>DevKit headers</td>
+<td>Dupont female</td>
+<td>2.54 mm</td>
+<td>or solder directly</td>
+</tr>
+<tr>
+<td>Station shield ↔ pedestal J2</td>
+<td>4-pin magnetic pogo</td>
+<td>2.54 mm</td>
+<td>VBUS, GND, SDA1_P, SCL1_P</td>
+</tr>
+<tr>
+<td>Pedestal power/data in J1</td>
+<td>USB-C receptacle breakout</td>
+<td>—</td>
+<td>5.1 kΩ CC [OB]</td>
+</tr>
+<tr>
+<td>Speaker</td>
+<td>JST-PH or solder</td>
+<td>2.0 mm</td>
+<td>2</td>
+</tr>
+</tbody>
+</table>
+<h2>Wire gauge per run</h2>
+<table>
+<thead>
+<tr>
+<th>Run</th>
+<th>Current (peak)</th>
+<th>Wire</th>
+<th>Length (ESTIMATE)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>VBUS / GND: J1 → tube → torso → head (U1)</td>
+<td>≤ 1.87 A</td>
+<td>2 × 26 AWG silicone in parallel each (or 1 × 22 AWG if it fits the tube)</td>
+<td>≈30 cm</td>
+</tr>
+<tr>
+<td>5V_SYS / GND: U1 → torso → LEDs, DevKit</td>
+<td>≤ 1.03 A</td>
+<td>2 × 26 AWG in parallel</td>
+<td>≈15 cm</td>
+</tr>
+<tr>
+<td>BAT: BT1 → U1</td>
+<td>≤ 1.5 A</td>
+<td>24 AWG</td>
+<td>≤ 75 mm</td>
+</tr>
+<tr>
+<td>LED ring 5V/GND branches</td>
+<td>≤ 0.15 A each</td>
+<td>26 AWG</td>
+<td>≤ 15 cm</td>
+</tr>
+<tr>
+<td>Speaker</td>
+<td>≤ 0.4 A</td>
+<td>26 AWG</td>
+<td>≤ 10 cm</td>
+</tr>
+<tr>
+<td>All signals (I2C, I2S, gates, sense, LED data)</td>
+<td>&lt; 10 mA</td>
+<td>30 AWG silicone</td>
+<td>—</td>
+</tr>
+<tr>
+<td>USB D+ / D−</td>
+<td>data</td>
+<td>30 AWG twisted pair, ≈ 1 twist/cm</td>
+<td>keep &lt; 30 cm</td>
+</tr>
+<tr>
+<td>Station LED supply (VBUS in pedestal)</td>
+<td>≤ 60 mA</td>
+<td>28–30 AWG</td>
+<td>≤ 10 cm</td>
+</tr>
+</tbody>
+</table>
+<p>26 AWG silicone ≈ 0.134 Ω/m: 30 cm at 1.87 A on a single wire ≈ 75 mV drop each way — doubled wires halve it.</p>
+<h2>Harness: tube (pedestal ↔ torso) — 11 conductors (ESTIMATE fit in 8 mm ID)</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Signal</th>
+<th>Gauge</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>VBUS</td>
+<td>26 (×2 if room)</td>
+</tr>
+<tr>
+<td>2</td>
+<td>GND</td>
+<td>26 (×2 if room)</td>
+</tr>
+<tr>
+<td>3</td>
+<td>USB D+</td>
+<td>30 twisted</td>
+</tr>
+<tr>
+<td>4</td>
+<td>USB D−</td>
+<td>30 twisted</td>
+</tr>
+<tr>
+<td>5</td>
+<td>SDA1</td>
+<td>30</td>
+</tr>
+<tr>
+<td>6</td>
+<td>SCL1</td>
+<td>30</td>
+</tr>
+<tr>
+<td>7</td>
+<td>G_WHITE (GPIO1)</td>
+<td>30</td>
+</tr>
+<tr>
+<td>8</td>
+<td>G_UV (GPIO2)</td>
+<td>30</td>
+</tr>
+<tr>
+<td>9</td>
+<td>G_IR (GPIO21)</td>
+<td>30</td>
+</tr>
+<tr>
+<td>10</td>
+<td>AS_INT (GPIO41)</td>
+<td>30</td>
+</tr>
+<tr>
+<td>11</td>
+<td>SHIELD_SENSE (GPIO40)</td>
+<td>30</td>
+</tr>
+</tbody>
+</table>
+<h2>Per-module specifications</h2>
+<table>
+<thead>
+<tr>
+<th>Module</th>
+<th>Supply</th>
+<th>Current</th>
+<th>I2C address</th>
+<th>Interface / pins</th>
+<th>Datasheet (verify revision)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>U0 ESP32-S3 DevKitC-1 (RB-001)</td>
+<td>5 V in (on-board LDO → 3V3)</td>
+<td>≈100 mA typ, ≈350 mA Wi-Fi TX peak</td>
+<td>—</td>
+<td>USB (GPIO19/20), GPIO</td>
+<td><a href="https://www.espressif.com/sites/default/files/documentation/esp32-s3_datasheet_en.pdf">Espressif ESP32-S3 datasheet</a> · <a href="https://docs.espressif.com/projects/esp-dev-kits/en/latest/esp32s3/esp32-s3-devkitc-1/">DevKitC-1 guide</a></td>
+</tr>
+<tr>
+<td>U3 ICM-42688-P (RB-002)</td>
+<td>3.3 V</td>
+<td>≈1 mA</td>
+<td>0x68 (0x69 if AD0 high)</td>
+<td>I2C0</td>
+<td><a href="https://invensense.tdk.com/products/motion-tracking/6-axis/icm-42688-p/">TDK ICM-42688-P</a></td>
+</tr>
+<tr>
+<td>U4 BME280 (RB-004)</td>
+<td>3.3 V</td>
+<td>≈1 mA peak, µA avg</td>
+<td>0x76 (0x77)</td>
+<td>I2C0</td>
+<td><a href="https://www.bosch-sensortec.com/products/environmental-sensors/humidity-sensors-bme280/">Bosch BME280</a></td>
+</tr>
+<tr>
+<td>U5 BH1750 (RB-003)</td>
+<td>3.3 V</td>
+<td>0.12–0.19 mA</td>
+<td>0x23 (ADDR low)</td>
+<td>I2C0</td>
+<td><a href="https://www.mouser.com/datasheet/2/348/bh1750fvi-e-186247.pdf">ROHM BH1750FVI</a></td>
+</tr>
+<tr>
+<td>U6 MAX30102 (RB-005, opt)</td>
+<td>3.3 V logic (LED 5 V on most breakouts)</td>
+<td>≈0.6 mA + LED pulses up to 50 mA</td>
+<td>0x57</td>
+<td>I2C0</td>
+<td><a href="https://www.analog.com/en/products/max30102.html">ADI MAX30102</a></td>
+</tr>
+<tr>
+<td>U7 NEO-M9N GNSS (RB-007, opt)</td>
+<td>3.3 V</td>
+<td>≈30–40 mA acquiring</td>
+<td>—</td>
+<td>UART GPIO17/18</td>
+<td><a href="https://www.u-blox.com/en/product/neo-m9n-module">u-blox NEO-M9N</a></td>
+</tr>
+<tr>
+<td>U8 INMP441 (RB-006)</td>
+<td>3.3 V</td>
+<td>1.4 mA</td>
+<td>—</td>
+<td>I2S0 GPIO12/13/14</td>
+<td><a href="https://invensense.tdk.com/products/digital/inmp441/">TDK INMP441</a></td>
+</tr>
+<tr>
+<td>U9 MAX98357A (ZS-E05)</td>
+<td>5 V (2.5–5.5 V)</td>
+<td>≈3 mA idle, ≈250 mA at ~1 W/8 Ω (ESTIMATE)</td>
+<td>—</td>
+<td>I2S1 GPIO15/16/7, SD GPIO6</td>
+<td><a href="https://www.analog.com/en/products/max98357a.html">ADI MAX98357A</a></td>
+</tr>
+<tr>
+<td>U10 AS7341 breakout (ZS-S01)</td>
+<td>VIN 3.3–5 V (on-board regs)</td>
+<td>≈0.3 mA active</td>
+<td>0x39 (fixed)</td>
+<td>I2C1 GPIO10/11, INT GPIO41</td>
+<td><a href="https://look.ams-osram.com/m/24266a3e584de4db/original/AS7341-DS000504.pdf">ams-OSRAM AS7341 DS000504</a></td>
+</tr>
+<tr>
+<td>LED1–48 WS2812B</td>
+<td>5 V (VIH ≥ 0.7·VDD → needs U2)</td>
+<td>≈1 mA idle, 60 mA max each</td>
+<td>—</td>
+<td>1-wire 800 kHz, GPIO4</td>
+<td><a href="https://cdn-shop.adafruit.com/datasheets/WS2812B.pdf">WS2812B (Adafruit PDF)</a></td>
+</tr>
+<tr>
+<td>U2 SN74AHCT1G125</td>
+<td>5 V</td>
+<td>&lt; 0.1 mA</td>
+<td>—</td>
+<td>buffer</td>
+<td><a href="https://www.ti.com/product/SN74AHCT1G125">TI SN74AHCT1G125</a></td>
+</tr>
+<tr>
+<td>U1 PowerBoost 1000C</td>
+<td>in 5 V USB / 3.7 V LiPo; out 5.2 V</td>
+<td>≈1 A out (TPS61090), charge 1 A</td>
+<td>—</td>
+<td>EN, LBO pins</td>
+<td><a href="https://learn.adafruit.com/adafruit-powerboost-1000c-load-share-usb-charge-boost">Adafruit guide</a> · <a href="https://cdn-shop.adafruit.com/datasheets/MCP73871.pdf">MCP73871</a> · <a href="https://www.ti.com/product/TPS61090">TPS61090</a></td>
+</tr>
+<tr>
+<td>Q1–Q3 AO3400A</td>
+<td>Vgs(th) 0.65–1.45 V</td>
+<td>5.7 A max (20 mA used)</td>
+<td>—</td>
+<td>GPIO1/2/21</td>
+<td><a href="https://www.aosmd.com/res/datasheets/AO3400A.pdf">AOS AO3400A</a></td>
+</tr>
+<tr>
+<td>D1 USBLC6-2SC6 · D3 TPD4E05U06 · D2 SMBJ5.0A</td>
+<td>5 V lines</td>
+<td>—</td>
+<td>—</td>
+<td>protection</td>
+<td><a href="https://www.st.com/en/protections-and-emi-filters/usblc6-2.html">ST USBLC6-2</a> · <a href="https://www.ti.com/product/TPD4E05U06">TI TPD4E05U06</a> · <a href="https://www.littelfuse.com/products/tvs-diodes/surface-mount/smbj.aspx">Littelfuse SMBJ</a></td>
+</tr>
+</tbody>
+</table>
+<p>I2C address map: <strong>bus 0</strong> 0x23, 0x57, 0x68, 0x76 — no conflicts; <strong>bus 1</strong> 0x39 alone. All datasheet links were correct when written; always check the current revision.</p>
+<h2>Schematics</h2>
+<p>Drawn in net-label style: <strong>same net name = connected</strong>. [OB] on-board, [ADD] added.</p>
+<div class="sch"><img src="schematics/A_power.png"><p class="cap">Sheet A — Power (SVG: docs/schematics/A_power.svg)</p></div>
+
+<div class="sch"><img src="schematics/B_i2c0_sensors.png"><p class="cap">Sheet B — I2C0 sensors + GNSS (SVG: docs/schematics/B_i2c0_sensors.svg)</p></div>
+
+<div class="sch"><img src="schematics/C_audio.png"><p class="cap">Sheet C — Audio (SVG: docs/schematics/C_audio.svg)</p></div>
+
+<div class="sch"><img src="schematics/D_led_chain.png"><p class="cap">Sheet D — LED chain (SVG: docs/schematics/D_led_chain.svg)</p></div>
+
+<div class="sch"><img src="schematics/E_crystal_station.png"><p class="cap">Sheet E — Crystal station (SVG: docs/schematics/E_crystal_station.svg)</p></div>
+
+<h1>9. Stage gates 0–3 (PROPOSED — reconstructed)</h1>
+<div class="box">The original brief's Stage 0–3 text was not available to this build; these gates are a <b>reconstruction</b> from the system logic and must be confirmed by Cory.</div>
+
+<table>
+<thead>
+<tr>
+<th>Stage</th>
+<th>Build state</th>
+<th>Gate (all must pass)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>0 — bare DevKit</strong></td>
+<td>ESP32-S3 on USB only, no wiring</td>
+<td>Firmware flashes; native USB prints the boot line + self-test JSON; host <code>spark_brain</code> receives frames (Wi-Fi build only: softAP visible when SPARK_AP_PASS is set, WebSocket :81 streams JSON)</td>
+</tr>
+<tr>
+<td><strong>1 — sensor bench harness</strong></td>
+<td>U3–U8 on a breadboard / JST-SH chain</td>
+<td>I2C0 scan = 0x23, 0x57, 0x68, 0x76 (present ones); every sensor value plausible and labelled MEASURED; mic RMS rises when you speak; GNSS NMEA (if fitted)</td>
+</tr>
+<tr>
+<td><strong>2 — power + LEDs + audio in the body</strong></td>
+<td>Steps 1–11</td>
+<td>SW1 OFF → 5V_SYS &lt; 0.3 V; ON → 5.1–5.25 V; battery reading within 0.05 V of a meter; 48 LEDs light in order at ≤ 8 % (firmware cap); amp silent at boot, tone plays when unmuted; no brown-out during LED + audio + Wi-Fi together (log min 5V_SYS)</td>
+</tr>
+<tr>
+<td><strong>3 — full assembly + station</strong></td>
+<td>Steps 12–16</td>
+<td>Shield interlock: shield off → UV_5V = 0 V and SHIELD_SENSE LOW; shield on → 0x39 on I2C1 + HIGH; dark/white calibration passes repeatability (§11); robot height 314 mm ±2</td>
+</tr>
+</tbody>
+</table>
+<h1>10. Firmware flash and bring-up tests</h1>
+<p>Spark firmware <strong>zs-0.4.0</strong> is in this package at <code>firmware/zeref_spark_fw/</code> (PlatformIO, Arduino framework). It is built on Cory's Reality Bridge Probe v0.2, which is kept unchanged in <code>firmware/reality_bridge_probe_v0.2_original/</code> (his repo is not edited). It covers every DECIDED pin: LEDs (GPIO4, cap 8 %), amp I2S1 15/16/7 + mute 6 (tones and streamed speech), battery GPIO5, station I2C1 10/11 + INT 41, gates 1/2/21, shield sense 40, UV guard. Compile status: USB build and Wi-Fi build both <strong>compile</strong>; <strong>never run on a board yet</strong>.</p>
+<ol>
+<li>Install VS Code + PlatformIO. Open <code>firmware/zeref_spark_fw</code>.</li>
+<li>Connect the DevKit's <strong>USB</strong> (native) port — the firmware talks over native USB CDC (needed for speech audio). If upload fails: hold BOOT, tap RESET, release BOOT.</li>
+<li><code>pio run -e zeref-spark -t upload</code> then <code>pio device monitor</code>. Expect the line <code>Zeref Spark zs-0.4.0 (Reality Bridge Probe 0.2.0 base)</code> and a self-test JSON.</li>
+<li>On the host: <code>cd host &amp;&amp; python -m spark_brain serial /dev/ttyACM0</code> (the brain lives there — the robot is the nervous system). Optional Wi-Fi: build with <code>SPARK_AP_PASS='8+ chars' pio run -e zeref-spark-wifi</code> (Wi-Fi accepts speech lines only; UV/SCAN stay USB-only).</li>
+</ol>
+<table>
+<thead>
+<tr>
+<th>Test</th>
+<th>How</th>
+<th>Pass</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>I2C0 scan</td>
+<td>scanner sketch / firmware self-test</td>
+<td>expected addresses only</td>
+</tr>
+<tr>
+<td>I2C1 scan</td>
+<td><code>Wire1.begin(10, 11, 100000)</code></td>
+<td>0x39 only when shield seated</td>
+</tr>
+<tr>
+<td>Battery</td>
+<td>read GPIO5 ×2, compare to meter</td>
+<td>±0.05 V</td>
+</tr>
+<tr>
+<td>LEDs</td>
+<td>chain test at 4 % then 8 % (<code>BRIGHT 10</code>, then <code>BRIGHT 20</code>)</td>
+<td>48 LEDs, correct order: chest → eyes → pods → crown</td>
+</tr>
+<tr>
+<td>Amp mute</td>
+<td>boot, measure SPK1</td>
+<td>silent until GPIO6 HIGH</td>
+</tr>
+<tr>
+<td>Speech</td>
+<td>host: <code>python -m spark_brain serial PORT --speak --say 'hello'</code> after sending <code>MUTE 0</code></td>
+<td>clear speech (local piper TTS, or labelled stub tones); amp mutes about 60 ms after the end; <code>speech</code> frames show no underruns</td>
+</tr>
+<tr>
+<td>Gates</td>
+<td>toggle GPIO1/2/21 with shield seated</td>
+<td>each LED alone; UV never with shield off</td>
+</tr>
+<tr>
+<td>Shield sense</td>
+<td>lift / seat</td>
+<td>GPIO40 LOW / HIGH</td>
+</tr>
+<tr>
+<td>Brown-out</td>
+<td>LEDs 8 % + speech audio + Wi-Fi TX for 60 s</td>
+<td>no reset; 5V_SYS ≥ 4.9 V</td>
+</tr>
+</tbody>
+</table>
+<p>Firmware honesty labels: raw counts <strong>MEASURED</strong>, ratios <strong>DERIVED</strong>, any classification <strong>ESTIMATE</strong> (with confidence). No metaphysical claims.</p>
+<h1>11. Crystal station calibration</h1>
+<p>Fix the settings first and record them with every reading: gain (start at 64×), ATIME/ASTEP (start at ~50 ms), LED warm-up 2 s, and a temperature log (BME280 / internal).
+1. <strong>Warm-up</strong>: robot on for ≥ 10 min, shield on.
+2. <strong>Dark reference D</strong>: ZS-605 dark plug in the cup, shield on, <strong>all LEDs off</strong>. Take 10 readings and store the mean and standard deviation for each channel. This is sensor offset plus any ambient leak.
+3. <strong>Stray-light check</strong>: dark plug still in, each LED on in turn. The counts must stay within ~3 standard deviations of D. If they don't, light is leaking around the plug or the shield (fix with paint or tape before going further).
+4. <strong>Ambient leak check</strong>: empty cup, shield on, LEDs off, room lights switched on and off. Any change of more than ~3 standard deviations means the shield or groove leaks.
+5. <strong>White reference W</strong> (per LED mode): PTFE disc ZS-S12 in the cup, shield on, LED on. Take 10 readings. Adjust gain so the highest channel is 30–80 % of full scale (no saturation; full scale is set by ATIME/ASTEP, max 65535). Store W for each mode.
+6. <strong>Empty-cup reference E</strong> (optional): window only, for absolute transmission.
+7. <strong>Crystal reading S</strong>: same mode, gain and timing. Take 5 readings and keep the raw counts (<strong>MEASURED</strong>).
+8. <strong>Derived values</strong>: <code>T_ch = (S − D) / (W − D)</code> for transmission vs PTFE. In fluorescence mode (UV on, UV-cut filter in), <code>F_ch = (S − D) / (W_white − D)</code> is a <strong>relative</strong> emission index only. Both are <strong>DERIVED</strong>.
+9. <strong>Repeatability gate</strong>: remove and re-seat the crystal 3 times. If any T_ch changes by more than ~5 %, flag the reading "unrepeatable" (placement, chips and surface dirt all matter).
+10. Any "looks like amethyst / clear quartz / …" label is an <strong>ESTIMATE</strong> from nearest-match against samples Cory has labelled himself. Show it with its confidence and the raw data, and never call it MEASURED. No energy or metaphysical claims are made.</p>
+<h1>12. Troubleshooting</h1>
+<table>
+<thead>
+<tr>
+<th>Symptom</th>
+<th>Likely cause</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Nothing powers with SW1 ON</td>
+<td>EN shorted / switch wired inverted; cell PCM tripped</td>
+<td>check SW1 (closed = OFF); plug USB to reset PCM</td>
+</tr>
+<tr>
+<td>Resets when LEDs flash or audio plays</td>
+<td>5V_SYS peak ≈ 1 A limit; missing C3/C15</td>
+<td>cap LEDs at 8 %, lower volume, check bulk caps, check 2× 26 AWG power wires</td>
+</tr>
+<tr>
+<td>First LED flickers / random colours</td>
+<td>no level shift, R8 missing, GND not shared</td>
+<td>fit U2 + R8, run GND alongside data</td>
+</tr>
+<tr>
+<td>I2C0 device missing</td>
+<td>wrong address jumper, swapped SDA/SCL, no pull-ups</td>
+<td>scan, check ADDR pins, measure pull-up resistance</td>
+</tr>
+<tr>
+<td>I2C bus hangs</td>
+<td>too-strong pull-ups stacked (&lt; 1 kΩ)</td>
+<td>remove R3/R4 or breakout pull-ups</td>
+</tr>
+<tr>
+<td>AS7341 not found</td>
+<td>shield not seated; pogo dirty; I2C1 too fast</td>
+<td>reseat, clean pads, run at 100 kHz</td>
+</tr>
+<tr>
+<td>UV never lights</td>
+<td>reed open (magnet misplaced) — this is the interlock working</td>
+<td>check SHIELD_SENSE ≈ 3.1 V with shield on</td>
+</tr>
+<tr>
+<td>UV lights with shield OFF</td>
+<td><strong>STOP</strong> — interlock wiring wrong</td>
+<td>power off; S1 must be in series with the UV supply</td>
+</tr>
+<tr>
+<td>Station readings drift</td>
+<td>warm-up, ambient leak, temperature</td>
+<td>10 min warm-up, repaint shield inside, log temperature</td>
+</tr>
+<tr>
+<td>Hum / hiss in speaker</td>
+<td>ground loop / I2S edges</td>
+<td>shorten wires, fit R5/R6, star ground at U1</td>
+</tr>
+<tr>
+<td>Battery % jumps</td>
+<td>ADC noise / no C5</td>
+<td>fit C5, average 16 samples, calibrate</td>
+</tr>
+<tr>
+<td>Brown-out from PC USB</td>
+<td>PC port 0.5 A</td>
+<td>use a 5 V / 3 A USB-C supply</td>
+</tr>
+</tbody>
+</table>
+<h2>Known gaps (honest list)</h2>
+<ul>
+<li>Nothing has been printed, test-fitted, powered or measured. All ESTIMATE values need bench confirmation.</li>
+<li>PX proxies are simplified envelopes — measure your boards.</li>
+<li>Stage 0–3 gates and the brief are reconstructions.</li>
+<li>All pins are DECIDED (Robot X under Cory's delegation, 2026-11-09), incl. IR gate 21 and shield sense 40 (HIGH = seated) — still unverified on a powered board.</li>
+<li>5V_SYS peak ≈ 0.97 A vs ≈ 1 A boost limit with the 8 % LED cap — tight.</li>
+<li>Firmware zs-0.4.0 (LEDs, amp + streamed speech, battery, station, UV guard) compiles (USB and Wi-Fi builds) but has never run on a board.</li>
+<li>AS7341 gains, lux map, finger threshold and battery calibration are ESTIMATE defaults until checked on hardware.</li>
+</ul></body></html>

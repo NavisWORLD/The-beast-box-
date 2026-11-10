@@ -1,0 +1,32 @@
+{
+ "schema": "zeref-spark-routing-overlay-v1",
+ "base_schema": "beastbox-sensor-routing-v1",
+ "note": "OVERLAY merged at runtime on top of Cory's beastbox/routing.json (which is NOT edited). Adds two Spark bands after his 7 bands. Same slot classes and receipt rules: real / simulated / stale / control / missing; masked slots are exactly 0.0. Decided by Robot X under Cory's delegation 2026-11-09. AI-WRITTEN GLUE.",
+ "label": "CONCEPT DESIGN / NOT BUILT HARDWARE",
+ "freshness_seconds": {"spark_crystal": 900, "spark_body": 5},
+ "bands": [
+  {"band": 7, "source": "spark_crystal",
+   "features": ["t_white_mean", "t_white_tilt", "t_clear", "uv_response", "t_nir", "valid_frac"],
+   "gamma": 0.02,
+   "meaning": {
+     "t_white_mean": "mean T over F1..F8 under the white LED, unit(T, 0, 1)",
+     "t_white_tilt": "mean T F6..F8 minus mean T F1..F3 under white, clamp(-1, 1)  (red-vs-blue lean)",
+     "t_clear": "T of the CLEAR channel under white, unit(T, 0, 1)",
+     "uv_response": "mean T over F4..F8 under the 365 nm LED, unit(T, 0, 2)  (visible light seen under UV relative to PTFE; DERIVED, not a fluorescence claim)",
+     "t_nir": "T of the NIR channel under the 940 nm LED, unit(T, 0, 1)",
+     "valid_frac": "fraction of the 40 mode x channel T values that were valid, unit(x, 0, 1)"
+   }},
+  {"band": 8, "source": "spark_body",
+   "features": ["tilt", "motion", "temp", "humidity", "pressure", "battery"],
+   "gamma": 0.10,
+   "meaning": {
+     "tilt": "IMU accel Z in g, unit(az, -1, 1)",
+     "motion": "IMU gyro magnitude, unit(|w| dps, 0, 250)",
+     "temp": "BME280 temperature, unit(C, 0, 50)",
+     "humidity": "BME280 relative humidity, unit(%, 0, 100)",
+     "pressure": "BME280 pressure, unit(hPa, 870, 1085)",
+     "battery": "battery voltage, unit(mV, 3300, 4200)  (ESTIMATE until the divider is checked with a meter)"
+   }}
+ ],
+ "privacy": "Crystal and body features are numeric summaries extracted on the Spark/host. They stay in the Spark host (overlay sources are NOT written to the Beast Box FeatureStore, so Cory's LiveRouter is unaffected)."
+}

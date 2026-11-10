@@ -1,0 +1,133 @@
+ID,Part,Qty,Type,Material / source,Location in robot,Function,Status,Notes
+RB-001,ESP32-S3 DevKitC-1 or compatible,1,Purchased (Reality Bridge),Espressif or compatible,Torso – back face of ZS-303 cradle (USB end down),MCU / Wi-Fi / USB – the nervous system,Required,Proxy 26x14x69 mm ESTIMATE incl. headers; verify the purchased board. Retained by rails + 2 zip ties
+RB-002,ICM-42688-P breakout,1,Purchased (Reality Bridge),breakout,Torso – ZS-304 sensor sled (z~100 near body centre),6-axis IMU (motion / tilt / tap),Required,Proxy 23x18x4 ESTIMATE
+RB-003,BH1750 breakout,1,Purchased (Reality Bridge),breakout,Right ear pod (ZS-202) behind 8 mm window in ZS-205,Ambient light,Required,Proxy 18x16x4 ESTIMATE; LED-ring light leak – firmware must sample with pod LEDs off
+RB-004,BME280 breakout,1,Purchased (Reality Bridge),breakout,Torso – lower sensor sled behind front belly vents,Temp / humidity / pressure,Required,Kept away from ESP32 heat; readings will still be biased by internal heat (ESTIMATE)
+RB-005,MAX30102 breakout,1,Purchased (Reality Bridge),breakout,Torso – behind chest core centre (looks out through ZS-307),Optical waveform – NOT MEDICAL,Optional,Proxy 22x18x5 ESTIMATE; 11 mm light pipe may be too long for a usable signal – open decision
+RB-006,INMP441 breakout,1,Purchased (Reality Bridge),breakout,Left ear pod (ZS-201) behind mic holes in ZS-204,I2S microphone,Required,Proxy 23x15x4 ESTIMATE; L/R pin to GND
+RB-007,NEO-M9N-class GNSS breakout,1,Purchased (Reality Bridge),breakout,Head – back face of ZS-103 near crown,GNSS,Optional,Proxy 30x25x6 ESTIMATE; indoor reception will be poor
+RB-008,M3 x 8 mm screws,8,Fastener (Reality Bridge),steel,4 torso split bosses + 4 head split bosses,Close shells (clamp bulkheads + captured pegs),Reference,Used through back-half clearance bosses into front-half heat-set inserts
+RB-009,USB-C data/power cable,1,Purchased (Reality Bridge),,Pedestal USB-C port to host / 5 V supply,Power + data to Beast Box host,Required,Use a 5 V / 3 A capable cable + supply
+ZS-101,Head shell front,1,Printed,PETG or PLA matte navy,Head,Helmet front + visor ledge + accent-pipe holes,Design target,4 x M3 heat-set inserts
+ZS-102,Head shell back,1,Printed,PETG or PLA matte navy,Head,Helmet back + speaker grille/ring,Design target,
+ZS-103,Head bulkhead,1,Printed,PETG,Head split plane,Mount plate: face carrier / amp / GNSS / optional LiPo,Design target,Clamped between head shells
+ZS-104,Visor,1,Printed or thermoformed,smoked translucent PETG (or 1.5 mm smoked PETG sheet vacuum-formed),Head front,Black glossy face; eyes glow through,Design target,Glue / silicone onto ZS-101 ledge
+ZS-105,Face carrier,1,Printed,PETG black,Behind visor,Holds eye LED strips + light pipes,Design target,2 x 2.5 mm PT screws into ZS-103
+ZS-106,Eye light pipe (happy arc),2,Printed,clear PETG / clear resin,Behind visor,Cyan happy-closed-eye arcs,Design target,
+ZS-107,Accent light pipe,2,Printed,clear resin,Top of head,Magenta accent lights,Design target,Flange retained inside head
+ZS-108,Neck coupler,1,Printed,PETG,Neck,Captured between both shell pairs; 14 mm harness bore,Design target,
+ZS-201,Ear pod L (mic),1,Printed,PETG matte navy,Left side of head,Houses INMP441 + LED ring; flanged peg captured by head split,Design target,
+ZS-202,Ear pod R (light),1,Printed,PETG matte navy,Right side of head,Houses BH1750 + LED ring,Design target,
+ZS-203,Pod rim diffuser,2,Printed,translucent white/violet PETG,Pod outer rim,Violet rim light,Design target,
+ZS-204,Pod cap L (mic holes),1,Printed,PETG gloss black,Left pod face,Mic port array,Design target,Snap/glue into rim
+ZS-205,Pod cap R (light window),1,Printed,PETG gloss black + clear window,Right pod face,BH1750 window,Design target,
+ZS-206,Ear (rabbit),2,Printed,PETG matte navy,On top of pods,Tall ears with inner-face slot row,Design target,1 x M3 x 10 self-tap each from inside pod
+ZS-301,Torso shell front,1,Printed,PETG matte navy,Torso,Egg front + chest hole + BME vents,Design target,4 x M3 heat-set inserts
+ZS-302,Torso shell back,1,Printed,PETG matte navy,Torso,Egg back + ESP32 vents,Design target,
+ZS-303,Torso bulkhead / ESP32 cradle,1,Printed,PETG,Torso split plane,ESP32 rails on back; sensor sled on front,Design target,
+ZS-304,Sensor sled,1,Printed,PETG,Torso front of bulkhead,IMU + BME280 carrier,Design target,2 x M2 x 6 self-tap
+ZS-305,Chest core housing,1,Printed,PETG black,Chest,Cup + optical baffle; LED ring and diffuser load from front,Design target,
+ZS-306,Chest ring diffuser,1,Printed,translucent white PETG,Chest,Cyan ring glow,Design target,Press/glue
+ZS-307,Chest centre lens,1,Printed,clear (if MAX30102) or violet translucent,Chest centre,Magenta/violet centre / optical window,Design target,
+ZS-401,Arm,2,Printed,PETG matte navy,Shoulders,Stubby arm + mitten hand; flanged peg captured by torso split,Design target,Static (no servo) in this revision
+ZS-402,Leg,2,Printed,PETG matte navy,Hips,Stubby leg + rounded foot; flanged peg captured,Design target,Static
+ZS-501,Pedestal (rock hex) v0.2,1,Printed,PLA dark grey/black 15% infill (station walls 100%),Base,Floating base + crystal station cup / window seat / groove / pogo + reed pockets / driver bay / harness channels,Design target,Now 190 x 164.5 x 45 mm (ESTIMATE); 3 x 16 mm felt pads
+ZS-502,Support tube,1,Purchased + cut,clear acrylic tube 12 OD x 8 ID x 75 mm,Pedestal to torso,Floating support + 4-wire USB harness,Design target,Stiffness unverified – see open decisions
+ZS-E01,WS2812B 12-LED ring (~37 mm OD),3,Purchased,,Chest + both pods,Cyan chest ring / violet pod rims,Proposed,OD 37 / ID 23 ESTIMATE – verify ring you buy
+ZS-E02,WS2812B strip segment (5 LEDs),2,Purchased,,Face carrier behind eye pipes,Eye glow,Proposed,
+ZS-E03,WS2812B 2-LED accent board,1,Purchased/custom,,Head crown inside,Magenta accents,Proposed,
+ZS-E04,74AHCT125 (or SN74AHCT1G125) level shifter,1,Purchased,,Torso harness,3.3 V -> 5 V LED data,Proposed,
+ZS-E05,MAX98357A I2S amp breakout,1,Purchased,,Head bulkhead back,Speaker amp,Proposed,Needs firmware addition (I2S1)
+ZS-E06,28 mm 8 ohm ~1 W speaker,1,Purchased,,Head back shell ring,Voice / sounds from Beast Box host,Proposed,28 x 6 mm ESTIMATE
+ZS-E07,USB-C receptacle breakout (with 5.1 k CC pull-downs),1,Purchased,,Pedestal back pocket,Power + data entry,Proposed,
+ZS-F01,M3 heat-set insert (short),8,Fastener,brass,Front shell bosses,,Proposed,4.0 mm pilot ESTIMATE – match your insert
+ZS-F02,M3 x 10 self-tapping (plastic),2,Fastener,,Ears to pods,,Proposed,
+ZS-F03,M2 x 6 self-tapping,2,Fastener,,Sensor sled,,Proposed,
+ZS-F04,2.5 mm PT screw x 12,2,Fastener,,Face carrier posts,,Proposed,
+ZS-F05,Zip tie 2.5 mm,2,Fastener,,ESP32 cradle,,Proposed,
+ZS-W01,Silicone wire 28 AWG assorted + JST-SH/PH connectors,1 set,Wiring,,Neck + pods + tube,Harness,Proposed,~14 conductors through 14 mm neck bore
+ZS-109,Battery tray,1,Printed,PETG,Head bulkhead back,Holds 503450 LiPo (slides in from top),Design target,2 x M2 x 6 into ZS-103
+ZS-B01,1S LiPo 503450 ~1000 mAh WITH protection PCM (DW01-class),1,Purchased,,ZS-109 tray,Untethered power,Approved,503450 = 5.0 x 34 x 50 mm nominal; must have built-in protection (over-charge / over-discharge / over-current / short); JST-PH 2-pin matching PowerBoost polarity – CHECK polarity
+ZS-B02,Adafruit PowerBoost 1000C (MCP73871 charger + load-sharing power path + TPS61090 5.2 V boost),1,Purchased,Adafruit #2465,Head bulkhead back (x 12..48 z 158..181),Charge + power path + 5 V boost,Approved,~36 x 23 x 5 mm without USB-A (ESTIMATE; Adafruit lists 23 x 45 x 10 with USB-A); 1 A boost output limit; MCP73871 datasheet DS20002090; 2 x M2.5/M2 screws
+ZS-B03,SS12D00-class slide switch,1,Purchased,,Head back shell slot (x~30 z~176),PowerBoost EN to GND = OFF,Approved,Signal-level switch only (EN pin)
+ZS-B04,Resistors 100 k + 100 k (0.1%) + 100 nF,1 set,Purchased,,Torso harness,Battery voltage divider to GPIO5 (ADC1_CH4),Approved,
+ZS-601,Station LED plug,1,Printed,white PETG (mixing cavity white or PTFE-tape lined),Pedestal underside at station,Holds white / 365 nm / 940 nm LED board under window,Design target,2 x M3 x 8 self-tap
+ZS-602,Light shield (removable),1,Printed,opaque black PETG or PLA (check with torch for pinholes; paint inside matte black),Over crystal cup,Ambient shade + carries AS7341; skirt in groove = light trap,Design target,Lift 5 mm then slide forward (removal path checked: 4.2 mm to torso)
+ZS-603,Sensor mount disc,1,Printed,matte black PETG,Inside shield top,AS7341 board + 12 mm aperture + optional 20 mm UV-cut filter recess,Design target,2 x M2 x 5
+ZS-604,Driver bay cover,1,Printed,PLA,Pedestal bottom,Closes MOSFET driver bay,Design target,2 x M2 x 6 self-tap
+ZS-605,Dark-reference plug,1,Printed,opaque black PLA (100% infill),Crystal cup (instead of crystal),Stray-light / dark-reference check,Design target,
+ZS-S01,AS7341 11-channel spectral sensor breakout (Adafruit #4698 or equivalent),1,Purchased,ams-OSRAM AS7341 datasheet DS000504,ZS-603 in shield looking down,Crystal transmission / fluorescence raw channel counts F1-F8 (415-680 nm) + Clear + NIR (910 nm) + flicker,Approved,I2C 0x39 (fixed); board ~25.6 x 17.8 mm ESTIMATE; alternative AS7343 (14 ch) – verify its address and register map in its own ams-OSRAM datasheet before swapping
+ZS-S02,Borosilicate (or fused-silica) window disc 29.6 x 2 mm,1,Purchased,,Cup bottom window seat,Passes 365 nm UV + visible + 940 nm,Approved,Do NOT use standard acrylic – it absorbs much of 365 nm
+ZS-S03,UV-cut longpass filter disc 20 x 2 mm (e.g. ~420 nm longpass or UV-blocking acrylic),1,Purchased,,ZS-603 recess,Blocks 365 nm leak into sensor in fluorescence mode,Optional,Remove for transmission mode
+ZS-S04,White LED 3.5 x 3.5 mm (high-CRI preferred),1,Purchased,,Station LED board,Transmission source,Approved,~20 mA (ESTIMATE – set by resistor)
+ZS-S05,365 nm UV-A LED 3.5 x 3.5 mm low-power (~20 mA),1,Purchased,,Station LED board,Fluorescence excitation,Approved,Check LED datasheet photobiological risk group (IEC 62471); see UV safety in ASSEMBLY.md
+ZS-S06,940 nm IR LED 3.5 x 3.5 mm,1,Purchased,,Station LED board,NIR transmission,Optional,
+ZS-S07,Station LED board 20 x 20 mm (perfboard or custom),1,Purchased/custom,,ZS-601 pocket,Carries ZS-S04/05/06,Proposed,
+ZS-S08,Driver board: 3 x AO3400A logic-level N-MOSFET + 3 x 100 R gate + 3 x 100 k pull-down + LED resistors (white 100 R / UV 68 R / IR 180 R at 5 V ESTIMATE),1,Purchased/custom,,Pedestal driver bay,Low-side LED switches from GPIO 1 / 2 / 21 (v0.3),Approved,Recompute resistors from the real LED Vf
+ZS-S09,Glass reed switch ~12 mm (normally open),1,Purchased,,Pedestal reed slot (x -32),UV HARDWARE interlock (in series with UV LED) + shield sense,Approved,Glass – handle carefully
+ZS-S10,Neodymium magnet 6 x 2 mm,1,Purchased,,Shield flange pocket above reed,Closes reed only when shield is seated,Approved,
+ZS-S11,4-pin magnetic pogo connector pair (receptacle + pads),1,Purchased,,Pedestal pocket (x 29..34) / shield flange,AS7341 VIN GND SDA SCL to removable shield,Approved,~2.54 mm pitch ESTIMATE – pocket sized 5 x 8 mm
+ZS-S12,PTFE white reference disc 25.4 x 3 mm (virgin PTFE sheet),1,Purchased,,Crystal cup (calibration only),White / diffuse-transmission reference,Approved,Keep clean; store in bag
+ZS-W02,30 AWG silicone wire (11 conductors through tube) + twisted D+/D- pair,1 set,Wiring,,ZS-502 tube,USB + station harness,Proposed,
+J1,USB-C 16-pin receptacle breakout (5.1k CC pull-downs on board),1,Electrical / passive (v0.3 electrical),Connector breakout 5 V / 3 A —,Pedestal rear,CC 5.1k = [OB]; only VBUS/GND/D+/D− used,ADD (module),Sheet A — see docs/BOM_electrical.csv & docs/schematics/
+D1,USBLC6-2SC6,1,Electrical / passive (v0.3 electrical),ESD array SOT-23-6 5.25 V working —,"Pedestal, next to J1",on D+/D−; VBUS pin to VBUS,ADD,Sheet A — see docs/BOM_electrical.csv & docs/schematics/
+D2,SMBJ5.0A,1,Electrical / passive (v0.3 electrical),"TVS diode SMB (DO-214AA) 5.0 V standoff, 600 W pk —","Pedestal, after J1",clamps hot-plug spikes on VBUS,ADD,Sheet A — see docs/BOM_electrical.csv & docs/schematics/
+F1,PTC resettable fuse 2.0 A hold / ~4 A trip,1,Electrical / passive (v0.3 electrical),Polyfuse 1812 6 V —,Pedestal,VBUS peak ≈1.87 A (charger limit 1.8 A + station LEDs 60 mA),ADD · ESTIMATE,Sheet A — see docs/BOM_electrical.csv & docs/schematics/
+C1,10 µF,1,Electrical / passive (v0.3 electrical),MLCC X5R 0805 10 V ±10%,Pedestal after F1,VBUS local decoupling,ADD,Sheet A — see docs/BOM_electrical.csv & docs/schematics/
+C2,47 µF,1,Electrical / passive (v0.3 electrical),Polymer / low-ESR electrolytic radial 6.3 mm 10 V ±20%,"Head, at U1 USB pad",absorbs cable inductance at charger input,ADD,Sheet A — see docs/BOM_electrical.csv & docs/schematics/
+F2,PTC 2.0 A hold,1,Electrical / passive (v0.3 electrical),Polyfuse 1812 6 V —,Battery lead,backup to cell PCM,ADD (optional) · ESTIMATE,Sheet A — see docs/BOM_electrical.csv & docs/schematics/
+SW1,SS12D00 SPDT slide switch,1,Electrical / passive (v0.3 electrical),Switch through-hole 2.54 mm 50 V / 0.5 A —,Head rear,EN to GND = OFF (switch closed = OFF). Charging still works when OFF.,ADD,Sheet A — see docs/BOM_electrical.csv & docs/schematics/
+C3,220 µF,1,Electrical / passive (v0.3 electrical),Polymer / low-ESR electrolytic radial 6.3 mm 10 V ±20%,At U1 5V out,boost output reservoir for LED + amp peaks,ADD,Sheet A — see docs/BOM_electrical.csv & docs/schematics/
+C4,100 nF,1,Electrical / passive (v0.3 electrical),MLCC X7R 0603 16 V ±10%,At U1 5V out,HF decoupling,ADD,Sheet A — see docs/BOM_electrical.csv & docs/schematics/
+C6,10 µF,1,Electrical / passive (v0.3 electrical),MLCC X5R 0805 10 V ±10%,At U0 5V pin,DevKit input decoupling,ADD,Sheet A — see docs/BOM_electrical.csv & docs/schematics/
+R1,100 kΩ,1,Electrical / passive (v0.3 electrical),Thick film 0603 0.1 W ±1%,Torso harness,divider top: VBAT → VBAT_SENSE,ADD,Sheet A — see docs/BOM_electrical.csv & docs/schematics/
+R2,100 kΩ,1,Electrical / passive (v0.3 electrical),Thick film 0603 0.1 W ±1%,Torso harness,Vadc = VBAT·R2/(R1+R2) = VBAT/2 → 1.50–2.10 V; I = 4.2/200k = 21 µA,ADD,Sheet A — see docs/BOM_electrical.csv & docs/schematics/
+C5,100 nF,1,Electrical / passive (v0.3 electrical),MLCC X7R 0603 16 V ±10%,At GPIO5,ADC sample-hold reservoir; τ = 50k·100n = 5 ms,ADD,Sheet A — see docs/BOM_electrical.csv & docs/schematics/
+R3,2.2 kΩ (DNP if breakouts' parallel pull-ups ≤ 3.3 kΩ),1,Electrical / passive (v0.3 electrical),Thick film 0603 0.1 W ±1%,Torso sled,SDA0 pull-up; tr = 0.847·R·C = 0.847·2.2k·100pF = 186 ns ≤ 300 ns (400 kHz),ADD / DNP,Sheet B — see docs/BOM_electrical.csv & docs/schematics/
+R4,2.2 kΩ (DNP rule as R3),1,Electrical / passive (v0.3 electrical),Thick film 0603 0.1 W ±1%,Torso sled,SCL0 pull-up; sink current 3.3/2.2k = 1.5 mA ≤ 3 mA,ADD / DNP,Sheet B — see docs/BOM_electrical.csv & docs/schematics/
+C7,100 nF at U3 IMU,1,Electrical / passive (v0.3 electrical),MLCC X7R 0603 16 V ±10%,U3,add only if breakout lacks it,OB (usually) / ADD,Sheet B — see docs/BOM_electrical.csv & docs/schematics/
+C8,100 nF at U4 BME280,1,Electrical / passive (v0.3 electrical),MLCC X7R 0603 16 V ±10%,U4,,OB / ADD,Sheet B — see docs/BOM_electrical.csv & docs/schematics/
+C9,100 nF at U5 BH1750,1,Electrical / passive (v0.3 electrical),MLCC X7R 0603 16 V ±10%,U5,,OB / ADD,Sheet B — see docs/BOM_electrical.csv & docs/schematics/
+C10,100 nF at U6 MAX30102,1,Electrical / passive (v0.3 electrical),MLCC X7R 0603 16 V ±10%,U6,MAX30102 LED pulses need local cap,OB / ADD,Sheet B — see docs/BOM_electrical.csv & docs/schematics/
+C11,10 µF at U7 GNSS,1,Electrical / passive (v0.3 electrical),MLCC X5R 0805 10 V ±10%,U7,GNSS acquisition current bursts,ADD (optional),Sheet B — see docs/BOM_electrical.csv & docs/schematics/
+R5,33 Ω,1,Electrical / passive (v0.3 electrical),Thick film 0603 0.1 W ±1%,Near U0,I2S0 BCLK series damping (long pod run),ADD (optional),Sheet C — see docs/BOM_electrical.csv & docs/schematics/
+R6,33 Ω,1,Electrical / passive (v0.3 electrical),Thick film 0603 0.1 W ±1%,Near U0,I2S0 WS series damping,ADD (optional),Sheet C — see docs/BOM_electrical.csv & docs/schematics/
+R7,22 kΩ,1,Electrical / passive (v0.3 electrical),Thick film 0603 0.1 W ±1%,At U9 SD,boot-mute pull-down: V = 5·22k/(1M+22k) = 0.108 V below 0.16 V shutdown threshold (assumes 1M [OB] pull-up — verify on your board),ADD · ESTIMATE,Sheet C — see docs/BOM_electrical.csv & docs/schematics/
+C12,100 µF,1,Electrical / passive (v0.3 electrical),Aluminium electrolytic radial 5 mm 10 V ±20%,At U9 VIN,class-D supply reservoir,ADD,Sheet C — see docs/BOM_electrical.csv & docs/schematics/
+C13,10 µF,1,Electrical / passive (v0.3 electrical),MLCC X5R 0805 10 V ±10%,At U9 VIN,,ADD,Sheet C — see docs/BOM_electrical.csv & docs/schematics/
+U2,SN74AHCT1G125 (or 1 gate of 74AHCT125),1,Electrical / passive (v0.3 electrical),Logic buffer SOT-23-5 / DIP-14 VCC 5 V —,Torso,3.3 V → 5 V level shift (VIH = 2.0 V at 5 V),ADD,Sheet D — see docs/BOM_electrical.csv & docs/schematics/
+C14,100 nF,1,Electrical / passive (v0.3 electrical),MLCC X7R 0603 16 V ±10%,At U2,,ADD,Sheet D — see docs/BOM_electrical.csv & docs/schematics/
+R8,330 Ω (300–500 Ω range),1,Electrical / passive (v0.3 electrical),Thick film 0603 0.1 W ±1%,At first LED DIN,damps ringing / protects first WS2812 input,ADD,Sheet D — see docs/BOM_electrical.csv & docs/schematics/
+C15,1000 µF,1,Electrical / passive (v0.3 electrical),Aluminium electrolytic radial 8 mm 10 V ±20%,Chest ring 5V/GND,LED bulk — inrush & surge protection,ADD,Sheet D — see docs/BOM_electrical.csv & docs/schematics/
+C16,100 µF,1,Electrical / passive (v0.3 electrical),Aluminium electrolytic radial 5 mm 10 V ±20%,Pod ring L,,ADD,Sheet D — see docs/BOM_electrical.csv & docs/schematics/
+C17,100 µF,1,Electrical / passive (v0.3 electrical),Aluminium electrolytic radial 5 mm 10 V ±20%,Pod ring R,,ADD,Sheet D — see docs/BOM_electrical.csv & docs/schematics/
+C18,100 µF,1,Electrical / passive (v0.3 electrical),Aluminium electrolytic radial 5 mm 10 V ±20%,Eye boards,,ADD,Sheet D — see docs/BOM_electrical.csv & docs/schematics/
+LED1–48,WS2812B (100 nF per LED on ring PCBs),48,Electrical / passive (v0.3 electrical),"Smart LED 5050 5 V, 60 mA max each —","Chest 12, eyes 2×5, pods 2×12, crown 2",48·60 mA·8% brightness cap = 0.23 A peak (cap 10→8 % on 2026-11-09, D1),OB (ring modules) · ESTIMATE,Sheet D — see docs/BOM_electrical.csv & docs/schematics/
+J2,4-pin magnetic pogo pair,1,Electrical / passive (v0.3 electrical),Connector 2.54 mm pitch 2 A per pin (typ.) —,Pedestal ↔ shield,"VBUS, GND, SDA1_P, SCL1_P",ADD · ESTIMATE,Sheet E — see docs/BOM_electrical.csv & docs/schematics/
+R9,4.7 kΩ,1,Electrical / passive (v0.3 electrical),Thick film 0603 0.1 W ±1%,Pedestal driver bay,SDA1 pull-up; in parallel with [OB] 10k → 3.2k,ADD,Sheet E — see docs/BOM_electrical.csv & docs/schematics/
+R10,4.7 kΩ,1,Electrical / passive (v0.3 electrical),Thick film 0603 0.1 W ±1%,Pedestal driver bay,SCL1 pull-up,ADD,Sheet E — see docs/BOM_electrical.csv & docs/schematics/
+R11,100 Ω,1,Electrical / passive (v0.3 electrical),Thick film 0603 0.1 W ±1%,Pedestal,SDA1 series (hot-plug current limit),ADD,Sheet E — see docs/BOM_electrical.csv & docs/schematics/
+R12,100 Ω,1,Electrical / passive (v0.3 electrical),Thick film 0603 0.1 W ±1%,Pedestal,SCL1 series,ADD,Sheet E — see docs/BOM_electrical.csv & docs/schematics/
+R13,10 kΩ (DNP if board has INT pull-up),1,Electrical / passive (v0.3 electrical),Thick film 0603 0.1 W ±1%,Pedestal,AS_INT open-drain pull-up,ADD / DNP,Sheet E — see docs/BOM_electrical.csv & docs/schematics/
+D3,TPD4E05U06,1,Electrical / passive (v0.3 electrical),ESD array USON-10 / SOT 5.5 V working —,At J2,ESD on exposed pogo pins,ADD,Sheet E — see docs/BOM_electrical.csv & docs/schematics/
+C19,10 µF,1,Electrical / passive (v0.3 electrical),MLCC X5R 0805 10 V ±10%,At J2 (pedestal),pogo VIN bulk,ADD,Sheet E — see docs/BOM_electrical.csv & docs/schematics/
+C20,100 nF,1,Electrical / passive (v0.3 electrical),MLCC X7R 0603 16 V ±10%,At J2,,ADD,Sheet E — see docs/BOM_electrical.csv & docs/schematics/
+Q1,AO3400A (white),1,Electrical / passive (v0.3 electrical),"N-MOSFET logic level SOT-23 30 V, 5.7 A, Rds 33 mΩ @ 4.5 V —",Driver board ZS-S08,Vgs(th) ≤ 1.45 V → fully on at 3.3 V for 20 mA,ADD,Sheet E — see docs/BOM_electrical.csv & docs/schematics/
+Q2,AO3400A (UV),1,Electrical / passive (v0.3 electrical),N-MOSFET SOT-23 30 V —,Driver board,,ADD,Sheet E — see docs/BOM_electrical.csv & docs/schematics/
+Q3,"AO3400A (IR, optional)",1,Electrical / passive (v0.3 electrical),N-MOSFET SOT-23 30 V —,Driver board,gate on GPIO21 (v0.3),ADD,Sheet E — see docs/BOM_electrical.csv & docs/schematics/
+R14,100 Ω,1,Electrical / passive (v0.3 electrical),Thick film 0603 0.1 W ±1%,Driver board,Q1 gate series,ADD,Sheet E — see docs/BOM_electrical.csv & docs/schematics/
+R15,100 Ω,1,Electrical / passive (v0.3 electrical),Thick film 0603 0.1 W ±1%,Driver board,Q2 gate series,ADD,Sheet E — see docs/BOM_electrical.csv & docs/schematics/
+R16,100 Ω,1,Electrical / passive (v0.3 electrical),Thick film 0603 0.1 W ±1%,Driver board,Q3 gate series,ADD,Sheet E — see docs/BOM_electrical.csv & docs/schematics/
+R17,100 kΩ,1,Electrical / passive (v0.3 electrical),Thick film 0603 0.1 W ±1%,Driver board,Q1 gate pull-down (LED OFF at boot / floating),ADD,Sheet E — see docs/BOM_electrical.csv & docs/schematics/
+R18,100 kΩ,1,Electrical / passive (v0.3 electrical),Thick film 0603 0.1 W ±1%,Driver board,Q2 gate pull-down,ADD,Sheet E — see docs/BOM_electrical.csv & docs/schematics/
+R19,100 kΩ,1,Electrical / passive (v0.3 electrical),Thick film 0603 0.1 W ±1%,Driver board,Q3 gate pull-down,ADD,Sheet E — see docs/BOM_electrical.csv & docs/schematics/
+D4,White LED 3 mm / 3528 (ZS-S04),1,Electrical / passive (v0.3 electrical),LED 3 mm Vf ≈3.0 V @ 20 mA —,Station LED board,,ADD · ESTIMATE Vf,Sheet E — see docs/BOM_electrical.csv & docs/schematics/
+D5,365 nm UV-A LED (ZS-S05),1,Electrical / passive (v0.3 electrical),LED 3535 Vf ≈3.6 V @ 20 mA —,Station LED board,check IEC 62471 risk group,ADD · ESTIMATE Vf,Sheet E — see docs/BOM_electrical.csv & docs/schematics/
+D6,"940 nm IR LED (ZS-S06, optional)",1,Electrical / passive (v0.3 electrical),LED 3 mm Vf ≈1.3 V @ 20 mA —,Station LED board,,ADD (optional) · ESTIMATE Vf,Sheet E — see docs/BOM_electrical.csv & docs/schematics/
+R20,100 Ω,1,Electrical / passive (v0.3 electrical),Thick film 0805 0.125 W ±1%,LED board,(5.0−3.0)/0.020 = 100 Ω → 20 mA; P = 0.02²·100 = 0.04 W,ADD · ESTIMATE,Sheet E — see docs/BOM_electrical.csv & docs/schematics/
+R21,68 Ω,1,Electrical / passive (v0.3 electrical),Thick film 0805 0.125 W ±1%,LED board,(5.0−3.6)/0.020 = 70 Ω → E12 68 Ω → 20.6 mA; P = 0.029 W,ADD · ESTIMATE,Sheet E — see docs/BOM_electrical.csv & docs/schematics/
+R22,180 Ω,1,Electrical / passive (v0.3 electrical),Thick film 0805 0.125 W ±1%,LED board,(5.0−1.3)/0.020 = 185 Ω → 180 Ω → 20.6 mA; P = 0.076 W,ADD · ESTIMATE,Sheet E — see docs/BOM_electrical.csv & docs/schematics/
+S1,Glass reed switch NO ~12 mm (ZS-S09),1,Electrical / passive (v0.3 electrical),Reed switch axial ≥100 V / 0.5 A —,Pedestal reed slot,in SERIES with UV LED supply: VBUS → S1 → UV_5V (hardware interlock),ADD,Sheet E — see docs/BOM_electrical.csv & docs/schematics/
+R23,12 kΩ,1,Electrical / passive (v0.3 electrical),Thick film 0603 0.1 W ±1%,Driver board,SHIELD_SENSE = 5·20k/32k = 3.13 V (HIGH) when S1 closed; I = 0.16 mA,ADD,Sheet E — see docs/BOM_electrical.csv & docs/schematics/
+R24,20 kΩ,1,Electrical / passive (v0.3 electrical),Thick film 0603 0.1 W ±1%,Driver board,pulls SHIELD_SENSE to 0 V when S1 open. If VBUS = 5.25 V → 3.28 V (≤ 3.6 V abs max OK),ADD,Sheet E — see docs/BOM_electrical.csv & docs/schematics/
+C21,10 µF,1,Electrical / passive (v0.3 electrical),MLCC X5R 0805 10 V ±10%,LED board,LED switching decoupling,ADD,Sheet E — see docs/BOM_electrical.csv & docs/schematics/
