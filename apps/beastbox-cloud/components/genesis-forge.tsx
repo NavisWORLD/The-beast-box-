@@ -30,6 +30,8 @@ export default function GenesisForge({
  const [message,setMessage]=useState('');
  const [error,setError]=useState('');
  const tick=useRef(0);
+ const ready=useRef<CreatureProfile|null>(null);
+ if(value&&validCreature(value))ready.current=value;
  useEffect(()=>{
   if(value&&validCreature(value))window.dispatchEvent(new CustomEvent('beastbox:genesis-selected',{detail:value}));
  },[value]);
@@ -54,13 +56,17 @@ export default function GenesisForge({
   setSeed(next);roll(next);
  }
  function save(){
-  if(!value||!validCreature(value)){setError('Generate a valid character first.');return;}
-  const remaining=saved.filter(x=>x.id!==value.id);
+  // The diary signal row above this forge changes height every second. A press
+  // that hits this button can lose its click when the button moves before release.
+  // Commit the character on the press itself, from the creature already shown.
+  const current=ready.current;
+  if(!current||!validCreature(current)){setError('Generate a valid character first.');return;}
+  const remaining=saved.filter(x=>x.id!==current.id);
   if(remaining.length>=MAX_SAVES){
    setError('Eight game characters are already saved here. Delete one explicitly before saving another.');
    return;
   }
-  const next=[value,...remaining];
+  const next=[current,...remaining];
   try{
    localStorage.setItem(KEY,JSON.stringify(next));setSaved(next);
    setMessage('Saved this game-only character on this device. No COSMOS records were changed.');
@@ -126,7 +132,7 @@ export default function GenesisForge({
     <button type="button" onClick={explore} className={css.outline}>Let it explore</button>
     <p className={css.ambient}>Ambient animation choice: {action}. Classical seeded
      behavior, not measured sensor activity.</p>
-    <button type="button" onClick={save} className={css.outline}>Save game character on this device</button>
+    <button type="button" onPointerDown={save} onClick={save} className={css.outline}>Save game character on this device</button>
    </div>
    <div aria-label="Balanced fictional game stats" className={css.stats}>
     <strong>GBA · CHARACTER STATS <span>500 / 500 POINTS</span></strong>
