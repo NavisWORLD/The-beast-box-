@@ -87,8 +87,8 @@ export async function POST(request:Request){
   const host=new URL('/api/guest-local',process.env.BEASTBOX_CLOUD_BRIDGE_URL!);
   const exchangeId=await mintExchangeId('guest',identity,text);
   const ownerWrite=ownerChainWrite('guest');
-  if(ownerWrite.wrote||ownerWrite.reason!=='isolated')throw new Error('guest exchange stays off the owner chain');
   try{
+   if(ownerWrite.wrote||ownerWrite.reason!=='isolated')throw new Error('guest exchange stays off the owner chain');
    const send=(prompt:string)=>fetch(host,{method:'POST',redirect:'error',cache:'no-store',
     headers:{Authorization:'Bearer '+process.env.BEASTBOX_CLOUD_BRIDGE_TOKEN!,
       'Content-Type':'application/json'},
