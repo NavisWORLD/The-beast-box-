@@ -1,5 +1,6 @@
 'use client';
 import {useEffect,useRef} from 'react';
+import {browserLightOn,paintKeyAndSky} from '@/public/universe/one-universe-light.mjs';
 import type {PlushGenome} from './creature-plush-3d';
 /**
  * Home hero: the player's saved Beast as a live 3D creature. Sculpted Zeref-pipeline GLB (creature-glb-beast) when its
@@ -14,7 +15,7 @@ export default function BeastHero3D({genome,label}:{genome:PlushGenome;label:str
    const reduced=window.matchMedia('(prefers-reduced-motion: reduce)').matches;const {isSoftwareGL}=await import('../lib/three/soft-gl');const low=reduced||isSoftwareGL()||window.innerWidth<420&&(navigator.hardwareConcurrency||4)<4;
    const r=new THREE.WebGLRenderer({antialias:!low,alpha:true,powerPreference:'low-power'});r.setPixelRatio(Math.min(window.devicePixelRatio||1,low?1:1.5));r.outputColorSpace=THREE.SRGBColorSpace;
    el.appendChild(r.domElement);r.domElement.style.width='100%';r.domElement.style.height='100%';
-   const scene=new THREE.Scene();beastStudio(THREE,r,scene);const cam=new THREE.PerspectiveCamera(30,1,.05,50);
+   const scene=new THREE.Scene();const studio=beastStudio(THREE,r,scene);const cam=new THREE.PerspectiveCamera(30,1,.05,50);const heroLight=browserLightOn();
    const pivot=new THREE.Group();scene.add(pivot);
    let drive:(dt:number,l:any,mp:any)=>void=()=>{};let dispose=()=>{};
    const plush=buildPlush(THREE,genome as any,{low:true});plush.root.scale.setScalar(1.3);pivot.add(plush.root);
@@ -26,7 +27,7 @@ export default function BeastHero3D({genome,label}:{genome:PlushGenome;label:str
    const ro=new ResizeObserver(size);ro.observe(el);let last=performance.now(),t=0;
    const loop=(now:number)=>{raf=requestAnimationFrame(loop);const dt=Math.min(.05,(now-last)/1000);last=now;if(document.hidden)return;t+=dt;
     cst.stepCSTState(st,dt);drive(reduced?0:dt,life,cst.motionParams(st));pivot.rotation.y=reduced?.5:.5+Math.sin(t*.25)*.6;
-    cam.position.set(0,1.0,3.1);cam.lookAt(0,.6,0);r.render(scene,cam);};raf=requestAnimationFrame(loop);
+    cam.position.set(0,1.0,3.1);cam.lookAt(0,.6,0);if(heroLight)paintKeyAndSky({on:true,sec:Date.now()/1000,up:[0,1,0],key:studio.key,hemi:studio.lights[0]});r.render(scene,cam);};raf=requestAnimationFrame(loop);
    cleanup=()=>{cancelAnimationFrame(raf);ro.disconnect();dispose();r.dispose();r.domElement.remove();};
   })();
   return()=>{disposed=true;cleanup();};},[genome]);

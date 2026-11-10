@@ -17,11 +17,36 @@ jobs:
         python-version: ['3.10', '3.12']
     steps:
       - uses: actions/checkout@v4
+        with:
+          # The suite diffs sealed evidence against c8769d0f. A depth-1 checkout
+          # does not contain that object, so the assertion cannot be evaluated.
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
       - run: python -m pip install --upgrade pip
-      - run: pip install -e '.[dev]'
+      # Root: this job used to install only the dev extra. torch is the ml extra,
+      # so collection died on `import torch` before any test ran. Install the CPU
+      # wheel here and prove the import before pytest collects. ubuntu-latest only;
+      # no GPU runner and no CUDA wheel.
+      - name: Install dev tools, then the CPU torch wheel
+        run: |
+          python -m pip install -e '.[dev]'
+          python -m pip install --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple 'torch>=2.2'
+      - name: Verify torch imports before collection
+        run: |
+          python - <<'PY'
+          import torch
+          version = torch.__version__
+          print(
+              f"TORCH_IMPORT_VERIFIED version={version} "
+              f"cuda_available={torch.cuda.is_available()} file={torch.__file__}"
+          )
+          if "+cpu" not in version:
+              raise SystemExit(
+                  f"expected the CPU wheel marker +cpu before pytest collection, got {version}"
+              )
+          PY
       - run: pytest
 
   package-smoke:

@@ -494,6 +494,7 @@ class DurableRuntime(CosmosRuntime):
         if self._lived_store is None:
             return None
         snap = self._lived_store.read_lived_snapshot(self._lived_store.scope)
+        hebb = self._lived_store.hebb_checkpoint()
         return {
             "schema": "lived-backbone-profile-v1",
             "subject_id": snap["subject_id"],
@@ -504,6 +505,14 @@ class DurableRuntime(CosmosRuntime):
             "chain_head": snap["chain_head"],
             "origin_commitment": snap["origin_commitment"],
             "segment": snap["segment"],
+            "hebb": {
+                "rule": hebb["rule"],
+                "basis": hebb["basis"],
+                "version": hebb["version"],
+                "weights": hebb["weights"],
+                "prior_activation": hebb["prior_activation"],
+                "weights_sha256": hebb["weights_sha256"],
+            },
         }
 
     def read_lived_snapshot(self, scope: str) -> dict[str, Any]:

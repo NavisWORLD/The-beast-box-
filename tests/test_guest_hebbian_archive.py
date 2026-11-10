@@ -35,5 +35,9 @@ def test_retrieve_reaches_a_turn_the_window_has_dropped(tmp_path):
 def test_archive_module_never_deletes_or_updates_archive():
     import inspect
     import beastbox.guest_hebbian as m
+    import beastbox.lived_exchange as lived
     src = inspect.getsource(m)
+    lived_src = inspect.getsource(lived)
     assert "DELETE FROM guest_archive" not in src and "UPDATE guest_archive" not in src
+    assert "guest_archive" not in lived_src
+    assert "DELETE FROM" not in lived_src

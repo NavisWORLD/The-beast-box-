@@ -8,7 +8,7 @@ import {DIARY_SCHEMA,entryHash,genesisState} from '@/lib/zeref/zeref-diary.mjs';
 import PUBLIC_PIN from '@/lib/rawrphos-public-pin.json';
 import {bridgeReadsMemory,loadSelfMemory,readSelfMemory,ownThreadItems,SELF_MEMORY_LABEL,SELF_MEMORY_SCHEMA,teacherJoinPending} from '@/lib/zeref/self-memory.mjs';
 import {after} from 'next/server';
-import {environmentIsNotCanonical,mintExchangeId,mouthReceipt} from '@/lib/zeref/lived-exchange.mjs';
+import {environmentIsNotCanonical,mintExchangeId,mouthReceipt,ownerChainWrite} from '@/lib/zeref/lived-exchange.mjs';
 
 // FOREVER CONNECTION — the stateful guest door (LIFE-LIVE step 3).
 // /api/guest stays byte-for-byte the stateless door. This door is a new layer
@@ -247,6 +247,8 @@ export async function POST(request:Request){
    }catch{/* receipt marks recorded:false */}
   }
   const livedExchangeId=await mintExchangeId('visitor',identity,text);
+  const ownerWrite=ownerChainWrite('visitor');
+  if(ownerWrite.wrote||ownerWrite.reason!=='isolated')throw new Error('visitor exchange stays off the owner chain');
   const lived=mouthReceipt(result.lived_state,{exchangeId:livedExchangeId,scope:'visitor',spokenBy:'gated',environment:item.environment});
   environmentIsNotCanonical(item.environment);
   const headers:Record<string,string>={'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'};
