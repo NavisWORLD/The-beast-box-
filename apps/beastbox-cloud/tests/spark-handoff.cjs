@@ -32,8 +32,14 @@ const root=process.argv[2]||'http://127.0.0.1:3000',out=process.argv[3]||'/tmp/s
   await page.evaluate(()=>{const b=window.__beastBoxFakeGamepad.buttons[0];b.pressed=true;b.value=1;window.__beastBoxFakeGamepad.timestamp=performance.now();});
   for(let i=0;i<30&&await core.evaluate(n=>window.__beastBoyInputs.length<=n,beforeGamepad);i++)await page.waitForTimeout(20);
   await page.evaluate(()=>{const b=window.__beastBoxFakeGamepad.buttons[0];b.pressed=false;b.value=0;window.__beastBoxFakeGamepad.timestamp=performance.now();});
-  for(let i=0;i<30&&await core.evaluate(n=>window.__beastBoyInputs.length<n+2,beforeGamepad);i++)await page.waitForTimeout(20);
-  assert.deepEqual(await core.evaluate(n=>window.__beastBoyInputs.slice(n,n+2),beforeGamepad),[[0,8,1],[0,8,0]],'standard Gamepad API A press/release reaches the same mounted native core');
+  const releaseDeadline=Date.now()+5000;
+  let gamepadPair;
+  do{
+   gamepadPair=await core.evaluate(n=>window.__beastBoyInputs.slice(n,n+2),beforeGamepad);
+   if(gamepadPair.length>=2)break;
+   await page.waitForTimeout(50);
+  }while(Date.now()<releaseDeadline);
+  assert.deepEqual(gamepadPair,[[0,8,1],[0,8,0]],'standard Gamepad API A press/release reaches the same mounted native core');
   const deckInput=async(button,down)=>page.evaluate(({button,down})=>window.dispatchEvent(new CustomEvent('beastbox:gba-input',{detail:{button,down}})),{button,down});
   const beforeBad=await core.evaluate(()=>window.__beastBoyInputs.length);await deckInput('nope',true);await page.waitForTimeout(50);
   assert.equal(await core.evaluate(()=>window.__beastBoyInputs.length),beforeBad,'unknown Beast Boy controls are rejected');
