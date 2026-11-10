@@ -609,10 +609,16 @@ def main(recovery=False):
  chat_pool=[];chat_digest=None
  if CHAT_MIX.is_file():
   raw_chat=CHAT_MIX.read_bytes();chat_digest=sha(raw_chat)
+  from zeref_served_shape import encode_chat_row
+  served_probe_rows=[]
   for r in map(json.loads,raw_chat.splitlines()):
    if r.get("mode")!="chat":continue
-   front=tokenizer.encode(f"user: {r['user']}\nassistant:",add_bos=True);tail=tokenizer.encode(" "+r["assistant"],add_eos=True)
-   if len(front)+len(tail)<=256:chat_pool.append({"input":(front+tail)[:-1],"target":[-100]*(len(front)-1)+tail,"source":r.get("source","chat")})
+   example=encode_chat_row(tokenizer.encode,r)
+   if example is None:continue
+   chat_pool.append({"input":example["input"],"target":example["target"],"source":example.get("source","chat")})
+   if r.get("served_shape") is True:served_probe_rows.append(r)
+ else:
+  served_probe_rows=[]
  PRETRAIN_POOL.clear();pretrain_digest=None
  if PRETRAIN.is_file():
   raw_pre=PRETRAIN.read_bytes();pretrain_digest=sha(raw_pre)
@@ -783,6 +789,23 @@ def main(recovery=False):
   "character_no_rude_or_unsafe_regression":character["no_rude_or_unsafe_regression"]
  }
  accepted=all(guard.values())
+ # Report-only. These NLL numbers are not a gate input and do not change selection.
+ try:
+  from zeref_served_shape import encode_chat_row as _served_encode,probe_rows as _probe_rows
+  _probe=_probe_rows(served_probe_rows)
+  _bare=[];_live=[]
+  for _row in _probe:
+   _live_row=_served_encode(tokenizer.encode,_row)
+   if not (_live_row and _live_row.get("served_shape") is True):continue
+   _front=tokenizer.encode(f"user: {_row['user']}\nassistant:",add_bos=True);_tail=tokenizer.encode(" "+_row["assistant"],add_eos=True)
+   _bare.append({"input":(_front+_tail)[:-1],"target":[-100]*(len(_front)-1)+_tail})
+   _live.append(_live_row)
+  served_shape_probe={"report_only":True,"gate_input":False,"rows":len(_live),
+   "training_shape_answer_nll":pair_nll(model,_bare) if _bare else None,
+   "served_shape_answer_nll":pair_nll(model,_live) if _live else None}
+ except Exception as _exc:
+  served_shape_probe={"report_only":True,"gate_input":False,"error":type(_exc).__name__}
+ print("ZEREF_006_SERVED_SHAPE_PROBE="+json.dumps(served_shape_probe),flush=True)
  report={"schema":"beastbox-zeref-resumable-training-cycle-006",
   "qbeast_id":ZEREF,"original_ibm_job_id":IBM,
   "parent_checkpoint_sha256":parent["metadata"]["checkpoint_sha256"],
@@ -809,6 +832,7 @@ def main(recovery=False):
     "chat_gate_public14k_ref_nll":public_ref_chat,"chat_metric":"fix-003 per-pair mean (same as rawrphos_chat_eval.ref_nll), no margin","character_check":{k:character[k] for k in("warmth_delta","no_rude_or_unsafe_regression")},"chat_gate_rule":"fix-002: not worse than the public-pin parent (absolute); promotion additionally requires rawrphos_chat_eval not worse than 14000 AND ref_nll below the current pin","lr_schedule":"cosine to %d%% of lr"%round(SEL["lr_min_fraction"]*100),"best_in_cycle":True,"fresh_train_rows":len(train)},
   "rigetti_batch_order":rigetti,
   "cond54":{"enabled":bool(model.config.cond54),"gate_evaluation":"unconditioned (unchanged)","bank":COND_INFO or None,"report_only_ab_on_set_b":cond_report},
+  "served_shape_probe":served_shape_probe,
   "rigetti_on_off":{"on_candidate":{"heldout_nll":new_held,"chat_nll":new_chat,"retention_nll":new_ret,**trial,
       "unique_actions":len({r["legal_action"] for r in trial_out if r["legal_action"]})},
     "off_control_torch_seed":control,"off_seed":control_seed},
