@@ -10,29 +10,29 @@
   "source_path": "/spark/ibm-moonwraith-cassette-kit-20261010.json",
   "source_class": "RECORDED_IBM_HARDWARE"
  },
- "tick": 710,
- "xp": 10533,
+ "tick": 711,
+ "xp": 10543,
  "stage": 5,
  "stage_name": "Crescent Sovereign",
  "signals": {
-  "energy": 61,
-  "signal": 58,
+  "energy": 73,
+  "signal": 56,
   "memory": 100,
-  "resonance": 97
+  "resonance": 98
  },
  "bond": 100,
  "care_total": 0,
  "places": {
   "Rift Gate": 662,
   "Lattice Arch": 314,
-  "Echo Prism": 760,
-  "Tidewell": 350,
+  "Echo Prism": 762,
+  "Tidewell": 351,
   "Quartz Choir": 269,
-  "Violet Shard": 551,
+  "Violet Shard": 552,
   "Selene Pool": 59
  },
- "last_tick_at": "2026-11-10T05:58:33.175Z",
- "last_entry_hash": "7ef668e07297dd1795dae957e5ff64259b5167a724242908c41c641558c225c2",
+ "last_tick_at": "2026-11-10T06:32:44.486Z",
+ "last_entry_hash": "0b7885a8036e8522e7c1db08c0fd84bd47fc87b9e5d4f390906f4a98d23bacca",
  "universe_growth": 605,
  "combos_total": 420,
  "next_stage": null,
@@ -40,18 +40,18 @@
   "cells_visited": 37,
   "cells_total": 40,
   "known_rifts": 3,
-  "moves_succeeded": 10376,
+  "moves_succeeded": 10392,
   "moves_blocked": 598,
   "blocked_rate": 0.054,
   "favorite_spot": "Violet Shard",
-  "favorite_value": 0.532,
+  "favorite_value": 0.571,
   "prefs": {
    "explore": 0.05,
-   "visit": 0.8898,
+   "visit": 1,
    "rest": 0.068,
    "play": 1
   },
-  "decisions": 6365,
+  "decisions": 6374,
   "label": "learned behaviour from its own experience, not consciousness"
  },
  "labels": {
@@ -67,6 +67,78 @@
   "source": "recorded hardware counts (birth seed, never re-run)"
  },
  "recent": [
+  {
+   "schema": "zeref-diary/v1",
+   "beast_id": "bb-7f9c2a03",
+   "tick": 711,
+   "at": "2026-11-10T06:32:44.486Z",
+   "hour_local": 0,
+   "timezone": "America/Chicago",
+   "signals": {
+    "energy": 73,
+    "signal": 56,
+    "memory": 100,
+    "resonance": 98
+   },
+   "bond": 100,
+   "mood": "content",
+   "place": "Echo Prism",
+   "places_visited": [
+    "Echo Prism",
+    "Tidewell",
+    "Violet Shard"
+   ],
+   "discovered_combos": [],
+   "new_combo_count": 0,
+   "combos_total": 420,
+   "xp_gain": 10,
+   "xp": 10543,
+   "stage": 5,
+   "stage_name": "Crescent Sovereign",
+   "grew": false,
+   "care": 0,
+   "birth_spark": {
+    "provider": "IBM Quantum",
+    "backend": "ibm_marrakesh",
+    "job_id": "db4te7slf4us73c3888g",
+    "source": "recorded hardware counts (birth seed, never re-run)"
+   },
+   "growth_source": {
+    "kind": "deterministic-fallback",
+    "simulated": false,
+    "provider": "azure-quantum/rigetti",
+    "target": "rigetti.sim.qvm",
+    "job_id": null,
+    "error": "ResourceExistsError: (SubscriptionDisabled) This Azure subscription is disabled and marked as read-only. Please re-enable the subscription to use Azure Quantum.\nCode: SubscriptionDisabled\nMessage: This Azure subscription is disabled and marked as read-only. Ple"
+   },
+   "learning": {
+    "new_cells": 0,
+    "moves_succeeded": 16,
+    "moves_blocked": 0,
+    "goals": {
+     "play": 5,
+     "visit": 4
+    },
+    "cells_visited": 37,
+    "cells_total": 40,
+    "known_rifts": 3,
+    "blocked_rate": 0.054,
+    "favorite_spot": "Violet Shard",
+    "prefs": {
+     "explore": 0.05,
+     "visit": 1,
+     "rest": 0.068,
+     "play": 1
+    },
+    "label": "learned behaviour from its own experience, not consciousness"
+   },
+   "thought": {
+    "text": "The Echo (LECORDED diary (197) has been used to dreActctopus, Axka.",
+    "by": "rawrphos-native:step-37104 (raw model output, unedited)"
+   },
+   "prev_hash": "7ef668e07297dd1795dae957e5ff64259b5167a724242908c41c641558c225c2",
+   "hash": "0b7885a8036e8522e7c1db08c0fd84bd47fc87b9e5d4f390906f4a98d23bacca"
+  },
   {
    "schema": "zeref-diary/v1",
    "beast_id": "bb-7f9c2a03",
@@ -1006,100 +1078,8 @@
    },
    "prev_hash": "e281f395193c344cc765b2edfd377de8e9261bd4ddabbca2114f53d4ba64b404",
    "hash": "b7a2cd0c7060ddddc7c151873cf529706a6553d01963faa7c502cdb5bb3f2dc5"
-  },
-  {
-   "schema": "zeref-diary/v1",
-   "beast_id": "bb-7f9c2a03",
-   "tick": 699,
-   "at": "2026-11-09T22:51:58.592Z",
-   "hour_local": 16,
-   "timezone": "America/Chicago",
-   "signals": {
-    "energy": 66,
-    "signal": 51,
-    "memory": 100,
-    "resonance": 88
-   },
-   "bond": 100,
-   "mood": "content",
-   "place": "Rift Gate",
-   "places_visited": [
-    "Echo Prism",
-    "Quartz Choir",
-    "Rift Gate",
-    "Violet Shard"
-   ],
-   "discovered_combos": [],
-   "new_combo_count": 0,
-   "combos_total": 420,
-   "xp_gain": 14,
-   "xp": 10393,
-   "stage": 5,
-   "stage_name": "Crescent Sovereign",
-   "grew": false,
-   "care": 0,
-   "birth_spark": {
-    "provider": "IBM Quantum",
-    "backend": "ibm_marrakesh",
-    "job_id": "db4te7slf4us73c3888g",
-    "source": "recorded hardware counts (birth seed, never re-run)"
-   },
-   "growth_source": {
-    "kind": "rigetti-qvm-simulated",
-    "simulated": true,
-    "provider": "azure-quantum/rigetti",
-    "target": "rigetti.sim.qvm",
-    "job_id": "569302a8-dc7f-11f1-8000-70a8a59b23dd",
-    "job_name": "zeref-diary-tick-699-bb-7f9c2a03",
-    "shots": 256,
-    "counts": {
-     "100": 7,
-     "101": 102,
-     "110": 89,
-     "111": 2,
-     "000": 1,
-     "001": 29,
-     "010": 26
-    },
-    "counts_sha256": "4aff335444892df03453155523e48607c06e329e2a91ec6a0b4d65f9f74d38a8",
-    "circuit_params": {
-     "energy": 2.230531,
-     "signal": 1.602212,
-     "resonance": 2.764602
-    },
-    "quil_sha256": "5324a78ff58fb401ba5c2f585118e2fe6213473b94d62dbcb3c7ce0aadaa1b7a"
-   },
-   "learning": {
-    "new_cells": 0,
-    "moves_succeeded": 11,
-    "moves_blocked": 0,
-    "goals": {
-     "play": 1,
-     "rest": 3,
-     "visit": 6
-    },
-    "cells_visited": 37,
-    "cells_total": 40,
-    "known_rifts": 3,
-    "blocked_rate": 0.054,
-    "favorite_spot": "Echo Prism",
-    "prefs": {
-     "explore": 0.05,
-     "visit": 1,
-     "rest": 0.05,
-     "play": 0.9711
-    },
-    "label": "learned behaviour from its own experience, not consciousness"
-   },
-   "universe_growth": 597,
-   "thought": {
-    "text": "The Earth in A.",
-    "by": "rawrphos-native:step-37104 (raw model output, unedited)"
-   },
-   "prev_hash": "98db6a8f32b0207e2932676c36dd67b8b90b8df6ea1dcb2284e6aa2f41fe1831",
-   "hash": "e281f395193c344cc765b2edfd377de8e9261bd4ddabbca2114f53d4ba64b404"
   }
  ],
- "generated_at": "2026-11-10T05:58:33.175Z",
+ "generated_at": "2026-11-10T06:32:44.486Z",
  "thought_source_note": "rawrphos-ok"
 }
