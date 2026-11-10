@@ -152,8 +152,20 @@ def test_env_flag_is_a_literal_and_there_is_no_training_switch():
     assert "Math.random" not in source
 
 
-def test_flag_off_leaves_the_owner_prompt_unchanged(tmp_path, monkeypatch):
+def test_missing_hashes_do_not_crash_the_mouth_when_the_flag_is_on(tmp_path, monkeypatch):
+    activate(monkeypatch)
+    store = open_owner(tmp_path)
+    store.close()
     monkeypatch.delenv("BEASTBOX_LIVED_BACKBONE", raising=False)
+    monkeypatch.setenv("BEASTBOX_LIVED_ORIGIN_COMMITMENT", "")
+    monkeypatch.setenv("BEASTBOX_LIVED_PRIOR_HEAD", "")
+    view = owner_view(tmp_path, now_ms=NOW + 1000)
+    assert view.status == "unavailable"
+    assert view.reason == "missing"
+
+
+def test_flag_off_leaves_the_owner_prompt_unchanged(tmp_path, monkeypatch):
+    monkeypatch.setenv("BEASTBOX_LIVED_BACKBONE", "off")
     assert backbone_ready() is False
     capture = Capture()
     runtime = DurableRuntime(tmp_path, capture)
@@ -509,7 +521,7 @@ def test_unicode_1800_and_worst_byte_prompts_keep_the_descriptor(tmp_path, monke
 
 
 def test_flag_off_long_prompt_stays_byte_identical(tmp_path, monkeypatch):
-    monkeypatch.delenv("BEASTBOX_LIVED_BACKBONE", raising=False)
+    monkeypatch.setenv("BEASTBOX_LIVED_BACKBONE", "off")
     sent = []
     guest_local = _guest_server(monkeypatch, sent)
     text = "a" * 1800
@@ -538,7 +550,7 @@ def test_guest_budget_omission_is_not_success(tmp_path, monkeypatch):
 
 
 def test_capability_receipt_does_not_call_a_model(monkeypatch):
-    monkeypatch.delenv("BEASTBOX_LIVED_BACKBONE", raising=False)
+    monkeypatch.setenv("BEASTBOX_LIVED_BACKBONE", "off")
     assert capability_receipt()["state_conditioning"] == "unavailable"
     assert capability_receipt()["changes_model_tensors"] is False
     assert capability_receipt()["clients_submit_state"] is False

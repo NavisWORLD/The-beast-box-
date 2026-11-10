@@ -247,7 +247,7 @@ def test_failure_guest_and_unverified_do_not_touch_owner_weights(tmp_path, monke
 
 def test_flag_off_creates_no_weight_file(tmp_path, monkeypatch):
     install_diary(tmp_path)
-    monkeypatch.delenv(ACTIVATION_ENV, raising=False)
+    monkeypatch.setenv(ACTIVATION_ENV, "off")
     run_owner_exchange(
         tmp_path, scope="owner", heard=HEARD, exchange_id=EXCHANGE, now_ms=NOW, generate=lambda: SPOKEN,
     )

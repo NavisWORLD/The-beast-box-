@@ -5,8 +5,8 @@ The descriptor is prompt text beside self-memory and context. It is not
 history memory, and it does not change model tensors. Guest mouths stay on
 their own side of the glass: they never read the owner chain.
 
-Off unless BEASTBOX_LIVED_BACKBONE is exactly on and the verified origin
-attachment is configured. With either missing, callers leave the prompt alone.
+On unless BEASTBOX_LIVED_BACKBONE is exactly off. A missing verified origin
+attachment leaves the prompt alone.
 """
 from __future__ import annotations
 
@@ -32,6 +32,7 @@ from .lived_events import (
     STALE_MS,
     ActivationRejected,
     ChainRejected,
+    backbone_selected,
     IdentityRejected,
     SampleRejected,
     host_attachment,
@@ -72,7 +73,7 @@ def _now_ms() -> int:
 
 def backbone_ready() -> bool:
     """Flag plus the verified owner attachment. Either miss leaves mouths unchanged."""
-    if os.environ.get("BEASTBOX_LIVED_BACKBONE", "off") != "on":
+    if not backbone_selected(os.environ.get("BEASTBOX_LIVED_BACKBONE", "on")):
         return False
     try:
         attachment = host_attachment()
@@ -333,7 +334,10 @@ def _read_owner(root: Path, now_ms: int) -> LivedExchange:
     path = _owner_path(root)
     if path.is_symlink() or path.parent.is_symlink() or not path.is_file():
         return _unavailable("missing", scope="owner")
-    attachment = host_attachment()
+    try:
+        attachment = host_attachment()
+    except ActivationRejected:
+        return _unavailable("missing", scope="owner")
     if attachment is None:
         return _unavailable("missing", scope="owner")
     fields = {key: attachment[key] for key in (

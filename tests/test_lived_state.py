@@ -518,7 +518,7 @@ def test_disabled_runtime_keeps_legacy_checkpoint_bytes(tmp_path, monkeypatch):
 
 
 def test_activation_requires_flag_and_verified_attachment(tmp_path, monkeypatch):
-    monkeypatch.delenv(ACTIVATION_ENV, raising=False)
+    monkeypatch.setenv(ACTIVATION_ENV, "off")
     with pytest.raises(ActivationRejected):
         DurableRuntime(tmp_path / "bare", lived_backbone=True, lived_attachment=owner_attachment())
     assert not (tmp_path / "bare").exists()

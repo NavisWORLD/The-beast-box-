@@ -178,7 +178,7 @@ def test_the_mouth_prompt_gets_the_narration_and_not_the_passage(tmp_path, monke
 
 
 def test_flag_off_and_guests_do_not_open_the_chain(tmp_path, monkeypatch):
-    monkeypatch.delenv("BEASTBOX_LIVED_BACKBONE", raising=False)
+    monkeypatch.setenv("BEASTBOX_LIVED_BACKBONE", "off")
     assert study_on_speak(tmp_path, "rivers", NOW, catalog=CATALOG)["reason"] == "off"
     assert not (tmp_path / "lived-backbone" / f"{CANONICAL_SUBJECT}.sqlite").exists()
     _ready(tmp_path, monkeypatch)

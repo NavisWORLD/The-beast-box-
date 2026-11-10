@@ -144,7 +144,7 @@ def test_tampered_export_does_not_verify_and_writes_nothing(tmp_path, monkeypatc
 
 def test_flag_off_writes_nothing_even_if_attachment_would_verify(tmp_path, monkeypatch):
     head = install_diary(tmp_path)
-    monkeypatch.delenv(ACTIVATION_ENV, raising=False)
+    monkeypatch.setenv(ACTIVATION_ENV, "off")
     monkeypatch.setenv("BEASTBOX_LIVED_ORIGIN_COMMITMENT", LINEAGE_GENESIS)
     monkeypatch.setenv("BEASTBOX_LIVED_PRIOR_HEAD", head)
     result = run_owner_exchange(

@@ -16,7 +16,9 @@ export const metadata: Metadata = { title: 'Beast Box', description: 'Swap the b
 export const viewport: Viewport = { width: 'device-width', initialScale: 1, themeColor: '#080b19', viewportFit:'cover' };
 export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   // Public and guest pages never mount the sensorium, so they never call its route.
-  // The flag is read here by name. Owner identity comes from the session cookie.
-  const sensorium = process.env.BEASTBOX_LIVED_BACKBONE === 'on' && await isOwner();
+  // The flag is read here by name. Unset or blank is on. The off switch is the exact value off.
+  const livedFlag = process.env.BEASTBOX_LIVED_BACKBONE;
+  const livedOn = livedFlag == null || livedFlag.trim() === '' || livedFlag === 'on';
+  const sensorium = livedOn && await isOwner();
   return <html lang="en"><body><OneWorldProvider/><SiteNav/><CompanionProvider>{children}</CompanionProvider><HonestLine/><SiteSoundDock/><ZerefVoiceDock/><SiteDock/><ShareWorld/>{sensorium ? <SensoriumProvider enabled /> : null}<GlDebugOverlay/></body></html>;
 }
