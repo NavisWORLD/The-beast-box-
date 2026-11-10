@@ -33,5 +33,5 @@ test('the face channel is labelled estimates end to end and never enters the sea
 test('shared samples land in the same on-device experience log Zeref already reads',()=>{
  const shell=read('components/share-world.tsx');
  assert.match(shell,/LOG_KEY/);assert.match(shell,/experience\(cur, now\)/);
- assert.match(shell,/zeref:share-sample/);
+ assert.doesNotMatch(shell,/zeref:share-sample/);
 });

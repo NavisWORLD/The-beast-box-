@@ -47,6 +47,11 @@ test('guest and visitor doors do not write the owner chain', () => {
   assert.doesNotMatch(guest, /lived-backbone|bb-deada969\.sqlite/);
   assert.doesNotMatch(forever, /lived-backbone|bb-deada969\.sqlite/);
   assert.doesNotMatch(growing, /lived-backbone|bb-deada969\.sqlite/);
+  const call = guest.indexOf("ownerChainWrite('guest')");
+  const guard = guest.indexOf("guest exchange stays off the owner chain");
+  const handler = guest.indexOf("Local guest inference unavailable or timed out");
+  assert.ok(call >= 0 && guard > call && handler > guard);
+  assert.match(guest.slice(call, guard), /try\{/);
 });
 
 test('azure mirror is a hash replica and a failed mirror does not claim the chain', async () => {

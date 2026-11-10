@@ -81,6 +81,18 @@ An owner turn writes two RECORDED events on the same chain the senses use: the h
 
 The write runs only when `BEASTBOX_LIVED_BACKBONE` is exactly `on` and the recomputed `host_attachment` returns `verified: True`. The diary export beside the store is read for that check. It is not written and it is not re-keyed. Any other return writes nothing and does not create the chain file. Guest and visitor exchanges do not open the owner chain. The Azure copy is a hash replica with an outbox receipt. A replica failure does not move the canonical head.
 
+## One mouth (PR D1)
+
+The field sheet's owner talk uses the backbone mouth. It carries that mouth's receipt and does not fall through to the guest door. A guest on the field still uses the guest door, and that door does not open the owner chain. The share panel keeps its on-device experience log. It no longer emits a sample event that nothing reads. Game lines and teacher coaching stay on their own side of the glass.
+
 ## Co-firing (PR C2)
 
 Recorded exchanges co-fire with the shared twelve-state, and that co-firing stays in the owner store. Replaying the chain restores the same weights. The text drive is a fixed hash of the text bytes, labelled computed, and it does not enter a sensor channel. A sensor sample does not reset those weights. Guest and visitor turns do not touch them. There is no cap that drops an older recorded line.
+
+## Recall (PR W2)
+
+At speak time the owner mouth reads the live twelve, including the face ESTIMATE siblings already on the descriptor, and then the chain. Recorded lines are LIVED and come first. Study lessons are TAUGHT and come second. The prompt keeps a short window of those lines. The chain rows stay. Every verified reply carries a recall receipt: the entries read, the hash of each entry, the hash of its text, and the state hash that conditioned the answer. The receipt names two drift layers separately. Recorded measurements drift the root, and the clock on that layer is SIMULATED. The living signal stays labelled on its own: sight DERIVED, face ESTIMATE, pulse ESTIMATE. `memory_used` stays the history flag. Guest and visitor turns do not read this chain.
+
+## Study (PR W3)
+
+A confused flag that is true, or a speak-time retrieval that finds no lived or taught line, appends one paced study turn on the owner chain. The pace is one turn per 60 seconds of the injected clock, so a run of confusion does not stack requests. The mouth reads a local catalog of records that already carry a public-domain, open-license, or original license. Any other license is skipped, and so is anything marked heldout, private, or transcript. The lesson is a short narration in original words, labelled TAUGHT, with its source label and its license. The passage stays out of the lesson and out of the prompt. Confusion, the question, the study, and a later recall each append to the chain. Those records leave the twelve-state as it was. The self-knowledge sentence stays Emeth's wording and is not written by this loop.

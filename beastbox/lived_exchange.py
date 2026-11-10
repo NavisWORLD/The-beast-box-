@@ -23,6 +23,7 @@ from .lived_events import (
     IdentityRejected,
     SampleRejected,
 )
+from .lived_recall import recall_for_root
 from .lived_state import LivedStore
 
 
@@ -99,6 +100,32 @@ def _blank(status: str, *, reply: str | None, generated: bool, receipt: dict[str
     }
 
 
+def _unconfirmed(exchange_id: str, *, reply: str | None, generated: bool) -> dict[str, Any]:
+    return _blank(
+        "unconfirmed", reply=reply, generated=generated,
+        receipt={"schema": "lived-exchange-receipt-v1", "status": "unconfirmed", "exchange_id": exchange_id},
+    )
+
+
+def _rejected(
+    exchange_id: str, exc: SampleRejected, *, reply: str | None, generated: bool, wrote: bool,
+) -> dict[str, Any]:
+    code = exc.code if exc.code in {"raw", "invalid"} else "rejected"
+    return {
+        "wrote": wrote,
+        "status": "rejected",
+        "reply": reply,
+        "generated": generated,
+        "receipt": {
+            "schema": "lived-exchange-receipt-v1",
+            "status": "rejected",
+            "code": code,
+            "exchange_id": exchange_id,
+        },
+        "recovered": False,
+    }
+
+
 def _owner_path(root: Path) -> Path:
     return Path(root) / "lived-backbone" / f"{CANONICAL_SUBJECT}.sqlite"
 
@@ -153,7 +180,10 @@ def _commit(
     store: LivedStore, *, heard: str, exchange_id: str, now_ms: int, generate: Callable[[], Any],
     model: str | None, delivered: bool, acknowledge: bool,
 ) -> dict[str, Any]:
-    row = store.exchange_row(exchange_id)
+    try:
+        row = store.exchange_row(exchange_id)
+    except sqlite3.Error:
+        return _unconfirmed(exchange_id, reply=_as_text(generate()), generated=True)
     if row is not None and row.get("spoken_event_id"):
         receipt = store.exchange_receipt(str(row["spoken_event_id"]))
         receipt["acknowledged"] = bool(row.get("acknowledged"))
@@ -168,20 +198,25 @@ def _commit(
             "receipt": receipt, "recovered": True,
         }
     if row is None or not row.get("heard_event_id"):
-        store.begin_exchange(exchange_id=exchange_id, text=heard, now_ms=now_ms)
+        try:
+            store.begin_exchange(exchange_id=exchange_id, text=heard, now_ms=now_ms)
+        except SampleRejected as exc:
+            return _rejected(exchange_id, exc, reply=_as_text(generate()), generated=True, wrote=False)
+        except sqlite3.Error:
+            return _unconfirmed(exchange_id, reply=_as_text(generate()), generated=True)
     if not delivered:
         try:
             receipt = store.fail_exchange(exchange_id=exchange_id, now_ms=now_ms)
         except sqlite3.Error:
-            return _blank(
-                "unconfirmed", reply=None, generated=False,
-                receipt={"schema": "lived-exchange-receipt-v1", "status": "unconfirmed", "exchange_id": exchange_id},
-            )
+            return _unconfirmed(exchange_id, reply=None, generated=False)
         return {
             "wrote": True, "status": "failed", "reply": None, "generated": False,
             "receipt": receipt, "recovered": False,
         }
-    staged = store.staged_reply(exchange_id)
+    try:
+        staged = store.staged_reply(exchange_id)
+    except sqlite3.Error:
+        return _unconfirmed(exchange_id, reply=_as_text(generate()), generated=True)
     generated = False
     if staged is not None:
         reply = staged["reply"]
@@ -194,32 +229,31 @@ def _commit(
             try:
                 receipt = store.fail_exchange(exchange_id=exchange_id, now_ms=now_ms)
             except sqlite3.Error:
-                return _blank(
-                    "unconfirmed", reply=reply, generated=True,
-                    receipt={"schema": "lived-exchange-receipt-v1", "status": "unconfirmed", "exchange_id": exchange_id},
-                )
+                return _unconfirmed(exchange_id, reply=reply, generated=True)
             return {
                 "wrote": True, "status": "failed", "reply": reply, "generated": True,
                 "receipt": receipt, "recovered": False,
             }
         try:
             store.stage_exchange_reply(exchange_id, reply, model)
+        except SampleRejected as exc:
+            return _reply_rejected(store, exchange_id, exc, reply=reply, generated=True, now_ms=now_ms)
         except sqlite3.Error:
-            return _blank(
-                "unconfirmed", reply=reply, generated=True,
-                receipt={"schema": "lived-exchange-receipt-v1", "status": "unconfirmed", "exchange_id": exchange_id},
-            )
+            return _unconfirmed(exchange_id, reply=reply, generated=True)
     try:
         receipt = store.finish_exchange(exchange_id=exchange_id, reply=reply, now_ms=now_ms, model=model)
+    except SampleRejected as exc:
+        return _reply_rejected(store, exchange_id, exc, reply=reply, generated=generated, now_ms=now_ms)
     except sqlite3.Error:
-        return _blank(
-            "unconfirmed", reply=reply, generated=generated,
-            receipt={"schema": "lived-exchange-receipt-v1", "status": "unconfirmed", "exchange_id": exchange_id},
-        )
+        return _unconfirmed(exchange_id, reply=reply, generated=generated)
     if acknowledge:
-        store.acknowledge_exchange(exchange_id)
         receipt = dict(receipt)
-        receipt["acknowledged"] = True
+        try:
+            store.acknowledge_exchange(exchange_id)
+        except sqlite3.Error:
+            receipt["acknowledged"] = False
+        else:
+            receipt["acknowledged"] = True
     else:
         receipt = dict(receipt)
         receipt["acknowledged"] = False
@@ -238,6 +272,7 @@ def speak_owner(root: str | Path, heard: str, generate: Callable[[], Any], *, no
 
     def once() -> Any:
         if "value" not in held:
+            held["recall"] = recall_for_root(Path(root), heard)
             held["value"] = generate()
         return held["value"]
 
@@ -247,7 +282,13 @@ def speak_owner(root: str | Path, heard: str, generate: Callable[[], Any], *, no
     if result["status"] == "skipped":
         return held.get("value", result["reply"])
     if result["recovered"]:
-        return {"response": result["reply"], "lived_exchange": result["receipt"], "recovered": True}
+        recall = held.get("recall") or recall_for_root(Path(root), heard)
+        return {
+            "response": result["reply"],
+            "lived_exchange": result["receipt"],
+            "lived_recall": recall["receipt"],
+            "recovered": True,
+        }
     body = held.get("value")
     if not isinstance(body, dict):
         body = {"response": result["reply"]}
@@ -255,23 +296,48 @@ def speak_owner(root: str | Path, heard: str, generate: Callable[[], Any], *, no
         body = dict(body)
     if result["receipt"] is not None:
         body["lived_exchange"] = result["receipt"]
+    if "lived_recall" not in body and "recall" in held:
+        body["lived_recall"] = held["recall"]["receipt"]
     return body
+
+
+def _reply_rejected(
+    store: LivedStore, exchange_id: str, exc: SampleRejected, *, reply: str, generated: bool, now_ms: int,
+) -> dict[str, Any]:
+    """The heard line stays. The reply text is not written, and the caller still receives it."""
+    try:
+        receipt = store.fail_exchange(exchange_id=exchange_id, now_ms=now_ms, code=exc.code)
+    except (sqlite3.Error, SampleRejected, ChainRejected):
+        return _unconfirmed(exchange_id, reply=reply, generated=generated)
+    receipt = dict(receipt)
+    receipt["status"] = "rejected"
+    receipt["code"] = exc.code if exc.code in {"raw", "invalid"} else "rejected"
+    return {
+        "wrote": True, "status": "rejected", "reply": reply, "generated": generated,
+        "receipt": receipt, "recovered": False,
+    }
 
 
 def _exchange_id_for(root: Path, text: str) -> str:
     digest = sha256_text(text)
     path = _owner_path(root)
+    offline = sha256_text(f"lived-exchange-v1\nowner\nowner\n{text}\n0")[:32]
     if not path.is_file():
-        return sha256_text(f"lived-exchange-v1\nowner\nowner\n{text}\n0")[:32]
+        return offline
     attachment = _current_attachment(root)
     if attachment is None:
-        return sha256_text(f"lived-exchange-v1\nowner\nowner\n{text}\n0")[:32]
-    store = LivedStore.open(path, _host_fields(attachment))
+        return offline
+    try:
+        store = LivedStore.open(path, _host_fields(attachment))
+    except sqlite3.Error:
+        return offline
     try:
         rows = store.db.execute(
             "SELECT exchange_id, acknowledged FROM lived_exchanges WHERE text_sha256=? ORDER BY exchange_id",
             (digest,),
         ).fetchall()
+    except sqlite3.Error:
+        return offline
     finally:
         store.close()
     for row in rows:

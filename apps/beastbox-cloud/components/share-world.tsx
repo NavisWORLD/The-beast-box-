@@ -91,7 +91,6 @@ export default function ShareWorld() {
         try { localStorage.setItem(LOG_KEY, JSON.stringify(log)); } catch { /* full/blocked: sharing still works */ }
       }
       const est = buildFaceEstimates({ face: fp ? { facePresent: fp.facePresent, faceScale: fp.faceScale, faceX: fp.faceX, faceY: fp.faceY, faceBlink: fp.faceBlink } : undefined, pulse: pulse.current?.estimate() || null });
-      window.dispatchEvent(new CustomEvent('zeref:share-sample', { detail: { perception: cur, estimates: est } }));
       const soundLine = heard ? `sound ${heard.loudness}` : 'sound absent';
       setLine(`light ${f ? cur.brightness : 'absent'} · motion ${f ? cur.motion : 'absent'} · ${soundLine}${fp ? ` · face ${fp.facePresent ? 'present' : 'not seen'} (estimate)` : ''}`);
       setEstLine(est.pulse ? `pulse ≈ ${est.pulse.bpm} bpm (estimate, face channel)` : '');

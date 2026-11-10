@@ -137,3 +137,21 @@ test('2026-10-25 multi-candidate rounds keep Gate v2 unchanged and select on set
  assert.match(w,/ZEREF_006_CANDIDATES: '4'/);
  assert.match(w,/cron: '17 \*\/6 \* \* \*'/);
 });
+
+test('006 training threads are 4 and Training fix 002 still pins the parent',()=>{
+ const t=read('scripts/zeref_continuation_006.py'),w=read('.github/workflows/zeref-continuous-learning-006.yml');
+ assert.equal((w.match(/OMP_NUM_THREADS: '4'/g)||[]).length,2);
+ assert.equal((w.match(/MKL_NUM_THREADS: '4'/g)||[]).length,2);
+ assert.doesNotMatch(w,/OMP_NUM_THREADS: '2'/);
+ assert.doesNotMatch(w,/MKL_NUM_THREADS: '2'/);
+ assert.ok(t.includes('return min(4, os.cpu_count() or 2)'));
+ assert.ok(t.includes('torch.set_num_threads(training_threads())'));
+ assert.ok(t.includes('threads=training_threads()'));
+ assert.ok(t.includes('original_chat=pair_nll(model,chat_t)'));
+ assert.ok(w.includes('parent AND anchor = the PUBLIC PIN'));
+ assert.ok(w.includes('assert actual==pin[\'checkpoint_sha256\']'));
+ assert.ok(!w.includes('RESUME_ACCEPTED_TRAINING_PARENT='));
+ assert.ok(!w.includes("cursor/w4-training-"));
+ const ev=read('scripts/rawrphos_chat_eval.py');
+ assert.ok(ev.includes('threads=2'));
+});

@@ -32,8 +32,10 @@ jobs:
     timeout-minutes: 280
     env:
       GH_TOKEN: ${{ github.token }}
-      OMP_NUM_THREADS: '2'
-      MKL_NUM_THREADS: '2'
+      # 4 logical CPUs on the hosted runner. 2 left half of them idle in the update loop.
+      # Clocks, learning steps, the pin, and the gates are unchanged.
+      OMP_NUM_THREADS: '4'
+      MKL_NUM_THREADS: '4'
       TOKENIZERS_PARALLELISM: 'false'
       NAVISWORLD_NATIVE_TRAINING_BEAST: zeref
       NAVISWORLD_NATIVE_TRAINING_CYCLE: ${{ github.run_id }}
@@ -429,8 +431,9 @@ jobs:
       contents: read
       actions: read
     env:
-      OMP_NUM_THREADS: '2'
-      MKL_NUM_THREADS: '2'
+      # Same thread count as the train job, so a round that hits a limit is scored on the same count.
+      OMP_NUM_THREADS: '4'
+      MKL_NUM_THREADS: '4'
       TOKENIZERS_PARALLELISM: 'false'
       NAVISWORLD_NATIVE_TRAINING_BEAST: zeref
       NAVISWORLD_NATIVE_TRAINING_CYCLE: ${{ github.run_id }}
