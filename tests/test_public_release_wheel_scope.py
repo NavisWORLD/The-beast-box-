@@ -50,13 +50,13 @@ def test_v_star_package_tag_with_a_wheel_runs() -> None:
     )
     assert decision == "run"
     assert "v0.7.1" in reason
-    assert "wheel" in reason
 
 
-def test_v_star_tag_without_a_wheel_is_skipped() -> None:
+def test_v_star_tag_without_a_wheel_still_runs() -> None:
     decision, reason = scope_decision("v0.7.1", ["SHA256SUMS.txt", "RELEASE_PROVENANCE.json"])
-    assert decision == "skip"
-    assert "no wheel asset" in reason
+    assert decision == "run"
+    assert "v0.7.1" in reason
+    assert "missing wheel fails there" in reason
 
 
 def test_cli_prints_the_same_two_outcomes() -> None:
@@ -83,3 +83,18 @@ def test_cli_prints_the_same_two_outcomes() -> None:
         text=True,
     )
     assert "decision=run\n" in package.stdout
+    missing = subprocess.run(
+        [
+            sys.executable,
+            str(SCRIPT),
+            "--tag",
+            "v0.7.1",
+            "--asset",
+            "SHA256SUMS.txt",
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    assert "decision=run\n" in missing.stdout
+    assert "decision=skip" not in missing.stdout
