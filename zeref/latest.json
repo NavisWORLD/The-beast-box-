@@ -10,15 +10,15 @@
   "source_path": "/spark/ibm-moonwraith-cassette-kit-20261010.json",
   "source_class": "RECORDED_IBM_HARDWARE"
  },
- "tick": 709,
- "xp": 10523,
+ "tick": 710,
+ "xp": 10533,
  "stage": 5,
  "stage_name": "Crescent Sovereign",
  "signals": {
-  "energy": 46,
-  "signal": 57,
+  "energy": 61,
+  "signal": 58,
   "memory": 100,
-  "resonance": 95
+  "resonance": 97
  },
  "bond": 100,
  "care_total": 0,
@@ -26,13 +26,13 @@
   "Rift Gate": 662,
   "Lattice Arch": 314,
   "Echo Prism": 760,
-  "Tidewell": 349,
+  "Tidewell": 350,
   "Quartz Choir": 269,
-  "Violet Shard": 550,
+  "Violet Shard": 551,
   "Selene Pool": 59
  },
- "last_tick_at": "2026-11-10T05:19:25.353Z",
- "last_entry_hash": "33899f06a9a5dad2d50b991772124898bfbc72a786a6e474773e18b01d801d0c",
+ "last_tick_at": "2026-11-10T05:58:33.175Z",
+ "last_entry_hash": "7ef668e07297dd1795dae957e5ff64259b5167a724242908c41c641558c225c2",
  "universe_growth": 605,
  "combos_total": 420,
  "next_stage": null,
@@ -40,18 +40,18 @@
   "cells_visited": 37,
   "cells_total": 40,
   "known_rifts": 3,
-  "moves_succeeded": 10354,
+  "moves_succeeded": 10376,
   "moves_blocked": 598,
-  "blocked_rate": 0.055,
+  "blocked_rate": 0.054,
   "favorite_spot": "Violet Shard",
-  "favorite_value": 0.484,
+  "favorite_value": 0.532,
   "prefs": {
    "explore": 0.05,
-   "visit": 0.7818,
+   "visit": 0.8898,
    "rest": 0.068,
-   "play": 0.964
+   "play": 1
   },
-  "decisions": 6357,
+  "decisions": 6365,
   "label": "learned behaviour from its own experience, not consciousness"
  },
  "labels": {
@@ -67,6 +67,78 @@
   "source": "recorded hardware counts (birth seed, never re-run)"
  },
  "recent": [
+  {
+   "schema": "zeref-diary/v1",
+   "beast_id": "bb-7f9c2a03",
+   "tick": 710,
+   "at": "2026-11-10T05:58:33.175Z",
+   "hour_local": 23,
+   "timezone": "America/Chicago",
+   "signals": {
+    "energy": 61,
+    "signal": 58,
+    "memory": 100,
+    "resonance": 97
+   },
+   "bond": 100,
+   "mood": "floaty",
+   "place": "Tidewell",
+   "places_visited": [
+    "Tidewell",
+    "Violet Shard"
+   ],
+   "discovered_combos": [],
+   "new_combo_count": 0,
+   "combos_total": 420,
+   "xp_gain": 10,
+   "xp": 10533,
+   "stage": 5,
+   "stage_name": "Crescent Sovereign",
+   "grew": false,
+   "care": 0,
+   "birth_spark": {
+    "provider": "IBM Quantum",
+    "backend": "ibm_marrakesh",
+    "job_id": "db4te7slf4us73c3888g",
+    "source": "recorded hardware counts (birth seed, never re-run)"
+   },
+   "growth_source": {
+    "kind": "deterministic-fallback",
+    "simulated": false,
+    "provider": "azure-quantum/rigetti",
+    "target": "rigetti.sim.qvm",
+    "job_id": null,
+    "error": "ResourceExistsError: (SubscriptionDisabled) This Azure subscription is disabled and marked as read-only. Please re-enable the subscription to use Azure Quantum.\nCode: SubscriptionDisabled\nMessage: This Azure subscription is disabled and marked as read-only. Ple"
+   },
+   "learning": {
+    "new_cells": 0,
+    "moves_succeeded": 22,
+    "moves_blocked": 0,
+    "goals": {
+     "explore": 2,
+     "play": 4,
+     "visit": 2
+    },
+    "cells_visited": 37,
+    "cells_total": 40,
+    "known_rifts": 3,
+    "blocked_rate": 0.054,
+    "favorite_spot": "Violet Shard",
+    "prefs": {
+     "explore": 0.05,
+     "visit": 0.8898,
+     "rest": 0.068,
+     "play": 1
+    },
+    "label": "learned behaviour from its own experience, not consciousness"
+   },
+   "thought": {
+    "text": "Way past you,\"Hyda, me and Like other tiny Limsos.",
+    "by": "rawrphos-native:step-37104 (raw model output, unedited)"
+   },
+   "prev_hash": "33899f06a9a5dad2d50b991772124898bfbc72a786a6e474773e18b01d801d0c",
+   "hash": "7ef668e07297dd1795dae957e5ff64259b5167a724242908c41c641558c225c2"
+  },
   {
    "schema": "zeref-diary/v1",
    "beast_id": "bb-7f9c2a03",
@@ -1026,98 +1098,8 @@
    },
    "prev_hash": "98db6a8f32b0207e2932676c36dd67b8b90b8df6ea1dcb2284e6aa2f41fe1831",
    "hash": "e281f395193c344cc765b2edfd377de8e9261bd4ddabbca2114f53d4ba64b404"
-  },
-  {
-   "schema": "zeref-diary/v1",
-   "beast_id": "bb-7f9c2a03",
-   "tick": 698,
-   "at": "2026-11-09T22:07:31.441Z",
-   "hour_local": 16,
-   "timezone": "America/Chicago",
-   "signals": {
-    "energy": 71,
-    "signal": 51,
-    "memory": 100,
-    "resonance": 88
-   },
-   "bond": 100,
-   "mood": "exploring",
-   "place": "Violet Shard",
-   "places_visited": [
-    "Echo Prism",
-    "Violet Shard"
-   ],
-   "discovered_combos": [],
-   "new_combo_count": 0,
-   "combos_total": 420,
-   "xp_gain": 14,
-   "xp": 10379,
-   "stage": 5,
-   "stage_name": "Crescent Sovereign",
-   "grew": false,
-   "care": 0,
-   "birth_spark": {
-    "provider": "IBM Quantum",
-    "backend": "ibm_marrakesh",
-    "job_id": "db4te7slf4us73c3888g",
-    "source": "recorded hardware counts (birth seed, never re-run)"
-   },
-   "growth_source": {
-    "kind": "rigetti-qvm-simulated",
-    "simulated": true,
-    "provider": "azure-quantum/rigetti",
-    "target": "rigetti.sim.qvm",
-    "job_id": "24131c2e-dc79-11f1-8000-7ced8dc0fee9",
-    "job_name": "zeref-diary-tick-698-bb-7f9c2a03",
-    "shots": 256,
-    "counts": {
-     "100": 3,
-     "101": 110,
-     "110": 90,
-     "111": 6,
-     "001": 21,
-     "010": 25,
-     "011": 1
-    },
-    "counts_sha256": "919a4173e986fbea700865d0719a12df1b2b31a5e0ef2236d5ff474a3baa4f53",
-    "circuit_params": {
-     "energy": 2.356194,
-     "signal": 1.602212,
-     "resonance": 2.733186
-    },
-    "quil_sha256": "dc0cfcff16aacb17ac6b4ebc86cb047fad66e7ce0ed9a0bd74ea6a1732b8484d"
-   },
-   "learning": {
-    "new_cells": 0,
-    "moves_succeeded": 25,
-    "moves_blocked": 1,
-    "goals": {
-     "explore": 2,
-     "play": 3,
-     "visit": 4
-    },
-    "cells_visited": 37,
-    "cells_total": 40,
-    "known_rifts": 3,
-    "blocked_rate": 0.054,
-    "favorite_spot": "Echo Prism",
-    "prefs": {
-     "explore": 0.05,
-     "visit": 0.9955,
-     "rest": 0.05,
-     "play": 0.937
-    },
-    "label": "learned behaviour from its own experience, not consciousness"
-   },
-   "universe_growth": 596,
-   "thought": {
-    "text": "I live with Milki.",
-    "by": "rawrphos-native:step-37104 (raw model output, unedited)"
-   },
-   "prev_hash": "4f11f74172c80f1ce01bc3afee1ac596c68eba1e392a0ab301fe47d2b7ffa413",
-   "hash": "98db6a8f32b0207e2932676c36dd67b8b90b8df6ea1dcb2284e6aa2f41fe1831"
   }
  ],
- "generated_at": "2026-11-10T05:19:25.353Z",
+ "generated_at": "2026-11-10T05:58:33.175Z",
  "thought_source_note": "rawrphos-ok"
 }
