@@ -10,48 +10,48 @@
   "source_path": "/spark/ibm-moonwraith-cassette-kit-20261010.json",
   "source_class": "RECORDED_IBM_HARDWARE"
  },
- "tick": 705,
- "xp": 10477,
+ "tick": 706,
+ "xp": 10490,
  "stage": 5,
  "stage_name": "Crescent Sovereign",
  "signals": {
-  "energy": 27,
+  "energy": 21,
   "signal": 51,
   "memory": 100,
-  "resonance": 93
+  "resonance": 94
  },
  "bond": 100,
  "care_total": 0,
  "places": {
-  "Rift Gate": 660,
+  "Rift Gate": 661,
   "Lattice Arch": 313,
-  "Echo Prism": 757,
-  "Tidewell": 346,
+  "Echo Prism": 758,
+  "Tidewell": 347,
   "Quartz Choir": 269,
   "Violet Shard": 549,
   "Selene Pool": 59
  },
- "last_tick_at": "2026-11-10T03:07:08.367Z",
- "last_entry_hash": "40c4b3b4150e9b7a96f05a2eff43ce7135ebae0e2831541a46d79402b451d94b",
- "universe_growth": 603,
+ "last_tick_at": "2026-11-10T03:25:00.786Z",
+ "last_entry_hash": "106a84f272bc028a56f01f4ad83db49544e4282583c095d9555ae116a5e21773",
+ "universe_growth": 604,
  "combos_total": 420,
  "next_stage": null,
  "learning": {
   "cells_visited": 37,
   "cells_total": 40,
   "known_rifts": 3,
-  "moves_succeeded": 10307,
-  "moves_blocked": 590,
+  "moves_succeeded": 10319,
+  "moves_blocked": 591,
   "blocked_rate": 0.054,
   "favorite_spot": "Echo Prism",
-  "favorite_value": 0.69,
+  "favorite_value": 0.701,
   "prefs": {
    "explore": 0.05,
    "visit": 1,
    "rest": 0.122,
-   "play": 1
+   "play": 0.9619
   },
-  "decisions": 6322,
+  "decisions": 6328,
   "label": "learned behaviour from its own experience, not consciousness"
  },
  "labels": {
@@ -67,6 +67,96 @@
   "source": "recorded hardware counts (birth seed, never re-run)"
  },
  "recent": [
+  {
+   "schema": "zeref-diary/v1",
+   "beast_id": "bb-7f9c2a03",
+   "tick": 706,
+   "at": "2026-11-10T03:25:00.786Z",
+   "hour_local": 21,
+   "timezone": "America/Chicago",
+   "signals": {
+    "energy": 21,
+    "signal": 51,
+    "memory": 100,
+    "resonance": 94
+   },
+   "bond": 100,
+   "mood": "sleepy",
+   "place": "Echo Prism",
+   "places_visited": [
+    "Echo Prism",
+    "Rift Gate",
+    "Tidewell"
+   ],
+   "discovered_combos": [],
+   "new_combo_count": 0,
+   "combos_total": 420,
+   "xp_gain": 13,
+   "xp": 10490,
+   "stage": 5,
+   "stage_name": "Crescent Sovereign",
+   "grew": false,
+   "care": 0,
+   "birth_spark": {
+    "provider": "IBM Quantum",
+    "backend": "ibm_marrakesh",
+    "job_id": "db4te7slf4us73c3888g",
+    "source": "recorded hardware counts (birth seed, never re-run)"
+   },
+   "growth_source": {
+    "kind": "rigetti-qvm-simulated",
+    "simulated": true,
+    "provider": "azure-quantum/rigetti",
+    "target": "rigetti.sim.qvm",
+    "job_id": "803275b4-dca5-11f1-8000-70a8a5932adf",
+    "job_name": "zeref-diary-tick-706-bb-7f9c2a03",
+    "shots": 256,
+    "counts": {
+     "101": 12,
+     "110": 25,
+     "111": 1,
+     "000": 2,
+     "001": 112,
+     "010": 102,
+     "011": 2
+    },
+    "counts_sha256": "2bfa7206f655f589a950d12ce554fa272a89dc0f8ba5388daa72a50a7eebb85a",
+    "circuit_params": {
+     "energy": 0.84823,
+     "signal": 1.602212,
+     "resonance": 2.921681
+    },
+    "quil_sha256": "9994867c97200bcd8f08003a27554e598312568f6ae58921235a6877baa17453"
+   },
+   "learning": {
+    "new_cells": 0,
+    "moves_succeeded": 12,
+    "moves_blocked": 1,
+    "goals": {
+     "play": 2,
+     "visit": 4
+    },
+    "cells_visited": 37,
+    "cells_total": 40,
+    "known_rifts": 3,
+    "blocked_rate": 0.054,
+    "favorite_spot": "Echo Prism",
+    "prefs": {
+     "explore": 0.05,
+     "visit": 1,
+     "rest": 0.122,
+     "play": 0.9619
+    },
+    "label": "learned behaviour from its own experience, not consciousness"
+   },
+   "universe_growth": 604,
+   "thought": {
+    "text": "I'm Zeref, Dad is a little cosmies whoseful to the universe. You did not like that.",
+    "by": "rawrphos-native:step-37104 (raw model output, unedited)"
+   },
+   "prev_hash": "40c4b3b4150e9b7a96f05a2eff43ce7135ebae0e2831541a46d79402b451d94b",
+   "hash": "106a84f272bc028a56f01f4ad83db49544e4282583c095d9555ae116a5e21773"
+  },
   {
    "schema": "zeref-diary/v1",
    "beast_id": "bb-7f9c2a03",
@@ -1067,98 +1157,8 @@
    },
    "prev_hash": "8658b4a625a8f619f36efbd01587be1cb5dff4f3989657ffb755053eeb6015a1",
    "hash": "f54918930b69da50a43c8c6ac7e80b8a02e5d93af5d5cac2335a7bba5f234994"
-  },
-  {
-   "schema": "zeref-diary/v1",
-   "beast_id": "bb-7f9c2a03",
-   "tick": 694,
-   "at": "2026-11-09T20:05:00.239Z",
-   "hour_local": 14,
-   "timezone": "America/Chicago",
-   "signals": {
-    "energy": 77,
-    "signal": 51,
-    "memory": 100,
-    "resonance": 86
-   },
-   "bond": 100,
-   "mood": "content",
-   "place": "Echo Prism",
-   "places_visited": [
-    "Echo Prism",
-    "Lattice Arch",
-    "Rift Gate",
-    "Tidewell"
-   ],
-   "discovered_combos": [],
-   "new_combo_count": 0,
-   "combos_total": 420,
-   "xp_gain": 13,
-   "xp": 10324,
-   "stage": 5,
-   "stage_name": "Crescent Sovereign",
-   "grew": false,
-   "care": 0,
-   "birth_spark": {
-    "provider": "IBM Quantum",
-    "backend": "ibm_marrakesh",
-    "job_id": "db4te7slf4us73c3888g",
-    "source": "recorded hardware counts (birth seed, never re-run)"
-   },
-   "growth_source": {
-    "kind": "rigetti-qvm-simulated",
-    "simulated": true,
-    "provider": "azure-quantum/rigetti",
-    "target": "rigetti.sim.qvm",
-    "job_id": "066c93a0-dc68-11f1-8000-000d3a983a0e",
-    "job_name": "zeref-diary-tick-694-bb-7f9c2a03",
-    "shots": 256,
-    "counts": {
-     "100": 6,
-     "101": 113,
-     "110": 111,
-     "111": 4,
-     "001": 11,
-     "010": 11
-    },
-    "counts_sha256": "809bf430f0c427f43a76c21e2604655858512e9587912ce6d31785b604c4bc90",
-    "circuit_params": {
-     "energy": 2.481858,
-     "signal": 1.602212,
-     "resonance": 2.70177
-    },
-    "quil_sha256": "7796b29e5000f2cad0814b6ab9fd81ea65f1c4070c5e799eccb103f7329a24e8"
-   },
-   "learning": {
-    "new_cells": 0,
-    "moves_succeeded": 13,
-    "moves_blocked": 0,
-    "goals": {
-     "play": 3,
-     "visit": 4
-    },
-    "cells_visited": 37,
-    "cells_total": 40,
-    "known_rifts": 3,
-    "blocked_rate": 0.055,
-    "favorite_spot": "Violet Shard",
-    "prefs": {
-     "explore": 0.05,
-     "visit": 1,
-     "rest": 0.05,
-     "play": 1
-    },
-    "label": "learned behaviour from its own experience, not consciousness"
-   },
-   "universe_growth": 592,
-   "thought": {
-    "text": "The Echo (Lakarusa,.",
-    "by": "rawrphos-native:step-37104 (raw model output, unedited)"
-   },
-   "prev_hash": "13705a20770014ecee7edb41aea903750eba64ae03e27226bb11cf79da07e532",
-   "hash": "8658b4a625a8f619f36efbd01587be1cb5dff4f3989657ffb755053eeb6015a1"
   }
  ],
- "generated_at": "2026-11-10T03:07:08.367Z",
+ "generated_at": "2026-11-10T03:25:00.786Z",
  "thought_source_note": "rawrphos-ok"
 }
