@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import {PALETTE,PALETTE_OKLAB,L_WEIGHT} from './palette.js';
 import {SEEDS,loadSeed} from './seed.js';
-import {pageStateOn,armStandalonePage} from '../universe/one-universe-gate.mjs';
+import {pageStateOn,armStandalonePage,pageLightOn,armCameraLight} from '../universe/one-universe-gate.mjs';
 const $=id=>document.getElementById(id);
 const LABEL='Seeded from recorded IBM Quantum outcomes. Recorded, not live. The physics is classical math; the quantum is the seed.';
 let COPY={};try{COPY=await (await fetch('./copy.json')).json();}catch{}
@@ -509,4 +509,14 @@ armStandalonePage({
  node:document.documentElement,
  fetchGenesis:()=>fetch('/universe/tiny-universe-genesis.json').then(r=>r.ok?r.json():null).catch(()=>null),
  subscribe:(fn)=>{try{const clock=beachHost().__bbOneWorld;if(clock&&clock.subscribe)return clock.subscribe(fn);}catch{}const id=setInterval(fn,2000);return()=>clearInterval(id);},
+});
+armCameraLight({
+ on:pageLightOn({search:location.search,storage:localStorage,parentSearch:(()=>{try{return parent&&parent!==window?parent.location.search:'';}catch{return '';}})()}),
+ lights:{key:sun,hemi},
+ key:sun,
+ hemi,
+ load:()=>import('../universe/one-universe-light.mjs'),
+ sec:()=>Date.now()/1000,
+ up:[0,1,0],
+ subscribe:(fn)=>{const id=setInterval(fn,2000);return()=>clearInterval(id);},
 });

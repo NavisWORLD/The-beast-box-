@@ -37,6 +37,34 @@ export function pageStateOn(sources) {
   return pageFlags(sources).includes('state');
 }
 
+export function pageLightOn(sources) {
+  return pageFlags(sources).includes('light');
+}
+
+/**
+ * Load the shared sun only when the light flag is on. A failed load leaves the existing lights alone.
+ * @param {{on?: boolean, lights?: any, load?: Function, sec?: any, up?: any, exposure?: number, key?: any, hemi?: any, subscribe?: Function}} [opts]
+ */
+export async function armCameraLight({on = false, lights, load, sec, up, exposure, key, hemi, subscribe} = {}) {
+  if (!on) return {armed: false, failed: false, lights};
+  let mod;
+  try { mod = await load(); }
+  catch { return {armed: false, failed: true, lights}; }
+  try {
+    const paint = () => mod.paintKeyAndSky({
+      on: true,
+      sec: typeof sec === 'function' ? sec() : sec,
+      up: typeof up === 'function' ? up() : (up || [0, 1, 0]),
+      exposure, key, hemi,
+    });
+    paint();
+    if (typeof subscribe === 'function') subscribe(paint);
+    return {armed: true, failed: false, lights};
+  } catch {
+    return {armed: false, failed: true, lights};
+  }
+}
+
 /**
  * Load the world reader only when the flag is on. A failed load does not throw and does not write.
  * @param {{on?: boolean, surface?: string, load?: Function, win?: any, storage?: any, node?: any, fetchGenesis?: Function, subscribe?: Function}} [opts]
