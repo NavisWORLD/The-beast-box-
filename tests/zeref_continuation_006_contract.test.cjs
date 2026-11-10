@@ -135,7 +135,11 @@ test('2026-11-09 resume the accepted training parent and keep the public pin as 
  assert.ok(t.includes('original_held=nll(bar_model,held_t)'));
  assert.ok(t.includes('original_chat_b=pair_nll(bar_model,chat_b)'));
  assert.ok(t.includes('char_run(bar_path)'));
- assert.ok(t.includes('torch.set_num_threads(min(4, os.cpu_count() or 2))'));
+ assert.ok(t.includes('return min(4, os.cpu_count() or 2)'));
+ assert.ok(t.includes('threads=cpu_threads()'));
+ assert.ok(t.includes('torch.set_num_threads(cpu_threads())'));
+ const ev=read('scripts/rawrphos_chat_eval.py');
+ assert.ok(ev.includes('threads=min(4, os.cpu_count() or 2)'));
  assert.ok(t.includes('chat_bar=max(.01,original_chat)'));
  assert.ok(t.includes('CHAT_A_TOLERANCE=0.005')&&t.includes('CHAT_B_TOLERANCE=0.005'));
  assert.match(w,/OMP_NUM_THREADS: '4'/);

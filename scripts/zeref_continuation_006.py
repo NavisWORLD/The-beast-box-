@@ -67,12 +67,17 @@ RIGETTI=Path(os.environ.get("ZEREF_006_RIGETTI_JSON","apps/beastbox-cloud/public
 REPLAY=Path(os.environ.get("BEAST_006_REPLAY_DIR","build/zeref-006/replay"))
 SEED=20261011
 MIN_ACTUAL_OBSERVATIONS=3
+def cpu_threads():
+ # One count for the pin bar, every 320-step variant, and the promotion eval.
+ # Hosted runners have 4 logical CPUs. Engine(..., threads=2) was resetting
+ # the process after the gate-bar print, so the update loop never used them.
+ return min(4, os.cpu_count() or 2)
 def sha(raw):return hashlib.sha256(raw).hexdigest()
 def save_json(path,payload):
  path.parent.mkdir(parents=True,exist_ok=True)
  path.write_text(json.dumps(payload,sort_keys=True,indent=2,allow_nan=False)+"\n")
 def exact_model_replies(path,rows):
- engine=Engine(path,max_new_tokens=12,threads=2)
+ engine=Engine(path,max_new_tokens=12,threads=cpu_threads())
  result=[]
  for index,row in enumerate(rows):
   text=engine.complete(prompt(row),max_tokens=12,temperature=0,seed=20261011+index,timeout=35)
@@ -356,6 +361,7 @@ def identity_probe(path):
 def train_variant(parent_path,tokenizer,pool,seed,chat_pool=(),chat_eval=None,lr=None,min_frac=None,recovery_candidate=None):
  """Configured bounded AdamW attempts with action-balanced sampling and parent anchor."""
  from collections import defaultdict
+ torch.set_num_threads(cpu_threads())  # heldout reply scoring constructs an Engine and must not leave the loop at 2
  parent=load_checkpoint(parent_path,load_training_state=True)
  model=parent["model"];cond54_bank()
  if HEBBIAN and not model.config.hebbian:
@@ -563,7 +569,7 @@ def main(recovery=False):
  # Hosted runners have 4 logical CPUs. Two threads left half idle and pushed a
  # 44-layer variant on the slow SKU past the 2700s cap. Cap at 4 so a 2-CPU
  # host is not oversubscribed. Scoring in this process uses the same count.
- torch.set_num_threads(min(4, os.cpu_count() or 2))
+ torch.set_num_threads(cpu_threads())
  torch.manual_seed(SEED)
  random.seed(SEED)
  torch.use_deterministic_algorithms(True)
