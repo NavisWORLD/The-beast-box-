@@ -39,6 +39,7 @@ import {createWorldCues,stepWorldCues} from '@/lib/universe/world-mechanics.mjs'
 import {isSoftwareGL} from '@/lib/three/soft-gl';
 import {whenShown} from '@/lib/three/when-shown.mjs';
 import {safeGlBudget,pageGlBudget,tryCreateGl} from '@/lib/three/gl-budget';
+import {glDebugDispose,glDebugOwner} from '@/lib/three/gl-debug';
 import SeededLand2D from './seeded-land-2d';
 import {addBeachShore} from '@/lib/universe/beach-shore-three';
 import {addOceanLife} from '@/lib/universe/ocean-life-three';
@@ -156,7 +157,7 @@ export default function LivingWorld({genome,beastKey,beastName,onClose,embedded=
    // P0 (ONE UNIVERSE r2): phones and CPU rasterisers get the 'default' power preference and no antialias; desktop GPUs keep today's options.
    // Creation is guarded PER VIEW: if it fails this view draws its 2D seeded land instead of an error wall, and nothing propagates to a neighbour.
    const softP=(()=>{try{return isSoftwareGL();}catch{return false;}})();const lean=phone||softP;
-   const glMade=tryCreateGl(()=>{if(/[?&]glfail=(living-world|all)\b/.test(location.search))throw new Error('forced by ?glfail (receipt test)');return new THREE.WebGLRenderer({canvas,antialias:!lean,powerPreference:lean?'default':'high-performance'});});
+   const glMade=tryCreateGl(()=>{if(/[?&]glfail=(living-world|all)\b/.test(location.search))throw new Error('forced by ?glfail (receipt test)');glDebugOwner('living-world');return new THREE.WebGLRenderer({canvas,antialias:!lean,powerPreference:lean?'default':'high-performance'});});
    if(!glMade.ok){(window as any).__lwGlFail=glMade.error;setLand2d(String(u.seed||'tiny'));return;}
    const renderer=glMade.value;
    {const gb=safeGlBudget(pageGlBudget).acquire('living-world',{soft:softP});const onLost=()=>{gb.lost(true);setLand2d(String(u.seed||'tiny'));};const onRestored=()=>{gb.lost(false);setLand2d(null);};
@@ -982,7 +983,7 @@ uniform vec3 uPlay[8];uniform vec3 uPlayT[8];uniform float uWindK;uniform float 
    };
    frame();setBooted(true);(window as any).__lw={spawn:()=>setSpawned(true),tourTo:(i:number)=>{userAt=-1e9;tourI=i-1;tourT=0;},beachInfo:()=>{if(!beach)return null;const c=beach.center().clone().normalize();return {hAt:hAt(c),hAtLand:hAt(beach.landward().clone().normalize()),TRAV_H,PR,k:TRAV_H/1.7*.07};},toBeach:(f:number=.12)=>{if(!beach)return false;const sp0=(beach.anchor('shore_spawn')||beach.center()).clone().normalize();const sea=beach.sea().clone().normalize();bN.copy(sp0).addScaledVector(beach.center().clone().normalize().sub(sp0),0).normalize();bN.copy(beach.center().clone().normalize().lerp(beach.landward().clone().normalize(),f)).normalize();bF.copy(sea).addScaledVector(bN,-sea.dot(bN)).normalize();roamGoal=null;roamT=999;return true;},toOcean:(i:number=0,k:number=0)=>{if(!ocean)return false;const L=ocean.data.schools;const sc=(k?L.filter((x:any)=>x.kind===['fish','ray','whale','jelly','turtle','seabird'][k-1]):L)[i];if(!sc)return false;seaF={sc,at:performance.now()};seaHud(true,sc);bN.set(sc.n[0],sc.n[1],sc.n[2]);bF.set(0,1,0).addScaledVector(bN,-bN.y);if(bF.lengthSq()<1e-6)bF.set(1,0,0);bF.normalize();roamGoal=null;roamT=999;return true;},toSea:()=>{if(!island)return false;const v=island.anchor('sea_level').clone().normalize();const r=lwStream(u.seed+':sea-test');for(let i=0;i<400;i++){const d=unitFrom(r) as number[];const w=new THREE.Vector3(d[0],d[1],d[2]);if(w.dot(v)>.8&&WATER_IDS.has(field?legendAt(field,d):(cosmoBiome(w)||''))&&w.dot(v)<.97){pN.copy(w);pF.copy(v).addScaledVector(w,-v.dot(w)).normalize();return true;}}return false;}};
    {/* ?sea=fish|ray|whale jumps the camera to that seeded school (same as the Sea life button) */const sq=new URLSearchParams(window.location.search).get('sea');if(sq){const k=({fish:1,ray:2,whale:3,jelly:4,turtle:5,bird:6,seabird:6} as any)[sq]||0;if(k){seaQ=k;zT=0;}}}
-   cleanup.push(()=>{renderer.dispose();plush?.dispose();scene.traverse((o:any)=>{o.geometry?.dispose?.();o.material?.dispose?.();});});
+   cleanup.push(()=>{glDebugDispose('living-world');renderer.dispose();plush?.dispose();scene.traverse((o:any)=>{o.geometry?.dispose?.();o.material?.dispose?.();});});
   })().catch(e=>{if(!disposed)setErr(String(e?.message||e));});
   return()=>{disposed=true;shown.cancel();cancelAnimationFrame(raf);cleanup.forEach(f=>{try{f();}catch{}});};
  },[gKey,beastKey]);// eslint-disable-line react-hooks/exhaustive-deps

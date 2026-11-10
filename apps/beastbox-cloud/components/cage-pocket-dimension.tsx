@@ -41,6 +41,7 @@ import {environmentWeights,isFresh} from '../lib/environment/environment-link.mj
 import {getEnvironment} from '../lib/environment/environment-store.mjs';
 import {guardCanvasTouch} from '../lib/three/touch-guard';
 import {isSoftwareGL} from '../lib/three/soft-gl';
+import {glDebugDispose,glDebugOwner} from '../lib/three/gl-debug';
 import {whenShown} from '../lib/three/when-shown.mjs';
 import {createHop,stepHop} from '../lib/physics/ground-hop.mjs';
 import {useEffect,useRef,useState} from 'react';
@@ -297,6 +298,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     // CPU rasteriser starves the main thread (taps, sound dock, game shell all time out), and antialias can't be undone later.
     const softProbe=isSoftwareGL();
     const phoneGpu=low&&!reduced&&!softProbe&&visualSettings.quality!=='low';
+    glDebugOwner('home-pocket');
     const renderer=new THREE.WebGLRenderer({canvas,alpha:false,antialias:(!low||phoneGpu)&&!softProbe,powerPreference:phoneGpu?'default':'low-power'});
     renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,low?(phoneGpu?1.25:1):1.5));
     // Software GL (CI SwiftShader, very old phones): force the low tier so the main thread never starves.
@@ -710,7 +712,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
        const m=o.material;(Array.isArray(m)?m:[m]).forEach(k=>materials.add(k));
       }
      });
-     texCache.forEach(t=>t.dispose());saved.dispose();sand.dispose();geometries.forEach(g=>g.dispose());materials.forEach(m=>m.dispose());renderer.dispose();
+     texCache.forEach(t=>t.dispose());saved.dispose();sand.dispose();geometries.forEach(g=>g.dispose());materials.forEach(m=>m.dispose());glDebugDispose('home-pocket');renderer.dispose();
     };
    }catch{
     if(!disposed){setFailed(true);setReady(false);}
