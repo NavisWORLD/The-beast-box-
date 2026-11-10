@@ -153,7 +153,7 @@ function jsonResponse(body, ok = true) {
   return { ok, json: async () => body };
 }
 
-test("field talk uses Brain Bay, then the guest host, and leaves an empty reply when neither answers", async () => {
+test("field talk uses the owner mouth and does not fall through to the guest door", async () => {
   const calls = [];
   const owner = await askBeast({
     context: { name: "Moss", location: "Eridoria Grove", nearby: [], mood: "idle", level: 1, xp: 0, bond: 1, energy: 100, memories: [], sensors: [] },
@@ -189,17 +189,44 @@ test("field talk uses Brain Bay, then the guest host, and leaves an empty reply 
   assert.match(pending.label, /No substitute reply was invented/);
   assert.equal(pendingCalls.includes("/api/guest"), false);
 
+  const quietCalls = [];
   const quiet = await askBeast({
     context: { name: "Moss", location: "Eridoria Grove", nearby: [], mood: "idle", level: 1, xp: 0, bond: 1, energy: 100, memories: [], sensors: [] },
     saying: "anyone?",
     fetchImpl: async (url) => {
+      quietCalls.push(String(url));
       if (url === "/api/status") return jsonResponse({ owner: false, backendReachable: false, providerKind: "" });
-      return jsonResponse({ error: "Guest model host is not configured" });
+      throw new Error("the field must not open a second mouth");
     },
   });
   assert.equal(quiet.reply, "");
   assert.equal(quiet.pending, false);
-  assert.match(quiet.label, /not configured/);
+  assert.match(quiet.label, /No language model is connected/);
+  assert.deepEqual(quietCalls, ["/api/status"]);
+
+  const lived = {
+    schema: "lived-state-receipt-v1", status: "delivered", sequence: 2,
+    state_sha256: "ab".repeat(32), descriptor_sha256: "cd".repeat(32),
+    conditioned: true, changes_model_tensors: false, counts_as_memory_used: false,
+    omitted_current_text_bytes: 0, scope: "owner",
+  };
+  const carried = await askBeast({
+    context: { name: "Moss", location: "Eridoria Grove", nearby: [], mood: "idle", level: 1, xp: 0, bond: 1, energy: 100, memories: [], sensors: [] },
+    saying: "hello",
+    fetchImpl: async (url) => {
+      if (url === "/api/status") return jsonResponse({ owner: true, backendReachable: true, providerKind: "ollama_cloud" });
+      if (url === "/api/bridge/chat-start") return jsonResponse({
+        job_id: "job-3", state: "done", result: { result: { response: "From Brain Bay.", lived_state: lived } },
+      });
+      throw new Error("guest door");
+    },
+    uuid: () => "11111111-1111-4111-8111-111111111111",
+  });
+  assert.equal(carried.reply, "From Brain Bay.");
+  assert.equal(carried.lived_state.status, "delivered");
+  assert.equal(carried.lived_state.state_sha256, lived.state_sha256);
+  assert.equal(carried.lived_state.scope, "owner");
+  assert.match(carried.lived_state.exchange_id, /^[0-9a-f]{32}$/);
 });
 
 test("guests on the field use the guest-safe brain and a local beast, with no owner route", async () => {

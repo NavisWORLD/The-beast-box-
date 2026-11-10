@@ -548,11 +548,19 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     // canvas was below the fold at boot and the queue has not been taken yet.
     let warmQ:any[]|null|undefined=(soft&&!inView())?undefined:null;
     const pocketLight=browserLightOn();const heavenKey=heaven.root.children.find((o:any)=>o.isDirectionalLight);
+    // Software GL paints the on-screen pocket in one long call. That call sits on the
+    // main thread while the forge controls are still below the fold, so a smooth
+    // scroll never reaches them and the next retry starts it over. A scroll, or a
+    // frame that already ran long, keeps the painter quiet until the thread is free.
+    let quietUntil=0;
+    const holdScroll=()=>{if(soft)quietUntil=performance.now()+800;};
+    if(soft)window.addEventListener('scroll',holdScroll,{passive:true});
     const animate=(now:number)=>{
      if(disposed)return;
      frame=requestAnimationFrame(animate);
      visible=inView();
      const dt=clamp((now-last)/1000,0,.06);last=now;
+     if(soft&&now<quietUntil)return;
      // A background tab that keeps linking and painting starves the tab the
      // bridge is actually importing into. Headless Chromium leaves every page
      // focused, so the newest cage claims the painter and this one parks
@@ -562,7 +570,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
      if(warmQ!==null){
       if(!warmQ){warmQ=[];scene.traverse((o:any)=>{if(o.material&&(o.isMesh||o.isPoints||o.isLine||o.isSprite))warmQ!.push(o);});warmQ.sort((a,b)=>Number(!!a.material?.isShaderMaterial)-Number(!!b.material?.isShaderMaterial));warmQ.forEach(o=>{o.visible=false;});}
       const next=warmQ.shift();
-      if(next){next.visible=true;try{renderer.render(scene,camera);}catch{setReady(false);setFailed(true);return;}if(!rendered){rendered=true;setReady(true);}return;}
+      if(next){next.visible=true;const paint=performance.now();try{renderer.render(scene,camera);}catch{setReady(false);setFailed(true);return;}if(soft){const cost=performance.now()-paint;if(cost>32)quietUntil=performance.now()+Math.min(900,Math.max(500,cost));}if(!rendered){rendered=true;setReady(true);}return;}
       warmQ=null;
      }
      if(now-lastPaint<(soft?120:low?66:33))return;
@@ -670,6 +678,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
      gcam.step(reduced?0:dt);
      camera.lookAt(f);
      try{gcam.render(camera.position.distanceTo(zHolder.position));}catch{setReady(false);setFailed(true);return;}
+     if(soft){const cost=performance.now()-now;if(cost>32)quietUntil=performance.now()+Math.min(900,Math.max(500,cost));}
      if(!rendered){rendered=true;setReady(true);}
     };
     // Link every shader program off the main thread before the first frame where the browser can (KHR_parallel_shader_compile):
@@ -702,7 +711,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
      lcS.syn?.dispose();if(lcS.g){lcS.g.remove(lcS.LC.group);zActorNode.remove(lcS.g);}extras.dispose();gcam.dispose();lcBus.current=null;
      pickRef.current=null;godRef.current=null;world.dispose();window.removeEventListener('beastbox:genome',syncPlush);window.removeEventListener('beastbox:pixel-mode',syncPlush);window.removeEventListener('beastbox:spark-chirp',onTalk);document.documentElement.removeAttribute('data-beast-3d');life.dispose();plush?.dispose();
      {const ze=(window as any).__zerefEmbed;if(ze?.root?.parent===zActorNode){zActorNode.remove(ze.root);ze.root.position.y=0;ze.claimed=false;}}
-     cancelAnimationFrame(frame);genesisLook?.dispose();ro?.disconnect();io?.disconnect();
+     cancelAnimationFrame(frame);window.removeEventListener('scroll',holdScroll);genesisLook?.dispose();ro?.disconnect();io?.disconnect();
      canvas.removeEventListener('webglcontextlost',onContextLost);
      const geometries=new Set<import('three').BufferGeometry>(),materials=new Set<import('three').Material>();
      scene.traverse(o=>{
