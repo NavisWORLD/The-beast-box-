@@ -36,18 +36,20 @@ export default function QuantumBeastTransfer({profile,onImport}:{profile:Creatur
  const [snapshot,setSnapshot]=useState<Snapshot|null>(null),[key,setKey]=useState('');
  const [status,setStatus]=useState(''),[error,setError]=useState(''),[busy,setBusy]=useState(false);
  const [verifiedKey,setVerifiedKey]=useState<string|undefined>(),[signature,setSignature]=useState('absent');
- const [ready,setReady]=useState(false),[settled,setSettled]=useState(false);
+ const [ready,setReady]=useState(false),[settled,setSettled]=useState(false),[advancedOpen,setAdvancedOpen]=useState(false);
  const input=useRef<HTMLInputElement>(null),storedRaw=useRef<string|null>(null),running=useRef(false);
- const detailsRef=useRef<HTMLDetailsElement>(null),advancedRef=useRef(false);
+ const detailsRef=useRef<HTMLDetailsElement>(null),advancedRef=useRef(false),heldOpen=useRef(false);
  const importCallback=useRef(onImport);importCallback.current=onImport;
  // The receipt is the saved generation count. Its check awaits SHA-256 and Ed25519, and the other
  // tab's pocket frames can hold that continuation past the bridge wait. Paint the stored record
  // in this layout pass. Transfers stay disabled until verification, which removes a failed preview.
  useLayoutEffect(()=>{const preview=previewStored();if(preview)setSnapshot(preview);},[]);
  // A later verification render was closing this panel: React reapplies a missing `open`
- // attribute. The bridge test opens it, then clicks Download. Put the user's open state back
- // before paint so that click still reaches the button.
- useLayoutEffect(()=>{const node=detailsRef.current;if(node&&advancedRef.current)node.open=true;});
+ // attribute, and that reset fires toggle with open=false, which clears advancedRef
+ // before the layout pass. The click's own ref survives that reset. Put the user's
+ // open state back before paint so the download button stays in the accessibility tree.
+ useLayoutEffect(()=>{const node=detailsRef.current;if(node&&advancedRef.current)node.open=true;if(node&&heldOpen.current)node.open=true;});
+ useEffect(()=>{const node=detailsRef.current;if(node&&heldOpen.current)node.open=true;});
  useEffect(()=>{let active=true;
   void(async()=>{let failed=false;try{const raw=localStorage.getItem(KEY);storedRaw.current=raw;if(!raw)return;const s=await storedSnapshot(raw),stored=JSON.parse(raw),options=stored.trustedPublicKey?{trustedPublicKey:stored.trustedPublicKey}:{};const known=localStorage.getItem(KEY+'-creature-'+s.profile.id);if(known)assertContinuation(s,await storedSnapshot(known));const v=await verifySnapshot(s,options);if(active){setSnapshot(s);setVerifiedKey(stored.trustedPublicKey);setKey(stored.trustedPublicKey??'');setSignature(v.signature);importCallback.current(s.profile);}}catch{failed=true;if(active){setSnapshot(null);setError('A previous portable save could not be verified. It has been retained for recovery; transfers are blocked until it is recovered.');}}finally{if(active){setReady(!failed);setSettled(true);}}})();
   return()=>{active=false;};
@@ -105,7 +107,7 @@ export default function QuantumBeastTransfer({profile,onImport}:{profile:Creatur
    <button type="button" className={css.playGame} disabled={!profile||busy||!ready||Boolean(snapshot&&!matches)} title={!ready?'Getting ready…':busy?'Working…':!profile?'Make or load a Quantum Beast first':'This file belongs to a different creature'} onClick={()=>void run(openLostCosmos)}>PLAY THIS BEAST IN LOST COSMOS</button>
    <input ref={input} disabled={busy||!ready} className={css.file} type="file" accept=".qbeast,application/json" aria-label="Quantum Beast file" onChange={e=>{const file=e.target.files?.[0];e.target.value='';if(file)void run(()=>importFile(file));}}/>
   </div>
-  <details ref={detailsRef} className={css.details} data-bridge-advanced onToggle={event=>{advancedRef.current=event.currentTarget.open;}}><summary>Advanced settings</summary>
+  <details ref={detailsRef} className={css.details} data-bridge-advanced open={advancedOpen} onToggle={event=>{advancedRef.current=event.currentTarget.open;if(heldOpen.current&&!event.currentTarget.open){event.currentTarget.open=true;return;}setAdvancedOpen(event.currentTarget.open);}}><summary onClick={()=>{heldOpen.current=!heldOpen.current;advancedRef.current=heldOpen.current;setAdvancedOpen(heldOpen.current);}}>Advanced settings</summary>
    <button type="button" disabled={!profile||busy||!ready||Boolean(snapshot&&!matches)} title={!ready?'Getting ready…':busy?'Working…':!profile?'Make or load a Quantum Beast first':'This file belongs to a different creature'} onClick={()=>void run(openSynapseShare)}>Open the web Synapse share (github.io)</button>
   <div className={css.actions}>
    <button type="button" disabled={!profile||busy||!ready} title={!ready?'Getting ready…':busy?'Working…':!profile?'Make or load a Quantum Beast first':'This file belongs to a different creature'} onClick={()=>void run(exportPortable)}>DOWNLOAD QUANTUM BEAST</button>

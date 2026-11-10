@@ -19,6 +19,7 @@ import {applyRecordedQvmStimulus,validateRecordedQvmStimulus,recordedQvmStimulus
 import {createSparkChatPopup} from './chat-popup.mjs';
 import {CATALOG_PATH,mountPicker} from './catalog-picker.mjs';
 import {deriveEmotions,diaryEntry,EMOTIONS} from './shared/emotion.mjs';
+import {pageStateOn,armStandalonePage,pageTickOn} from '../universe/one-universe-gate.mjs';
 const STORE='spark-beasts-bestiary-v1',QVM_STORE='spark-qvm-growth-v1',SOUND_KEY='spark-beast-sound-v2',SCALE=4,$=id=>document.getElementById(id);
 const media=matchMedia('(prefers-reduced-motion: reduce)');
 const beastAudio=getBeastAudio();
@@ -97,8 +98,10 @@ function updatePlate(){if(!current)return;const beast=session.beast;$('nameplate
 
 // ---- Emotions (deterministic; only real events and archived SIMULATED Rigetti runs change them) ----
 const DIARY_KEY=seed=>`beastbox-emotion-diary-v1:${seed}`;
+const DIARY_ARCHIVE_KEY=seed=>`beastbox-emotion-diary-archive-v1:${seed}`;
 const EMO_VOICE={joy:'spark',mischief:'spark',curiosity:'focus',calm:'calm',fear:'calm'};
 function currentEmotions(){if(!session?.beast)return null;return deriveEmotions(session.beast,{simGrowth:qvmGrowth,chatTurns:(session.chat||[]).filter(m=>m.role==='you').length});}
+function readDiaryArchive(seed){try{const d=JSON.parse(localStorage.getItem(DIARY_ARCHIVE_KEY(seed))||'[]');return Array.isArray(d)?d:[];}catch{return [];}}
 function readDiary(seed){try{const d=JSON.parse(localStorage.getItem(DIARY_KEY(seed))||'[]');return Array.isArray(d)?d.slice(-30):[];}catch{return [];}}
 function drawEmotions(){
  const em=currentEmotions();if(!em||!$('emotion-bars'))return em;
@@ -111,7 +114,7 @@ function drawEmotions(){
 }
 function emotionEvent(event,before){
  const after=drawEmotions();if(!after)return;const entry=diaryEntry(before,after,event);
- if(entry){try{const d=readDiary(session.beast.seed);d.push(entry);localStorage.setItem(DIARY_KEY(session.beast.seed),JSON.stringify(d.slice(-30)));}catch{}drawEmotions();}
+ if(entry){try{const seed=session.beast.seed;const arch=readDiaryArchive(seed);arch.push(entry);try{localStorage.setItem(DIARY_ARCHIVE_KEY(seed),JSON.stringify(arch));}catch{/* quota: keep the archive already stored */}localStorage.setItem(DIARY_KEY(seed),JSON.stringify(arch.slice(-30)));}catch{}drawEmotions();}
  if(runtime)runtime.emotionNext={state:after.choice.state,from:runtime.until};
  $('line').textContent=`${$('line').textContent} ${shownName(session.beast)} ${after.choice.line}`;
 }
@@ -691,3 +694,27 @@ async function main(){
  requestAnimationFrame(now=>loop(now));
 }
 main().then(()=>{if(new URL(location.href).searchParams.get('beast')==='zeref')void run(()=>sparkZeref());}).catch(err=>{$('status').textContent=err.message||'Spark Beasts could not start.'});
+armStandalonePage({
+ on:pageStateOn({search:location.search,storage:localStorage}),
+ surface:'spark',
+ load:()=>import('../universe/one-universe-state.mjs'),
+ win:window,
+ storage:localStorage,
+ node:document.documentElement,
+ fetchGenesis:()=>fetch('/universe/tiny-universe-genesis.json').then(r=>r.ok?r.json():null).catch(()=>null),
+ subscribe:(fn)=>{try{const clock=window.__bbOneWorld;if(clock&&clock.subscribe)return clock.subscribe(fn);}catch{}const id=setInterval(fn,2000);return()=>clearInterval(id);},
+});
+void (async()=>{
+ try{
+  const sources={search:location.search,storage:localStorage};
+  if(!pageTickOn(sources))return;
+  const mod=await import('../universe/one-universe-tick.mjs');
+  if(!pageTickOn(sources))return;
+  mod.followUniverseTick({
+   on:true,
+   node:document.documentElement,
+   readClock:()=>{try{const clock=window.__bbOneWorld;if(clock&&typeof clock.get==='function')return clock;}catch{}return mod.storedUniverseClock(localStorage);},
+   listen:(bind)=>{const onReady=()=>bind();window.addEventListener('beastbox:one-world',onReady);return()=>window.removeEventListener('beastbox:one-world',onReady);},
+  });
+ }catch{}
+})();

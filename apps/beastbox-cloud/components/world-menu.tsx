@@ -7,7 +7,22 @@ import {useCallback,useEffect,useId,useRef,useState} from 'react';
 import {createPortal} from 'react-dom';
 import {POCKET_3D_CAMERA_RESET} from '../lib/companion/pocket-3d-settings.mjs';
 import {menuModel,type ViewId} from '../lib/world/world-options.mjs';
+import {pageCamerasOn} from '@/public/universe/one-universe-gate.mjs';
 import css from './world-menu.module.css';
+function noteCamera(camera:string|null){
+ if(!camera)return;
+ let search='',storage:Storage|null=null,env='';
+ try{search=location.search;}catch{}
+ try{storage=localStorage;}catch{}
+ try{env=process.env.NEXT_PUBLIC_ONE_UNIVERSE||'';}catch{}
+ const envOn=String(env).split(',').some(part=>part.trim()==='cameras');
+ if(!envOn&&!pageCamerasOn({search,storage}))return;
+ import('@/public/universe/one-universe-cameras.mjs').then(mod=>{
+  if(!mod.browserCamerasOn())return;
+  try{mod.rememberCamera(localStorage,camera);}catch{}
+  window.dispatchEvent(new Event('beastbox:universe-camera'));
+ }).catch(()=>{});
+}
 export type MenuHosts={place:HTMLElement|null;tools:HTMLElement|null;about:HTMLElement|null};
 export default function WorldMenu({context,view,onView,hasBeast,beastName,onHosts,extra,hideViews=[]}:{hideViews?:ViewId[];
  context:'cage'|'home';view:ViewId;onView:(v:ViewId)=>void;hasBeast:boolean;beastName?:string|null;onHosts:(h:MenuHosts)=>void;
@@ -27,16 +42,16 @@ export default function WorldMenu({context,view,onView,hasBeast,beastName,onHost
   <section id={sheetId} className={css.sheet} role="dialog" aria-label={model.ctx.menuLabel} data-world-menu-sheet={context} hidden={!open}>
    <header className={css.head}><strong>{model.ctx.title}</strong><button type="button" className={css.x} aria-label="Close menu" onClick={()=>close()}>✕</button></header>
    <section className={css.sec} data-menu-section="view"><h3>View</h3><p className={css.note}>{model.ctx.frame}</p>
-    <div className={css.views} role="group" aria-label="View">{model.views.filter(o=>!hideViews.includes(o.id)).map(o=><button key={o.id} type="button" aria-pressed={view===o.id} data-world-view={o.id} onClick={()=>onView(o.id)}><span aria-hidden="true">{o.icon}</span><span>{o.label}<small>{o.hint}</small></span></button>)}</div></section>
+    <div className={css.views} role="group" aria-label="View">{model.views.filter(o=>!hideViews.includes(o.id)).map(o=><button key={o.id} type="button" aria-pressed={view===o.id} data-world-view={o.id} onClick={()=>{onView(o.id);noteCamera(o.id==='world'?'living':o.id==='pocket'?'pocket':null);}}><span aria-hidden="true">{o.icon}</span><span>{o.label}<small>{o.hint}</small></span></button>)}</div></section>
    <section className={css.sec} data-menu-section="place"><h3>{context==='home'?'In the pocket universe':'In this habitat'}</h3>
-    {extra&&extra.length?<div className={css.links}>{extra.map(x=>x.onClick?<button key={x.label} type="button" {...(x.attr?{[x.attr]:''}:{})} onClick={()=>{close(false);x.onClick?.();}}><span aria-hidden="true">{x.icon||'→'}</span>{x.label}</button>:<a key={x.label} href={x.href} onClick={()=>close(false)}><span aria-hidden="true">{x.icon||'→'}</span>{x.label}</a>)}</div>:null}
+    {extra&&extra.length?<div className={css.links}>{extra.map(x=>x.onClick?<button key={x.label} type="button" {...(x.attr?{[x.attr]:''}:{})} onClick={()=>{close(false);if(x.attr==='data-open-living-world')noteCamera('tiny');x.onClick?.();}}><span aria-hidden="true">{x.icon||'→'}</span>{x.label}</button>:<a key={x.label} href={x.href} onClick={()=>close(false)}><span aria-hidden="true">{x.icon||'→'}</span>{x.label}</a>)}</div>:null}
     <div ref={setPlace} data-menu-host="place" className={css.host}/></section>
    <section className={css.sec} data-menu-section="tools"><h3>Pocket tools</h3><div ref={setTools} data-menu-host="tools" className={css.host}/></section>
    <section className={css.sec} data-menu-section="diary"><h3>Camera &amp; diary</h3>
     <div className={css.links}>
      <button type="button" aria-label={model.reset.aria} data-menu-reset onClick={()=>{window.dispatchEvent(new Event(POCKET_3D_CAMERA_RESET));}}><span aria-hidden="true">🎥</span>{model.reset.label}</button>
      <a href={model.diary.href} data-menu-diary onClick={()=>close(false)}><span aria-hidden="true">📔</span>{model.diary.label}</a>
-     <a href={model.look.href} data-menu-look onClick={()=>close(false)}><span aria-hidden="true">🔍</span>{model.look.label}</a>
+     <a href={model.look.href} data-menu-look onClick={()=>{noteCamera('look');close(false);}}><span aria-hidden="true">🔍</span>{model.look.label}</a>
     </div></section>
    <section className={css.sec} data-menu-section="senses"><h3>Senses &amp; privacy</h3><p className={css.note}>{model.senses.note}</p>
     <div className={css.links}><a href={model.senses.href} data-menu-senses onClick={()=>close(false)}><span aria-hidden="true">🎙️</span>{model.senses.label}</a><a href="/privacy" onClick={()=>close(false)}><span aria-hidden="true">🔒</span>Privacy and info</a></div></section>

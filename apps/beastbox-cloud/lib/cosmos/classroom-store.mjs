@@ -19,7 +19,7 @@
  * the growth routine, held-out sets, lessons/ or the diary.
  */
 import {createHash,createHmac} from 'node:crypto';
-import {getBlob,putBlob} from './azure-blob.mjs';
+import {getBlob,putBlob,listBlobs} from './azure-blob.mjs';
 import {ZEREF_DIR} from './zeref-cloud.mjs';
 import {exchangeId,appendShardLine,monthShard} from './forever-store.mjs';
 
@@ -65,15 +65,19 @@ export function classroomRecord({thread,name,at,teacherText,reply,topic=null,tar
  return rec;
 }
 
-async function appendLine(cfg,rec){
- const line=JSON.stringify(rec);
+async function appendLine(cfg,rec,full){
+ const shard={...rec};
+ if(full&&full.teacherText.length>rec.teacher_text.length)shard.teacher_text_full=full.teacherText;
+ if(full&&full.reply.length>rec.reply.length)shard.reply_full=full.reply;
+ const line=JSON.stringify(shard);
+ const tailLine=JSON.stringify(rec);
  for(let attempt=0;attempt<2;attempt++){
   const cur=await getBlob(cfg,recordsName());
   const lines=(cur?.text||'').split('\n').filter(Boolean);
   if(lines.some(l=>l.includes(`"exchange_id":"${rec.exchange_id}"`)))return {recorded:true,duplicate:true};
   // Archive first (append-only monthly shard; the classroom thread window is a view of these same exchanges), then the bounded tail.
   if(!await appendShardLine(cfg,monthShard(CLASSROOM_DIR,'experiences',rec.at),line,`"exchange_id":"${rec.exchange_id}"`))return {recorded:false,duplicate:false};
-  lines.push(line);
+  lines.push(tailLine);
   const body=lines.slice(-MAX_CLASS_RECORDS).join('\n')+'\n';
   try{
    if(cur)await putBlob(cfg,recordsName(),body,{contentType:'application/x-ndjson',ifMatch:cur.etag});
@@ -82,6 +86,22 @@ async function appendLine(cfg,rec){
   }catch(e){if((e.status===409||e.status===412)&&attempt===0)continue;throw e;}
  }
  return {recorded:false,duplicate:false};
+}
+
+/** Every classroom experience line in the append-only monthly shards, oldest shard first. The 2000-line tail is only the window. */
+export async function readClassArchive(cfg){
+ const prefix=`${CLASSROOM_DIR}/archive/experiences-`;
+ const names=(await listBlobs(cfg,prefix)).filter(n=>n.startsWith(prefix)&&n.endsWith('.jsonl')).sort();
+ const out=[];
+ for(const name of names){
+  const b=await getBlob(cfg,name);
+  if(!b)continue;
+  for(const l of b.text.split('\n')){
+   if(!l)continue;
+   try{const r=JSON.parse(l);if(r&&r.schema==='beastbook-classroom-experience/v1'&&r.training_eligible===false)out.push(r);}catch{}
+  }
+ }
+ return out;
 }
 
 /** Append the exchange to the classroom thread and its experience record. */
@@ -100,6 +120,6 @@ export async function appendClassExchange(cfg,id,name,args){
   try{await (cur?.etag?putBlob(cfg,threadName(id),J(thread),{ifMatch:cur.etag}):putBlob(cfg,threadName(id),J(thread),{ifNoneMatch:'*'}));persisted=true;}
   catch(e){if(!((e.status===409||e.status===412)&&attempt===0))throw e;}
  }
- const w=await appendLine(cfg,rec);
+ const w=await appendLine(cfg,rec,{teacherText:String(args.teacherText??''),reply:String(args.reply??'')});
  return {persisted,recorded:w.recorded,duplicate:w.duplicate,record:rec};
 }

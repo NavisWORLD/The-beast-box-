@@ -73,11 +73,16 @@ export function constructPoints(shape,seed,n=160){
  return P;
 }
 export const CREATIONS_KEY='beastbox-lc-creations-v1';
+export const CREATIONS_ARCHIVE_KEY='beastbox-lc-creations-archive-v1';
 export const MAX_CREATIONS=12;
-/** Pure add: newest last, capped, positions kept clear of the libraries' pedestals. */
+/** Pure add: newest last. The returned list is the draw window (MAX_CREATIONS). */
 export function addCreation(list,c){const out=[...(Array.isArray(list)?list:[]),{shape:SHAPES.includes(c.shape)?c.shape:'spiral',x:+c.x||0,z:+c.z||0,seed:c.seed>>>0,from:c.from||'explore',at:c.at||new Date().toISOString(),hue:+c.hue||.75}];return out.slice(-MAX_CREATIONS);}
 export function loadCreations(store,id){try{const v=JSON.parse(store.getItem(CREATIONS_KEY)||'{}');return Array.isArray(v[id])?v[id]:[];}catch{return [];}}
-export function saveCreations(store,id,list){try{const v=JSON.parse(store.getItem(CREATIONS_KEY)||'{}');v[id]=list.slice(-MAX_CREATIONS);store.setItem(CREATIONS_KEY,JSON.stringify(v));}catch{/* private mode */}}
+export function readCreationsArchive(store,id){try{const v=JSON.parse(store.getItem(CREATIONS_ARCHIVE_KEY)||'{}');return Array.isArray(v[id])?v[id]:[];}catch{return [];}}
+/** Window key stays MAX_CREATIONS. The archive key appends any creation not already stored and never drops one. */
+export function saveCreations(store,id,list){try{const rows=Array.isArray(list)?list:[];const v=JSON.parse(store.getItem(CREATIONS_KEY)||'{}');v[id]=rows.slice(-MAX_CREATIONS);store.setItem(CREATIONS_KEY,JSON.stringify(v));
+ const a=JSON.parse(store.getItem(CREATIONS_ARCHIVE_KEY)||'{}');const arch=Array.isArray(a[id])?a[id]:[];const seen=new Set(arch.map(c=>`${c.seed}:${c.at}`));
+ for(const c of rows){const k=`${c.seed}:${c.at}`;if(!seen.has(k)){seen.add(k);arch.push(c);}}a[id]=arch;store.setItem(CREATIONS_ARCHIVE_KEY,JSON.stringify(a));}catch{/* private mode */}}
 /** Hop curve for one step: squash at take-off/landing, stretch mid-air (motion bible). */
 export function hopPose(p){const air=Math.sin(Math.PI*Math.min(1,Math.max(0,p)));const land=p<.12?1-p/.12:p>.88?(p-.88)/.12:0;const sy=1+(MOTION.stretch-1)*air-(1-MOTION.squash)*land;return {lift:air*.32,sy,sx:1/Math.sqrt(sy)};}
 /** Wing flap: 35% fast downstroke, 65% recovery, 1.1 Hz. */

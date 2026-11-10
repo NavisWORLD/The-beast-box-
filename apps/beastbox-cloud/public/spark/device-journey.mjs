@@ -51,8 +51,16 @@ function nativeArchive(incoming,host){
  const records=[...unique.values()];if(records.length>9)fail('native artifact archive is full; keep both original journeys before importing.');
  const main=records.shift()||primary;return {...main,retained:records};
 }
+function chatTurn(turn,maxText){
+ allowed(turn,['role','text']);
+ if(!['you','beast'].includes(turn.role)||typeof turn.text!=='string'||(maxText!==undefined&&turn.text.length>maxText))fail('chat exceeds 80 bounded turns.');
+}
+function behaviorEvent(event){
+ allowed(event,['tick','kind','place','action','input','scores','result']);
+ allowed(event.result,['energy','curiosity','position']);
+}
 function validateSession(raw,replay,byKey){
- allowed(raw,['schema','tab','beast','bestiary','chat','mind','emulator','train','mood','pet']);
+ allowed(raw,['schema','tab','beast','bestiary','chat','chatArchive','mind','emulator','train','mood','pet']);
  if(raw.schema!=='beastbox-companion-session-v1'||!object(raw.beast))fail('no companion session.');
  const b=raw.beast;
  allowed(b,['id','seed','genome','displayName','xp','bond','energy','stage','mood','qbeast','nativeStage','qbeastProgress','localGrowth','game','behavior','journeyNative','qvmStimulus']);
@@ -60,7 +68,13 @@ function validateSession(raw,replay,byKey){
  if(b.seed!==replay.gen.seed||canonicalJson(b.genome)!==canonicalJson(replay.gen)||canonicalJson(b.qbeast)!==canonicalJson(replay.snapshot))fail('session and recorded identity disagree.');
  if(typeof b.displayName!=='string'||b.displayName.length>24||!integer(b.xp)||!integer(b.bond,100)||!Number.isFinite(b.energy)||b.energy<0||b.energy>100||!integer(b.stage,3,1)||!integer(b.nativeStage??1,3,1))fail('care state is outside its bounds.');
  if(typeof b.mood!=='string'||b.mood.length>24||typeof raw.mood!=='string'||raw.mood.length>24)fail('invalid mood.');
- if(!Array.isArray(raw.chat)||raw.chat.length>80||raw.chat.some(t=>!object(t)||!['you','beast'].includes(t.role)||typeof t.text!=='string'||t.text.length>400||Object.keys(t).some(k=>!['role','text'].includes(k))))fail('chat exceeds 80 bounded turns.');
+ if(!Array.isArray(raw.chat)||raw.chat.length>80)fail('chat exceeds 80 bounded turns.');
+ for(const turn of raw.chat)chatTurn(turn,400);
+ // chatArchive keeps the unclipped record. The 80×400 window above stays the live bound.
+ if(raw.chatArchive!==undefined){
+  if(!Array.isArray(raw.chatArchive))fail('chat archive is not a record.');
+  for(const turn of raw.chatArchive)chatTurn(turn);
+ }
  if(!Array.isArray(raw.bestiary)||raw.bestiary.length>128)fail('bestiary exceeds 128 entries.');
  for(const item of raw.bestiary){
   allowed(item,['seed','name','island','body','genome']);if(typeof item.seed!=='string'||item.seed.length>80||typeof item.name!=='string'||item.name.length>80)fail('invalid bestiary entry.');
@@ -84,8 +98,21 @@ function validateSession(raw,replay,byKey){
  if(b.localGrowth){allowed(b.localGrowth,['schema','status','signature','qbeast_id','seed','xp','bond','energy','stage','mood','train','memory_steps','game','applied','model','note']);if(b.localGrowth.status!=='unsigned-local'||b.localGrowth.signature!=='none'||b.localGrowth.qbeast_id!==replay.snapshot.profile.id||b.localGrowth.seed!==replay.gen.seed)fail('local growth claims another identity or authority.');if(b.localGrowth.model)allowed(b.localGrowth.model,['provider','swapped']);}
  nativeBounds({nativeStage:b.nativeStage??1,game:b.game||b.localGrowth?.game||{},applied:b.localGrowth?.applied||[]});nativeBounds(b.journeyNative);
  if(b.behavior){
-  allowed(b.behavior,['schema','seed','tick','energy','curiosity','preferences','position','lastAction','memory','events','lastFeedback']);
-  for(const e of b.behavior.events||[]){allowed(e,['tick','kind','place','action','input','scores','result']);allowed(e.result,['energy','curiosity','position']);}
+  allowed(b.behavior,['schema','seed','tick','energy','curiosity','preferences','position','lastAction','memory','events','eventsArchive','memoryArchive','lastFeedback']);
+  for(const event of b.behavior.events||[])behaviorEvent(event);
+  // Archives are the full record. validateBehavior below still caps the live windows at 32 events and 24 memories.
+  if(b.behavior.eventsArchive!==undefined){
+   if(!Array.isArray(b.behavior.eventsArchive))fail('behavior archive is not a record.');
+   for(const event of b.behavior.eventsArchive)behaviorEvent(event);
+  }
+  if(b.behavior.memoryArchive!==undefined){
+   if(!Array.isArray(b.behavior.memoryArchive))fail('behavior archive is not a record.');
+   for(const row of b.behavior.memoryArchive){
+    allowed(row,['tick','kind','place','reward','kind_full']);
+    if(!Number.isSafeInteger(row.tick)||row.tick<0||typeof row.kind!=='string'||row.kind.length>32||!['grove','nest','shore','observatory'].includes(row.place)||typeof row.reward!=='number'||!Number.isFinite(row.reward)||row.reward<-1||row.reward>1)fail('behavior archive is not a record.');
+    if(row.kind_full!==undefined&&typeof row.kind_full!=='string')fail('behavior archive is not a record.');
+   }
+  }
   if(canonicalJson(validateBehavior(b.behavior,b))!==canonicalJson(b.behavior))fail('behavior snapshot violates its current core bounds.');
  }
  const session=importSession(clone(raw));
