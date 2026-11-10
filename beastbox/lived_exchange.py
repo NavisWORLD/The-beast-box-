@@ -22,13 +22,14 @@ from .lived_events import (
     ChainRejected,
     IdentityRejected,
     SampleRejected,
+    backbone_selected,
 )
 from .lived_recall import recall_for_root
 from .lived_state import LivedStore
 
 
 def _allows_write(attachment: Mapping[str, Any] | None) -> bool:
-    if os.environ.get("BEASTBOX_LIVED_BACKBONE", "off") != "on":
+    if not backbone_selected(os.environ.get("BEASTBOX_LIVED_BACKBONE", "on")):
         return False
     if not isinstance(attachment, Mapping):
         return False
@@ -61,7 +62,7 @@ def _export_entries(root: Path) -> list[dict[str, Any]] | None:
 
 
 def _current_attachment(root: Path) -> Mapping[str, Any] | None:
-    if os.environ.get("BEASTBOX_LIVED_BACKBONE", "off") != "on":
+    if not backbone_selected(os.environ.get("BEASTBOX_LIVED_BACKBONE", "on")):
         return None
     try:
         result = host_attachment(_export_entries(root))

@@ -164,7 +164,7 @@ def test_subject_mismatch_is_not_verified(monkeypatch):
 def test_flag_off_attaches_nothing(monkeypatch):
     api = _load()
     diary = _good_diary()
-    monkeypatch.delenv(ACTIVATION_ENV, raising=False)
+    monkeypatch.setenv(ACTIVATION_ENV, "off")
     monkeypatch.setenv(PRIOR_ENV, diary[-1]["hash"])
     monkeypatch.setenv(ORIGIN_ENV, RULED_GENESIS)
     result = api["host_attachment"](diary, _lineage())

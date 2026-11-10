@@ -7,7 +7,8 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 function livedOn() {
-  return process.env.BEASTBOX_LIVED_BACKBONE === 'on';
+  const value = process.env.BEASTBOX_LIVED_BACKBONE;
+  return value == null || value.trim() === '' || value === 'on';
 }
 function reply(status: number, body: unknown) {
   return Response.json(body, {status, headers: {'Cache-Control': 'private, no-store', 'X-Content-Type-Options': 'nosniff'}});

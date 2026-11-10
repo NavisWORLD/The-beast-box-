@@ -96,17 +96,25 @@ class ChainRejected(LivedRejection):
     pass
 
 
+def backbone_selected(value: str | None) -> bool:
+    """Product default is on. Blank counts as unset. The off switch is ``off``."""
+    if not isinstance(value, str):
+        return value is None
+    text = value.strip()
+    return text == "" or text == "on"
+
+
 def activation_enabled() -> bool:
-    return os.environ.get("BEASTBOX_LIVED_BACKBONE", "off") == "on"
+    return backbone_selected(os.environ.get("BEASTBOX_LIVED_BACKBONE", "on"))
 
 
 def host_attachment(origin: str | None = None, prior: str | None = None) -> dict[str, Any] | None:
     """Owner continuation configured on the host. Never read from a request.
 
-    A flag that is not exactly ``on`` leaves the attachment unset. Missing
-    hashes fail closed and are not echoed back.
+    Unset or blank leaves the backbone on. The exact value ``off`` leaves the
+    attachment unset. Missing hashes fail closed and are not echoed back.
     """
-    if os.environ.get("BEASTBOX_LIVED_BACKBONE", "off") != "on":
+    if not backbone_selected(os.environ.get("BEASTBOX_LIVED_BACKBONE", "on")):
         return None
     if origin is None:
         origin = os.environ.get("BEASTBOX_LIVED_ORIGIN_COMMITMENT", "")

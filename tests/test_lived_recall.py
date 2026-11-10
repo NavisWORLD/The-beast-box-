@@ -114,7 +114,7 @@ def test_owner_reply_conditions_on_the_twelve_and_returns_the_receipt(tmp_path, 
 
 
 def test_flag_off_and_guests_do_not_read_or_create_the_chain(tmp_path, monkeypatch):
-    monkeypatch.delenv("BEASTBOX_LIVED_BACKBONE", raising=False)
+    monkeypatch.setenv("BEASTBOX_LIVED_BACKBONE", "off")
     assert recall_for_root(tmp_path, "hello")["receipt"]["entries"] == []
     assert not (tmp_path / "lived-backbone" / f"{CANONICAL_SUBJECT}.sqlite").exists()
     capture = Capture()

@@ -234,8 +234,8 @@ def host_attachment(
 ) -> dict[str, Any]:
     """Return a verified attachment only after both chains recompute.
 
-    BEASTBOX_LIVED_BACKBONE must already be exactly on. This function does not
-    set it. The prior-head and origin claims default to BEASTBOX_LIVED_PRIOR_HEAD
+    BEASTBOX_LIVED_BACKBONE defaults on. The exact value off attaches nothing.
+    This function does not set the flag. The prior-head and origin claims default to BEASTBOX_LIVED_PRIOR_HEAD
     and BEASTBOX_LIVED_ORIGIN_COMMITMENT. A failed walk attaches nothing.
     """
     if not activation_enabled():

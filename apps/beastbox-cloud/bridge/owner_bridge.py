@@ -679,7 +679,10 @@ class OwnerBridge:
     def _open_sensorium(self):
         origin = os.environ.get("BEASTBOX_LIVED_ORIGIN_COMMITMENT", "")
         prior = os.environ.get("BEASTBOX_LIVED_PRIOR_HEAD", "")
-        attachment = host_attachment(origin, prior)
+        try:
+            attachment = host_attachment(origin, prior)
+        except ActivationRejected:
+            return None
         if attachment is None:
             return None
         if self._lived_sensorium is not None:
@@ -709,6 +712,8 @@ class OwnerBridge:
             if self._lived_sensorium is None and not path.exists():
                 return 200, {"enabled": True, "admitted": False, "model_invoked": False, "qpu_invoked": False, "snapshot": None}
             store = self._open_sensorium()
+            if store is None:
+                return 503, {"enabled": True, "admitted": False, "configured": False, "model_invoked": False, "qpu_invoked": False, "error": "attachment"}
             snap = store.read_lived_snapshot(store.scope)
             return 200, {"enabled": True, "admitted": False, "model_invoked": False, "qpu_invoked": False, "snapshot": self._sensor_view(snap)}
         if not isinstance(data, dict) or set(data) & _SENSOR_FORBIDDEN:

@@ -20,6 +20,7 @@ from .lived_events import (
     CANONICAL_SUBJECT,
     ActivationRejected,
     ChainRejected,
+    backbone_selected,
     IdentityRejected,
     SampleRejected,
 )
@@ -284,7 +285,7 @@ def study_on_speak(
 ) -> dict[str, Any]:
     if scope != "owner":
         return _receipt("isolated", wrote=False)
-    if os.environ.get("BEASTBOX_LIVED_BACKBONE", "off") != "on":
+    if not backbone_selected(os.environ.get("BEASTBOX_LIVED_BACKBONE", "on")):
         return _receipt("off", wrote=False)
     if type(now_ms) is not int or now_ms < 0:
         return _receipt("clock", wrote=False)
