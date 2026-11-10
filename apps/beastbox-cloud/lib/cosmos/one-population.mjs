@@ -1,4 +1,4 @@
-// Stage 3, population. The flag defaults off. Off does not read Azure and adds no creature.
+// Stage 3, population. An empty bag is off. The Next bundle defaults the five flags on, and off clears that bag. Off does not read Azure and adds no creature.
 // On, a creature is copied from beasts/<id>/state.json only when that blob was present.
 // The label is the source written on that document (source_path, otherwise birth_spark.source,
 // otherwise the state.json path that was read). A missing blob, a bad document, or an
@@ -18,7 +18,9 @@ function envBits(value) {
 }
 
 export function oneUniversePopulationOn({env = '', storage = null, search = '', parentSearch = ''} = {}) {
-  return [...envBits(env), ...pageFlags({search, storage, parentSearch})].includes('population');
+  const flags = [...envBits(env), ...pageFlags({search, storage, parentSearch})];
+  if (flags.includes('off')) return false;
+  return flags.includes('population');
 }
 
 /** Next pages call this. The env name is inlined into the Next bundle only, after a rebuild. */

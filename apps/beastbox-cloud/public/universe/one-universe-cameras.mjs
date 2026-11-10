@@ -1,4 +1,4 @@
-// Stage 5, cameras. The flag defaults off. Off does not read the clock and does not write a camera.
+// Stage 5, cameras. An empty bag is off. The Next bundle defaults the five flags on, and off clears that bag. Off does not read the clock and does not write a camera.
 // On, a surface is a camera on the one world. Tiny is the expansion of that same document.
 // The diary and the heartbeat stay on their own records. This file does not advance the world.
 // NEXT_PUBLIC_ONE_UNIVERSE reaches only the Next client bundle, and only after a rebuild that inlines it.
@@ -57,7 +57,9 @@ function cleanPath(path) {
 }
 
 export function oneUniverseCamerasOn({env = '', storage = null, search = '', parentSearch = ''} = {}) {
-  return [...envBits(env), ...pageFlags({search, storage, parentSearch})].includes('cameras');
+  const flags = [...envBits(env), ...pageFlags({search, storage, parentSearch})];
+  if (flags.includes('off')) return false;
+  return flags.includes('cameras');
 }
 
 /** Next pages call this. The env name is inlined into the Next bundle only, after a rebuild. */

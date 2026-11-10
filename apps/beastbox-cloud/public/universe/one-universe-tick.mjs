@@ -1,4 +1,4 @@
-// Stage 4, tick. The flag defaults off. Off does not read the one clock and does not change a surface's own step.
+// Stage 4, tick. An empty bag is off. The Next bundle defaults the five flags on, and off clears that bag. Off does not read the one clock and does not change a surface's own step.
 // On, a surface shows the one clock's tick. A missing clock is no number.
 // The diary tick and the heartbeat's recorded_tick stay on those records. They are not copied from the world tick.
 // NEXT_PUBLIC_ONE_UNIVERSE reaches only the Next client bundle, and only after a rebuild that inlines it.
@@ -16,7 +16,9 @@ function envBits(value) {
 }
 
 export function oneUniverseTickOn({env = '', storage = null, search = '', parentSearch = ''} = {}) {
-  return [...envBits(env), ...pageFlags({search, storage, parentSearch})].includes('tick');
+  const flags = [...envBits(env), ...pageFlags({search, storage, parentSearch})];
+  if (flags.includes('off')) return false;
+  return flags.includes('tick');
 }
 
 /** Next pages call this. The env name is inlined into the Next bundle only, after a rebuild. */

@@ -1,4 +1,4 @@
-// Stage 1 of one universe. The flag defaults off. Off does not read lw:universe and does not write a surface.
+// Stage 1 of one universe. An empty bag is off. The Next bundle defaults the five flags on, and off clears that bag. Off does not read lw:universe and does not write a surface.
 // On copies seed, tick, planets and storms from the one clock. The copy is a read: simulators keep their own state.
 // Deterministic. The copy uses the clock document only.
 // NEXT_PUBLIC_ONE_UNIVERSE reaches only the Next client bundle, and only after a rebuild that inlines it.
@@ -52,7 +52,9 @@ function envBits(value) {
 }
 
 export function oneUniverseFlags({env = '', storage = null, search = ''} = {}) {
-  return [...envBits(env), ...pageFlags({search, storage})];
+  const flags = [...envBits(env), ...pageFlags({search, storage})];
+  if (flags.includes('off')) return [];
+  return flags;
 }
 
 export function oneUniverseStateOn(sources) {

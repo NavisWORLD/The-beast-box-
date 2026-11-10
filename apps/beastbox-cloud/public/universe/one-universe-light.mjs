@@ -1,4 +1,4 @@
-// Stage 2, light. The flag defaults off. Off does not read the day clock and does not change a camera's lights.
+// Stage 2, light. An empty bag is off. The Next bundle defaults the five flags on, and off clears that bag. Off does not read the day clock and does not change a camera's lights.
 // On, the key direction and the sky stops come from oneSunAt + skyAtElevation + lightRigFor for that camera's up.
 // NEXT_PUBLIC_ONE_UNIVERSE reaches only the Next client bundle, and only after a rebuild that inlines it.
 // toy.js does not read it. pageLightOn uses the query and localStorage only.
@@ -20,7 +20,9 @@ function envBits(value) {
 }
 
 export function oneUniverseLightOn({env = '', storage = null, search = '', parentSearch = ''} = {}) {
-  return [...envBits(env), ...pageFlags({search, storage, parentSearch})].includes('light');
+  const flags = [...envBits(env), ...pageFlags({search, storage, parentSearch})];
+  if (flags.includes('off')) return false;
+  return flags.includes('light');
 }
 
 /** Next pages call this. The env name is inlined into the Next bundle only, after a rebuild. */
