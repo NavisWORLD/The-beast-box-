@@ -21,7 +21,40 @@ permissions:
   contents: read
 
 jobs:
+  scope:
+    runs-on: ubuntu-latest
+    outputs:
+      decision: ${{ steps.decide.outputs.decision }}
+      reason: ${{ steps.decide.outputs.reason }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run the package smoke only for a package release
+        id: decide
+        env:
+          TAG: ${{ inputs.tag || github.event.release.tag_name || 'v0.7.0' }}
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t assets < <(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${TAG}" --jq '.assets[].name')
+          args=(--tag "$TAG")
+          for asset in "${assets[@]}"; do
+            args+=(--asset "$asset")
+          done
+          python scripts/public_release_wheel_scope.py "${args[@]}" | tee "$RUNNER_TEMP/public-wheel-scope.txt"
+          decision="$(awk -F= '$1=="decision"{print $2}' "$RUNNER_TEMP/public-wheel-scope.txt")"
+          reason="$(awk -F= '$1=="reason"{print substr($0, index($0, "=") + 1)}' "$RUNNER_TEMP/public-wheel-scope.txt")"
+          if [[ "$decision" != "run" && "$decision" != "skip" ]]; then
+            echo "public wheel scope returned an unknown decision: $decision" >&2
+            exit 1
+          fi
+          echo "decision=$decision" >> "$GITHUB_OUTPUT"
+          echo "reason=$reason" >> "$GITHUB_OUTPUT"
+          echo "PUBLIC_WHEEL_SCOPE tag=$TAG decision=$decision reason=$reason"
+
   public-wheel:
+    needs: scope
+    if: needs.scope.outputs.decision == 'run'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
