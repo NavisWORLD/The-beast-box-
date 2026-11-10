@@ -88,3 +88,7 @@ The field sheet's owner talk uses the backbone mouth. It carries that mouth's re
 ## Co-firing (PR C2)
 
 Recorded exchanges co-fire with the shared twelve-state, and that co-firing stays in the owner store. Replaying the chain restores the same weights. The text drive is a fixed hash of the text bytes, labelled computed, and it does not enter a sensor channel. A sensor sample does not reset those weights. Guest and visitor turns do not touch them. There is no cap that drops an older recorded line.
+
+## Recall (PR W2)
+
+At speak time the owner mouth reads the live twelve, including the face ESTIMATE siblings already on the descriptor, and then the chain. Recorded lines are LIVED and come first. Study lessons are TAUGHT and come second. The prompt keeps a short window of those lines. The chain rows stay. Every verified reply carries a recall receipt: the entries read, the hash of each entry, the hash of its text, and the state hash that conditioned the answer. The receipt names two drift layers separately. Recorded measurements drift the root, and the clock on that layer is SIMULATED. The living signal stays labelled on its own: sight DERIVED, face ESTIMATE, pulse ESTIMATE. `memory_used` stays the history flag. Guest and visitor turns do not read this chain.
