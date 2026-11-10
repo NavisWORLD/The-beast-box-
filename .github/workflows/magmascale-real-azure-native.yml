@@ -12,6 +12,19 @@ permissions:
   actions: read
 jobs:
   magmascale-native:
+    # Quarantined 2026-11-09. Do not run, and do not weaken the steps below.
+    # Artifact third-final-new-real-ibm-dragon-38005372001 from run 38005372001 is
+    # gone (actions artifact query total_count 0; download on run 42683653830:
+    # "Artifact not found for name: third-final-new-real-ibm-dragon-38005372001").
+    # Companion magmascale-live-azure-qvm-38005563477 from run 38005563477 is gone
+    # too. Git history has never contained _ibm_third_final_dragon_20261009/ or
+    # experiment-evidence/third-final-real-dragon-20261009/. No release asset
+    # matches. The committed public shard ibm-third-final-reality-probe-20261009.json
+    # sha256 ac6e82d4592b59a3dbdb790457ffc21fb833e04393ac414b0bb70baacbd159e7 is a
+    # two-PUB seed shard, not that artifact. The 2026-11-08 re-upload
+    # magmascale-real-game-birth-42496118468 is browser evidence plus a derived
+    # proof, not the source artifact.
+    if: ${{ false }}
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     defaults:

@@ -15,6 +15,8 @@ const DoorWorld=dynamic(()=>import('./living-world'),{ssr:false});
 import {MOONS_LABEL} from '@/lib/universe/moons.mjs';
 import {createAliveGate} from '@/lib/universe/alive-props.mjs';
 import {isSoftwareGL} from '@/lib/three/soft-gl';
+import {browserLightOn,applyCameraLight,cssColor} from '@/public/universe/one-universe-light.mjs';
+import {browserTickOn,displayTick} from '@/public/universe/one-universe-tick.mjs';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type U=any;
 const BIOME_COL:Record<string,[string,string]>={ember:['#ff7a2a','#3a0d05'],paper:['#e9d9b0','#7a6a48'],jelly:['#8fa8ff','#2a2a8a'],sunflower:['#ffd24a','#5a3aa0'],moss:['#8fd06a','#5a2a90'],glacier:['#dff2ff','#7aa0d8']};
@@ -42,8 +44,9 @@ export default function TinyUniverseView(){
  // Pause freezes this view's picture only; the one world keeps its clock (other views must not disagree).
  const runRef=useRef(true);runRef.current=run;useEffect(()=>{if(run){const c=currentWorldClock();if(c){uRef.current=c.get();setU(c.get());}}},[run]);
  useEffect(()=>{const c=cv.current;if(!c)return;let raf=0;const ctx=c.getContext('2d')!;const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const tinyLight=browserLightOn();
   const draw=(ms:number)=>{const U=uRef.current;const dpr=Math.min(2,devicePixelRatio||1);const W=c.clientWidth,H=c.clientHeight;if(c.width!==W*dpr){c.width=W*dpr;c.height=H*dpr;}
-   ctx.setTransform(dpr,0,0,dpr,0,0);const bg=ctx.createRadialGradient(W*0.5,H*0.34,0,W*0.5,H*0.5,Math.max(W,H)*0.85);bg.addColorStop(0,'#0d0724');bg.addColorStop(0.55,'#070418');bg.addColorStop(1,'#030209');ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);if(!U){raf=requestAnimationFrame(draw);return;}
+   ctx.setTransform(dpr,0,0,dpr,0,0);let z='#0d0724',mid='#070418',edge='#030209';if(tinyLight){const cam=applyCameraLight({on:true,lights:{},sec:Date.now()/1000,up:[0,1,0]});z=cssColor(cam.sky.zenith);mid=cssColor(cam.hemi.color);edge=cssColor(cam.sky.horizon);}const bg=ctx.createRadialGradient(W*0.5,H*0.34,0,W*0.5,H*0.5,Math.max(W,H)*0.85);bg.addColorStop(0,z);bg.addColorStop(0.55,mid);bg.addColorStop(1,edge);ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);if(!U){raf=requestAnimationFrame(draw);return;}
    const t=reduce?0:ms/1000;const rn=rand(String(U.seed)+':nebula');const nebHues=[262,190,318,224,282];for(let i=0;i<5;i++){const nx=rn()*W,ny=rn()*H*0.8,nr=(0.22+rn()*0.3)*Math.min(W,H);const ng=ctx.createRadialGradient(nx,ny,0,nx,ny,nr);ng.addColorStop(0,`hsla(${nebHues[i%nebHues.length]},85%,60%,${0.05+rn()*0.05})`);ng.addColorStop(1,'transparent');ctx.fillStyle=ng;ctx.fillRect(nx-nr,ny-nr,nr*2,nr*2);}
    const r=rand(U.seed);for(let i=0;i<160;i++){ctx.globalAlpha=0.25+r()*0.6;ctx.fillStyle='#fff';ctx.fillRect(r()*W,r()*H,r()<0.1?1.6:0.9,r()<0.1?1.6:0.9);}ctx.globalAlpha=1;
    const r2=rand(String(U.seed)+':bright');for(let i=0;i<26;i++){const bx=r2()*W,by=r2()*H,ph=r2()*6.28,bs=r2()<0.3?2:1.3;const tw=reduce?0.8:0.55+0.45*Math.sin(t*1.7+ph);ctx.globalAlpha=0.35+0.5*tw;ctx.fillStyle='#fff';ctx.fillRect(bx-bs/2,by-bs/2,bs,bs);ctx.globalAlpha=0.14*tw;ctx.fillRect(bx-4.5,by-0.5,9,1);ctx.fillRect(bx-0.5,by-4.5,1,9);}ctx.globalAlpha=1;
@@ -90,7 +93,7 @@ export default function TinyUniverseView(){
   <div className={s.bottom} style={doorV>0?{opacity:1-doorV,pointerEvents:doorV>0.5?'none':undefined}:undefined}>
    {info?<div className={s.card}>{info}</div>:null}
    <div className={s.zeref} aria-live="polite">{line}</div>
-{err||!u?<span className={s.stat} title={err?String(err):undefined}>{err?'The universe didn’t open. Please try again in a moment.':'Opening the tiny universe…'}</span>:<details className={s.stat} data-universe-details><summary>Details</summary>{u?`tick ${u.tick} · ${u.stars.length} stars · ${u.planets.length} planets · ${allStorms(u).length} storms (${u.storms.length} grown by the simulation, ${allStorms(u).length-u.storms.length} SEEDED) · ${u.life.length} life worlds${last?` · sim E ${last.sim_E}`:` · IBM E ${u.entanglement_E}`}`:null}</details>}
+{err||!u?<span className={s.stat} title={err?String(err):undefined}>{err?'The universe didn’t open. Please try again in a moment.':'Opening the tiny universe…'}</span>:<details className={s.stat} data-universe-details><summary>Details</summary>{u?`tick ${browserTickOn()? (displayTick(u.tick)??'\u2014') : u.tick} · ${u.stars.length} stars · ${u.planets.length} planets · ${allStorms(u).length} storms (${u.storms.length} grown by the simulation, ${allStorms(u).length-u.storms.length} SEEDED) · ${u.life.length} life worlds${last?` · sim E ${last.sim_E}`:` · IBM E ${u.entanglement_E}`}`:null}</details>}
    <span className={s.stat} data-credit-line>Threads SIMULATED</span>
    <div className={s.row}><a className={s.btn} href="/beast-cage/world" data-spawn-in>✦ Spawn in</a>{u&&sel&&u.planets.some((x:any)=>x.id===sel)&&sel!==homeOf(u)&&sel!==[...u.planets].sort((a:any,b:any)=>(b.habitability||0)-(a.habitability||0))[0]?.id?<a className={s.btn} href={'/beast-cage/world?planet='+encodeURIComponent(sel)} data-visit-planet>🐾 Visit {sel} with your beast</a>:null}<button className={s.btn} onClick={()=>setThree(v=>{try{localStorage.setItem('u:3d',v?'0':'1');}catch{}return !v;})} data-universe-mode>{three?'2D map':'3D'}</button><button className={s.btn} onClick={()=>setRun(v=>!v)}>{run?'⏸ Pause':'▶ Grow'}</button><button className={s.btn} onClick={()=>{if(g0.current){uRef.current=g0.current;setU(g0.current);setLine('');}}}>↺ Genesis</button>
 </div>

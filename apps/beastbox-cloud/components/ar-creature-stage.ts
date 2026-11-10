@@ -10,6 +10,7 @@
  */
 import type {PlushGenome} from './creature-plush-3d';
 import {seededStream} from '../lib/seeded-stream.mjs';const __rs=seededStream('components/ar-creature-stage.ts');
+import {browserLightOn,paintKeyAndSky} from '@/public/universe/one-universe-light.mjs';
 type Three=typeof import('three');
 export type ArMode='xr'|'anchored'|'preview';
 export const EYE_HEIGHT=1.35; // assumed phone height above the floor in anchored mode (metres)
@@ -26,7 +27,7 @@ export async function createArStage(host:HTMLElement,gen:PlushGenome,opts:{onMod
  const r=new THREE.WebGLRenderer({antialias:!soft,alpha:true,powerPreference:soft?'low-power':'default'});r.setPixelRatio(soft?1:Math.min(devicePixelRatio||1,2));r.outputColorSpace=THREE.SRGBColorSpace;
  r.setClearColor(0x000000,0);r.shadowMap.enabled=!soft;r.shadowMap.type=THREE.PCFSoftShadowMap;
  const cv=r.domElement;cv.dataset.arCanvas='';Object.assign(cv.style,{position:'absolute',inset:'0',width:'100%',height:'100%',touchAction:'manipulation'});host.appendChild(cv);
- const scene=new THREE.Scene();const studio=beastStudio(THREE,r,scene);r.toneMappingExposure=1.05;scene.environmentIntensity=.55;
+ const scene=new THREE.Scene();const studio=beastStudio(THREE,r,scene);r.toneMappingExposure=1.05;scene.environmentIntensity=.55;const fieldLight=browserLightOn();
  studio.key.position.set(-1.2,3,1.4);studio.key.shadow.camera.left=studio.key.shadow.camera.bottom=-1;studio.key.shadow.camera.right=studio.key.shadow.camera.top=1;studio.key.shadow.camera.near=.1;studio.key.shadow.camera.far=8;studio.key.shadow.radius=6;
  const cam=new THREE.PerspectiveCamera(65,1,.02,40);cam.position.set(0,EYE_HEIGHT,0);
  // anchor: the placed spot on the floor. Shadow catcher + soft contact blob live there.
@@ -127,6 +128,7 @@ export async function createArStage(host:HTMLElement,gen:PlushGenome,opts:{onMod
    const gr=P.glb?.root;const ll=gr&&life.lookCam>=.3?(()=>{const v=gr.worldToLocal(new THREE.Vector3(wp.x,wp.y,wp.z));return {yaw:Math.atan2(v.x,v.z),pitch:Math.atan2(v.y-.6,Math.hypot(v.x,v.z))};})():null;
    P.drive(d,{...life,speed:Math.min(1,life.speed*2)},mp,P.glb?ll:(life.lookCam>.3?lookV:null));});
   const life=pets[0].life;
+  if(fieldLight)paintKeyAndSky({on:true,sec:Date.now()/1000,up:[0,1,0],key:studio.key,hemi:studio.lights[0]});
   r.render(scene,cam);
   host.dataset.arLife=life.mode;host.dataset.arKind=kind;host.dataset.arPets=String(pets.length);onState?.(life.mode);
  };

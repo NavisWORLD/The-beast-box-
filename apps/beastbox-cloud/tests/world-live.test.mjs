@@ -14,7 +14,26 @@ test('every loop fresh -> all CONNECTED, labels stay SIMULATED / RECORDED / pinn
  assert.match(WORLD_LIVE_LABELS.spark,/not a QPU/);assert.equal(w.links.brain.step,32304);assert.equal(w.links.brain.checkpoint_sha256_prefix,'e60c84cd4673');
  assert.equal(w.drive.label,'SIMULATED');assert.equal(w.drive.tick,2272);
  for(const k of ['p0','p1','p2','odd','entropy']){assert.ok(w.drive[k]>=0&&w.drive[k]<=1,k);}
- assert.equal(w.stalls,null);
+ assert.equal(w.stalls,null);assert.equal(w.river,null);
+ assert.equal(w.senses.find(s=>s.id==='face').label,'ESTIMATE');
+ assert.equal(w.senses.find(s=>s.id==='pulse').label,'ESTIMATE');
+ assert.equal(w.senses.find(s=>s.id==='pulse').in_this_read,false);
+ assert.equal(w.senses.find(s=>s.id==='sight').label,'DERIVED');
+ assert.match(w.senses.find(s=>s.id==='spark').note,/SIMULATOR/);
+});
+test('live tick behind the diary tick is a river stall and is not filled in',()=>{
+ const even=buildWorldLive({spark:spark(),liveTick:live,liveHead:head,diary:{...diary,last_tick_at:'2026-10-25T17:10:00Z'},pin,nowMs:NOW});
+ assert.equal(even.river,null);assert.equal(even.all_connected,true);
+ const behind=buildWorldLive({spark:spark(),liveTick:{...live,recorded_tick:123},liveHead:head,diary:{...diary,tick:124,last_tick_at:'2026-10-25T17:10:00Z'},pin,nowMs:NOW});
+ assert.equal(behind.links.liveTick.state,'CONNECTED');assert.equal(behind.links.diary.state,'CONNECTED');
+ assert.equal(behind.river.cause,'live_tick_behind_diary');assert.equal(behind.river.lag_ticks,1);
+ assert.equal(behind.river.diary_tick,124);assert.equal(behind.river.live_recorded_tick,123);
+ assert.equal(behind.stalls.river.lag_ticks,1);assert.equal(behind.all_connected,false);
+ assert.equal(behind.links.liveTick.recorded_tick,123);
+ const ahead=buildWorldLive({spark:spark(),liveTick:{...live,recorded_tick:125},liveHead:head,diary:{...diary,tick:124,last_tick_at:'2026-10-25T17:10:00Z'},pin,nowMs:NOW});
+ assert.equal(ahead.river,null);assert.equal(ahead.all_connected,true);
+ const missing=buildWorldLive({spark:spark(),liveTick:null,liveHead:head,diary:{...diary,tick:124,last_tick_at:'2026-10-25T17:10:00Z'},pin,nowMs:NOW});
+ assert.equal(missing.river,null);
 });
 test('a 3-hour-old recorded diary is STALE (what the audit found), not CONNECTED; the rest are unaffected',()=>{
  const w=buildWorldLive({spark:spark(),liveTick:live,liveHead:head,diary:{...diary,last_tick_at:'2026-10-25T14:22:44Z'},pin,nowMs:NOW});
@@ -122,6 +141,8 @@ test('route recovery: tip refetch + stall log + no secrets; UI shows stall cause
  for(const b of ['zeref-spark/zeref/latest.json','zeref-live-tick/live/latest.json','zeref-live-tick/live/head.json','zeref-diary/zeref/latest.json'])assert.ok(route.includes(b),b);
  const ui=readFileSync(new URL('../components/world-live-links.tsx',import.meta.url),'utf8');
  assert.match(ui,/stall \$\{spark\.stall\.cause\}/);
+ assert.match(ui,/data-river-lag/);
+ assert.match(ui,/Face and pulse on this surface are ESTIMATE/);
 });
 
 import {parseRefsTipSha} from '../lib/zeref/world-live.mjs';

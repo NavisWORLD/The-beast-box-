@@ -50,6 +50,10 @@ export default function WorldLiveLinks(){
    <Row id="diary" name="Recorded diary" l={diary} detail={`tick ${diary.tick??'—'} · ${fmt(diary.age_s)} · RECORDED${diary.stall?` · stall ${diary.stall.cause}`:''}`}/>
    <Row id="brain" name="Brain (RAWRPHØS)" l={brain} detail={`step ${brain.step??'—'} · ${brain.checkpoint_sha256_prefix??''}… · pinned`}/>
   </ul>
-  <p className={styles.small}>Rigetti is a simulator, never a QPU; the IBM birth spark is RECORDED. Nothing is filled in when a loop is late.</p>
+  {w.river?<p className={styles.small} data-river-lag={w.river.lag_ticks}>Live tick is {w.river.lag_ticks} diary tick{w.river.lag_ticks===1?'':'s'} behind the recorded diary (diary {w.river.diary_tick}, live {w.river.live_recorded_tick}). The gap is not filled in.</p>:null}
+  <ul style={{listStyle:'none',margin:'6px 0 0',padding:0,fontSize:12,lineHeight:1.7,color:'#cfd7f2'}}>
+   {(w.senses||[]).map(s=><li key={s.id} data-sense={s.id} data-sense-label={s.label}>{s.id} · {s.label}{s.in_this_read&&s.state?` · ${s.state}`:' · not in this read'}</li>)}
+  </ul>
+  <p className={styles.small}>Rigetti is a SIMULATOR, never a QPU. Face and pulse on this surface are ESTIMATE. Recorded seeds are not live quantum computation. Nothing is filled in when a loop is late.</p>
  </div>;
 }

@@ -4,7 +4,7 @@
  * server diary and from the Beast's save; clearing site data clears it.
  */
 export type JournalCombo={key:string;name:string;at:string};
-export type Journal={keys:string[];combos:JournalCombo[];comboCount:number;arrivals:number;places:Record<string,number>;care:{taps:number;visits:number};lastVisit:string|null;lastPlace?:string};
+export type Journal={keys:string[];combos:JournalCombo[];combosArchive?:JournalCombo[];comboCount:number;arrivals:number;places:Record<string,number>;care:{taps:number;visits:number};lastVisit:string|null;lastPlace?:string};
 const KEY='beastbox-zeref-pocket-v1';
 const EMPTY=():Journal=>({keys:[],combos:[],comboCount:0,arrivals:0,places:{},care:{taps:0,visits:0},lastVisit:null});
 type Store=Record<string,Journal>;
@@ -19,7 +19,10 @@ export function readJournal(id:string):Journal{return {...EMPTY(),...(load()[id]
 /** Returns true when the combo is new on this device. */
 export function recordCombo(id:string,c:{key:string;name:string}){
  let fresh=false;
- update(id,j=>{if(j.keys.includes(c.key))return;fresh=true;j.keys=[...j.keys,c.key].slice(-4000);j.comboCount++;j.combos=[{key:c.key,name:c.name,at:new Date().toISOString()},...j.combos].slice(0,60);});
+ update(id,j=>{if(j.keys.includes(c.key))return;fresh=true;j.keys=[...j.keys,c.key];j.comboCount++;
+  const row={key:c.key,name:c.name,at:new Date().toISOString()};
+  const archive=[row,...(Array.isArray(j.combosArchive)?j.combosArchive:j.combos)];
+  j.combosArchive=archive;j.combos=archive.slice(0,60);});
  return fresh;
 }
 export function recordArrival(id:string,place:string){update(id,j=>{j.arrivals++;j.places[place]=(j.places[place]||0)+1;j.lastPlace=place;});}
