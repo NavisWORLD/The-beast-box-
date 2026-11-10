@@ -49,6 +49,28 @@ export function pageTickOn(sources) {
   return pageFlags(sources).includes('tick');
 }
 
+export function pageCamerasOn(sources) {
+  return pageFlags(sources).includes('cameras');
+}
+
+/**
+ * Load the camera reader only when the cameras flag is on.
+ * A failed load does not throw and does not write a camera.
+ * @param {{on?: boolean, node?: any, camera?: string|null, load?: Function}} [opts]
+ */
+export async function armCameras({on = false, node = null, camera = null, load} = {}) {
+  if (!on) return {armed: false, failed: false};
+  let mod;
+  try { mod = await load(); }
+  catch { return {armed: false, failed: true}; }
+  try {
+    mod.publishUniverseCamera({on: true, camera, node});
+    return {armed: true, failed: false};
+  } catch {
+    return {armed: true, failed: true};
+  }
+}
+
 /**
  * Load the tick reader only when the tick flag is on.
  * A failed load does not throw and does not write a tick.

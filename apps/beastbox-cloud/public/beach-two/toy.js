@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import {PALETTE,PALETTE_OKLAB,L_WEIGHT} from './palette.js';
 import {SEEDS,loadSeed} from './seed.js';
-import {pageStateOn,armStandalonePage,pageLightOn,armCameraLight,pageTickOn} from '../universe/one-universe-gate.mjs';
+import {pageStateOn,armStandalonePage,pageLightOn,armCameraLight,pageTickOn,pageCamerasOn} from '../universe/one-universe-gate.mjs';
 const $=id=>document.getElementById(id);
 const LABEL='Seeded from recorded IBM Quantum outcomes. Recorded, not live. The physics is classical math; the quantum is the seed.';
 let COPY={};try{COPY=await (await fetch('./copy.json')).json();}catch{}
@@ -533,5 +533,20 @@ void (async()=>{
    readClock:()=>{try{const clock=host.__bbOneWorld;if(clock&&typeof clock.get==='function')return clock;}catch{}return mod.storedUniverseClock(localStorage);},
    listen:(bind)=>{const onReady=()=>bind();host.addEventListener('beastbox:one-world',onReady);return()=>host.removeEventListener('beastbox:one-world',onReady);},
   });
+ }catch{}
+})();
+void (async()=>{
+ try{
+  const sources={search:location.search,storage:localStorage,parentSearch:(()=>{try{return parent&&parent!==window?parent.location.search:'';}catch{return '';}})()};
+  if(!pageCamerasOn(sources))return;
+  const mod=await import('../universe/one-universe-cameras.mjs');
+  if(!pageCamerasOn(sources))return;
+  const host=beachHost();
+  const readClock=()=>{try{const clock=host.__bbOneWorld;if(clock&&typeof clock.get==='function')return clock;}catch{}return null;};
+  const apply=()=>mod.publishUniverseCamera({on:true,camera:'beach',node:document.documentElement,clock:readClock()});
+  apply();
+  try{const clock=readClock();if(clock&&clock.subscribe)clock.subscribe(apply);}catch{}
+  const onReady=()=>apply();
+  host.addEventListener('beastbox:one-world',onReady);
  }catch{}
 })();
