@@ -41,6 +41,28 @@ export function pageLightOn(sources) {
   return pageFlags(sources).includes('light');
 }
 
+export function pagePopulationOn(sources) {
+  return pageFlags(sources).includes('population');
+}
+
+/**
+ * Load the Azure population reader only when the population flag is on.
+ * A failed load does not throw and does not add a creature.
+ * @param {{on?: boolean, load?: Function}} [opts]
+ */
+export async function armPopulation({on = false, load} = {}) {
+  if (!on) return {armed: false, failed: false, creatures: []};
+  let mod;
+  try { mod = await load(); }
+  catch { return {armed: false, failed: true, creatures: []}; }
+  try {
+    const creatures = await mod.readPopulation();
+    return {armed: true, failed: false, creatures: Array.isArray(creatures) ? creatures : []};
+  } catch {
+    return {armed: true, failed: true, creatures: []};
+  }
+}
+
 /**
  * Load the shared sun only when the light flag is on. A failed load leaves the existing lights alone.
  * @param {{on?: boolean, lights?: any, load?: Function, sec?: any, up?: any, exposure?: number, key?: any, hemi?: any, subscribe?: Function}} [opts]
