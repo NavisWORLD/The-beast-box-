@@ -157,3 +157,38 @@ test('git ref advertisement fallback: exact branch only, real 40-char sha only, 
   const src = readFileSync(new URL('../app/api/world/live/route.ts', import.meta.url), 'utf8');
   assert.match(src, /parseRefsTipSha\(await getText\(REFS\),branch\)/);
 });
+
+const LOCAL_LABEL='LOCAL SIMULATED (runner statevector, not Rigetti, not a QPU)';
+const localSpark=(over={})=>({backend:'local-sim',label:LOCAL_LABEL,beast_id:'bb-deada969',simulated:true,status:'ok',tick:12,
+ at_epoch:(NOW-20000)/1000,shots:256,counts:{'000':100,'111':156},counts_sha256:'b'.repeat(64),
+ last_ok:{tick:12,at_epoch:(NOW-20000)/1000,counts:{'000':100,'111':156},shots:256},...over});
+test('local-sim is its own labeled source and the Rigetti last-ok stays separate until Azure succeeds',()=>{
+ const failing=spark({status:'failed',consecutive_failures:1500,tick:24304,at_epoch:(NOW-20000)/1000,
+  last_ok:{tick:24303,at_epoch:(NOW-90000000)/1000,counts:{'000':256}}});
+ const fresh={liveTick:live,liveHead:head,diary:{...diary,last_tick_at:'2026-10-25T17:10:00Z'},pin,nowMs:NOW};
+ const on=buildWorldLive({spark:failing,localSpark:localSpark(),...fresh});
+ assert.equal(on.links.spark.source,'local-sim');
+ assert.equal(on.links.spark.label,LOCAL_LABEL);
+ assert.equal(on.links.spark.state,'CONNECTED');
+ assert.equal(on.links.spark.last_ok_tick,24303);
+ assert.equal(on.links.spark.local_last_ok_tick,12);
+ assert.equal(on.drive.source,'local-sim');
+ assert.equal(on.drive.label,LOCAL_LABEL);
+ assert.match(on.senses.find(s=>s.id==='spark').note,/not Rigetti/);
+ const back=buildWorldLive({spark:spark(),localSpark:localSpark(),...fresh});
+ assert.equal(back.links.spark.source,'rigetti.sim.qvm');
+ assert.match(back.links.spark.label,/Rigetti SIMULATED/);
+ assert.equal(back.links.spark.last_ok_tick,2272);
+ assert.equal(back.links.spark.local_last_ok_tick,12);
+ assert.equal(back.drive.source,'spark');
+ const stale=buildWorldLive({spark:failing,localSpark:localSpark({at_epoch:(NOW-600000)/1000,last_ok:{tick:9,at_epoch:(NOW-600000)/1000,counts:{'000':256},shots:256}}),...fresh});
+ assert.equal(stale.links.spark.state,'STALE');
+ assert.notEqual(stale.links.spark.source,'local-sim');
+ assert.equal(stale.links.spark.local_last_ok_tick,9);
+ assert.equal(stale.drive,null);
+ const wrong=buildWorldLive({spark:failing,localSpark:localSpark({backend:'rigetti.sim.qvm',label:'Rigetti SIMULATED'}),...fresh});
+ assert.notEqual(wrong.links.spark.source,'local-sim');
+ const route=readFileSync(new URL('../app/api/world/live/route.ts',import.meta.url),'utf8');
+ assert.ok(route.includes('zeref-spark/zeref/local-sim/latest.json'));
+ assert.equal(WORLD_LIVE_PATHS.localSpark.file,'zeref/local-sim/latest.json');
+});

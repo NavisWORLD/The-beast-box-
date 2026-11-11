@@ -13,6 +13,9 @@ stats or provenance are invented (his display profile bb-7f9c2a03 is not used).
 
 Honesty rules: counts are never invented (a failed job writes a failed entry and the spark is carried
 unchanged); lateness is recorded (since_previous_s / late / late_by_s); entries are append-only.
+A subscription or auth rejection may sample the same circuit on the runner. That result is labeled
+LOCAL SIMULATED and appended only under local-sim/. It is not a Rigetti count, not a QPU count, and
+it is not written into the Rigetti chain, IBM history, the heart seed, genesis, or creature identity.
 """
 import hashlib, json, math, os, sys, time
 from pathlib import Path
@@ -22,6 +25,19 @@ SCHEMA = "zeref-spark-tick/v1"
 TARGET = "rigetti.sim.qvm"
 SHOTS = 256
 LABEL = "Rigetti SIMULATED (Azure Quantum rigetti.sim.qvm, not a QPU)"
+LOCAL_BACKEND = "local-sim"
+LOCAL_LABEL = "LOCAL SIMULATED (runner statevector, not Rigetti, not a QPU)"
+LOCAL_SCHEMA = "zeref-spark-local-tick/v1"
+# Subscription and credential failures only. A bare ResourceExistsError, a timeout, or a low
+# emulator quota is not this list: those still record a failed Rigetti tick and invent nothing.
+_AUTH_MARKERS = (
+    "subscriptiondisabled", "subscription disabled", "subscriptionnotfound",
+    "authorizationfailed", "authenticationfailed", "authenticationerror",
+    "clientauthenticationerror", "credentialunavailable",
+    "unauthorized", "not authorized", "forbidden",
+    "status code 401", "status code 403", "http 401", "http 403", " 401", " 403",
+    "azure_quantum_connection_string not available",
+)
 INTERVAL_S = int(os.environ.get("ZEREF_SPARK_INTERVAL_S", "60"))
 LATE_FACTOR = 1.5
 # Recorded IBM hardware spark of bb-deada969 (public/spark/ibm-zeref-heart-sound-20261010.json).
@@ -218,6 +234,164 @@ def apply(d, plan_path, receipt_path, now):
               "counts_sha256": entry["growth_source"].get("counts_sha256"), "continues_from": entry["continues_from"]}
     (d / "latest.json").write_text(json.dumps(latest, indent=1, sort_keys=True) + "\n")
     print("ZEREF_SPARK_TICK=" + json.dumps({k: latest[k] for k in ("tick", "status", "late", "late_by_s", "since_previous_s")}))
+
+
+def subscription_auth_error(error):
+    text = str(error or "").lower()
+    return any(marker in text for marker in _AUTH_MARKERS)
+
+
+def _apply_1q(state, qubit, mat):
+    out = [0j] * 8
+    bit = 1 << qubit
+    for i in range(8):
+        if i & bit:
+            continue
+        i1 = i | bit
+        a, b = state[i], state[i1]
+        out[i] = mat[0][0] * a + mat[0][1] * b
+        out[i1] = mat[1][0] * a + mat[1][1] * b
+    return out
+
+
+def _cnot(state, control, target):
+    out = [0j] * 8
+    cbit, tbit = 1 << control, 1 << target
+    for i, amp in enumerate(state):
+        out[i ^ tbit if i & cbit else i] = amp
+    return out
+
+
+def _ry(theta):
+    c, s = math.cos(theta / 2.0), math.sin(theta / 2.0)
+    return ((c, -s), (s, c))
+
+
+def _rx(theta):
+    c, s = math.cos(theta / 2.0), math.sin(theta / 2.0)
+    return ((c, -1j * s), (-1j * s, c))
+
+
+def local_counts(angles, shots, tick, prior_hash):
+    """Same 3-qubit quil, sampled on the runner. Seed is tick plus the prior Rigetti chain hash."""
+    shots = int(shots)
+    if shots <= 0 or len(angles) != 3:
+        raise ValueError("local sampler needs 3 angles and a positive shot count")
+    state = [0j] * 8
+    state[0] = 1 + 0j
+    state = _apply_1q(state, 0, _ry(float(angles[0])))
+    state = _apply_1q(state, 1, _ry(float(angles[1])))
+    state = _apply_1q(state, 2, _rx(float(angles[2])))
+    state = _cnot(state, 0, 1)
+    state = _cnot(state, 1, 2)
+    probs = [abs(a) ** 2 for a in state]
+    total = sum(probs)
+    if total <= 0:
+        raise ValueError("statevector norm vanished")
+    probs = [p / total for p in probs]
+    counts = {}
+    seed = f"{int(tick)}:{prior_hash or ''}"
+    for shot in range(shots):
+        digest = hashlib.sha256(f"{seed}:{shot}".encode()).digest()
+        u = int.from_bytes(digest[:8], "big") / 2**64
+        acc = 0.0
+        choice = 7
+        for i, p in enumerate(probs):
+            acc += p
+            if u < acc:
+                choice = i
+                break
+        bits = f"{choice & 1}{(choice >> 1) & 1}{(choice >> 2) & 1}"
+        counts[bits] = counts.get(bits, 0) + 1
+    return dict(sorted((k, v) for k, v in counts.items() if v))
+
+
+def local_root(d):
+    return Path(d) / "local-sim"
+
+
+def load_local(d):
+    sp = local_root(d) / "state.json"
+    if sp.exists():
+        return json.loads(sp.read_text())
+    return {"schema": "zeref-spark-local-state/v1", "beast_id": BEAST_ID, "tick": 0, "last_hash": None,
+            "backend": LOCAL_BACKEND, "label": LOCAL_LABEL, "last_rigetti_tick": None}
+
+
+def verify_local_chain(d):
+    lp = local_root(d) / "ticks.jsonl"
+    prev = None
+    n = 0
+    if lp.exists():
+        for line in lp.read_text().splitlines():
+            if not line.strip():
+                continue
+            e = json.loads(line)
+            body = {k: v for k, v in e.items() if k != "hash"}
+            if e.get("backend") != LOCAL_BACKEND or e.get("label") != LOCAL_LABEL:
+                raise SystemExit("local chain entry is not labeled local-sim")
+            if e["prev_hash"] != prev or sha(body) != e["hash"] or e["tick"] != n + 1:
+                raise SystemExit(f"local spark chain invalid at tick {e.get('tick')}")
+            prev, n = e["hash"], n + 1
+    st = load_local(d)
+    if st["tick"] != n or st["last_hash"] != prev:
+        raise SystemExit("local state.json does not match the local tick log head")
+
+
+def apply_local(d, plan_path, now):
+    """Append one local-sim tick beside the Rigetti chain. Does not write the Rigetti files."""
+    d = Path(d)
+    pl = json.loads(Path(plan_path).read_text())
+    lines = [ln for ln in (d / "ticks.jsonl").read_text().splitlines() if ln.strip()]
+    rig = json.loads(lines[-1])
+    if rig.get("tick") != pl["tick"] or rig.get("status") != "failed" or rig.get("beast_id") != BEAST_ID:
+        raise SystemExit("local fallback follows a failed Rigetti tick only")
+    if pl.get("shots") != SHOTS or pl.get("beast_id") != BEAST_ID:
+        raise SystemExit("local fallback refuses a plan that is not this spark")
+    prior = rig["continues_from"]["hash"] or ""
+    root = local_root(d)
+    root.mkdir(parents=True, exist_ok=True)
+    if (root / "ticks.jsonl").exists():
+        verify_local_chain(d)
+    st = load_local(d)
+    if st.get("last_rigetti_tick") == pl["tick"] and (root / "latest.json").exists():
+        return json.loads((root / "ticks.jsonl").read_text().splitlines()[-1])
+    counts = local_counts(pl["angles"], pl["shots"], pl["tick"], prior)
+    feat = features(counts, int(pl["shots"]))
+    entry = {"schema": LOCAL_SCHEMA, "beast_id": BEAST_ID, "tick": st["tick"] + 1,
+             "at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(now)), "at_epoch": round(now, 1),
+             "backend": LOCAL_BACKEND, "label": LOCAL_LABEL, "simulated": True, "status": "ok",
+             "not_rigetti": True, "not_qpu": True, "not_ibm": True,
+             "angles": pl["angles"], "quil_sha256": pl["quil_sha256"],
+             "shots": int(pl["shots"]), "counts": counts, "counts_sha256": sha(counts),
+             "sample_seed": {"rigetti_tick": pl["tick"], "prior_chain_hash": prior},
+             "growth_source": {"kind": LOCAL_BACKEND, "backend": LOCAL_BACKEND, "label": LOCAL_LABEL,
+                               "simulated": True, "provider": "runner-statevector", "target": LOCAL_BACKEND,
+                               "shots": int(pl["shots"]), "counts": counts, "counts_sha256": sha(counts),
+                               "features": feat},
+             "prev_hash": st["last_hash"]}
+    entry["hash"] = sha(entry)
+    with open(root / "ticks.jsonl", "a") as fh:
+        fh.write(canon(entry) + "\n")
+    st.update(tick=entry["tick"], last_hash=entry["hash"], last_rigetti_tick=pl["tick"], last_ok_at=now)
+    (root / "state.json").write_text(json.dumps(st, indent=1, sort_keys=True) + "\n")
+    latest = {"schema": "zeref-spark-local-latest/v1", "beast_id": BEAST_ID, "tick": entry["tick"],
+              "at": entry["at"], "at_epoch": entry["at_epoch"], "status": "ok", "simulated": True,
+              "backend": LOCAL_BACKEND, "label": LOCAL_LABEL, "shots": entry["shots"],
+              "counts": counts, "counts_sha256": entry["counts_sha256"], "hash": entry["hash"],
+              "rigetti_tick": pl["tick"], "prior_chain_hash": prior,
+              "last_ok": {"tick": entry["tick"], "at_epoch": entry["at_epoch"], "shots": entry["shots"],
+                          "counts": counts, "counts_sha256": entry["counts_sha256"]}}
+    (root / "latest.json").write_text(json.dumps(latest, indent=1, sort_keys=True) + "\n")
+    print("ZEREF_SPARK_LOCAL_TICK=" + json.dumps(
+        {k: latest[k] for k in ("tick", "backend", "rigetti_tick", "counts_sha256")}, sort_keys=True))
+    return entry
+
+
+def maybe_local_fallback(d, plan_path, receipt, now):
+    if not isinstance(receipt, dict) or receipt.get("ok") or not subscription_auth_error(receipt.get("error")):
+        return None
+    return apply_local(d, plan_path, now)
 
 
 if __name__ == "__main__":

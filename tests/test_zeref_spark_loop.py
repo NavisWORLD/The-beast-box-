@@ -205,6 +205,115 @@ def test_latest_pointer_is_the_newest_recorded_seed_and_each_job_is_used_once(tm
         spark.RESEED_FILE = old
 
 
+LOCAL_LABEL = "LOCAL SIMULATED (runner statevector, not Rigetti, not a QPU)"
+
+
+def test_subscription_auth_error_is_the_only_fallback_trigger():
+    assert spark.subscription_auth_error("ResourceExistsError: SubscriptionDisabled")
+    assert spark.subscription_auth_error("ClientAuthenticationError: unauthorized")
+    assert spark.subscription_auth_error("403 Forbidden")
+    assert spark.subscription_auth_error("AZURE_QUANTUM_CONNECTION_STRING not available to this run")
+    assert not spark.subscription_auth_error("boom")
+    assert not spark.subscription_auth_error("emulator quota low; paused, no job submitted")
+    assert not spark.subscription_auth_error("simulator result could not be parsed into 3-bit counts")
+    assert not spark.subscription_auth_error("ResourceExistsError: container already exists")
+    assert not spark.subscription_auth_error("")
+    assert not spark.subscription_auth_error(None)
+
+
+def test_zero_angles_stay_on_the_ground_state_and_a_pi_pulse_flips_the_chain():
+    assert spark.local_counts([0.0, 0.0, 0.0], 256, tick=1, prior_hash="x") == {"000": 256}
+    assert spark.local_counts([math.pi, 0.0, 0.0], 16, tick=1, prior_hash="x") == {"111": 16}
+
+
+def test_local_sampling_is_deterministic_from_tick_and_prior_chain_hash():
+    angles = [0.4, 0.5, 0.6]
+    again = spark.local_counts(angles, 256, tick=3, prior_hash="abc")
+    assert spark.local_counts(angles, 256, tick=3, prior_hash="abc") == again
+    assert spark.local_counts(angles, 256, tick=4, prior_hash="abc") != again
+    assert spark.local_counts(angles, 256, tick=3, prior_hash="abd") != again
+    assert sum(again.values()) == 256
+    assert all(len(k) == 3 and set(k) <= {"0", "1"} for k in again)
+    text = (ROOT / "scripts/zeref_spark_loop.py").read_text()
+    assert "import random" not in text and "random." not in text
+
+
+def _auth_tick(tmp_path, now, error="ResourceExistsError: SubscriptionDisabled"):
+    d = tmp_path / "zeref"
+    spark.plan(str(d), str(tmp_path / "p.json"), now)
+    auth = {"ok": False, "target": spark.TARGET, "error": error}
+    (tmp_path / "r.json").write_text(json.dumps(auth))
+    spark.apply(str(d), str(tmp_path / "p.json"), str(tmp_path / "r.json"), now)
+    return spark.maybe_local_fallback(str(d), str(tmp_path / "p.json"), auth, now)
+
+
+def test_fallback_fires_only_on_subscription_auth_and_stays_off_the_rigetti_chain(tmp_path):
+    first = tick(tmp_path, 1000.0)
+    d = tmp_path / "zeref"
+    timeout = {"ok": False, "target": spark.TARGET, "error": "RuntimeError: timeout"}
+    spark.plan(str(d), str(tmp_path / "p.json"), 1060.0)
+    (tmp_path / "r.json").write_text(json.dumps(timeout))
+    spark.apply(str(d), str(tmp_path / "p.json"), str(tmp_path / "r.json"), 1060.0)
+    assert spark.maybe_local_fallback(str(d), str(tmp_path / "p.json"), timeout, 1060.0) is None
+    assert not (d / "local-sim").exists()
+    prior = json.loads((d / "latest.json").read_text())["hash"]
+    local = _auth_tick(tmp_path, 1120.0)
+    assert local["backend"] == "local-sim" and local["label"] == LOCAL_LABEL
+    assert local["growth_source"]["backend"] == "local-sim"
+    assert local["growth_source"]["kind"] == "local-sim"
+    assert local["growth_source"]["target"] == "local-sim"
+    assert local["shots"] == spark.SHOTS and sum(local["counts"].values()) == spark.SHOTS
+    assert local["sample_seed"]["rigetti_tick"] == 3
+    assert local["sample_seed"]["prior_chain_hash"] == prior
+    assert prior != first["hash"]
+    rigetti = (d / "ticks.jsonl").read_text()
+    assert "local-sim" not in rigetti and "LOCAL SIMULATED" not in rigetti
+    latest = json.loads((d / "latest.json").read_text())
+    assert latest["status"] == "failed" and latest["counts"] is None
+    assert latest["label"].startswith("Rigetti SIMULATED")
+    assert latest["last_ok"]["tick"] == 1
+    stored = json.loads((d / "local-sim" / "latest.json").read_text())
+    assert stored["backend"] == "local-sim" and stored["label"] == LOCAL_LABEL
+    assert stored["last_ok"]["tick"] == local["tick"]
+    assert json.loads((d / "local-sim" / "ticks.jsonl").read_text().splitlines()[-1])["hash"] == local["hash"]
+    spark.verify_local_chain(str(d))
+    spark.verify_chain(str(d))
+    again = spark.maybe_local_fallback(str(d), str(tmp_path / "p.json"), {"ok": False, "error": "SubscriptionDisabled"}, 1120.0)
+    assert again["hash"] == local["hash"]
+    assert len((d / "local-sim" / "ticks.jsonl").read_text().splitlines()) == 1
+
+
+def test_azure_success_appends_no_local_tick(tmp_path):
+    tick(tmp_path, 1000.0)
+    _auth_tick(tmp_path, 1060.0)
+    d = tmp_path / "zeref"
+    before = (d / "local-sim" / "ticks.jsonl").read_text()
+    ok = tick(tmp_path, 1120.0)
+    assert ok["status"] == "ok" and ok["label"].startswith("Rigetti SIMULATED")
+    assert spark.maybe_local_fallback(str(d), str(tmp_path / "p.json"), receipt(), 1120.0) is None
+    assert (d / "local-sim" / "ticks.jsonl").read_text() == before
+
+
+def test_training_loader_skips_local_sim_rows(tmp_path):
+    from beastbox.spark_feed import load_ticks
+
+    rig = {"beast_id": "bb-deada969", "simulated": True, "status": "ok", "tick": 1, "at_epoch": 1.0,
+           "growth_source": {"target": "rigetti.sim.qvm", "counts": COUNTS, "shots": 256, "job_id": "j"}}
+    loc = {"beast_id": "bb-deada969", "simulated": True, "status": "ok", "tick": 2, "at_epoch": 2.0,
+           "backend": "local-sim", "label": LOCAL_LABEL,
+           "growth_source": {"kind": "local-sim", "backend": "local-sim", "target": "local-sim",
+                             "counts": COUNTS, "shots": 256}}
+    path = tmp_path / "ticks.jsonl"
+    path.write_text(json.dumps(rig) + "\n" + json.dumps(loc) + "\n")
+    assert [row["tick"] for row in load_ticks(str(path))] == [1]
+
+
+def test_runner_calls_the_fallback_after_the_azure_receipt():
+    run = (ROOT / "scripts/zeref_spark_run.py").read_text()
+    assert run.index("spark.apply(") < run.index("maybe_local_fallback")
+    assert "import random" not in run
+
+
 def test_old_pointer_behavior_stays_reachable_by_pointing_the_file_at_an_older_seed(tmp_path):
     s003 = json.loads((ROOT / "evidence/zeref-final-spark-003/spark-seed.json").read_text())
     old = spark.RESEED_FILE

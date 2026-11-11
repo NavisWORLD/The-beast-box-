@@ -5,6 +5,10 @@ name: Zeref spark loop (Rigetti SIMULATED, continuous)
 # tick's counts. Seeded from Zeref's recorded IBM spark (no invented stats). Late ticks are recorded.
 # Each run queues the next one at its start (concurrency keeps one running + one pending); the hourly cron is the watchdog.
 # Ticks are appended to the data-only `zeref-spark` branch (Vercel deploys disabled there).
+# A SubscriptionDisabled or other subscription/auth rejection samples the same circuit on the
+# runner (statevector, free, no paid target) and appends that result under zeref/local-sim only.
+# That record is LOCAL SIMULATED, not Rigetti and not a QPU. A later successful Azure submit
+# stays on the Rigetti chain and does not write another local tick.
 on:
   schedule:
     - cron: '17 * * * *'

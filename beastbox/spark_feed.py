@@ -3,7 +3,8 @@
 Reads the `latest.json` written by scripts/zeref_spark_loop.py (data-only `zeref-spark` branch, loop
 .github/workflows/zeref-spark-loop.yml). Only the last successful simulator counts are used; a tick that
 failed does not hide the age of the last good counts (the quantum band goes stale on the routing window
-rather than being refreshed with invented numbers). Always labeled SIMULATED.
+rather than being refreshed with invented numbers). Always labeled SIMULATED. Rows tagged local-sim
+are skipped: the runner statevector is a different record and is not a rigetti.sim.qvm count.
 """
 from __future__ import annotations
 
@@ -72,6 +73,12 @@ def load_ticks(path_or_url: str, limit: int = 400) -> list[dict[str, Any]]:
             continue
         if isinstance(row, dict) and row.get("beast_id") == BEAST_ID and row.get("simulated") is True \
                 and row.get("status") == "ok" and isinstance(row.get("growth_source"), dict):
+            g = row["growth_source"]
+            # Local runner samples stay on their own chain. This loader feeds Rigetti SIMULATED
+            # conditioning only. A local-sim row is not a rigetti.sim.qvm count, tagged or not.
+            if row.get("backend") == "local-sim" or g.get("backend") == "local-sim" \
+                    or g.get("target") == "local-sim" or g.get("kind") == "local-sim":
+                continue
             out.append(row)
     return out[-limit:]
 
