@@ -10,13 +10,13 @@
   "source_path": "/spark/ibm-moonwraith-cassette-kit-20261010.json",
   "source_class": "RECORDED_IBM_HARDWARE"
  },
- "tick": 768,
- "xp": 11128,
+ "tick": 769,
+ "xp": 11138,
  "stage": 5,
  "stage_name": "Crescent Sovereign",
  "signals": {
-  "energy": 19,
-  "signal": 56,
+  "energy": 15,
+  "signal": 55,
   "memory": 100,
   "resonance": 92
  },
@@ -24,15 +24,15 @@
  "care_total": 0,
  "places": {
   "Rift Gate": 696,
-  "Lattice Arch": 349,
-  "Echo Prism": 817,
+  "Lattice Arch": 351,
+  "Echo Prism": 818,
   "Tidewell": 382,
-  "Quartz Choir": 286,
+  "Quartz Choir": 287,
   "Violet Shard": 596,
   "Selene Pool": 65
  },
- "last_tick_at": "2026-11-11T20:23:14.032Z",
- "last_entry_hash": "2c71d8f107034703c9f2930fc88b1f7515fe890f030cbb648a4ef1b495ac47e0",
+ "last_tick_at": "2026-11-11T22:04:13.117Z",
+ "last_entry_hash": "34b9faa49049f1c47ed6ee393c08aec8bff2c22e952b5cf2a65868ff6903fe2e",
  "universe_growth": 605,
  "combos_total": 425,
  "next_stage": null,
@@ -40,18 +40,18 @@
   "cells_visited": 37,
   "cells_total": 40,
   "known_rifts": 3,
-  "moves_succeeded": 11227,
-  "moves_blocked": 632,
+  "moves_succeeded": 11236,
+  "moves_blocked": 635,
   "blocked_rate": 0.053,
-  "favorite_spot": "Lattice Arch",
-  "favorite_value": 0.622,
+  "favorite_spot": "Echo Prism",
+  "favorite_value": 0.638,
   "prefs": {
    "explore": 0.05,
    "visit": 1,
    "rest": 0.086,
-   "play": 0.9615
+   "play": 0.7725
   },
-  "decisions": 6842,
+  "decisions": 6849,
   "label": "learned behaviour from its own experience, not consciousness"
  },
  "labels": {
@@ -67,6 +67,78 @@
   "source": "recorded hardware counts (birth seed, never re-run)"
  },
  "recent": [
+  {
+   "schema": "zeref-diary/v1",
+   "beast_id": "bb-7f9c2a03",
+   "tick": 769,
+   "at": "2026-11-11T22:04:13.117Z",
+   "hour_local": 16,
+   "timezone": "America/Chicago",
+   "signals": {
+    "energy": 15,
+    "signal": 55,
+    "memory": 100,
+    "resonance": 92
+   },
+   "bond": 100,
+   "mood": "sleepy",
+   "place": "Lattice Arch",
+   "places_visited": [
+    "Echo Prism",
+    "Lattice Arch",
+    "Quartz Choir"
+   ],
+   "discovered_combos": [],
+   "new_combo_count": 0,
+   "combos_total": 425,
+   "xp_gain": 10,
+   "xp": 11138,
+   "stage": 5,
+   "stage_name": "Crescent Sovereign",
+   "grew": false,
+   "care": 0,
+   "birth_spark": {
+    "provider": "IBM Quantum",
+    "backend": "ibm_marrakesh",
+    "job_id": "db4te7slf4us73c3888g",
+    "source": "recorded hardware counts (birth seed, never re-run)"
+   },
+   "growth_source": {
+    "kind": "deterministic-fallback",
+    "simulated": false,
+    "provider": "azure-quantum/rigetti",
+    "target": "rigetti.sim.qvm",
+    "job_id": null,
+    "error": "ResourceExistsError: (SubscriptionDisabled) This Azure subscription is disabled and marked as read-only. Please re-enable the subscription to use Azure Quantum.\nCode: SubscriptionDisabled\nMessage: This Azure subscription is disabled and marked as read-only. Ple"
+   },
+   "learning": {
+    "new_cells": 0,
+    "moves_succeeded": 9,
+    "moves_blocked": 3,
+    "goals": {
+     "play": 3,
+     "visit": 4
+    },
+    "cells_visited": 37,
+    "cells_total": 40,
+    "known_rifts": 3,
+    "blocked_rate": 0.053,
+    "favorite_spot": "Echo Prism",
+    "prefs": {
+     "explore": 0.05,
+     "visit": 1,
+     "rest": 0.086,
+     "play": 0.7725
+    },
+    "label": "learned behaviour from its own experience, not consciousness"
+   },
+   "thought": {
+    "text": "I am Zeref! Rainbows are the best part of London Mottor Game, and the Stathewasn (AL), the Slantic Sun\"",
+    "by": "rawrphos-native:step-37104 (raw model output, unedited)"
+   },
+   "prev_hash": "2c71d8f107034703c9f2930fc88b1f7515fe890f030cbb648a4ef1b495ac47e0",
+   "hash": "34b9faa49049f1c47ed6ee393c08aec8bff2c22e952b5cf2a65868ff6903fe2e"
+  },
   {
    "schema": "zeref-diary/v1",
    "beast_id": "bb-7f9c2a03",
@@ -857,87 +929,8 @@
    },
    "prev_hash": "87bd7a17187bcab24a3f625bcd2af42b2c29d63dcae4885c61e5d70fdbca5494",
    "hash": "9404998f6e54503b382f8faf4892b657e7957a5e7a70184866c1f6abbb255422"
-  },
-  {
-   "schema": "zeref-diary/v1",
-   "beast_id": "bb-7f9c2a03",
-   "tick": 757,
-   "at": "2026-11-11T12:32:58.216Z",
-   "hour_local": 6,
-   "timezone": "America/Chicago",
-   "signals": {
-    "energy": 94,
-    "signal": 55,
-    "memory": 100,
-    "resonance": 99
-   },
-   "bond": 100,
-   "mood": "content",
-   "place": "Echo Prism",
-   "places_visited": [
-    "Echo Prism",
-    "Lattice Arch",
-    "Tidewell",
-    "Violet Shard"
-   ],
-   "discovered_combos": [
-    {
-     "key": "hover|hover|crystal|beating|sway|half|grin",
-     "name": "hovering · beating wings · sway tail · half eyes · grin mouth at a crystal"
-    }
-   ],
-   "new_combo_count": 1,
-   "combos_total": 425,
-   "xp_gain": 13,
-   "xp": 11018,
-   "stage": 5,
-   "stage_name": "Crescent Sovereign",
-   "grew": false,
-   "care": 0,
-   "birth_spark": {
-    "provider": "IBM Quantum",
-    "backend": "ibm_marrakesh",
-    "job_id": "db4te7slf4us73c3888g",
-    "source": "recorded hardware counts (birth seed, never re-run)"
-   },
-   "growth_source": {
-    "kind": "deterministic-fallback",
-    "simulated": false,
-    "provider": "azure-quantum/rigetti",
-    "target": "rigetti.sim.qvm",
-    "job_id": null,
-    "error": "ResourceExistsError: (SubscriptionDisabled) This Azure subscription is disabled and marked as read-only. Please re-enable the subscription to use Azure Quantum.\nCode: SubscriptionDisabled\nMessage: This Azure subscription is disabled and marked as read-only. Ple"
-   },
-   "learning": {
-    "new_cells": 0,
-    "moves_succeeded": 19,
-    "moves_blocked": 1,
-    "goals": {
-     "explore": 1,
-     "play": 1,
-     "visit": 6
-    },
-    "cells_visited": 37,
-    "cells_total": 40,
-    "known_rifts": 3,
-    "blocked_rate": 0.054,
-    "favorite_spot": "Echo Prism",
-    "prefs": {
-     "explore": 0.05,
-     "visit": 1,
-     "rest": 0.05,
-     "play": 0.9149
-    },
-    "label": "learned behaviour from its own experience, not consciousness"
-   },
-   "thought": {
-    "text": "The Echo Prism (wikhsoy.",
-    "by": "rawrphos-native:step-37104 (raw model output, unedited)"
-   },
-   "prev_hash": "ec1cfab482ef31e4b95bb2454c2497f15536f54862685d5f3b695336461a56fa",
-   "hash": "87bd7a17187bcab24a3f625bcd2af42b2c29d63dcae4885c61e5d70fdbca5494"
   }
  ],
- "generated_at": "2026-11-11T20:23:14.032Z",
+ "generated_at": "2026-11-11T22:04:13.117Z",
  "thought_source_note": "rawrphos-ok"
 }
