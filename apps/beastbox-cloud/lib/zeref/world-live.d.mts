@@ -1,14 +1,15 @@
 export const WORLD_LIVE_SCHEMA:string;
 export const STALE_AFTER_S:Readonly<{spark:number;liveTick:number;diary:number}>;
-export const WORLD_LIVE_LABELS:Readonly<{spark:string;liveTick:string;diary:string;brain:string}>;
-export const WORLD_LIVE_PATHS:Readonly<{spark:{branch:string;file:string};liveTick:{branch:string;file:string};liveHead:{branch:string;file:string};diary:{branch:string;file:string}}>;
+export const LOCAL_SIM_LABEL:string;
+export const WORLD_LIVE_LABELS:Readonly<{spark:string;localSim:string;liveTick:string;diary:string;brain:string}>;
+export const WORLD_LIVE_PATHS:Readonly<{spark:{branch:string;file:string};localSpark:{branch:string;file:string};liveTick:{branch:string;file:string};liveHead:{branch:string;file:string};diary:{branch:string;file:string}}>;
 export type LinkState='CONNECTED'|'STALE'|'DOWN';
 export type StallCause='source_age'|'missing'|'failed_status'|'live_tick_behind_diary';
 export type Stall={age_s:number|null;stale_after_s:number|null;cause:StallCause;[k:string]:unknown};
 export type RiverLag={age_s:null;stale_after_s:null;cause:'live_tick_behind_diary';lag_ticks:number;diary_tick:number;live_recorded_tick:number};
 export type SenseRow={id:string;label:string;in_this_read:boolean;note:string;state:LinkState|null};
 export type Link={state:LinkState;label:string;reason?:string;stall?:Stall;[k:string]:unknown};
-export type WorldDrive={source:'spark';label:'SIMULATED';tick:number;p0:number;p1:number;p2:number;odd:number;entropy:number};
+export type WorldDrive={source:'spark'|'local-sim';label:string;tick:number;p0:number;p1:number;p2:number;odd:number;entropy:number};
 export type WorldLive={schema:string;at_ms:number;links:{spark:Link;liveTick:Link;diary:Link;brain:Link};drive:WorldDrive|null;all_connected:boolean;stalls:Record<string,Stall>|null;river:RiverLag|null;senses:SenseRow[];labels:Record<string,string>};
 export const SENSE_TRACE:readonly {id:string;label:string;in_this_read:boolean;note:string}[];
 export function liveDiaryLag(diaryTick:number,liveRecordedTick:number):RiverLag|null;
@@ -21,4 +22,4 @@ export function parseRefsTipSha(text:string|null|undefined,branch:string):string
 export function parseTipSha(apiJson:unknown):string|null;
 export function pickFresherSpark(a:unknown,b:unknown,nowMs:number):unknown;
 export function sparkNeedsTipReread(spark:unknown,nowMs:number):boolean;
-export function buildWorldLive(i:{spark?:unknown;liveTick?:unknown;liveHead?:unknown;diary?:unknown;pin?:unknown;nowMs:number}):WorldLive;
+export function buildWorldLive(i:{spark?:unknown;localSpark?:unknown;liveTick?:unknown;liveHead?:unknown;diary?:unknown;pin?:unknown;nowMs:number}):WorldLive;

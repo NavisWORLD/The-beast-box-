@@ -90,6 +90,7 @@ def main(clone, run_seconds):
             qvm.main(str(plan_p), str(rec_p))
         receipt = json.loads(rec_p.read_text())
         spark.apply(str(data), str(plan_p), str(rec_p), time.time())
+        spark.maybe_local_fallback(str(data), str(plan_p), receipt, time.time())
         tick = json.loads(plan_p.read_text())["tick"]
         if not push(clone, tick):
             print("ZEREF_SPARK_PUSH_FAILED tick", tick, flush=True)

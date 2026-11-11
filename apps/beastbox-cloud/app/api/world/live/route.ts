@@ -10,6 +10,7 @@ const RAW='https://raw.githubusercontent.com/NavisWORLD/The-beast-box-/';
 const API='https://api.github.com/repos/NavisWORLD/The-beast-box-/';
 const SRC={
  spark:RAW+'zeref-spark/zeref/latest.json',
+ localSpark:RAW+'zeref-spark/zeref/local-sim/latest.json',
  liveTick:RAW+'zeref-live-tick/live/latest.json',
  liveHead:RAW+'zeref-live-tick/live/head.json',
  diary:RAW+'zeref-diary/zeref/latest.json'
@@ -48,11 +49,17 @@ function diaryView(diaryRaw:any){
  */
 export async function GET(){
  const nowMs=Date.now();
- const [spark0,liveTick0,liveHead0,diaryRaw0]=await Promise.all([get(SRC.spark),get(SRC.liveTick),get(SRC.liveHead),get(SRC.diary)]);
- let spark=spark0,liveTick=liveTick0,liveHead=liveHead0;
- if(sparkNeedsTipReread(spark,nowMs)){
+ const [spark0,local0,liveTick0,liveHead0,diaryRaw0]=await Promise.all([get(SRC.spark),get(SRC.localSpark),get(SRC.liveTick),get(SRC.liveHead),get(SRC.diary)]);
+ let spark=spark0,localSpark=local0,liveTick=liveTick0,liveHead=liveHead0;
+ const sparkStale=sparkNeedsTipReread(spark,nowMs);
+ const localStale=sparkNeedsTipReread(localSpark,nowMs);
+ if(sparkStale){
   const fresh=await tipJson(WORLD_LIVE_PATHS.spark.branch,WORLD_LIVE_PATHS.spark.file);
   spark=pickFresherSpark(spark,fresh,nowMs);
+ }
+ if(sparkStale||localStale){
+  const freshLocal=await tipJson(WORLD_LIVE_PATHS.localSpark.branch,WORLD_LIVE_PATHS.localSpark.file);
+  localSpark=pickFresherSpark(localSpark,freshLocal,nowMs);
  }
  const headAge=liveHead0&&Number.isFinite(liveHead0.at_ms)?(nowMs-liveHead0.at_ms)/1000:null;
  if(headAge===null||headAge>600){
@@ -64,7 +71,7 @@ export async function GET(){
   if(freshHead&&Number.isFinite(freshHead.at_ms)&&(headAge===null||freshHead.at_ms>=(liveHead0?.at_ms??0)))liveHead=freshHead;
  }
  const diary=diaryView(diaryRaw0);
- const doc=buildWorldLive({spark,liveTick,liveHead,diary,pin:PIN,nowMs});
+ const doc=buildWorldLive({spark,localSpark,liveTick,liveHead,diary,pin:PIN,nowMs});
  if(doc.stalls){
   console.warn('[world-live] stall',JSON.stringify(doc.stalls));
  }

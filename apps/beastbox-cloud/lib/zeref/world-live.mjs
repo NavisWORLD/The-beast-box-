@@ -15,8 +15,10 @@
  */
 export const WORLD_LIVE_SCHEMA='beast-world-live/v1';
 export const STALE_AFTER_S=Object.freeze({spark:180,liveTick:1500,diary:5400});
+export const LOCAL_SIM_LABEL='LOCAL SIMULATED (runner statevector, not Rigetti, not a QPU)';
 export const WORLD_LIVE_LABELS=Object.freeze({
  spark:'Rigetti SIMULATED (rigetti.sim.qvm, not a QPU)',
+ localSim:LOCAL_SIM_LABEL,
  liveTick:'SIMULATED (per-second tick, deterministic)',
  diary:'RECORDED (hash-chained diary; its growth circuit is Rigetti SIMULATED)',
  brain:'RAWRPHØS pinned checkpoint (a 12D model simulation; not a claim of awareness)'
@@ -24,6 +26,7 @@ export const WORLD_LIVE_LABELS=Object.freeze({
 /** Branch + file pairs the route reads. Hosts stay in the route so this module stays free of network strings. */
 export const WORLD_LIVE_PATHS=Object.freeze({
  spark:{branch:'zeref-spark',file:'zeref/latest.json'},
+ localSpark:{branch:'zeref-spark',file:'zeref/local-sim/latest.json'},
  liveTick:{branch:'zeref-live-tick',file:'live/latest.json'},
  liveHead:{branch:'zeref-live-tick',file:'live/head.json'},
  diary:{branch:'zeref-diary',file:'zeref/latest.json'}
@@ -126,18 +129,51 @@ export function liveDiaryLag(diaryTick,liveRecordedTick){
  if(lag<=0)return null;
  return {age_s:null,stale_after_s:null,cause:'live_tick_behind_diary',lag_ticks:lag,diary_tick:diaryTick,live_recorded_tick:liveRecordedTick};
 }
-function sparkLink(spark,nowMs){
+function localRecordOk(local){
+ return !!(local&&local.backend==='local-sim'&&local.label===LOCAL_SIM_LABEL&&local.simulated===true
+  &&local.beast_id==='bb-deada969'&&local.status==='ok'&&Number.isInteger(local.tick)
+  &&Number.isFinite(Number(local.at_epoch)));
+}
+function sparkLink(spark,nowMs,localSpark){
+ const localOk=localRecordOk(localSpark);
+ const localGood=localOk&&localSpark.last_ok&&typeof localSpark.last_ok==='object'?localSpark.last_ok:null;
+ const localLast=localGood&&Number.isInteger(localGood.tick)?localGood.tick:(localOk?localSpark.tick:null);
+ const localAge=localOk?ageSeconds(nowMs,Number(localSpark.at_epoch)*1000):null;
+ const localFresh=localOk&&linkState(localAge,STALE_AFTER_S.spark)==='CONNECTED';
  const ok=spark&&spark.simulated===true&&spark.beast_id==='bb-deada969'&&Number.isInteger(spark.tick);
- if(!ok)return {state:'DOWN',label:WORLD_LIVE_LABELS.spark,reason:'no Zeref spark record',
-  stall:stall(null,STALE_AFTER_S.spark,'missing')};
+ if(!ok){
+  if(localFresh){
+   const feats=countsFeatures(localSpark.counts);
+   return {state:'CONNECTED',source:'local-sim',label:LOCAL_SIM_LABEL,tick:localSpark.tick,age_s:localAge,
+    last_ok_tick:null,local_last_ok_tick:localLast,last_ok_age_s:null,status:'local-sim',late:false,
+    consecutive_failures:0,interval_target_s:Number(localSpark.interval_target_s)||60,
+    counts_sha256:HEX.test(localSpark.counts_sha256||'')?localSpark.counts_sha256:null,features:feats,
+    stale_after_s:STALE_AFTER_S.spark};
+  }
+  return {state:'DOWN',label:WORLD_LIVE_LABELS.spark,reason:'no Zeref spark record',
+   stall:stall(null,STALE_AFTER_S.spark,'missing'),local_last_ok_tick:localLast};
+ }
  const good=spark.last_ok&&typeof spark.last_ok==='object'?spark.last_ok:null;
  const goodAge=good?ageSeconds(nowMs,Number(good.at_epoch)*1000):null;
  const age=ageSeconds(nowMs,Number(spark.at_epoch)*1000);
  const feats=good?countsFeatures(good.counts):null;
  const state=linkState(age,STALE_AFTER_S.spark)==='CONNECTED'&&linkState(goodAge,STALE_AFTER_S.spark*5)==='CONNECTED'?'CONNECTED':(age===null?'DOWN':'STALE');
- const out={state,label:WORLD_LIVE_LABELS.spark,tick:spark.tick,age_s:age,last_ok_tick:good?.tick??null,last_ok_age_s:goodAge,status:spark.status==='ok'?'ok':'failed',
+ const out={state,label:WORLD_LIVE_LABELS.spark,tick:spark.tick,age_s:age,last_ok_tick:good?.tick??null,local_last_ok_tick:localLast,last_ok_age_s:goodAge,status:spark.status==='ok'?'ok':'failed',
   late:spark.late===true,consecutive_failures:Number(spark.consecutive_failures)||0,interval_target_s:Number(spark.interval_target_s)||null,
   counts_sha256:HEX.test(spark.counts_sha256||'')?spark.counts_sha256:null,features:feats,stale_after_s:STALE_AFTER_S.spark};
+ if(state==='CONNECTED'&&spark.status==='ok'){
+  out.source='rigetti.sim.qvm';
+  return out;
+ }
+ if(localFresh){
+  const localFeats=countsFeatures(localSpark.counts);
+  return {state:'CONNECTED',source:'local-sim',label:LOCAL_SIM_LABEL,tick:spark.tick,age_s:age,
+   last_ok_tick:good?.tick??null,local_last_ok_tick:localLast,last_ok_age_s:goodAge,status:'local-sim',
+   rigetti_status:spark.status==='ok'?'ok':'failed',late:spark.late===true,
+   consecutive_failures:Number(spark.consecutive_failures)||0,interval_target_s:Number(spark.interval_target_s)||null,
+   counts_sha256:HEX.test(localSpark.counts_sha256||'')?localSpark.counts_sha256:null,features:localFeats,
+   stale_after_s:STALE_AFTER_S.spark};
+ }
  if(state!=='CONNECTED'){
   const cause=spark.status==='failed'?'failed_status':(age===null?'missing':'source_age');
   out.stall=stall(age,STALE_AFTER_S.spark,cause,{tick:spark.tick,at_epoch:Number(spark.at_epoch)||null});
@@ -172,20 +208,23 @@ function brainLink(pin){
   source:'PIN (reviewed promotion PR; the host reports the same step to /api/guest)',changes_only_by:'a reviewed promotion that passes Gate v2'};
 }
 /** Build the world-live document from the already-fetched branch records. Any input may be null (that link is DOWN, never faked). */
-export function buildWorldLive({spark=null,liveTick=null,liveHead=null,diary=null,pin=null,nowMs}){
- const links={spark:sparkLink(spark,nowMs),liveTick:liveTickLink(liveTick,liveHead,nowMs),diary:diaryLink(diary,nowMs),brain:brainLink(pin)};
+export function buildWorldLive({spark=null,localSpark=null,liveTick=null,liveHead=null,diary=null,pin=null,nowMs}){
+ const links={spark:sparkLink(spark,nowMs,localSpark),liveTick:liveTickLink(liveTick,liveHead,nowMs),diary:diaryLink(diary,nowMs),brain:brainLink(pin)};
  const states=Object.values(links).map(l=>l.state);
  const sp=links.spark;
- const drive=sp.state==='CONNECTED'&&sp.features?{source:'spark',label:'SIMULATED',tick:sp.tick,p0:sp.features.p0,p1:sp.features.p1,p2:sp.features.p2,odd:sp.features.odd,entropy:sp.features.entropy}:null;
+ const drive=sp.state==='CONNECTED'&&sp.features?(sp.source==='local-sim'
+  ?{source:'local-sim',label:LOCAL_SIM_LABEL,tick:sp.local_last_ok_tick,p0:sp.features.p0,p1:sp.features.p1,p2:sp.features.p2,odd:sp.features.odd,entropy:sp.features.entropy}
+  :{source:'spark',label:'SIMULATED',tick:sp.tick,p0:sp.features.p0,p1:sp.features.p1,p2:sp.features.p2,odd:sp.features.odd,entropy:sp.features.entropy}):null;
  const stalls=Object.fromEntries(Object.entries(links).filter(([,l])=>l&&l.stall).map(([k,l])=>[k,l.stall]));
  const river=liveDiaryLag(links.diary.tick,links.liveTick.recorded_tick);
  if(river)stalls.river=river;
  const senses=SENSE_TRACE.map(s=>{
   const link=s.id==='spark'?links.spark:s.id==='live_tick'?links.liveTick:s.id==='diary'?links.diary:s.id==='brain'?links.brain:null;
+  if(s.id==='spark'&&links.spark.source==='local-sim')return {...s,label:'LOCAL SIMULATED',note:LOCAL_SIM_LABEL,state:links.spark.state};
   return {...s,state:link?link.state:null};
  });
  return {schema:WORLD_LIVE_SCHEMA,at_ms:nowMs,links,drive,all_connected:states.every(s=>s==='CONNECTED')&&!river,
   stalls:Object.keys(stalls).length?stalls:null,river,
   senses,
-  labels:{spark:'SIMULATED',liveTick:'SIMULATED',diary:'RECORDED',brain:'PINNED'}};
+  labels:{spark:links.spark.source==='local-sim'?'LOCAL SIMULATED':'SIMULATED',liveTick:'SIMULATED',diary:'RECORDED',brain:'PINNED'}};
 }
