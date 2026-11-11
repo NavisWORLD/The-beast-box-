@@ -10,37 +10,37 @@
   "source_path": "/spark/ibm-moonwraith-cassette-kit-20261010.json",
   "source_class": "RECORDED_IBM_HARDWARE"
  },
- "tick": 752,
- "xp": 10962,
+ "tick": 753,
+ "xp": 10975,
  "stage": 5,
  "stage_name": "Crescent Sovereign",
  "signals": {
   "energy": 100,
   "signal": 50,
   "memory": 100,
-  "resonance": 96
+  "resonance": 97
  },
  "bond": 100,
  "care_total": 0,
  "places": {
   "Rift Gate": 689,
   "Lattice Arch": 338,
-  "Echo Prism": 797,
-  "Tidewell": 371,
+  "Echo Prism": 798,
+  "Tidewell": 373,
   "Quartz Choir": 278,
   "Violet Shard": 589,
   "Selene Pool": 65
  },
- "last_tick_at": "2026-11-11T09:11:23.369Z",
- "last_entry_hash": "82240760f1527ba035731b259a1e8d9759c324a73c0c6f44ff74bac2f003df57",
+ "last_tick_at": "2026-11-11T09:51:55.706Z",
+ "last_entry_hash": "663105528adfa661e99118d8c315b75a4f620e80cbfe4f336a5e43eeab524301",
  "universe_growth": 605,
- "combos_total": 423,
+ "combos_total": 424,
  "next_stage": null,
  "learning": {
   "cells_visited": 37,
   "cells_total": 40,
   "known_rifts": 3,
-  "moves_succeeded": 10969,
+  "moves_succeeded": 10991,
   "moves_blocked": 624,
   "blocked_rate": 0.054,
   "favorite_spot": "Lattice Arch",
@@ -51,7 +51,7 @@
    "rest": 0.05,
    "play": 1
   },
-  "decisions": 6713,
+  "decisions": 6723,
   "label": "learned behaviour from its own experience, not consciousness"
  },
  "labels": {
@@ -67,6 +67,83 @@
   "source": "recorded hardware counts (birth seed, never re-run)"
  },
  "recent": [
+  {
+   "schema": "zeref-diary/v1",
+   "beast_id": "bb-7f9c2a03",
+   "tick": 753,
+   "at": "2026-11-11T09:51:55.706Z",
+   "hour_local": 3,
+   "timezone": "America/Chicago",
+   "signals": {
+    "energy": 100,
+    "signal": 50,
+    "memory": 100,
+    "resonance": 97
+   },
+   "bond": 100,
+   "mood": "content",
+   "place": "Tidewell",
+   "places_visited": [
+    "Echo Prism",
+    "Tidewell"
+   ],
+   "discovered_combos": [
+    {
+     "key": "pounce|still|open-pocket|beating|flick|closed|grin",
+     "name": "pounce · beating wings · flick tail · closed eyes · grin mouth in the open pocket"
+    }
+   ],
+   "new_combo_count": 1,
+   "combos_total": 424,
+   "xp_gain": 13,
+   "xp": 10975,
+   "stage": 5,
+   "stage_name": "Crescent Sovereign",
+   "grew": false,
+   "care": 0,
+   "birth_spark": {
+    "provider": "IBM Quantum",
+    "backend": "ibm_marrakesh",
+    "job_id": "db4te7slf4us73c3888g",
+    "source": "recorded hardware counts (birth seed, never re-run)"
+   },
+   "growth_source": {
+    "kind": "deterministic-fallback",
+    "simulated": false,
+    "provider": "azure-quantum/rigetti",
+    "target": "rigetti.sim.qvm",
+    "job_id": null,
+    "error": "ResourceExistsError: (SubscriptionDisabled) This Azure subscription is disabled and marked as read-only. Please re-enable the subscription to use Azure Quantum.\nCode: SubscriptionDisabled\nMessage: This Azure subscription is disabled and marked as read-only. Ple"
+   },
+   "learning": {
+    "new_cells": 0,
+    "moves_succeeded": 22,
+    "moves_blocked": 0,
+    "goals": {
+     "explore": 1,
+     "play": 6,
+     "visit": 3
+    },
+    "cells_visited": 37,
+    "cells_total": 40,
+    "known_rifts": 3,
+    "blocked_rate": 0.054,
+    "favorite_spot": "Lattice Arch",
+    "prefs": {
+     "explore": 0.05,
+     "visit": 1,
+     "rest": 0.05,
+     "play": 1
+    },
+    "label": "learned behaviour from its own experience, not consciousness"
+   },
+   "thought": {
+    "text": "The uncertainty language of a, that believe is not how I chose to read.",
+    "by": "rawrphos-native:step-37104 (raw model output, unedited)"
+   },
+   "prev_hash": "82240760f1527ba035731b259a1e8d9759c324a73c0c6f44ff74bac2f003df57",
+   "hash": "663105528adfa661e99118d8c315b75a4f620e80cbfe4f336a5e43eeab524301"
+  },
   {
    "schema": "zeref-diary/v1",
    "beast_id": "bb-7f9c2a03",
@@ -860,81 +937,8 @@
    },
    "prev_hash": "3c38eadfdf86107381707d303e623f3e9127880d14da841836f9f50a363ea9ef",
    "hash": "34ff789135c9e084a201db55c54110785da716d4a90b4c1bedc636cd0523f714"
-  },
-  {
-   "schema": "zeref-diary/v1",
-   "beast_id": "bb-7f9c2a03",
-   "tick": 741,
-   "at": "2026-11-11T01:58:47.894Z",
-   "hour_local": 19,
-   "timezone": "America/Chicago",
-   "signals": {
-    "energy": 15,
-    "signal": 45,
-    "memory": 100,
-    "resonance": 88
-   },
-   "bond": 100,
-   "mood": "sleepy",
-   "place": "Echo Prism",
-   "places_visited": [
-    "Echo Prism",
-    "Lattice Arch",
-    "Quartz Choir",
-    "Rift Gate"
-   ],
-   "discovered_combos": [],
-   "new_combo_count": 0,
-   "combos_total": 422,
-   "xp_gain": 10,
-   "xp": 10849,
-   "stage": 5,
-   "stage_name": "Crescent Sovereign",
-   "grew": false,
-   "care": 0,
-   "birth_spark": {
-    "provider": "IBM Quantum",
-    "backend": "ibm_marrakesh",
-    "job_id": "db4te7slf4us73c3888g",
-    "source": "recorded hardware counts (birth seed, never re-run)"
-   },
-   "growth_source": {
-    "kind": "deterministic-fallback",
-    "simulated": false,
-    "provider": "azure-quantum/rigetti",
-    "target": "rigetti.sim.qvm",
-    "job_id": null,
-    "error": "ResourceExistsError: (SubscriptionDisabled) This Azure subscription is disabled and marked as read-only. Please re-enable the subscription to use Azure Quantum.\nCode: SubscriptionDisabled\nMessage: This Azure subscription is disabled and marked as read-only. Ple"
-   },
-   "learning": {
-    "new_cells": 0,
-    "moves_succeeded": 13,
-    "moves_blocked": 0,
-    "goals": {
-     "play": 1,
-     "visit": 4
-    },
-    "cells_visited": 37,
-    "cells_total": 40,
-    "known_rifts": 3,
-    "blocked_rate": 0.053,
-    "favorite_spot": "Echo Prism",
-    "prefs": {
-     "explore": 0.05,
-     "visit": 1,
-     "rest": 0.05,
-     "play": 0.9613
-    },
-    "label": "learned behaviour from its own experience, not consciousness"
-   },
-   "thought": {
-    "text": "The Echo (W. That's our world!",
-    "by": "rawrphos-native:step-37104 (raw model output, unedited)"
-   },
-   "prev_hash": "611e3a616b638c49d60431b5124049aa00e4d0cf3ab84fbfe88969860eeb24e8",
-   "hash": "3c38eadfdf86107381707d303e623f3e9127880d14da841836f9f50a363ea9ef"
   }
  ],
- "generated_at": "2026-11-11T09:11:23.369Z",
+ "generated_at": "2026-11-11T09:51:55.706Z",
  "thought_source_note": "rawrphos-ok"
 }
