@@ -191,4 +191,7 @@ test('local-sim is its own labeled source and the Rigetti last-ok stays separate
  const route=readFileSync(new URL('../app/api/world/live/route.ts',import.meta.url),'utf8');
  assert.ok(route.includes('zeref-spark/zeref/local-sim/latest.json'));
  assert.equal(WORLD_LIVE_PATHS.localSpark.file,'zeref/local-sim/latest.json');
+ const decl=readFileSync(new URL('../lib/zeref/world-live.d.mts',import.meta.url),'utf8');
+ assert.match(decl,/localSpark\?:unknown/);
+ assert.match(decl,/LOCAL_SIM_LABEL/);
 });
