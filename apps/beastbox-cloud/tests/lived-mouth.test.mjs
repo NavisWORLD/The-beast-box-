@@ -6,6 +6,7 @@ import test from 'node:test';
 import {fileURLToPath} from 'node:url';
 import {chooseOneVoice} from '../lib/zeref/one-voice.mjs';
 import {talkToBeast, talkPersona} from '../lib/companion/beast-talk.mjs';
+import {RAWRPHOS_PUBLIC_PIN} from '../lib/companion/brain.mjs';
 import {assembleBridgeContext, contextOmitsCanonicalState} from '../lib/cosmos/live-context.mjs';
 import {
   environmentIsNotCanonical, mintExchangeId, mouthReceipt, ownerTalkReceipt, speakLived,
@@ -183,7 +184,8 @@ test('public talk forwards a receipt and does not send state text', async () => 
     fetchImpl: async (_url, init) => {
       bodies.push(JSON.parse(init.body));
       return new Response(JSON.stringify({
-        provider: 'rawrphos-local', model: 'rawrphos-native', step: 37104, guest_stateless: true,
+        provider: 'rawrphos-local', model: 'rawrphos-native', step: RAWRPHOS_PUBLIC_PIN.step,
+        checkpoint_sha256: RAWRPHOS_PUBLIC_PIN.checkpoint_sha256, guest_stateless: true,
         reply: 'hello', lived_state: isolatedReceipt,
       }));
     },
@@ -197,7 +199,8 @@ test('public talk forwards a receipt and does not send state text', async () => 
   const plain = await talkToBeast({
     text: 'Hi!', persona: talkPersona({}),
     fetchImpl: async () => new Response(JSON.stringify({
-      provider: 'rawrphos-local', model: 'rawrphos-native', step: 37104, guest_stateless: true, reply: 'hello',
+      provider: 'rawrphos-local', model: 'rawrphos-native', step: RAWRPHOS_PUBLIC_PIN.step,
+      checkpoint_sha256: RAWRPHOS_PUBLIC_PIN.checkpoint_sha256, guest_stateless: true, reply: 'hello',
     })),
   });
   assert.equal(plain.ok, true);
