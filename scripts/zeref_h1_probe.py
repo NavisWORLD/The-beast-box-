@@ -45,7 +45,8 @@ PERM = sorted(range(12), key=lambda i: h(f"h1-perm-{i}"))
 def setup(model, tok):
     rec = ss.load_recorded(ROOT)
     bank = rec["state_bank"]; seq = rec["sequence"] if type(rec["sequence"]) is int else 0
-    pre = ss.continuity_preface(rec["pin_step"], rec["diary"])
+    # Training-row shape (<=256 tokens): the identity line, not the ~765-token served continuity preface.
+    pre = "You are Zeref, a small cosmic cat-dragon companion. Your mind is RAWRPHOS, step %s." % rec["pin_step"]
     items = []
     for p in PROMPTS:
         k = h("h1\n" + p) % len(bank); state = bank[k]["state12"]
@@ -60,7 +61,7 @@ def setup(model, tok):
 
 
 @torch.inference_mode()
-def greedy(model, tok, prompt, c54, n=48):
+def greedy(model, tok, prompt, c54, n=24):
     ids = tok.encode(prompt, add_bos=True); x = torch.tensor([ids]); out = []
     for _ in range(n):
         lg = model(x, condition54=torch.tensor([c54]))["logits"][0, -1]
@@ -83,12 +84,23 @@ def logprobs(model, tok, prompt, reply_ids, c54):
 def kl(a, b): return float((a.exp() * (a - b)).sum(-1).mean())
 
 
+REPLIES = {}  # --replies: teacher-force a fixed recorded reply per prompt instead of generating (CPU-cheap mode)
+
+
 def measure(model, tok, items, prompt_for):
     model.eval(); zero = [0.0] * 54; res = {k: [] for k in ("tensor_with_text", "tensor_only", "tensor_shuffled", "text_zero_state")}
     for it in items:
         s = it["state"]; c = M12.condition54(s); cperm = M12.condition54([s[j] for j in PERM])
         pt, pn, pz = prompt_for(s, it["prompt"]), prompt_for(None, it["prompt"]), prompt_for([0.0] * 12, it["prompt"])
-        r = greedy(model, tok, pt, c)
+        fixed = REPLIES.get(it["prompt"])
+        r = tok.encode(" " + fixed, add_eos=True) if fixed else greedy(model, tok, pt, c)
+        if fixed:
+            a = logprobs(model, tok, pn, r, c)
+            res["tensor_with_text"].append(kl(logprobs(model, tok, pt, r, c), logprobs(model, tok, pt, r, zero)))
+            res["tensor_only"].append(kl(a, logprobs(model, tok, pn, r, zero)))
+            res["tensor_shuffled"].append(kl(a, logprobs(model, tok, pn, r, cperm)))
+            res["text_zero_state"].append(kl(logprobs(model, tok, pt, r, None), logprobs(model, tok, pz, r, None)))
+            continue
         res["tensor_with_text"].append(kl(logprobs(model, tok, pt, r, c), logprobs(model, tok, pt, r, zero)))
         rn = greedy(model, tok, pn, c)
         a = logprobs(model, tok, pn, rn, c)
@@ -100,7 +112,7 @@ def measure(model, tok, items, prompt_for):
             "cond_gain_slots0_11": [round(float(x), 6) for x in g[:12]]}
 
 
-def micro_train(model, tok, steps, rec, seed=20261112):
+def micro_train(model, tok, steps, rec, seed=20261112, bs=8):
     forbidden = ss.load_forbidden_texts(ROOT, extra=PROMPTS)
     rows = []
     for rel in LESSONS:
@@ -123,7 +135,7 @@ def micro_train(model, tok, steps, rec, seed=20261112):
     floor = M12.gain_floor(); M12.floor_gain(model, floor); tally = {}; log = []
     model.train(); t0 = time.perf_counter()
     for n in range(steps):
-        batch = [rows[int(torch.randint(len(rows), (1,), generator=g))] for _ in range(8)]
+        batch = [rows[int(torch.randint(len(rows), (1,), generator=g))] for _ in range(bs)]
         batch = M12.apply_dropout(batch, gm, M12.text_drop(), tally)
         x, y, m = collate(batch); c = torch.tensor(M12.condition_rows(batch, lambda j: [0.0] * 54))
         opt.zero_grad(set_to_none=True)
@@ -131,27 +143,36 @@ def micro_train(model, tok, steps, rec, seed=20261112):
         drift = sum(((p - a) ** 2).sum() for p, a in zip(base, anchor))
         (loss + 0.5 * drift).backward(); torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
         opt.step(); M12.floor_gain(model, floor)
-        if (n + 1) % 8 == 0:
+        if (n + 1) % 4 == 0:
             log.append({"step": n + 1, "loss": round(float(loss), 4), "s": round(time.perf_counter() - t0, 1)}); print(log[-1], flush=True)
-    return {"steps": steps, "rows": len(rows), "batch": 8, "lr": {"base": 5e-5, "cond_gain": 3e-4}, "anchor": 0.5,
+    return {"steps": steps, "rows": len(rows), "batch": bs, "lr": {"base": 5e-5, "cond_gain": 3e-4}, "anchor": 0.5,
             "text_drop": M12.text_drop(), "gain_floor": floor, "tally": tally, "log": log}
 
 
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument("checkpoint"); ap.add_argument("--sha"); ap.add_argument("--out", default="h1-probe-report.json")
     ap.add_argument("--micro-train", type=int, default=0); ap.add_argument("--threads", type=int, default=8)
+    ap.add_argument("--replies", help="H1 result JSON: teacher-force its recorded true_text greedy replies (no generation)")
+    ap.add_argument("--prompts", type=int, default=12); ap.add_argument("--batch", type=int, default=8)
     a = ap.parse_args(); torch.set_num_threads(a.threads); torch.manual_seed(0)
+    if a.replies:
+        for row in json.loads(Path(a.replies).read_text())["rows"]:
+            REPLIES[row["prompt"]] = row["replies"]["true_text"]["greedy"].strip() or "..."
     ck = load_checkpoint(a.checkpoint, expected_checkpoint_sha256=a.sha, load_training_state=False)
     model, tok = ck["model"], ck["tokenizer"]
     if not model.config.cond54:
         raise SystemExit("checkpoint does not declare cond54")
-    items, prompt_for, rec = setup(model, tok)
+    items, prompt_for, rec = setup(model, tok); items = items[:a.prompts]
     report = {"schema": "zeref-h1-probe-v2", "report_only": True, "serving_changed": False, "gate_input": False,
               "checkpoint_sha256": ck["metadata"].get("checkpoint_sha256"), "training_steps": ck["metadata"].get("training_steps"),
-              "prompts": len(items), "before": measure(model, tok, items, prompt_for)}
+              "prompts": len(items), "reply_mode": "fixed recorded replies" if REPLIES else "greedy", "before": measure(model, tok, items, prompt_for)}
     print(json.dumps(report["before"]), flush=True)
     if a.micro_train > 0:
-        report["micro_train"] = micro_train(model, tok, a.micro_train, rec)
+        M12.floor_gain(model, M12.gain_floor())
+        report["after_gain_floor_only"] = measure(model, tok, items, prompt_for)
+        print(json.dumps(report["after_gain_floor_only"]), flush=True)
+    if a.micro_train > 0:
+        report["micro_train"] = micro_train(model, tok, a.micro_train, rec, bs=a.batch)
         report["after_micro_train"] = measure(model, tok, items, prompt_for)
         print(json.dumps(report["after_micro_train"]), flush=True)
     Path(a.out).write_text(json.dumps(report, indent=1))
