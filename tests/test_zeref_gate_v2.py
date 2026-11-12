@@ -29,7 +29,10 @@ def test_short_round_lineage():
     assert ns["expected_steps"](44)==32304 and ns["expected_steps"](45)==32304+320 and ns["expected_steps"](46)==32304+640
 def test_frozen_rotation_and_spike_guard():
     w=Path(".github/workflows/zeref-continuous-learning-006.yml").read_text()
-    assert 'ZEREF_CHAT_ROTATE_SEED="${{ github.run_id }}"' not in w and "zeref-gate-v2-20261023" in w
+    # Rotation is seeded by the cycle number (Cory, 2026-11-12), never the run id.
+    assert 'ZEREF_CHAT_ROTATE_SEED="${{ github.run_id }}"' not in w
+    assert 'rotate_seed="zeref-gate-v2-20261023-cycle-$((parent_cycle + 1))"' in w
+    assert 'ZEREF_CHAT_ROTATE_SEED="${rotate_seed}" python scripts/zeref_chat_corpus.py' in w
     s=Path("scripts/zeref_continuation_006.py").read_text()
     assert "ZEREF_006_SKIPPED_BATCH=" in s and "clip_grad_norm_(model.parameters(),1." in s and "ZEREF_006_BATCH=" in s
 
