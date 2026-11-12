@@ -220,9 +220,14 @@ async function foreverDoor(request:Request,allowedCrossOrigin:boolean):Promise<R
   if(!parsed||typeof parsed!=='object'||Array.isArray(parsed))
    return safeJson(502,{error:'Invalid guest host response'});
   const result=parsed as Record<string,unknown>;
-  if(!res.ok)
-   return safeJson([400,403,429,503].includes(res.status)?res.status:502,
-     {error:typeof result.error==='string'&&result.error.length<128?result.error:'Local guest inference unavailable'});
+  if(!res.ok){
+   const out=safeJson([400,403,429,503].includes(res.status)?res.status:502,
+     {error:typeof result.error==='string'&&result.error.length<128?result.error:'Local guest inference unavailable',
+      // The bridge's own wait hint (it already queued this message briefly before answering 429).
+      ...(res.status===429&&Number.isInteger(result.retry_after_seconds)?{retry_after_seconds:Math.min(60,Math.max(1,result.retry_after_seconds as number))}:{})});
+   if(res.status===429)out.headers.set('Retry-After',String(Number.isInteger(result.retry_after_seconds)?Math.min(60,Math.max(1,result.retry_after_seconds as number)):5));
+   return out;
+  }
   // memory_used may be true ONLY on the bridge's persisted Hebbian mode
   // (PR #675); any other memory claim is still an unverified response.
   if(result.schema!=='beastbox-guest-local-v1'||result.model!=='rawrphos-native'||

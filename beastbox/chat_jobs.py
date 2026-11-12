@@ -6,15 +6,34 @@ falsely claiming success or silently replaying a possibly committed turn.
 """
 from __future__ import annotations
 
+import os
 import re
 import secrets
 import threading
 import time
+from collections import deque
 from typing import Any, Callable
 
 _REQUEST_ID = re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\Z")
 _JOB_ID = re.compile(r"[A-Za-z0-9_-]{32}\Z")
 TTL_SECONDS = 900
+
+# Guest wait line (Cory, 2026-11-11: "let's lift that so it's faster as it should").
+# The native model is single-flight (its engine lock refuses overlap), so the
+# guest slot stays one-at-a-time; instead of answering 429 the moment it is
+# taken, a guest request now waits in a short FIFO line for it. Bounded: at
+# most GUEST_QUEUE_MAX waiters, each for at most GUEST_WAIT_SECONDS; past
+# either bound the caller still gets the same 429 + retry hint as before.
+# Per-guest and global per-minute caps (guest_local.GuestQuota) are unchanged.
+def _bounded_env(name: str, default: int, low: int, high: int) -> int:
+    try:
+        return max(low, min(high, int(os.environ.get(name, str(default)))))
+    except ValueError:
+        return default
+
+
+GUEST_WAIT_SECONDS = _bounded_env("BEASTBOX_GUEST_WAIT_SECONDS", 20, 0, 30)
+GUEST_QUEUE_MAX = _bounded_env("BEASTBOX_GUEST_QUEUE_MAX", 8, 0, 32)
 
 # A fixed diagnostic vocabulary: upstream bodies and credentials are never
 # returned to the browser. Retain exact failure identity without auto-retry.
@@ -38,6 +57,11 @@ class ChatJobs:
         self._requests: dict[str, str] = {}
         self._active: str | None = None
         self._guest_active = False
+        # Shares self._lock, so every existing `with self._lock:` still guards the same state.
+        self._cond = threading.Condition(self._lock)
+        self._guest_line: deque[object] = deque()
+        self.guest_wait_seconds = GUEST_WAIT_SECONDS
+        self.guest_queue_max = GUEST_QUEUE_MAX
 
     def _prune(self) -> None:
         now = time.monotonic()
@@ -64,17 +88,47 @@ class ChatJobs:
             )
         return data
 
-    def acquire_guest(self) -> bool:
-        """No guest may overlap an owner job or a different guest request."""
-        with self._lock:
-            if self._active is not None or self._guest_active:
+    def acquire_guest(self, wait_seconds: float | None = None) -> bool:
+        """No guest may overlap an owner job or a different guest request.
+
+        A guest arriving while the slot is taken waits its turn (FIFO) for up to
+        ``wait_seconds`` (default GUEST_WAIT_SECONDS) instead of being refused at
+        once. False when the line is full or the wait runs out.
+        """
+        wait = self.guest_wait_seconds if wait_seconds is None else max(0.0, float(wait_seconds))
+        with self._cond:
+            if self._active is None and not self._guest_active and not self._guest_line:
+                self._guest_active = True
+                return True
+            if wait <= 0 or len(self._guest_line) >= self.guest_queue_max:
                 return False
-            self._guest_active = True
-            return True
+            ticket = object()
+            self._guest_line.append(ticket)
+            deadline = time.monotonic() + wait
+            try:
+                while True:
+                    if (self._guest_line[0] is ticket and self._active is None
+                            and not self._guest_active):
+                        self._guest_line.popleft()
+                        self._guest_active = True
+                        return True
+                    left = deadline - time.monotonic()
+                    if left <= 0:
+                        return False
+                    self._cond.wait(left)
+            finally:
+                if ticket in self._guest_line:  # timed out: leave the line, let the next one look
+                    self._guest_line.remove(ticket)
+                    self._cond.notify_all()
+
+    def guest_line_length(self) -> int:
+        with self._lock:
+            return len(self._guest_line)
 
     def release_guest(self) -> None:
-        with self._lock:
+        with self._cond:
             self._guest_active = False
+            self._cond.notify_all()
 
     def run_when_idle(self, action: Callable[[], tuple[int, dict[str, Any]]]) -> tuple[int, dict[str, Any]]:
         """Serialize an owner model/credential change with job admission."""
@@ -152,6 +206,7 @@ class ChatJobs:
                     record["finished_at"] = time.monotonic()
                 if self._active == job_id:
                     self._active = None
+                    self._cond.notify_all()  # a waiting guest may go now
 
     def get(self, job_id: str) -> tuple[int, dict[str, Any]]:
         if not isinstance(job_id, str) or not _JOB_ID.fullmatch(job_id):

@@ -19,6 +19,7 @@ export function withGuestCors(response,origin){
  if(allowed){
   response.headers.set('Access-Control-Allow-Origin',allowed);
   response.headers.append('Vary','Origin');
+  response.headers.set('Access-Control-Expose-Headers','Retry-After');
  }
  return response;
 }

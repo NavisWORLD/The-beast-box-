@@ -917,7 +917,8 @@ class OwnerBridge:
                 # spark is recorded even though the guest slot is busy, and the
                 # 429 carries the receipt so the client can hold and resend.
                 body = {"error": "Owner inference or local guest slot is busy",
-                        "retry_after_seconds": 5}
+                        "retry_after_seconds": 5,
+                        "waited_seconds": self.chat_jobs.guest_wait_seconds}
                 tick = record_guest_spark(self.root, data.get("guest_identity")) \
                     if isinstance(data, dict) else None
                 if tick is not None:
@@ -933,7 +934,7 @@ class OwnerBridge:
             if isinstance(data, dict) and set(data) & CLIENT_STATE_KEYS:
                 return 400, {"error": "Invalid bounded guest request"}
             if not self.chat_jobs.acquire_guest():
-                return 429, {"error": "Owner inference or local guest slot is busy"}
+                return 429, {"error": "Owner inference or local guest slot is busy", "retry_after_seconds": 5}
             try:
                 from beastbox.reason_codes import timed_guest_call
                 return timed_guest_call("guest-growing", lambda: growing_infer(self.root, data))
