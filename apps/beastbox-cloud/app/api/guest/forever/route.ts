@@ -8,6 +8,7 @@ import {DIARY_SCHEMA,entryHash,genesisState} from '@/lib/zeref/zeref-diary.mjs';
 import PUBLIC_PIN from '@/lib/rawrphos-public-pin.json';
 import {bridgeReadsMemory,loadSelfMemory,readSelfMemory,ownThreadItems,SELF_MEMORY_LABEL,SELF_MEMORY_SCHEMA,teacherJoinPending} from '@/lib/zeref/self-memory.mjs';
 import {after} from 'next/server';
+import {guestCorsOrigin,guestCorsPreflight,withGuestCors} from '@/lib/guest-cors.mjs';
 import {environmentIsNotCanonical,mintExchangeId,mouthReceipt,ownerChainWrite} from '@/lib/zeref/lived-exchange.mjs';
 
 // FOREVER CONNECTION — the stateful guest door (LIFE-LIVE step 3).
@@ -104,8 +105,20 @@ function threadFromCookie(request:Request):string|null{
  return null;
 }
 
+// CORS (lib/guest-cors.mjs): the only cross-origin caller is Zeref's GitHub Pages chat
+// (https://navisworld.github.io). It gets the same door, limits and records; only the
+// browser read grant differs. Every other origin is still refused below.
+export async function OPTIONS(request:Request){
+ return guestCorsPreflight(request.headers.get('origin'));
+}
+
 export async function POST(request:Request){
- if(request.headers.get('origin')!==new URL(request.url).origin)
+ const cors=guestCorsOrigin(request.headers.get('origin'));
+ return withGuestCors(await foreverDoor(request,cors!==null),cors);
+}
+
+async function foreverDoor(request:Request,allowedCrossOrigin:boolean):Promise<Response>{
+ if(!allowedCrossOrigin&&request.headers.get('origin')!==new URL(request.url).origin)
   return safeJson(403,{error:'Same-origin guest request required'});
  if(!request.headers.get('content-type')?.toLowerCase().startsWith('application/json'))
   return safeJson(415,{error:'JSON required'});
@@ -252,7 +265,7 @@ export async function POST(request:Request){
   const lived=mouthReceipt(result.lived_state,{exchangeId:livedExchangeId,scope:'visitor',spokenBy:'gated',environment:item.environment});
   environmentIsNotCanonical(item.environment);
   const headers:Record<string,string>={'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'};
-  if(minted)headers['Set-Cookie']=`${COOKIE}=${threadId}; Path=/; HttpOnly; SameSite=Lax; Max-Age=31536000${request.url.startsWith('https:')?'; Secure':''}`;
+  if(minted&&!allowedCrossOrigin)headers['Set-Cookie']=`${COOKIE}=${threadId}; Path=/; HttpOnly; SameSite=Lax; Max-Age=31536000${request.url.startsWith('https:')?'; Secure':''}`;
   return Response.json({provider:'rawrphos-local',model:'rawrphos-native',
    step:PIN_STEP,checkpoint_sha256:PIN_SHA,reply,
    hebbian:result.hebbian===true,hebbian_mode:hebbianMode,guest_thread:guestThread,
