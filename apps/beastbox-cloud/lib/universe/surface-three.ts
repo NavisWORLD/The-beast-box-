@@ -2,6 +2,7 @@
 // hash dissolve LOD from the README (clumps shrink to nothing before they fade, so nothing pops). Seeded streams only.
 import {GROUND_ASSETS,TREE_KINDS,GRASS,LOD,plantGround,plantTrees} from './groundcover.mjs';
 import {GC_MODELS,TREE_MODELS} from './surface-data.mjs';
+import {DEPTH_LOD} from './depth-bands.mjs';
 // Alive props (Cosmo's aliveprops v1): same art, plus breathing rock cracks, humming crystals (brighter within 3 m of a
 // creature), swaying mushrooms and flower heads turning to the sun (aFacing/uSunDir in object space). Per-instance aPhase/aLife
 // come from lwStream (recorded-IBM seed), never an unseeded RNG. Each flower type's heads are merged into ONE InstancedMesh.
@@ -52,7 +53,7 @@ function patch(THREE:T,mat:any,cfg:{h:number;near:number;far:number;inner:number
    else{float lim=mix(uNear,uFar,aHash);fs=clamp((lim-dM)/(lim*.2),0.,1.);}
    if(uIn>0.)fs*=clamp((dM-uIn*.8)/(uIn*.2),0.,1.);
    float hh=clamp(position.y/uH,0.,1.);float w=hh*hh*uWind*(sin(uTime*1.3+wp0.x*.21/uMPU+wp0.z*.17/uMPU)*.08+sin(uTime*3.1+wp0.x/uMPU)*.02);
-   transformed.x+=w*uH*.15;transformed.z+=w*uH*.1;${gl?GV:'float gS=1.;'}transformed*=fs*gS;/* Park: ground cover shrinks away as the camera climbs to orbit, so it never reads as black speckle on the planet */transformed*=1.0-smoothstep(uPkR*.25,uPkR*.5,length(cameraPosition)-uPkR);`+(fpT&&!fpG?`transformed*=mix(1.,smoothstep(uFpC*.75,uFpC,dM),uFp36);`:''));
+   transformed.x+=w*uH*.15;transformed.z+=w*uH*.1;${gl?GV:'float gS=1.;'}transformed*=fs*gS;/* Park: ground cover shrinks away as the camera climbs to orbit, so it never reads as black speckle on the planet */transformed*=1.0-smoothstep(uPkR*${DEPTH_LOD.groundIn.toFixed(3)},uPkR*${DEPTH_LOD.groundOut.toFixed(3)},length(cameraPosition)-uPkR); /* depth bands (lib/universe/depth-bands.mjs): canopy to sky */`+(fpT&&!fpG?`transformed*=mix(1.,smoothstep(uFpC*.75,uFpC,dM),uFp36);`:''));
   if(fpT&&!fpG)s.vertexShader='uniform float uFp36,uFpC;\n'+s.vertexShader;
   if(head)s.vertexShader=s.vertexShader.replace('#include <beginnormal_vertex>','#include <beginnormal_vertex>\n objectNormal=rotUp(normalize(aFacing))*objectNormal;');
   if(fpG)s.fragmentShader='uniform float uFp36;\n'+s.fragmentShader.replace('#include <color_fragment>','#include <color_fragment>\n {float lu=clamp(dot(diffuseColor.rgb,vec3(.2126,.7152,.0722))*1.6,0.,1.);vec3 m36=mix(vec3(.026,.105,.011),mix(vec3(.073,.262,.023),vec3(.262,.527,.069),smoothstep(.45,1.,lu)),smoothstep(0.,.5,lu));diffuseColor.rgb=mix(diffuseColor.rgb,m36,uFp36);}').replace('#include <emissivemap_fragment>','#include <emissivemap_fragment>\n totalEmissiveRadiance=mix(totalEmissiveRadiance,vec3(.012,.035,.006)*dot(totalEmissiveRadiance,vec3(.333)),uFp36);'); /* first person (target 36): the tip glow (teal #89FFED / lilac #CBA0FF emissive) fades to a faint green, so the lit colour comes from the one sun, not the glow */ /* first person (target 36): near grass goes lush green (MEADOW36 #2C5A1C/#4C8C2A/#8CC04A in linear), no lilac/teal; shading stays the one sun's light. Off (0) in the Cage and orbit. */
