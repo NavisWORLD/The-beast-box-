@@ -234,6 +234,18 @@ async function foreverDoor(request:Request,allowedCrossOrigin:boolean):Promise<R
    if(res.status===429)out.headers.set('Retry-After',String(Number.isInteger(result.retry_after_seconds)?Math.min(60,Math.max(1,result.retry_after_seconds as number)):5));
    return out;
   }
+  // PIN LAG (Nov 12, 1:00 PM CT): a promotion merge redeploys this site in about a minute, but the
+  // bridge takes several minutes to load the new checkpoint. In that window the bridge honestly
+  // reports its older step. That reply is still refused (it is not the pinned brain), but the
+  // visitor is told the true reason with a wait hint instead of a bare "unverified" 502.
+  // The full verification below is unchanged.
+  if(result.schema==='beastbox-guest-local-v1'&&result.model==='rawrphos-native'&&
+     Number.isInteger(result.step)&&(result.step as number)<PIN_STEP){
+   const lag=safeJson(503,{error:'His brain was just promoted and his door is still loading it. Try again in a few minutes.',
+    pin_step:PIN_STEP,bridge_step:result.step,retry_after_seconds:60});
+   lag.headers.set('Retry-After','60');
+   return lag;
+  }
   // memory_used may be true ONLY on the bridge's persisted Hebbian mode
   // (PR #675); any other memory claim is still an unverified response.
   if(result.schema!=='beastbox-guest-local-v1'||result.model!=='rawrphos-native'||
