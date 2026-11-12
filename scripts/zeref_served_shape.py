@@ -22,6 +22,16 @@ DIARY_PATH = Path("evidence/rawrphos-closed-loop-002/zeref-diary-ticks-1-18.json
 DYN12_PATH = Path("apps/beastbox-cloud/public/spark/zeref-live-20261010/unsigned-session.json")
 LINEAGE_PATH = Path("apps/beastbox-cloud/public/spark/zeref-live-20261010/qbeast.json")
 GATE_PATH = Path(__file__).resolve().parent / "zeref_gate_sets_v2.json"
+# Per-row recorded 12D (Cory, 2026-11-12): each served-shape row takes its own
+# state12 from committed, recorded engine traces instead of one frozen vector.
+# Values are rounded to STATE_DECIMALS so the descriptor costs ~60 tokens and
+# leaves room for prior turns. Selection is a seeded hash, never an RNG.
+STATE_BANK_PATHS = (
+    Path("evidence/final-whole-organism-001/conversation/routing-trace.jsonl"),
+    Path("evidence/final-reality-bridge/conversations/zeref/routing-trace.jsonl"),
+)
+STATE_DECIMALS = 2
+STATE_SEED = "zeref-served-shape-state-v1"
 
 
 def _hash_int(text):
@@ -90,7 +100,12 @@ def _unavailable(reason):
     })
 
 
-def descriptor_from_recorded(state12, sequence):
+def round_state(state12, decimals=STATE_DECIMALS):
+    """Recorded values, rounded for the prompt only (never invented, never rescaled)."""
+    return [round(float(item), decimals) + 0.0 for item in state12]
+
+
+def descriptor_from_recorded(state12, sequence, decimals=None):
     """The mouth's project_descriptor, or its unavailable record when the 12D is absent."""
     if (
         not isinstance(state12, list) or len(state12) != 12
@@ -101,7 +116,7 @@ def descriptor_from_recorded(state12, sequence):
     from beastbox.hashutil import sha256_obj
     from beastbox.lived_events import BASIS, CANONICAL_SUBJECT, blank_channels
     from beastbox.lived_prompt import project_descriptor
-    state = [float(item) for item in state12]
+    state = [float(item) for item in state12] if decimals is None else round_state(state12, decimals)
     text = project_descriptor({
         "subject_id": CANONICAL_SUBJECT,
         "scope": "owner",
@@ -138,7 +153,41 @@ def load_recorded(root=None):
         events = json.loads(lineage.read_text()).get("events") or []
         if events and type(events[0].get("generation")) is int:
             sequence = events[0]["generation"]
-    return {"pin_step": pin_step, "diary": diary, "state12": state12, "sequence": sequence}
+    bank = load_state_bank(root)
+    return {"pin_step": pin_step, "diary": diary, "state12": state12, "sequence": sequence, "state_bank": bank}
+
+
+def load_state_bank(root=None):
+    """Distinct recorded dyn12 vectors from committed engine traces, in file order."""
+    root = Path(root) if root is not None else Path(".")
+    bank, seen = [], set()
+    for rel in STATE_BANK_PATHS:
+        path = root / rel
+        if not path.is_file():
+            continue
+        for number, line in enumerate(path.read_text().splitlines(), 1):
+            if not line.strip():
+                continue
+            vector = json.loads(line).get("dyn12")
+            if (not isinstance(vector, list) or len(vector) != 12
+                    or any(type(x) not in (int, float) or isinstance(x, bool) for x in vector)):
+                continue
+            key = tuple(float(x) for x in vector)
+            if key in seen:
+                continue
+            seen.add(key)
+            bank.append({"state12": [float(x) for x in vector], "source": f"{rel.as_posix()}#L{number}"})
+    return bank
+
+
+def row_state(row, recorded, seed=STATE_SEED):
+    """This row's recorded state12 (seeded pick from the bank), or the single recorded vector."""
+    bank = recorded.get("state_bank") or []
+    if not bank:
+        return recorded.get("state12"), None
+    key = "\n".join((seed, row.get("source") or "", row.get("user") or ""))
+    pick = bank[_hash_int(key) % len(bank)]
+    return pick["state12"], pick["source"]
 
 
 def load_forbidden_texts(root=None, extra=()):
@@ -310,7 +359,9 @@ def build_messages(row, priors, recorded, encode, limit=TOKEN_CAP):
     line drops last.
     """
     from beastbox.hashutil import canonical_json
-    exact = descriptor_from_recorded(recorded.get("state12"), recorded.get("sequence"))
+    state12, _source = row_state(row, recorded)
+    decimals = STATE_DECIMALS if recorded.get("state_bank") else None
+    exact = descriptor_from_recorded(state12, recorded.get("sequence"), decimals)
     parsed = json.loads(exact)
     diary = list(recorded.get("diary") or [])
     pin_step = recorded["pin_step"]
@@ -421,6 +472,7 @@ def apply_served_shape(rows, forbidden, recorded, encode, seed=SELECTION_SEED, f
     for index, row in enumerate(rows):
         by_source.setdefault(row.get("source") or "", []).append(index)
     kept = 0
+    states_used, priors_kept = set(), []
     for index, row in enumerate(rows):
         user = row.get("user") or ""
         assistant = row.get("assistant") or ""
@@ -442,14 +494,29 @@ def apply_served_shape(rows, forbidden, recorded, encode, seed=SELECTION_SEED, f
         updated = dict(row)
         updated["served_shape"] = True
         updated["messages"] = messages
+        _state, state_source = row_state(row, recorded)
+        if state_source:
+            updated["state12_source"] = state_source
+            states_used.add(state_source)
+        priors_kept.append(sum(1 for m in messages if m.get("role") == "assistant"))
         rows[index] = updated
         kept += 1
+    bank = recorded.get("state_bank") or []
     return {
         "fraction": fraction,
         "selection_seed": seed,
         "rows": kept,
         "token_cap": limit,
         "loss": "final assistant answer only",
+        "state12": {
+            "per_row": bool(bank),
+            "bank_size": len(bank),
+            "distinct_used": len(states_used),
+            "decimals": STATE_DECIMALS if bank else None,
+            "selection_seed": STATE_SEED if bank else None,
+            "label": "RECORDED engine traces (committed), rounded for the prompt",
+        },
+        "prior_turns_kept": {str(n): priors_kept.count(n) for n in sorted(set(priors_kept))},
     }
 
 
