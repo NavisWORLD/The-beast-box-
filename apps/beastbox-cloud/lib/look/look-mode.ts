@@ -1,9 +1,10 @@
-// Classic stays the default. Genesis and Park are presentation choices and do not write world state.
+// Park is the default look (Cory, Nov 12 2026: upgrade the whole universe). Classic and Genesis stay selectable.
+// All three are presentation choices and do not write world state.
 // Park builds on Genesis: it draws the same Genesis ground, then grades it. Classic and Genesis are unchanged by it.
 export const LOOKS=Object.freeze(['classic','genesis','park'] as const);
 export type Look=(typeof LOOKS)[number];
 export const LOOK_KEY='beastbox.look.v1';
-export const DEFAULT_LOOK:Look='classic';
+export const DEFAULT_LOOK:Look='park';
 export const LOOK_EVENT='beastbox:look';
 
 type Store={getItem?(key:string):string|null;setItem?(key:string,value:string):void;removeItem?(key:string):void;key?(index:number):string|null;length?:number}|null|undefined;
@@ -23,7 +24,7 @@ export function lookLabel(look:Look){return look==='park'?'Look: Park':look==='g
 /** Classic -> Genesis -> Park -> Classic. */
 export function nextLook(look:Look):Look{return look==='classic'?'genesis':look==='genesis'?'park':'classic';}
 
-/** The look currently saved on this page. Classic when storage is missing. */
+/** The look currently saved on this page. Park (the default) when storage is missing. */
 export function currentLook():Look{
  try{return readLook((globalThis as {localStorage?:Store}).localStorage);}catch{return DEFAULT_LOOK;}
 }

@@ -21,7 +21,7 @@ const read=p=>readFileSync(new URL(p,root),'utf8');
 const mem=()=>{const m=new Map();return {getItem:k=>m.has(k)?m.get(k):null,setItem:(k,v)=>m.set(k,String(v)),removeItem:k=>m.delete(k),key:i=>[...m.keys()][i]??null,get length(){return m.size;}};};
 const posHash=geo=>{const a=geo.attributes.position.array;return createHash('sha256').update(Buffer.from(a.buffer,a.byteOffset,a.byteLength)).digest('hex');};
 
-test('Classic is the default and a look switch does not change world state',()=>{
+test('Park is the default and a look switch does not change world state',()=>{
  const s=mem();
  s.setItem('lw:universe','{"seed":"s","tick":3}');
  s.setItem('lw:spawned','1');

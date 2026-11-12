@@ -98,7 +98,7 @@ import {isTypingTarget,isScrollPanel,fpLookKeyStep} from '@/lib/universe/fp-look
 import {createPostChain} from '@/lib/universe/post-chain-three';
 import {writeTierOverride,nextTier,qualityLabel} from '@/lib/universe/post-tiers.mjs';
 import {presentationTier} from '@/lib/look/tiers';
-import {readLook,writeLook,nextLook,lookLabel,isLook,usesGenesisBase} from '@/lib/look/look-mode';
+import {readLook,writeLook,nextLook,lookLabel,isLook,usesGenesisBase,DEFAULT_LOOK} from '@/lib/look/look-mode';
 import {attachGenesisLook} from '@/lib/look/attach';
 import {attachParkLook,PARK_LABEL} from '@/lib/look/park';
 import {attachParkPlanet} from '@/lib/look/park-planet';
@@ -130,7 +130,7 @@ export default function LivingWorld({genome,beastKey,beastName,onClose,embedded=
  const [camMode,setCamMode]=useState<string|null>(null);const camModeRef=useRef<string|null>(null);camModeRef.current=camMode;
  const [land2d,setLand2d]=useState<string|null>(null); /* P0: per-view 2D fallback seed when this view's WebGL is unavailable or lost */
  const [qTier,setQTier]=useState<string|null>(null);const qTierRef=useRef<string|null>(null);qTierRef.current=qTier;
- const [look,setLook]=useState<string>('classic');const lookRef=useRef('classic');lookRef.current=look;
+ const [look,setLook]=useState<string>(DEFAULT_LOOK);const lookRef=useRef<string>(DEFAULT_LOOK);lookRef.current=look;
  const [creatureOn]=useCageCreature();const creatureRef=useRef(creatureOn);creatureRef.current=creatureOn;
  const orbitOutRef=useRef(onOrbitOut);orbitOutRef.current=onOrbitOut;const [beachCam,setBeachCam]=useState(false);const seaJump=useRef(0);const beachCamRef=useRef(false);beachCamRef.current=beachCam;
  const host=useRef<HTMLDivElement>(null);const hudBiome=useRef<HTMLSpanElement>(null);const hudSea=useRef<HTMLSpanElement>(null);const hudVL=useRef<HTMLSpanElement>(null);const hudGN=useRef<HTMLSpanElement>(null);const hudHome=useRef<HTMLSpanElement>(null);const hudGNx=useRef<HTMLParagraphElement>(null);const canvasRef=useRef<HTMLCanvasElement>(null);
@@ -1059,7 +1059,7 @@ uniform vec3 uPlay[8];uniform vec3 uPlayT[8];uniform float uWindK;uniform float 
    <button type="button" data-lw-view={viewMode} onClick={()=>{const m=!spawned?(viewMode==='orbit'?'first':viewMode):nextViewMode(viewMode); /* #751: before Spawn in, one tap spawns you into the preset the chip names (First person by default) instead of cycling it to Behind */if(!spawned){if(m!==viewMode){writeViewMode(localStorage,m);setViewMode(m);window.dispatchEvent(new Event(VIEW_MODE_EVENT));}setSpawned(true);if(m==='first')(window as any).__lwSetZoom?.(0);return;}writeViewMode(localStorage,m);setViewMode(m);window.dispatchEvent(new Event(VIEW_MODE_EVENT));if(viewModeCamera(m).eye){if(!spawned)setSpawned(true);(window as any).__lwSetZoom?.(0);}}} /* GENESIS X: the First person chip enters first person like Spawn in */ style={{...btn('#2d2363'),fontSize:12,padding:'6px 10px',whiteSpace:'normal',lineHeight:1.25,textAlign:'right'}}>{viewChipLabel(viewMode,beastName,spawned)}</button>
    <span data-lw-motion title="Grass sway, water and creature motion are SIMULATED on the one world clock (240 s day): a designed look, not a measurement." style={{fontSize:11,padding:'4px 8px',borderRadius:999,background:'rgba(20,16,48,.72)',color:'#d9d2ff'}}>Motion · SIMULATED</span>
    {qTier?<button type="button" data-lw-quality={qTier} title="Post effects are a SEEDED look (Cosmo's p1post pack): a designed screen effect, not a measurement. Tap to change; remembered on this device." onClick={()=>{const t=nextTier(qTier);writeTierOverride(localStorage,t);setQTier(t);}} style={{...btn('#2d2363'),fontSize:12,padding:'6px 10px'}}>{qualityLabel(qTier)}</button>:null}
-   <button type="button" data-lw-look={look} title="Classic keeps today's picture. Genesis is a presentation look: the same seeded land, with haze, sky and water. Park is Genesis with a bright meadow grade. None of them change the world." onClick={()=>{const n=nextLook(isLook(look)?look:'classic');writeLook(localStorage,n);lookRef.current=n;setLook(n);}} style={{...btn('#2d2363'),fontSize:12,padding:'6px 10px'}}>{lookLabel(isLook(look)?look:'classic')}</button>
+   <button type="button" data-lw-look={look} title="Park is the default look. Classic keeps the original picture. Genesis is a presentation look: the same seeded land, with haze, sky and water. Park is Genesis with a bright meadow grade. None of them change the world." onClick={()=>{const n=nextLook(isLook(look)?look:DEFAULT_LOOK);writeLook(localStorage,n);lookRef.current=n;setLook(n);}} style={{...btn('#2d2363'),fontSize:12,padding:'6px 10px'}}>{lookLabel(isLook(look)?look:DEFAULT_LOOK)}</button>
    {usesGenesisBase(look)?<span data-lw-genesis-motion title="Waves, haze and sky drift follow the one world clock. Terrain shape stays SEEDED." style={{fontSize:11,padding:'4px 8px',borderRadius:999,background:'rgba(20,16,48,.72)',color:'#d9d2ff'}}>{MOTION_LABEL}</span>:null}
    {look==='park'?<span data-lw-park style={{fontSize:11,padding:'4px 8px',borderRadius:999,background:'rgba(20,16,48,.72)',color:'#d9d2ff'}}>{PARK_LABEL}</span>:null}
    {usesGenesisBase(look)?<span data-lw-waves style={{fontSize:11,padding:'4px 8px',borderRadius:999,background:'rgba(20,16,48,.72)',color:'#d9d2ff'}}>{WATER_LABEL}</span>:null}

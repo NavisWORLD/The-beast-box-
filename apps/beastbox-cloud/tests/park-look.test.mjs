@@ -12,7 +12,7 @@ const root=new URL('../',import.meta.url);
 const read=p=>readFileSync(new URL(p,root),'utf8');
 const mem=()=>{const m=new Map();return {getItem:k=>m.has(k)?m.get(k):null,setItem:(k,v)=>m.set(k,String(v)),removeItem:k=>m.delete(k),key:i=>[...m.keys()][i]??null,get length(){return m.size;}};};
 
-test('Park is a third opt-in look; Classic stays the default and the world is untouched',()=>{
+test('Park is the third look and the default; Classic and Genesis stay selectable and the world is untouched',()=>{
  assert.deepEqual([...LOOKS],['classic','genesis','park']);
  assert.ok(isLook('park'));
  assert.equal(lookLabel('park'),'Look: Park');
@@ -23,8 +23,13 @@ test('Park is a third opt-in look; Classic stays the default and the world is un
  assert.equal(usesGenesisBase('genesis'),true);
  assert.equal(usesGenesisBase('classic'),false);
  const s=mem();s.setItem('lw:universe','{"seed":"s","tick":3}');
- assert.equal(readLook(s),'classic');
+ assert.equal(readLook(s),'park');
  const before=snapshotWorld(s);
+ writeLook(s,'classic');
+ assert.equal(readLook(s),'classic');
+ assert.deepEqual(snapshotWorld(s),before);
+ writeLook(s,'genesis');
+ assert.equal(readLook(s),'genesis');
  writeLook(s,'park');
  assert.equal(readLook(s),'park');
  assert.deepEqual(snapshotWorld(s),before);
