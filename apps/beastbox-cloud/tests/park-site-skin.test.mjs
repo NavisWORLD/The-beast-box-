@@ -11,12 +11,9 @@ test('Park site skin is scoped to html[data-look=park] and uses the Park palette
  assert.ok(!/Math\.random|url\(["']?https?:/i.test(css));
 });
 
-test('layout marks the default look before paint and keeps Classic and Genesis selectable',()=>{
+test('layout always marks Park, with no look chooser left on the page',()=>{
  const lay=read('app/layout.tsx');
  assert.ok(lay.includes("import './park-skin.css'"));
- assert.match(lay,/data-look=\{DEFAULT_LOOK\}/);
- assert.match(lay,/v==='classic'\|\|v==='genesis'\|\|v==='park'/);
- const skin=read('components/look-skin.tsx');
- assert.ok(skin.includes('LOOK_EVENT')&&skin.includes("'storage'"));
- assert.ok(!/Math\.random/.test(skin));
+ assert.match(lay,/<html lang="en" data-look="park">/);
+ assert.doesNotMatch(lay,/look-skin|lookBoot/);
 });

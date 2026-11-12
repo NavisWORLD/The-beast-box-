@@ -10,7 +10,7 @@ import {useBeastSession} from './beast-session';
 import {useUniverseMotion} from './use-universe-motion';
 import {beastIdentity,shownName} from '../lib/companion/session.mjs';
 import {DEFAULT_POCKET_3D,POCKET_3D_EVENT,POCKET_3D_KEY,readPocket3D,savePocket3D} from '../lib/companion/pocket-3d-settings.mjs';
-import {readLook,writeLook,isLook,DEFAULT_LOOK,type Look} from '../lib/look/look-mode';
+import {readLook} from '../lib/look/look-mode';
 import {presentationTier} from '../lib/look/tiers';
 import {qualityLabel,writeTierOverride} from '../lib/universe/post-tiers.mjs';
 import {publicBrainProvider} from '../lib/companion/public-brain-bay.mjs';
@@ -23,21 +23,16 @@ export default function UniverseSettings(){
  const [notice,setNotice]=useState('');
  const [pocket3d,setPocket3d]=useState<{enabled:boolean;quality:string;neonWire?:boolean}>({...DEFAULT_POCKET_3D});
  const [pocketReady,setPocketReady]=useState(false);
- const [look,setLook]=useState<Look>(DEFAULT_LOOK);
  const [tier,setTier]=useState('MED');
  useEffect(()=>{
   const sync=()=>{try{setPocket3d(readPocket3D(window.localStorage));}catch{setPocket3d({...DEFAULT_POCKET_3D});}};
   const changed=(event:StorageEvent)=>{if(event.key===POCKET_3D_KEY)sync();};
   sync();setPocketReady(true);window.addEventListener('storage',changed);
   const phone=matchMedia('(max-width: 820px)').matches||/iPhone|iPad|Android/.test(navigator.userAgent);
-  try{setLook(readLook(window.localStorage));}catch{setLook(DEFAULT_LOOK);}
+  try{readLook(window.localStorage);}catch{} /* Park is the one look; this clears a look saved by the old chooser */
   try{setTier(presentationTier(window.localStorage,{phone,cores:navigator.hardwareConcurrency,memoryGB:(navigator as {deviceMemory?:number}).deviceMemory,reducedMotion:matchMedia('(prefers-reduced-motion: reduce)').matches}));}catch{setTier(phone?'MED':'HIGH');}
   return()=>window.removeEventListener('storage',changed);
  },[]);
- function changeLook(next:Look){
-  try{setLook(writeLook(window.localStorage,next));setNotice('Look saved on this device. The world, its beasts and its clock are unchanged.');}
-  catch{setNotice('Look could not be saved. Nothing in the world was changed.');}
- }
  function changeTier(next:string){
   try{writeTierOverride(window.localStorage,next);setTier(next);setNotice('Quality saved on this device. The world itself is unchanged.');}
   catch{setNotice('Quality could not be saved. Nothing in the world was changed.');}
@@ -104,12 +99,8 @@ export default function UniverseSettings(){
       </select>
      </div>
      <div className={styles.volume}>
-      <label htmlFor="world-look">Look</label>
-      <select id="world-look" data-look-choice className={styles.qualitySelect} value={look} onChange={event=>changeLook(isLook(event.target.value)?event.target.value:DEFAULT_LOOK)}>
-       <option value="classic">Classic</option>
-       <option value="genesis">Genesis</option>
-       <option value="park">Park</option>
-      </select>
+      <span id="world-look">Look</span>
+      <p data-look-park>Park: bright sky, meadow, water and haze, on every device. Phones and slower machines get a lighter version.</p>
      </div>
      <div className={styles.volume}>
       <label htmlFor="world-quality">World quality</label>

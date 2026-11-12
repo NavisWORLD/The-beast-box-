@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {LOOKS,readLook,writeLook,lookLabel,nextLook,isLook,usesGenesisBase,snapshotWorld} from '../lib/look/look-mode.ts';
+import {readLook,currentLook,isLook,usesGenesisBase,snapshotWorld,LOOK_KEY,PARK_ONLY} from '../lib/look/look-mode.ts';
 import {PARK_DAY,PARK_NIGHT,PARK_COST,parkGrade,hexRgb,saturation} from '../lib/look/park-palette.ts';
 import {PARK_VARIANTS,editShader,attachParkLook,PARK_LABEL} from '../lib/look/park.ts';
 import {attachGenesisLook} from '../lib/look/attach.ts';
@@ -12,26 +12,14 @@ const root=new URL('../',import.meta.url);
 const read=p=>readFileSync(new URL(p,root),'utf8');
 const mem=()=>{const m=new Map();return {getItem:k=>m.has(k)?m.get(k):null,setItem:(k,v)=>m.set(k,String(v)),removeItem:k=>m.delete(k),key:i=>[...m.keys()][i]??null,get length(){return m.size;}};};
 
-test('Park is the third look and the default; Classic and Genesis stay selectable and the world is untouched',()=>{
- assert.deepEqual([...LOOKS],['classic','genesis','park']);
+test('Park is the only look: no chooser, an old saved choice is cleared, and the world is untouched',()=>{
+ assert.equal(PARK_ONLY,true);
  assert.ok(isLook('park'));
- assert.equal(lookLabel('park'),'Look: Park');
- assert.equal(nextLook('classic'),'genesis');
- assert.equal(nextLook('genesis'),'park');
- assert.equal(nextLook('park'),'classic');
  assert.equal(usesGenesisBase('park'),true);
- assert.equal(usesGenesisBase('genesis'),true);
- assert.equal(usesGenesisBase('classic'),false);
+ assert.equal(currentLook(),'park');
  const s=mem();s.setItem('lw:universe','{"seed":"s","tick":3}');
- assert.equal(readLook(s),'park');
  const before=snapshotWorld(s);
- writeLook(s,'classic');
- assert.equal(readLook(s),'classic');
- assert.deepEqual(snapshotWorld(s),before);
- writeLook(s,'genesis');
- assert.equal(readLook(s),'genesis');
- writeLook(s,'park');
- assert.equal(readLook(s),'park');
+ for(const old of ['classic','genesis','park']){s.setItem(LOOK_KEY,old);assert.equal(readLook(s),'park');assert.equal(s.getItem(LOOK_KEY),null);}
  assert.deepEqual(snapshotWorld(s),before);
 });
 
@@ -112,7 +100,7 @@ test('Classic and Genesis frames are identical with Park mounted; Park swaps twi
  }
 });
 
-test('Park adds no light, no clock and no unseeded draw, and the page wiring keeps Classic and Genesis',()=>{
+test('Park adds no light, no clock and no unseeded draw, and the page shows Park with no look chooser',()=>{
  for(const f of ['lib/look/park.ts','lib/look/park-palette.ts','lib/look/park-grass.ts','lib/look/park-planet.ts']){
   const s=read(f);
   assert.doesNotMatch(s,/Math\.random|setInterval|setTimeout|Date\.now|performance\.now/,f);
@@ -121,9 +109,8 @@ test('Park adds no light, no clock and no unseeded draw, and the page wiring kee
  }
  const lw=read('components/living-world.tsx');
  assert.match(lw,/attachParkLook\(THREE,genesis/);
- assert.match(read('components/universe-settings.tsx'),/<option value="park">Park<\/option>/);
- assert.match(read('components/universe-settings.tsx'),/<option value="genesis">Genesis<\/option>/);
- assert.match(read('components/universe-settings.tsx'),/<option value="classic">Classic<\/option>/);
+ assert.doesNotMatch(read('components/universe-settings.tsx'),/<option value="(classic|genesis|park)">/);
+ assert.match(lw,/data-lw-look="park"/);
 });
 
 test('Park grass: seeded layout per tier, phone-safe MED, no blades in water, still on LOW and in reduced motion',async()=>{
