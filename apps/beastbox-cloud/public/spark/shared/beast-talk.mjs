@@ -10,7 +10,6 @@ import { Stream } from "../engine.mjs";
 import { beastIdentity, shownName } from "./session.mjs";
 import { gameObservationLine } from "./native-optics.mjs";
 import { ownerChatBody, interpretModelResult, RAWRPHOS_PUBLIC_PIN } from "./brain.mjs";
-import { mintExchangeId, mouthReceipt, ownerTalkReceipt } from "../zeref/lived-exchange.mjs";
 import { fitMessage } from "../library/text.mjs";
 import { MAX_TYPED_CHARS, BRAIN, readBudgetNote } from "../library/limits.mjs";
 
@@ -269,8 +268,7 @@ export async function talkToBeast(input) {
       if(payload?.state!=="done")return failure(route,payload?.error||(TERMINAL.has(payload?.state)?`Brain Bay chat job ${payload.state}. No reply was received.`:"Brain Bay did not finish within 55 seconds. No reply was received."));
       const read=interpretModelResult("owner-bridge",payload);
       if(!read.ok||!read.reply||read.reply.length>6000)return failure(route,read.reason||"No verified Brain Bay reply.");
-      const lived=ownerTalkReceipt(payload,await mintExchangeId("owner","owner",text));
-      return {ok:true,route,reply:read.reply,model:clean(status.providerKind||"Brain Bay",80),label:ROUTE_INFO[route].label,at:Date.now(),...(lived?{lived_state:lived}:{})};
+      return {ok:true,route,reply:read.reply,model:clean(status.providerKind||"Brain Bay",80),label:ROUTE_INFO[route].label,at:Date.now()};
     }
     if (route === "shared-ollama") {
       const response = await fetchImpl("/api/teacher/ollama", {
@@ -353,8 +351,7 @@ export async function talkToBeast(input) {
     const read = interpretModelResult("guest-rawrphos", payload);
     if (!read.ok || !read.reply || read.reply.length > 6000) return failure(route, read.reason || "The guest brain sent no verified reply.");
     const promptChars = Number.isFinite(payload?.prompt_chars) ? payload.prompt_chars : undefined;
-    const lived = mouthReceipt(payload?.lived_state, {exchangeId: payload?.lived_state?.exchange_id, scope: "guest", spokenBy: payload?.lived_state?.spoken_by});
-    return { ok: true, route, reply: read.reply, model: oneVoiceLabel(payload, read.step ?? RAWRPHOS_PUBLIC_PIN.step), label: ROUTE_INFO[route].label, at: Date.now(), read: readInfo(text, GUEST_LIMIT, libraryBlock(library, GUEST_LIMIT).length), promptChars, ...(lived ? {lived_state: lived} : {}) };
+    return { ok: true, route, reply: read.reply, model: oneVoiceLabel(payload, read.step ?? RAWRPHOS_PUBLIC_PIN.step), label: ROUTE_INFO[route].label, at: Date.now(), read: readInfo(text, GUEST_LIMIT, libraryBlock(library, GUEST_LIMIT).length), promptChars };
   } catch (error) {
     if (signal?.aborted) return failure(route, "The request was cancelled or timed out. No reply was received.");
     if (fetchFailed(error)) {
