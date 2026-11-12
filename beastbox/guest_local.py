@@ -26,6 +26,7 @@ import time
 import urllib.error
 import urllib.request
 
+from . import heart_decoding
 from .guest_hebbian import (MAX_TEXT_WITH_CONTEXT, GuestHebbianStore,
                             assemble_messages, guest_key, memory_in_prompt,
                             persist_enabled, validate_context)
@@ -285,7 +286,15 @@ def guest_local_infer(root: Path, payload: dict, *, owner_jobs_busy: bool = Fals
             routing = None
         lived_receipt = None
         spoken = payload["text"].strip()
-        if backbone_ready():
+        plain_turn = heart_decoding.plain_turn_enabled()
+        if plain_turn:
+            # BEASTBOX_NATIVE_PLAIN_TURN=on (default off): only the current line, in the
+            # trained `user: ...` shape. The thread is still loaded and saved below.
+            messages = [{"role": "user", "content": spoken}]
+            if backbone_ready():
+                exchange = guest_view(payload["guest_identity"], exchange_id)
+                lived_receipt = exchange.receipt(included=False, omitted_current_text_bytes=0, delivered_text=None)
+        elif backbone_ready():
             messages, lived_receipt = fit_guest(
                 context, history, spoken, guest_view(payload["guest_identity"], exchange_id),
             )
@@ -293,8 +302,15 @@ def guest_local_infer(root: Path, payload: dict, *, owner_jobs_busy: bool = Fals
             messages = assemble_messages(context, history, spoken)
         else:
             messages = [{"role": "user", "content": spoken}]
+        heart_receipt = None
+        temperature = CHAT_TEMPERATURE
+        if heart_decoding.enabled():
+            # BEASTBOX_HEART_DECODING=on (default off): temperature from his heart. Guest
+            # mouths never read the owner 12D chain, so only the heartbeat feeds it here.
+            heart_receipt = heart_decoding.heart_temperature(heart_decoding.read_heartbeat(), None, "isolated")
+            temperature = heart_receipt["temperature"]
         request_body = {"model": MODEL, "messages": messages,
-                        "max_tokens": MAX_OUTPUT_TOKENS, "temperature": CHAT_TEMPERATURE,
+                        "max_tokens": MAX_OUTPUT_TOKENS, "temperature": temperature,
                         "seed": _request_seed(payload["guest_identity"], payload["text"].strip()),
                         "stream": False}
         if routing is not None and ready.get("cond54") is True:  # only a model that declares cond54 is conditioned
@@ -335,7 +351,7 @@ def guest_local_infer(root: Path, payload: dict, *, owner_jobs_busy: bool = Fals
         return 200, {"schema": SCHEMA, "model": MODEL, "step": STEP,
                      "checkpoint_sha256": SHA, "reply": text,
                      # True only when a persisted thread actually fed this reply.
-                     "memory_used": persisted and len(history) > 0,
+                     "memory_used": persisted and len(history) > 0 and not plain_turn,
                      **({"routing": public_routing} if public_routing else {}),
                      # Fast weights: "persisted" = the guest's thread was restored
                      # into this request and the exchange appended (guest_hebbian);
@@ -352,7 +368,9 @@ def guest_local_infer(root: Path, payload: dict, *, owner_jobs_busy: bool = Fals
                      # Self-memory receipt: present only when the site sent a memory field (others unchanged).
                      **({"self_memory_in_prompt": memory_in_prompt(context, messages)}
                         if context and context.get("memory") else {}),
-                     **({"lived_state": lived_receipt} if lived_receipt else {})}
+                     **({"lived_state": lived_receipt} if lived_receipt else {}),
+                     **({"heart_decoding": heart_receipt} if heart_receipt else {}),
+                     **({"plain_turn": True} if plain_turn else {})}
     except (OSError, TimeoutError, ValueError, TypeError, KeyError, IndexError, urllib.error.HTTPError) as exc:
         from .reason_codes import reason_for
         return 502, {"error": "Native guest inference unavailable; no fallback", "reason": reason_for(exc)}
