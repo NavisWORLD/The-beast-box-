@@ -15,6 +15,9 @@ on:
       - 'scripts/zeref_round_recovery.py'
       - 'models/rawrphos/tests/test_round_recovery.py'
       - 'tests/zeref_round_recovery_contract.test.cjs'
+      - 'scripts/zeref_promotion_rule.py'
+      - 'tests/test_zeref_promotion_rule.py'
+      - 'tests/zeref_recovery_decision_contract.test.cjs'
   schedule:
     - cron: '17 */6 * * *'
   workflow_dispatch:
@@ -391,19 +394,10 @@ jobs:
           set -Eeuo pipefail
           test -s build/public-14k/model.safetensors
           python -u scripts/rawrphos_chat_eval.py build/public-14k build/zeref-006/accepted-checkpoint build/zeref-006/chat-eval.json
-          # Absolute promotion bar (fix 002): not worse than 14000 on every metric AND ref_nll below the CURRENT pin's.
-          python - <<'PY'
-          import json
-          pin=json.load(open('apps/beastbox-cloud/lib/rawrphos-public-pin.json'));ev=json.load(open('build/zeref-006/chat-eval.json'))
-          # Gate v2 (2026-10-23): the bar is the PIN re-scored in THIS run on the 100-item set A by the
-          # training gate (same pair_nll formula as the candidate), not a stored number from the old 20-item set.
-          rep=json.load(open('build/zeref-006/report.json'));g=rep.get('recipe') or {}
-          bar=g.get('chat_before_nll') or (pin.get('promotion') or {}).get('candidate_ref_nll') or ev['baseline']['ref_nll']
-          c=ev['candidate']['ref_nll'];tol=0.005;ok=bool(ev['chat_not_worse'] and c<=bar*(1+tol))  # 2026-10-22: 0.5% tolerance on the selection set; the strict check is fresh set B in the training gate
-          d={'schema':'zeref-promotion-decision-v1','candidate_ref_nll':c,'pin_ref_nll_bar':bar,'tolerance':tol,'rule':'within 0.5% of pin on set A AND fresh held-out set B not worse (training gate)','chat_not_worse_vs_14000':ev['chat_not_worse'],'promote':ok}
-          json.dump(d,open('build/zeref-006/promotion-decision.json','w'),indent=1)
-          print('ZEREF_PROMOTION_DECISION='+json.dumps(d),flush=True)
-          PY
+          # Promotion predicate lives in scripts/zeref_promotion_rule.py (loosened by Cory 2026-11-12 2:37 PM CT;
+          # the old strict rule is kept there as STRICT_2026_10_22 for a one-line revert). Leaks stay a hard zero.
+          # The bar is still the pin re-scored in THIS run; the module prints ZEREF_PROMOTION_DECISION=.
+          python -u scripts/zeref_promotion_rule.py apps/beastbox-cloud/lib/rawrphos-public-pin.json build/zeref-006/report.json build/zeref-006/chat-eval.json build/zeref-006/promotion-decision.json
       - name: Persist final scored evidence (after chat evaluation, including honest rejection)
         if: always() && hashFiles('build/zeref-006/report.json') != ''
         uses: actions/upload-artifact@v4
@@ -478,7 +472,9 @@ jobs:
           PYTHONPATH=.:models python -m unittest discover -s models/rawrphos/tests -p test_round_recovery.py
           python -m unittest discover -s tests -p test_zeref_resume_parent.py
           python -m unittest discover -s tests -p test_zeref_served_shape.py
-          python -m py_compile scripts/zeref_continuation_006.py scripts/zeref_round_recovery.py scripts/zeref_resume_parent.py scripts/zeref_served_shape.py scripts/zeref_chat_corpus.py
+          python -m unittest discover -s tests -p test_zeref_promotion_rule.py
+          python -m unittest discover -s tests -p test_rawrphos_public_pin.py
+          python -m py_compile scripts/zeref_continuation_006.py scripts/zeref_round_recovery.py scripts/zeref_resume_parent.py scripts/zeref_served_shape.py scripts/zeref_chat_corpus.py scripts/zeref_promotion_rule.py
   score-interrupted:
     # Independent runner/timeout: job cancellation cannot consume the scoring reserve.
     # Never publishes weights or approval; the pin and every numeric gate stay untouched.
@@ -563,18 +559,8 @@ jobs:
         if: steps.download-recovery.outcome == 'success'
         run: |
           set -Eeuo pipefail
-          # Byte-identical rule to the training job's promotion step (contract-tested); report-only here.
-          python - <<'PY'
-          import json
-          pin=json.load(open('apps/beastbox-cloud/lib/rawrphos-public-pin.json'));ev=json.load(open('build/zeref-006/recovery-chat-eval.json'))
-          rep=json.load(open('build/zeref-006/report.json'));g=rep.get('recipe') or {}
-          bar=g.get('chat_before_nll') or (pin.get('promotion') or {}).get('candidate_ref_nll') or ev['baseline']['ref_nll']
-          c=ev['candidate']['ref_nll'];tol=0.005;ok=bool(ev['chat_not_worse'] and c<=bar*(1+tol))  # 2026-10-22: 0.5% tolerance on the selection set; the strict check is fresh set B in the training gate
-          d={'schema':'zeref-promotion-decision-v1','candidate_ref_nll':c,'pin_ref_nll_bar':bar,'tolerance':tol,'rule':'within 0.5% of pin on set A AND fresh held-out set B not worse (training gate)','chat_not_worse_vs_14000':ev['chat_not_worse'],'promote':ok}
-          d.update({'report_only':True,'publication_performed':False,'source':'interrupted-round recovery'})
-          json.dump(d,open('build/zeref-006/recovery-promotion-decision.json','w'),indent=1)
-          print('ZEREF_RECOVERY_PROMOTION_DECISION='+json.dumps(d),flush=True)
-          PY
+          # Same rule module as the training job's promotion step (contract-tested); report-only here.
+          python -u scripts/zeref_promotion_rule.py apps/beastbox-cloud/lib/rawrphos-public-pin.json build/zeref-006/report.json build/zeref-006/recovery-chat-eval.json build/zeref-006/recovery-promotion-decision.json '{"report_only":true,"publication_performed":false,"source":"interrupted-round recovery"}'
       - name: Persist independent interrupted-round scores or honest failure
         if: always()
         uses: actions/upload-artifact@v4

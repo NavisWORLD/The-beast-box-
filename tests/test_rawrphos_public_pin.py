@@ -8,7 +8,7 @@ class PublicPin(unittest.TestCase):
         if pin["promotion"] is None:
             self.assertEqual((r.STEP, r.SHA), (r.BASE_STEP, r.BASE_SHA))
         else:
-            self.assertTrue(pin["promotion"]["chat_not_worse"])
+            self.assertTrue(r._promotion_rule_passed(pin["promotion"]))
             self.assertEqual((r.STEP, r.SHA), (pin["training_steps"], pin["checkpoint_sha256"]))
     def _with(self, payload):
         old = r.PIN_PATH
@@ -26,4 +26,16 @@ class PublicPin(unittest.TestCase):
                 "checkpoint_sha256": "a" * 64, "promotion": {"chat_not_worse": True, "baseline_sha256": r.BASE_SHA,
                 "candidate_sha256": "a" * 64, "release_tag": "zeref-006-cycle-9-aaaa", "chat_eval_sha256": "b" * 64}}
         self.assertEqual(self._with(good), (15000, "a" * 64))
+    def test_loose_promotion_without_chat_not_worse_serves_when_leak_free(self):
+        good = {"schema": "rawrphos-public-pin-v1", "model_id": "rawrphos-native", "training_steps": 15000,
+                "checkpoint_sha256": "a" * 64, "promotion": {"chat_not_worse": False, "promotion_rule": "loose-2026-11-12",
+                "candidate_leaks": 0, "promote": True, "baseline_sha256": r.BASE_SHA,
+                "candidate_sha256": "a" * 64, "release_tag": "zeref-006-cycle-9-aaaa", "chat_eval_sha256": "b" * 64}}
+        self.assertEqual(self._with(good), (15000, "a" * 64))
+    def test_loose_promotion_with_a_leak_keeps_14000(self):
+        bad = {"schema": "rawrphos-public-pin-v1", "model_id": "rawrphos-native", "training_steps": 15000,
+               "checkpoint_sha256": "a" * 64, "promotion": {"chat_not_worse": False, "promotion_rule": "loose-2026-11-12",
+               "candidate_leaks": 1, "promote": True, "baseline_sha256": r.BASE_SHA,
+               "candidate_sha256": "a" * 64, "release_tag": "zeref-006-cycle-9-aaaa", "chat_eval_sha256": "b" * 64}}
+        self.assertEqual(self._with(bad), (r.BASE_STEP, r.BASE_SHA))
 if __name__ == "__main__": unittest.main()
