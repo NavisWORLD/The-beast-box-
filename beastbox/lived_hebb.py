@@ -7,6 +7,7 @@ hash of its bytes. That drive is not a sensor measurement.
 from __future__ import annotations
 
 import hashlib
+import math
 import os
 from typing import Any, Mapping, Sequence
 
@@ -95,6 +96,20 @@ def _hebb_drive(weights: Sequence[Sequence[float]], state: Sequence[float]) -> l
     return drive
 
 
+def _step12(state: list[float], drive: list[float], step: int, retain: float) -> list[float]:
+    """v1 goes through the sealed beastbox/dyn12.py unchanged; the tuned rule uses the same
+    published formula with its own memory (retain) term. dyn12.py itself is sealed evidence."""
+    if retain == RETAIN:
+        return update_dyn12(state, drive, step=step)
+    if len(state) != 12:
+        raise ValueError("dyn12 state must contain exactly 12 scalars")
+    d = list(drive) or [0.0]
+    return [
+        math.tanh(retain * float(x) + 0.14 * float(d[i % len(d)]) + 0.015 * math.sin((step + 1) * (i + 1) * 0.17320508075688773))
+        for i, x in enumerate(state)
+    ]
+
+
 def recorded_transition(
     state: Sequence[float],
     weights: Sequence[Sequence[float]],
@@ -115,7 +130,7 @@ def recorded_transition(
         mixed = [base[i] + params["blend"] * hebb[i] for i in range(12)]
     else:
         mixed = list(base)
-    nxt = update_dyn12(list(state), mixed, step=int(step), retain=params["retain"])
+    nxt = _step12(list(state), mixed, int(step), params["retain"])
     post = [abs(float(item)) for item in nxt]
     return {
         "state12": nxt,
