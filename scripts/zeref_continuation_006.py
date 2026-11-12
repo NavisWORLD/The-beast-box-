@@ -287,6 +287,11 @@ HEBBIAN_LR=float(os.environ.get("ZEREF_HEBBIAN_LR","0.0003"))  # new params star
 # lr * ZEREF_GEAR_LR_MULT. 0 (default) = off = the exact old [base, hebbian] groups. Gears stay in the
 # L2 anchor exactly as before; only their step size changes. Gate, eval, pin and steps are unchanged.
 GEAR_LR_MULT=float(os.environ.get("ZEREF_GEAR_LR_MULT","0"))
+# 12D into the mouth (Cory, 2026-11-12 4:03 PM CT), ZEREF_12D_MOUTH=1, default 0 = off = byte-identical
+# training. Served rows are conditioned on their own recorded state12 (tensor), the descriptor text is
+# hidden on ZEREF_12D_TEXT_DROP of them, and cond_gain[0:12] is floored. See scripts/zeref_mouth12_train.py.
+import zeref_mouth12_train as M12
+MOUTH12=M12.enabled();MOUTH12_INFO={}
 GEAR_PARAM_RE=re.compile(r"blocks\.\d+\.(attn\.(gate_logit|log_sigma)|transition\.(k|g12|gamma))")
 OPT_RESUME=[]
 def map_optimizer_state(sd,model,groups_now,meta,parent_model=None):
@@ -378,6 +383,11 @@ def train_variant(parent_path,tokenizer,pool,seed,chat_pool=(),chat_eval=None,lr
  if COND54 and model.config.state_mode=="tri" and not model.config.cond54 and cond54_bank():
   from rawrphos.architecture.model import upgrade_to_cond54
   model=upgrade_to_cond54(model)  # zero gain: identical logits at upgrade; gain joins the fresh optimizer group
+ if MOUTH12 and model.config.cond54:
+  MOUTH12_INFO.update({"enabled":True,"text_drop":M12.text_drop(),"gain_floor":M12.gain_floor(),
+   "gain_slots0_11_parent":[round(float(x),6) for x in model.cond_gain.detach()[:12]],
+   "gain_slots0_11_after_floor":M12.floor_gain(model,M12.gain_floor()),"tally":{}})
+  print("ZEREF_12D_MOUTH_INIT="+json.dumps(MOUTH12_INFO,sort_keys=True),flush=True)
  base=model.base_parameters();hebb=model.hebbian_parameters();parent_model=model
  if GROW_LAYERS:
   # 008 repeatable growth: function-preserving depth expansion (identical logits at growth).
@@ -422,6 +432,7 @@ def train_variant(parent_path,tokenizer,pool,seed,chat_pool=(),chat_eval=None,lr
  class_w=torch.tensor([len(by[c])**0.5 for c in classes],dtype=torch.float)
  g=torch.Generator().manual_seed(seed)
  gc=torch.Generator().manual_seed(seed^0xC054)  # separate stream: data order (g) is unchanged by conditioning
+ gm=torch.Generator().manual_seed(seed^0x12D0)  # 12D text-dropout stream (flag on only); g and gc unchanged
  logs=[];best=None;gnorms=[];SKIPPED.clear()
  ema={k:v.detach().clone() for k,v in model.state_dict().items()} if EMA_DECAY>0 else None  # 008 running average
  data_summary={"chat_rows":len(chat_pool),"chat_mix_sha256":hash_file(CHAT_MIX) if CHAT_MIX.is_file() else None,
@@ -456,11 +467,16 @@ def train_variant(parent_path,tokenizer,pool,seed,chat_pool=(),chat_eval=None,lr
    for r in cb:src[r.get("source","chat")]+=1
   if PRETRAIN_POOL and PRETRAIN_PER_BATCH>0:
    batch+=[PRETRAIN_POOL[int(torch.randint(len(PRETRAIN_POOL),(1,),generator=g))] for _ in range(PRETRAIN_PER_BATCH)];src["pretrain"]+=PRETRAIN_PER_BATCH
+  m12_on=MOUTH12 and model.config.cond54
+  if m12_on:batch=M12.apply_dropout(batch,gm,M12.text_drop(),MOUTH12_INFO.setdefault("tally",{}))
   x,y,m=collate(batch)
   cond=None
   if model.config.cond54 and _COND_BANK:
    rowsc=[[0.]*54 if float(torch.rand(1,generator=gc))<COND54_DROP else cond54_pick(_COND_BANK,batch[j],n*len(batch)+j) for j in range(len(batch))]
+   if m12_on:rowsc=M12.condition_rows(batch,lambda j:rowsc[j])  # state rows: their own recorded state12
    cond=torch.tensor(rowsc,dtype=torch.float32)
+  elif m12_on and any(r.get("state12") is not None for r in batch):
+   cond=torch.tensor(M12.condition_rows(batch,lambda j:[0.]*54),dtype=torch.float32)
   out=model(x,targets=y,attention_mask=m,**({} if cond is None else {"condition54":cond}));loss=out["loss"]
   # Decision-token loss: the shared "ACTION: " prefix dominated the mean
   # token loss, so the one token that names the key barely trained.
@@ -487,6 +503,7 @@ def train_variant(parent_path,tokenizer,pool,seed,chat_pool=(),chat_eval=None,lr
    opt.zero_grad(set_to_none=True);continue
   gnorms.append(gn)
   opt.step();applied+=1
+  if MOUTH12 and model.config.cond54:M12.floor_gain(model,M12.gain_floor())
   if ema is not None:
    with torch.no_grad():
     for k,v in model.state_dict().items():
@@ -512,6 +529,9 @@ def train_variant(parent_path,tokenizer,pool,seed,chat_pool=(),chat_eval=None,lr
  logs.append({"attempted_updates":attempted,"applied_optimizer_steps":applied,"elapsed_s":round(time.perf_counter()-t0,3)})
  if best is not None:
   model.load_state_dict(best[2]);logs.append({"best_in_cycle_step":best[1],"best_in_cycle_chat_nll":best[0]})
+ if MOUTH12 and model.config.cond54:
+  MOUTH12_INFO["gain_slots0_11_kept"]=M12.floor_gain(model,M12.gain_floor())
+  print("ZEREF_12D_MOUTH="+json.dumps(MOUTH12_INFO,sort_keys=True),flush=True)
  logs.append({"skipped_batches":list(SKIPPED),"spike_x":SPIKE_X,"grad_norm_median":statistics.median(gnorms) if gnorms else None})
  return model,opt,g,logs
 def pair_nll(model,rows):
@@ -628,9 +648,9 @@ def main(recovery=False):
   served_probe_rows=[]
   for r in map(json.loads,raw_chat.splitlines()):
    if r.get("mode")!="chat":continue
-   example=encode_chat_row(tokenizer.encode,r)
+   example=M12.encode_row(tokenizer.encode,r) if MOUTH12 else encode_chat_row(tokenizer.encode,r)
    if example is None:continue
-   chat_pool.append({"input":example["input"],"target":example["target"],"source":example.get("source","chat")})
+   chat_pool.append(M12.pool_entry(example) if MOUTH12 else {"input":example["input"],"target":example["target"],"source":example.get("source","chat")})
    if r.get("served_shape") is True:served_probe_rows.append(r)
  else:
   served_probe_rows=[]
@@ -863,6 +883,7 @@ def main(recovery=False):
     "chat_b_before_nll":original_chat_b,"chat_b_after_nll":new_chat_b,"chat_b_tolerance":CHAT_B_TOLERANCE,"chat_gate_bar_b_with_tolerance":chat_bar_b,"chat_b_rule":"fresh set B (scripts/zeref_heldout_b.py), never trained or selected on; candidate must not be worse than the pin beyond the 0.5% seed-noise tolerance (2026-11-01)",
     "chat_gate_public14k_ref_nll":public_ref_chat,"chat_metric":"fix-003 per-pair mean (same as rawrphos_chat_eval.ref_nll), no margin","character_check":{k:character[k] for k in("warmth_delta","no_rude_or_unsafe_regression")},"chat_gate_rule":"fix-002: not worse than the public-pin parent (absolute); promotion additionally requires rawrphos_chat_eval not worse than 14000 AND ref_nll below the current pin","lr_schedule":"cosine to %d%% of lr"%round(SEL["lr_min_fraction"]*100),"best_in_cycle":True,"fresh_train_rows":len(train)},
   "rigetti_batch_order":rigetti,
+  "mouth12":MOUTH12_INFO or {"enabled":False},
   "cond54":{"enabled":bool(model.config.cond54),"gate_evaluation":"unconditioned (unchanged)","bank":COND_INFO or None,"report_only_ab_on_set_b":cond_report},
   "served_shape_probe":served_shape_probe,
   "rigetti_on_off":{"on_candidate":{"heldout_nll":new_held,"chat_nll":new_chat,"retention_nll":new_ret,**trial,
