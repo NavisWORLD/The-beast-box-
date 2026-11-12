@@ -95,3 +95,11 @@ export function parkGrade(elevationDeg:number,rising=true):ParkGrade{
 
 /** Rec.709 saturation of an sRGB triple, 0 for grey. Used by tests to keep Park above Genesis. */
 export function saturation(c:RGB){const mx=Math.max(...c),mn=Math.min(...c);return mx<=0?0:(mx-mn)/mx;}
+
+/**
+ * Genesis shaders write display colours and skip three's output chunks, so the page's post chain encodes them a second time
+ * and they wash out. Park twins decode to linear and then run three's own tone-map and colour-space chunks, so the hex
+ * values above land on screen on every tier, with or without the post chain.
+ */
+export const PK_OUT=' #include <tonemapping_fragment>\n #include <colorspace_fragment>\n';
+export const PK_SAT='vec3 pkLin(vec3 c){return pow(max(c,vec3(0.0)),vec3(2.2));}\nvec3 pkSat(vec3 c,float k){float l=dot(c,vec3(.2126,.7152,.0722));return max(vec3(0.0),mix(vec3(l),c,k));}\n';
