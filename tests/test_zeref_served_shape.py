@@ -66,6 +66,12 @@ def _recorded():
     return recorded
 
 
+def _expected_state(row, recorded):
+    from scripts.zeref_served_shape import round_state, row_state
+    state, _source = row_state(row, recorded)
+    return round_state(state)
+
+
 class ServedShapeTest(unittest.TestCase):
     def test_valid_served_shape_rows_use_the_mouth_descriptor(self):
         recorded = _recorded()
@@ -113,7 +119,7 @@ class ServedShapeTest(unittest.TestCase):
         self.assertIn("earlier question", prior_users)
         descriptor = next(message["content"] for message in messages if message["role"] == "system" and "state12" in message["content"])
         body = json.loads(descriptor)
-        self.assertEqual(body["state12"], [float(item) for item in recorded["state12"]])
+        self.assertEqual(body["state12"], _expected_state(row, recorded))
         self.assertNotIn("channels", body)
         self.assertTrue(any(message["role"] == "system" and "step %s" % recorded["pin_step"] in message["content"] for message in messages))
 
@@ -134,7 +140,7 @@ class ServedShapeTest(unittest.TestCase):
         self.assertIsNotNone(messages)
         self.assertEqual([message["content"] for message in messages if message["role"] == "user"], ["Short question?"])
         body = json.loads(next(message["content"] for message in messages if "state12" in message["content"]))
-        self.assertEqual(body["state12"], [float(item) for item in recorded["state12"]])
+        self.assertEqual(body["state12"], _expected_state(row, recorded))
         self.assertEqual(body["basis"], "dyn12-v1")
         example = answer_example(tight, messages, row["assistant"], TOKEN_CAP)
         self.assertLessEqual(len(example["input"]) + 1, TOKEN_CAP)
@@ -185,3 +191,45 @@ class ServedShapeTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class PerRowRecordedStateTest(unittest.TestCase):
+    def test_bank_is_recorded_distinct_and_rounded_per_row(self):
+        from scripts.zeref_served_shape import STATE_DECIMALS, load_state_bank, row_state
+        bank = load_state_bank(ROOT)
+        self.assertGreaterEqual(len(bank), 20)
+        self.assertEqual(len({tuple(item["state12"]) for item in bank}), len(bank))
+        recorded = _recorded()
+        rows = [{"source": "zeref-lessons-006", "user": f"Question {i}?", "assistant": "Answer."} for i in range(40)]
+        picks = {tuple(row_state(row, recorded)[0]) for row in rows}
+        self.assertGreater(len(picks), 10)
+        self.assertEqual(row_state(rows[0], recorded), row_state(dict(rows[0]), recorded))  # deterministic
+        descriptor = json.loads(descriptor_from_recorded(row_state(rows[0], recorded)[0], 1, STATE_DECIMALS))
+        for value in descriptor["state12"]:
+            self.assertEqual(value, round(value, STATE_DECIMALS))
+
+    def test_manifest_records_per_row_state_and_rows_carry_their_source(self):
+        recorded = _recorded()
+        rows = _rows()
+        field = apply_served_shape(rows, load_forbidden_texts(ROOT), recorded, _encode, fraction=1.0)
+        self.assertTrue(field["state12"]["per_row"])
+        self.assertEqual(field["state12"]["decimals"], 2)
+        for row in rows:
+            if row.get("served_shape"):
+                self.assertRegex(row["state12_source"], r"^evidence/.+routing-trace\.jsonl#L\d+$")
+
+    def test_rounded_descriptor_is_small_on_the_site_tokenizer(self):
+        from scripts.zeref_served_shape import STATE_DECIMALS, load_training_encoder, row_state
+        encode = load_training_encoder()
+        if encode.__name__ == "_byte_encode":
+            self.skipTest("site tokenizer not available")
+        recorded = _recorded()
+        state, _ = row_state({"source": "s", "user": "q"}, recorded)
+        full = descriptor_from_recorded(state, recorded["sequence"])
+        small = json.loads(descriptor_from_recorded(state, recorded["sequence"], STATE_DECIMALS))
+        small = {k: small[k] for k in ("basis", "schema", "sequence", "state12")}
+        from beastbox.hashutil import canonical_json
+        self.assertLess(len(encode(canonical_json(small))), len(encode(full)))
+        self.assertLessEqual(len(encode(json.dumps(small["state12"], separators=(",", ":")))), 70)  # the 12 numbers: ~60 tokens
+        self.assertLessEqual(len(encode(canonical_json(small))), 125)
+
