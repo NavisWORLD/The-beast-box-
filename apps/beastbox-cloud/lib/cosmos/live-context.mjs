@@ -35,6 +35,7 @@ import {readFile} from 'node:fs/promises';
 import {buildIndex,search} from '../library/bm25.mjs';
 import {tokenize} from '../library/text.mjs';
 import {SIGHT_LABELS} from './sight.mjs';
+import {composeFeedBlock,FEED_LABEL} from './feed-reading.mjs';
 
 export const LIVE_CONTEXT_LABEL='Live universe lines carry the world-live channel labels verbatim; library lines are his approved teaching, composed read-only on a topic match and absent on a miss.';
 export const SHELF_SOURCES=Object.freeze([
@@ -343,7 +344,7 @@ export function contextOmitsCanonicalState(context){
  return !!context&&typeof context==='object'&&!Array.isArray(context)&&Object.keys(context).every(key=>BRIDGE_CONTEXT_FIELDS.includes(key)&&!banned.has(key));
 }
 
-export function assembleBridgeContext({continuity='',recompose=null,world=null,shelfHits=[],sight='',sightMeta=null,refitSight=null}={}){
+export function assembleBridgeContext({continuity='',recompose=null,world=null,shelfHits=[],feedHit=null,sight='',sightMeta=null,refitSight=null}={}){
  const liveMeta=liveUniverseReceipt(world);
  const libMeta=shelfReceipt(shelfHits);
  // The bridge's validator refuses control characters (other than \n and
@@ -361,7 +362,14 @@ export function assembleBridgeContext({continuity='',recompose=null,world=null,s
   world_light:{...sightBase.world_light,composed:Boolean(sightKept)&&Boolean(sightBase.world_light?.composed)},
   visitor_light:{...sightBase.visitor_light,composed:Boolean(sightKept)&&Boolean(sightBase.visitor_light?.composed)}};
  const remaining=BRIDGE_CONTEXT_CAPS.total-byteLen(cont)-byteLen(univ)-byteLen(sightKept);
- const lib=remaining>0?clean(fitShelf(shelfHits,Math.min(BRIDGE_CONTEXT_CAPS.library,remaining))):'';
+ const shelfLib=remaining>0?clean(fitShelf(shelfHits,Math.min(BRIDGE_CONTEXT_CAPS.library,remaining))):'';
+ // An approved book from the Feed Zeref drop box (READ, NOT TRAINED) fills the
+ // same library field only on a shelf miss; his own teaching always wins.
+ const feedBlock=!shelfLib&&feedHit&&remaining>0?composeFeedBlock(feedHit,Math.min(BRIDGE_CONTEXT_CAPS.library,remaining)):{text:'',excerpt:''};
+ const feedText=clean(feedBlock.text);
+ const lib=shelfLib||feedText;
+ const readFrom=!shelfLib&&feedText?{title:feedHit.title,excerpt:feedBlock.excerpt,source_url:feedHit.source_url,license:feedHit.license,
+  doc_id:feedHit.doc_id,sha256:feedHit.sha256,label:FEED_LABEL,origin:'approved feed (NavisWORLD/NavisWORLD zeref/feed/approved)'}:null;
  const context={};
  if(cont)context.continuity=cont;
  if(univ)context.universe=univ;
@@ -374,6 +382,7 @@ export function assembleBridgeContext({continuity='',recompose=null,world=null,s
  if(!contextOmitsCanonicalState(context))throw new Error('lived state is not a context field');
  return {context,bytes,
   live:{...liveMeta,composed:Boolean(univ)},
-  library:{...libMeta,composed:Boolean(lib)},
+  library:{...libMeta,composed:Boolean(shelfLib)},
+  read_from:readFrom,
   sight:sightReceipt};
 }

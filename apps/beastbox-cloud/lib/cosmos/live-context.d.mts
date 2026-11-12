@@ -12,4 +12,5 @@ export function assembleServedPreface(o:{continuity?:string,recompose?:((n:numbe
 export const BRIDGE_CONTEXT_CAPS:{continuity:number,universe:number,library:number,sight:number,total:number};
 export const BRIDGE_CONTEXT_FIELDS:readonly string[];
 export function contextOmitsCanonicalState(context:unknown):boolean;
-export function assembleBridgeContext(o:{continuity?:string,recompose?:((n:number)=>string)|null,world?:any,shelfHits?:any[],sight?:string,sightMeta?:any,refitSight?:((n:number)=>{text:string,receipt:any})|null}):{context:{continuity?:string,universe?:string,library?:string,sight?:string},bytes:{continuity:number,universe:number,library:number,sight:number,total:number},live:any,library:any,sight:any};
+export type ReadFrom={title:string,excerpt:string,source_url:string|null,license:string|null,doc_id:string,sha256:string|null,label:string,origin:string};
+export function assembleBridgeContext(o:{continuity?:string,recompose?:((n:number)=>string)|null,world?:any,shelfHits?:any[],feedHit?:any,sight?:string,sightMeta?:any,refitSight?:((n:number)=>{text:string,receipt:any})|null}):{context:{continuity?:string,universe?:string,library?:string,sight?:string},bytes:{continuity:number,universe:number,library:number,sight:number,total:number},live:any,library:any,read_from:ReadFrom|null,sight:any};

@@ -7,6 +7,12 @@
  * Guest and visitor mouths never keep an owner-conditioned receipt.
  */
 export const LIVED_MOUTH_SCHEMA = 'lived-mouth-receipt-v1';
+
+/** Guest and visitor doors never open the owner chain. This module is not the writer. */
+export function ownerChainWrite(scope) {
+  if (scope !== 'owner') return {wrote: false, reason: 'isolated', chain: null};
+  return {wrote: false, reason: 'server', chain: null};
+}
 const HEX64 = /^[0-9a-f]{64}$/;
 const HEX32 = /^[0-9a-f]{32}$/;
 const STATUSES = new Set(['delivered', 'unavailable', 'omitted']);

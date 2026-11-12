@@ -1,0 +1,10 @@
+export const FEED_INDEX_URL:string;
+export const FEED_LABEL:string;
+export const FEED_SCHEMA:string;
+export type FeedHit={doc_id:string,title:string,source_url:string|null,license:string|null,sha256:string|null,passage:string,score:number};
+export function feedReadingEnabled(flag:string|undefined|null,isPagesChat:boolean):boolean;
+export function buildFeedIndex(raw:any):any;
+export function matchFeed(feed:any,query:string):FeedHit|null;
+export function composeFeedBlock(hit:FeedHit|null,capBytes:number):{text:string,excerpt:string};
+export function loadFeedIndex(nowMs?:number,fetcher?:typeof fetch):Promise<any>;
+export function _resetFeedCache():void;

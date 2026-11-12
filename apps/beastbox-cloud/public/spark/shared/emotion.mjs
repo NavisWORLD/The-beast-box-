@@ -80,3 +80,33 @@ export function confusedState({reply='',target=null,drill=null}={},opts=null){
  return {feeling:'confused',active:why.length>0,why,label:'DERIVED',
   source:'Zeref\'s own feeling rules (lib/companion/emotion.mjs confusedState)'};
 }
+/* Face proxies become the same five feelings. No new words.
+ * Null face (camera off) returns null. A record with present false still returns
+ * the five scores, which are zero. confused stays the opt-in reply rule above;
+ * the camera does not turn it on. Pulse sqi only scales these scores. */
+export const FACE_FEELINGS_SCHEMA='beastbox-face-feelings-v1';
+const unit=(x,lo,hi)=>{const n=Number(x);if(!Number.isFinite(n))return null;return Math.min(hi,Math.max(lo,n));};
+export function feelingsFromFace(face,pulse=null){
+ if(face==null)return null;
+ if(typeof face!=='object'||typeof face.present!=='boolean')throw new Error('face feelings need the estimates face block');
+ const present=face.present===true?1:0;
+ const scale=unit(face.scale,0,1),x=unit(face.x,-1,1),y=unit(face.y,-1,1),blink=unit(face.blink,0,1);
+ if(scale==null||x==null||y==null||blink==null)throw new Error('face feelings need finite face channels');
+ const ax=Math.min(1,Math.abs(x)),ay=Math.min(1,Math.abs(y)),centered=1-ax;
+ let sqi=1,fearNudge=0,calmNudge=0;
+ if(pulse!=null){
+  if(typeof pulse!=='object'||!Number.isFinite(pulse.bpm)||!Number.isFinite(pulse.sqi))throw new Error('face pulse estimate needs bpm and sqi');
+  sqi=unit(pulse.sqi,0,1);
+  const leaned=(Number(pulse.bpm)-70)/50;
+  fearNudge=present*Math.max(0,leaned)*blink;
+  calmNudge=present*Math.max(0,-leaned)*(1-blink);
+ }
+ const score=v=>clamp(100*sqi*v);
+ return {schema:FACE_FEELINGS_SCHEMA,label:'DERIVED',words:[...EMOTIONS],opt_in:[...OPT_IN_FEELINGS],confused:null,
+  joy:score(present*scale*(1-blink)*centered),
+  curiosity:score(present*((scale*3)+ay)/4),
+  fear:score(present*blink*(1-scale)+fearNudge),
+  calm:score(present*(1-blink)*centered+calmNudge),
+  mischief:score(present*ax*scale),
+  source:'face-channel'};
+}
