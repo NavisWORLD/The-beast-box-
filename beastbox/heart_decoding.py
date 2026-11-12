@@ -52,11 +52,11 @@ _LOCK = threading.Lock()
 
 
 def enabled() -> bool:
-    return os.environ.get(FLAG, "off") == "on"
+    return os.environ.get("BEASTBOX_HEART_DECODING", "off") == "on"
 
 
 def plain_turn_enabled() -> bool:
-    return os.environ.get(PLAIN_TURN_FLAG, "off") == "on"
+    return os.environ.get("BEASTBOX_NATIVE_PLAIN_TURN", "off") == "on"
 
 
 def _num(value: Any) -> bool:
