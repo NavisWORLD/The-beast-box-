@@ -18,6 +18,8 @@ export function readLook(storage:Store):Look{
 export function writeLook(storage:Store,look:Look):Look{
  const next=isLook(look)?look:DEFAULT_LOOK;
  try{if(next===DEFAULT_LOOK)storage?.removeItem?.(LOOK_KEY);else storage?.setItem?.(LOOK_KEY,next);}catch{}
+ /* tell the page skin (components/look-skin.tsx) on this tab; other tabs hear the storage event */
+ try{const g=globalThis as {dispatchEvent?:(e:Event)=>boolean;CustomEvent?:typeof CustomEvent};if(g.dispatchEvent&&g.CustomEvent)g.dispatchEvent(new g.CustomEvent(LOOK_EVENT,{detail:next}));}catch{}
  return next;
 }
 export function lookLabel(look:Look){return look==='park'?'Look: Park':look==='genesis'?'Look: Genesis':'Look: Classic';}

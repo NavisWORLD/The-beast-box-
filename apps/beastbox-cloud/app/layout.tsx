@@ -1,6 +1,9 @@
 import type { Metadata, Viewport } from 'next';
 import HonestLine from '../components/honest-line';
 import './globals.css';
+import './park-skin.css';
+import LookSkin from '../components/look-skin';
+import {LOOK_KEY,DEFAULT_LOOK} from '../lib/look/look-mode';
 import { BRAND_CREST_SMALL_SVG, BRAND_ICONS } from '../lib/brand';
 import CompanionProvider from '../components/companion-provider';
 import SiteSoundDock from '../components/site-sound-dock';
@@ -20,5 +23,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
   const livedFlag = process.env.BEASTBOX_LIVED_BACKBONE;
   const livedOn = livedFlag == null || livedFlag.trim() === '' || livedFlag === 'on';
   const sensorium = livedOn && await isOwner();
-  return <html lang="en"><body><OneWorldProvider/><SiteNav/><CompanionProvider>{children}</CompanionProvider><HonestLine/><SiteSoundDock/><ZerefVoiceDock/><SiteDock/><ShareWorld/>{sensorium ? <SensoriumProvider enabled /> : null}<GlDebugOverlay/></body></html>;
+  // Park is the default look, so the server marks it; this tiny pre-paint line corrects a device that saved Classic or Genesis.
+  const lookBoot = `try{var v=localStorage.getItem(${JSON.stringify(LOOK_KEY)});if(v==='classic'||v==='genesis'||v==='park')document.documentElement.setAttribute('data-look',v)}catch(e){}`;
+  return <html lang="en" data-look={DEFAULT_LOOK} suppressHydrationWarning><body><script dangerouslySetInnerHTML={{ __html: lookBoot }} /><LookSkin/><OneWorldProvider/><SiteNav/><CompanionProvider>{children}</CompanionProvider><HonestLine/><SiteSoundDock/><ZerefVoiceDock/><SiteDock/><ShareWorld/>{sensorium ? <SensoriumProvider enabled /> : null}<GlDebugOverlay/></body></html>;
 }
