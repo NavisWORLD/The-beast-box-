@@ -37,7 +37,7 @@ RULES = frozenset(PARAMS)
 
 
 def active_rule() -> str:
-    return TUNED_RULE if os.environ.get(TUNE_FLAG, "off") == "on" else RULE
+    return TUNED_RULE if os.environ.get("BEASTBOX_LIVED_TUNE", "off") == "on" else RULE
 
 
 def initial_weights() -> list[list[float]]:
