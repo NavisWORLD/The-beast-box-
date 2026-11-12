@@ -17,7 +17,9 @@ concurrency:
 jobs:
   same-beast:
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    # The full-history checkout (fetch-depth: 0) alone has been taking 12-14 min on busy runners,
+    # which cancelled real passes at 20 min; the test steps themselves take ~7 min.
+    timeout-minutes: 35
     defaults:
       run:
         working-directory: apps/beastbox-cloud
