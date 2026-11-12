@@ -5,6 +5,7 @@ import {LOOKS,readLook,writeLook,lookLabel,nextLook,isLook,usesGenesisBase,snaps
 import {PARK_DAY,PARK_NIGHT,PARK_COST,parkGrade,hexRgb,saturation} from '../lib/look/park-palette.ts';
 import {PARK_VARIANTS,editShader,attachParkLook,PARK_LABEL} from '../lib/look/park.ts';
 import {attachGenesisLook} from '../lib/look/attach.ts';
+import {attachParkPlanet,gradePlanetShader,PARK_PLANET_BUDGET,planetBudget} from '../lib/look/park-planet.ts';
 import {layoutGrass,PARK_GRASS_BUDGET,grassBudget,seededStream,buildParkGrass,syncParkGrass} from '../lib/look/park-grass.ts';
 
 const root=new URL('../',import.meta.url);
@@ -107,7 +108,7 @@ test('Classic and Genesis frames are identical with Park mounted; Park swaps twi
 });
 
 test('Park adds no light, no clock and no unseeded draw, and the page wiring keeps Classic and Genesis',()=>{
- for(const f of ['lib/look/park.ts','lib/look/park-palette.ts','lib/look/park-grass.ts']){
+ for(const f of ['lib/look/park.ts','lib/look/park-palette.ts','lib/look/park-grass.ts','lib/look/park-planet.ts']){
   const s=read(f);
   assert.doesNotMatch(s,/Math\.random|setInterval|setTimeout|Date\.now|performance\.now/,f);
   assert.doesNotMatch(s,/DirectionalLight|PointLight|SpotLight|HemisphereLight/,f);
@@ -145,4 +146,35 @@ test('Park grass: seeded layout per tier, phone-safe MED, no blades in water, st
  assert.equal(G.uniforms.uAmp.value,.15);assert.equal(G.uniforms.uPhase.value,2);
  assert.match(G.mesh.material.fragmentShader,/#include <colorspace_fragment>/);
  assert.doesNotMatch(read('lib/look/park-grass.ts'),/Math\.random|Date\.now|performance\.now|setTimeout|setInterval/);
+});
+
+test('Park planet shell: orbit only, Park only, graded twin restored exactly, seeded clouds tiered',async()=>{
+ const THREE=await import('three');
+ assert.equal(planetBudget('LOW').segments,0);assert.equal(planetBudget('MED').segments,32);assert.equal(planetBudget('GOD').segments,64);assert.equal(planetBudget('x'),PARK_PLANET_BUDGET.MED);
+ const frag='uniform float uX;\nvoid main(){vec3 c=vec3(.1,.3,.6);if(uX>1.0){c=vec3(1.0);}gl_FragColor=vec4(c,1.0);}';
+ const g=gradePlanetShader(frag);
+ assert.ok(g&&g.indexOf('pkPlanet(vec3 c)')<g.indexOf('void main('));
+ assert.match(g,/gl_FragColor\.rgb=pkPlanet\(gl_FragColor\.rgb\);\n\}$/);
+ const scene=new THREE.Scene();
+ const base=new THREE.ShaderMaterial({uniforms:{uX:{value:0}},vertexShader:'void main(){gl_Position=vec4(position,1.0);}',fragmentShader:frag});
+ const planet=new THREE.Mesh(new THREE.SphereGeometry(8,8,6),base);scene.add(planet);
+ const st={look:'genesis',orbit:true,tier:'MED',tick:3};
+ const pp=attachParkPlanet(THREE,{planet:()=>planet,radius:8,seed:'s',parent:scene,getLook:()=>st.look,inOrbit:()=>st.orbit,sunDir:()=>({x:1,y:0,z:0}),tier:()=>st.tier,tick:()=>st.tick});
+ const kids=()=>scene.children.filter(o=>o.visible).map(o=>o.name);
+ pp.apply();
+ assert.equal(planet.material,base,'Genesis orbit: page material untouched');
+ assert.deepEqual(kids(),[''],'Genesis orbit: no Park shell drawn');
+ st.look='park';const a=pp.apply();
+ assert.equal(planet.material.name,'park:planet');
+ assert.equal(planet.material.uniforms.uX,base.uniforms.uX,'twin shares the page uniforms');
+ assert.ok(kids().includes('park-planet-clouds')&&kids().includes('park-planet-limb'));
+ assert.equal(pp.apply().drift,a.drift,'same tick, same clouds');
+ st.orbit=false;pp.apply();
+ assert.equal(planet.material,base,'ground view: restored');
+ st.orbit=true;st.tier='LOW';pp.apply();
+ assert.ok(!kids().includes('park-planet-clouds')&&kids().includes('park-planet-limb'),'LOW: limb only');
+ st.look='classic';pp.apply();
+ assert.equal(planet.material,base);assert.deepEqual(kids(),['']);
+ assert.equal(base.fragmentShader,frag,'page shader text never edited');
+ pp.dispose();
 });
