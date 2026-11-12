@@ -48,7 +48,7 @@ test('Park palette carries the spec hex values and grades brighter than Genesis 
 test('every Park twin edit still matches the Genesis shaders',async()=>{
  const THREE=await import('three');
  const scene=new THREE.Scene();
- const g=attachGenesisLook(THREE,scene,{seed:'s',tier:'LOW',heightAt:(x,z)=>Math.sin(x*.05)*2+Math.cos(z*.04)*1.5,getLook:()=>'genesis',reduced:()=>true,nowMs:()=>0,readTick:()=>1});
+ const g=attachGenesisLook(THREE,scene,{seed:'s',tier:'LOW',heightAt:(x,z)=>Math.sin(x*.05)*2+Math.cos(z*.04)*1.5,getLook:()=>'park',reduced:()=>true,nowMs:()=>0,readTick:()=>1});
  g.sync();
  const names=new Map(g.group.children.map(o=>[o.name,o]));
  for(const v of PARK_VARIANTS){
@@ -67,37 +67,26 @@ test('every Park twin edit still matches the Genesis shaders',async()=>{
 const snap=group=>!group.visible?'hidden':group.children.filter(o=>o.visible).map(o=>({name:o.name,visible:o.visible,mat:o.material?.name||o.material?.type,frag:o.material?.fragmentShader,
  u:o.material?.uniforms?Object.fromEntries(Object.entries(o.material.uniforms).map(([k,v])=>[k,v.value?.toArray?v.value.toArray():v.value])):null}));
 
-test('Classic and Genesis frames are identical with Park mounted; Park swaps twins in and back out',async()=>{
+test('Park swaps all its twins in on the Genesis ground, and draws the meadow',async()=>{
  const THREE=await import('three');
- const make=(withPark,lookRef)=>{
-  const scene=new THREE.Scene();
-  const sun={dir:[.3,.8,.5],day:1,elevationDeg:40,sky:{zenith:[.2,.45,.75],horizon:[.62,.78,.9],starAlpha:0}};
-  const g=attachGenesisLook(THREE,scene,{seed:'park',tier:'LOW',heightAt:(x,z)=>Math.sin(x*.05)*2+Math.cos(z*.04)*1.5,getLook:()=>lookRef.v,reduced:()=>true,nowMs:()=>0,readTick:()=>3,getSun:()=>sun});
-  const p=withPark?attachParkLook(THREE,g,{getLook:()=>lookRef.v,getSun:()=>sun,seed:'park',heightAt:(x,z)=>Math.sin(x*.05)*2+Math.cos(z*.04)*1.5}):null;
-  const frame=()=>{g.anchor.onBeforeRender();};
-  return {g,p,frame};
- };
- for(const look of ['genesis','classic']){
-  const ra={v:look},rb={v:look};
-  const plain=make(false,ra),withPark=make(true,rb);
-  plain.frame();withPark.frame();
-  assert.deepEqual(snap(withPark.g.group),snap(plain.g.group),look+' identical with Park mounted');
-  // Visit Park, then come back: still identical.
-  rb.v='park';withPark.frame();
-  assert.equal(withPark.p.on,true);
-  if(look==='genesis'){
-   const mats=withPark.g.group.children.filter(o=>/^park:genesis-/.test(o.material?.name||''));
-   assert.equal(mats.length,PARK_VARIANTS.length,'all five Park twins swap in');
-   assert.equal(withPark.p.state().swapped,PARK_VARIANTS.length);
-   assert.equal(withPark.p.state().label,PARK_LABEL);
-   const grass=withPark.g.group.children.find(o=>o.name==='park-grass');
-   assert.ok(grass&&grass.visible,'Park meadow is drawn in Park');
-   assert.equal(withPark.p.state().grass.count,grass.geometry.instanceCount);
-  }
-  rb.v=look;withPark.frame();plain.frame();
-  assert.deepEqual(snap(withPark.g.group),snap(plain.g.group),look+' identical after a Park visit');
-  plain.g.dispose();withPark.p.dispose();withPark.g.dispose();
- }
+ const scene=new THREE.Scene();
+ const sun={dir:[.3,.8,.5],day:1,elevationDeg:40,sky:{zenith:[.2,.45,.75],horizon:[.62,.78,.9],starAlpha:0}};
+ const h=(x,z)=>Math.sin(x*.05)*2+Math.cos(z*.04)*1.5;
+ const g=attachGenesisLook(THREE,scene,{seed:'park',tier:'LOW',heightAt:h,reduced:()=>true,nowMs:()=>0,readTick:()=>3,getSun:()=>sun});
+ const p=attachParkLook(THREE,g,{getSun:()=>sun,seed:'park',heightAt:h});
+ g.anchor.onBeforeRender();
+ assert.equal(g.group.visible,true,'Park draws the Genesis ground by default');
+ assert.equal(p.on,true);
+ const mats=g.group.children.filter(o=>/^park:genesis-/.test(o.material?.name||''));
+ assert.equal(mats.length,PARK_VARIANTS.length,'all Park twins swap in');
+ assert.equal(p.state().swapped,PARK_VARIANTS.length);
+ assert.equal(p.state().label,PARK_LABEL);
+ const grass=g.group.children.find(o=>o.name==='park-grass');
+ assert.ok(grass&&grass.visible,'Park meadow is drawn');
+ assert.equal(p.state().grass.count,grass.geometry.instanceCount);
+ const once=snap(g.group);g.anchor.onBeforeRender();
+ assert.deepEqual(snap(g.group),once,'same tick, same frame');
+ p.dispose();g.dispose();
 });
 
 test('Park adds no light, no clock and no unseeded draw, and the page shows Park with no look chooser',()=>{
@@ -150,12 +139,12 @@ test('Park planet shell: orbit only, Park only, graded twin restored exactly, se
  const scene=new THREE.Scene();
  const base=new THREE.ShaderMaterial({uniforms:{uX:{value:0}},vertexShader:'void main(){gl_Position=vec4(position,1.0);}',fragmentShader:frag});
  const planet=new THREE.Mesh(new THREE.SphereGeometry(8,8,6),base);scene.add(planet);
- const st={look:'genesis',orbit:true,tier:'MED',tick:3};
+ const st={look:'off',orbit:true,tier:'MED',tick:3};
  const pp=attachParkPlanet(THREE,{planet:()=>planet,radius:8,seed:'s',parent:scene,getLook:()=>st.look,inOrbit:()=>st.orbit,sunDir:()=>({x:1,y:0,z:0}),tier:()=>st.tier,tick:()=>st.tick});
  const kids=()=>scene.children.filter(o=>o.visible).map(o=>o.name);
  pp.apply();
- assert.equal(planet.material,base,'Genesis orbit: page material untouched');
- assert.deepEqual(kids(),[''],'Genesis orbit: no Park shell drawn');
+ assert.equal(planet.material,base,'shell switched off: page material untouched');
+ assert.deepEqual(kids(),[''],'shell switched off: nothing drawn');
  st.look='park';const a=pp.apply();
  assert.equal(planet.material.name,'park:planet');
  assert.equal(planet.material.uniforms.uX,base.uniforms.uX,'twin shares the page uniforms');
@@ -165,7 +154,7 @@ test('Park planet shell: orbit only, Park only, graded twin restored exactly, se
  assert.equal(planet.material,base,'ground view: restored');
  st.orbit=true;st.tier='LOW';pp.apply();
  assert.ok(!kids().includes('park-planet-clouds')&&kids().includes('park-planet-limb'),'LOW: limb only');
- st.look='classic';pp.apply();
+ st.look='off';pp.apply();
  assert.equal(planet.material,base);assert.deepEqual(kids(),['']);
  assert.equal(base.fragmentShader,frag,'page shader text never edited');
  pp.dispose();

@@ -1,8 +1,8 @@
 // Park is the one look (Cory, Nov 12 2026: "we are polishing and upgrading the graphics overall").
 // There is no look choice any more: no toggle, no Settings select, and no saved look. Park draws the Genesis ground
 // (lib/look/attach.ts) and grades it (lib/look/park.ts). The look is presentation only and never writes world state.
-// 'classic' and 'genesis' stay in the type only so the lower-level attach/park modules can be tested in isolation.
-export const LOOKS=Object.freeze(['classic','genesis','park'] as const);
+// Classic and Genesis are gone as looks. Genesis lives on only as the ground Park is built on (lib/look/attach.ts).
+export const LOOKS=Object.freeze(['park'] as const);
 export type Look=(typeof LOOKS)[number];
 /** Legacy key from the old look choice. Read only to clear it. */
 export const LOOK_KEY='beastbox.look.v1';
@@ -11,9 +11,9 @@ export const PARK_ONLY=true;
 
 type Store={getItem?(key:string):string|null;setItem?(key:string,value:string):void;removeItem?(key:string):void;key?(index:number):string|null;length?:number}|null|undefined;
 
-export function isLook(v:unknown):v is Look{return v==='classic'||v==='genesis'||v==='park';}
-/** Park draws on the Genesis ground. */
-export function usesGenesisBase(v:unknown){return v==='genesis'||v==='park';}
+export function isLook(v:unknown):v is Look{return v==='park';}
+/** Park draws on the Genesis ground. Kept for the lower-level modules; true only for Park. */
+export function usesGenesisBase(v:unknown){return v==='park';}
 /** Always Park. A look saved by the old chooser is cleared, never applied. */
 export function readLook(storage:Store):Look{
  try{if(storage?.getItem?.(LOOK_KEY)!=null)storage?.removeItem?.(LOOK_KEY);}catch{}

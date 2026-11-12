@@ -174,7 +174,7 @@ test('Genesis adds no second light and lib/look has no Math.random',async()=>{
  const before=structuredClone(world);
  const g=attachGenesisLook(THREE,scene,{
   seed:'s',tier:'LOW',heightAt:()=>Math.sin(0),
-  getLook:()=>'genesis',reduced:()=>true,nowMs:()=>0,readTick:()=>world.tick,
+  getLook:()=>'park',reduced:()=>true,nowMs:()=>0,readTick:()=>world.tick,
   getSun:()=>({dir:[0,.7,.7],day:.2,elevationDeg:-12,sky:{zenith:[.01,.02,.05],horizon:[.05,.04,.08],starAlpha:.8}}),
  });
  const frame=g.sync();
@@ -189,7 +189,7 @@ test('Genesis adds no second light and lib/look has no Math.random',async()=>{
  const classic=new THREE.Object3D();classic.visible=false;
  const skyMark=new THREE.Object3D();skyMark.visible=true;
  const ground=attachGenesisLook(THREE,scene,{
-  seed:'s',tier:'LOW',heightAt:()=>0,getLook:()=>'genesis',reduced:()=>true,nowMs:()=>0,readTick:()=>1,
+  seed:'s',tier:'LOW',heightAt:()=>0,getLook:()=>'park',reduced:()=>true,nowMs:()=>0,readTick:()=>1,
   follow:()=>classic,classicRoots:()=>[classic,skyMark],
  });
  ground.sync();
