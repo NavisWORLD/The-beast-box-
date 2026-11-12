@@ -269,7 +269,13 @@ jobs:
         run: |
           set -Eeuo pipefail
           curl -fsSL --retry 3 -o build/zeref-006/dolly.jsonl "https://huggingface.co/datasets/databricks/databricks-dolly-15k/resolve/bdd27f4d94b9c1f951818a7da7fd7aeea5dbff1a/databricks-dolly-15k.jsonl"
-          ZEREF_CHAT_ROTATE_SEED="zeref-gate-v2-20261023" python scripts/zeref_chat_corpus.py build/zeref-006/dolly.jsonl build/zeref-006/chat-mix.jsonl
+          # Real lesson rotation (Cory, 2026-11-12): the window seed is derived from the cycle this round
+          # trains toward (training parent's approved cycle + 1), never the run id, so successive cycles
+          # walk through every authored lesson. Held-out, gate and eval prompts stay excluded (`held`), unchanged.
+          parent_cycle="$(python -c "import json,os;print(int(json.load(open(os.path.join(os.environ['BEAST_006_PARENT_PATH'],'metadata.json')))['approved_cycle_count']))")"
+          rotate_seed="zeref-gate-v2-20261023-cycle-$((parent_cycle + 1))"
+          echo "ZEREF_CHAT_ROTATE_SEED=${rotate_seed} (parent cycle ${parent_cycle})"
+          ZEREF_CHAT_ROTATE_SEED="${rotate_seed}" python scripts/zeref_chat_corpus.py build/zeref-006/dolly.jsonl build/zeref-006/chat-mix.jsonl
       - name: Teacher distillation stage (approved teacher pairs only; teachers inform knowledge, not Zeref's voice)
         env:
           AZURE_STORAGE_CONTAINER_SAS_URL: ${{ secrets.AZURE_STORAGE_CONTAINER_SAS_URL }}
