@@ -10,7 +10,7 @@ import {useBeastSession} from './beast-session';
 import {useUniverseMotion} from './use-universe-motion';
 import {beastIdentity,shownName} from '../lib/companion/session.mjs';
 import {DEFAULT_POCKET_3D,POCKET_3D_EVENT,POCKET_3D_KEY,readPocket3D,savePocket3D} from '../lib/companion/pocket-3d-settings.mjs';
-import {readLook,writeLook,type Look} from '../lib/look/look-mode';
+import {readLook,writeLook,isLook,type Look} from '../lib/look/look-mode';
 import {presentationTier} from '../lib/look/tiers';
 import {qualityLabel,writeTierOverride} from '../lib/universe/post-tiers.mjs';
 import {publicBrainProvider} from '../lib/companion/public-brain-bay.mjs';
@@ -105,9 +105,10 @@ export default function UniverseSettings(){
      </div>
      <div className={styles.volume}>
       <label htmlFor="world-look">Look</label>
-      <select id="world-look" data-look-choice className={styles.qualitySelect} value={look} onChange={event=>changeLook(event.target.value==='genesis'?'genesis':'classic')}>
+      <select id="world-look" data-look-choice className={styles.qualitySelect} value={look} onChange={event=>changeLook(isLook(event.target.value)?event.target.value:'classic')}>
        <option value="classic">Classic</option>
        <option value="genesis">Genesis</option>
+       <option value="park">Park</option>
       </select>
      </div>
      <div className={styles.volume}>

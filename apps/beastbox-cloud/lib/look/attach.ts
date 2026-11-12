@@ -1,7 +1,7 @@
 // Mount the Genesis look. Classic objects stay in the scene; they are hidden only while Genesis is selected.
 // The anchor is the first scene child so that hide runs before the classic ground is drawn.
 // Motion reads the shared world clock. No second clock, no unseeded draws, no beast or traveler writes.
-import {currentLook} from './look-mode.ts';
+import {currentLook,usesGenesisBase} from './look-mode.ts';
 import {budgetFor,considerDrop,presentationTier,type Tier} from './tiers.ts';
 import {buildTerrainLod} from './terrain-lod.ts';
 import {createTerrainMaterial} from './terrain-material.ts';
@@ -182,7 +182,7 @@ export function attachGenesisLook(THREE:typeof import('three'),scene:{add:(o:any
    if(dprOn&&opts.renderer)opts.renderer.setPixelRatio(Math.min(opts.dpr??classicDpr,budgetFor(live).dpr));
    invalidate();
   }
-  const look=(opts.getLook?opts.getLook():currentLook())==='genesis';
+  const look=usesGenesisBase(opts.getLook?opts.getLook():currentLook()); // Park draws this same ground, then grades it (lib/look/park.ts)
   anchor.visible=true;
   if(!look){group.visible=false;applyQuality(false);revealClassic();return;}
   build();
