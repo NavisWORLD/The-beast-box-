@@ -25,7 +25,6 @@ BRAIN_RELS = (
     Path("apps/beastbox-cloud/public/spark/shared/brain.mjs"),
 )
 WORKFLOW = ROOT / ".github/workflows/zeref-bridge-pin-sync-check.yml"
-LIVE_SHA = "413d84a69e745009dc9c0e7663717e3d7b2e472f13db2f2f534035464918be5f"
 
 
 def load():
@@ -89,11 +88,64 @@ def fetcher(tag: str, raw: bytes, sidecar: bytes):
     return fetch
 
 
-def test_checked_in_pin_matches_the_live_bridge_fingerprint():
-    pin = json.loads((ROOT / PIN_REL).read_text())
-    assert pin["training_steps"] == 37104
-    assert pin["checkpoint_sha256"] == LIVE_SHA
-    assert pin["promotion"]["candidate_sha256"] == LIVE_SHA
+def served_fingerprint(mod, root: Path = ROOT) -> tuple[int, str]:
+    """Step and sha written into both brain manifests by a promotion."""
+    found = []
+    for rel in BRAIN_RELS:
+        matches = mod.BRAIN_RE.findall((root / rel).read_text(encoding="utf-8"))
+        assert len(matches) == 1
+        found.append((int(matches[0][1]), matches[0][3]))
+    assert found[0] == found[1]
+    return found[0]
+
+
+def published_release(mod, pin: dict, dest: Path) -> tuple[int, str, dict]:
+    """Download the release the pin names and return its real step, sha, and chat-eval."""
+    promo = pin["promotion"]
+    tag = promo["release_tag"]
+    assert mod.TAG_RE.fullmatch(tag), tag
+    url = mod.asset_url(tag)
+    raw = mod.fetch_bytes(url, timeout=300)
+    sidecar = mod.fetch_bytes(url + ".sha256", timeout=60)
+    asset_sha = hashlib.sha256(raw).hexdigest()
+    assert asset_sha == mod.parse_sidecar(sidecar, f"{tag}.tar.gz")
+    assert asset_sha == promo["release_asset_sha256"]
+    real_step, real_sha = mod.open_checkpoint(raw, dest)
+    assert tag.endswith(real_sha[:12])
+    report_path = dest / "chat-eval.json"
+    assert report_path.is_file() and not report_path.is_symlink()
+    report_bytes = report_path.read_bytes()
+    assert hashlib.sha256(report_bytes).hexdigest() == promo["chat_eval_sha256"]
+    return real_step, real_sha, json.loads(report_bytes)
+
+
+def assert_gate_record(pin: dict, report: dict) -> None:
+    """The published chat-eval is the gate record. Operators stay the eval's."""
+    promo = pin["promotion"]
+    baseline, candidate = report["baseline"], report["candidate"]
+    assert report["chat_not_worse"] is True
+    assert promo["chat_not_worse"] is True
+    assert report["chat_not_worse"] is all(report["gate"].values())
+    assert candidate["ref_nll"] <= baseline["ref_nll"]
+    assert promo["candidate_ref_nll"] == candidate["ref_nll"]
+    assert promo["baseline_ref_nll"] == baseline["ref_nll"]
+    assert candidate["action_leaks"] <= baseline["action_leaks"]
+    assert promo["candidate_leaks"] == candidate["action_leaks"]
+    assert report["gate"]["ref_nll_not_worse"] is True
+    assert report["gate"]["no_more_game_action_leaks"] is True
+
+
+def test_checked_in_pin_matches_the_live_bridge_fingerprint(tmp_path):
+    mod = load()
+    pin = json.loads((ROOT / PIN_REL).read_text(encoding="utf-8"))
+    step, sha = served_fingerprint(mod)
+    assert pin["training_steps"] == step
+    assert pin["checkpoint_sha256"] == sha
+    assert pin["promotion"]["candidate_sha256"] == sha
+    real_step, real_sha, report = published_release(mod, pin, tmp_path)
+    assert real_step == step
+    assert real_sha == sha
+    assert_gate_record(pin, report)
 
 
 def test_check_cli_passes_on_the_repo():
@@ -109,7 +161,8 @@ def test_check_fails_when_a_brain_sha_drifts(tmp_path):
     root = copy_pin_tree(tmp_path)
     before = snapshot(root)
     brain = root / BRAIN_RELS[1]
-    brain.write_text(brain.read_text().replace(LIVE_SHA, "ab" * 32))
+    live_sha = json.loads((root / PIN_REL).read_text(encoding="utf-8"))["checkpoint_sha256"]
+    brain.write_text(brain.read_text().replace(live_sha, "ab" * 32))
     with pytest.raises(mod.PromotePinError, match="disagrees"):
         mod.files_agree(root)
     assert (root / PIN_REL).read_bytes() == before[root / PIN_REL]
