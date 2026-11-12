@@ -10,8 +10,8 @@
   "source_path": "/spark/ibm-moonwraith-cassette-kit-20261010.json",
   "source_class": "RECORDED_IBM_HARDWARE"
  },
- "tick": 805,
- "xp": 11510,
+ "tick": 806,
+ "xp": 11520,
  "stage": 5,
  "stage_name": "Crescent Sovereign",
  "signals": {
@@ -25,14 +25,14 @@
  "places": {
   "Rift Gate": 727,
   "Lattice Arch": 371,
-  "Echo Prism": 853,
-  "Tidewell": 389,
+  "Echo Prism": 854,
+  "Tidewell": 390,
   "Quartz Choir": 304,
   "Violet Shard": 616,
   "Selene Pool": 69
  },
- "last_tick_at": "2026-11-12T21:19:18.832Z",
- "last_entry_hash": "12244eeac31799abc88c5833d7c464a3216cb5df7156634900abe8311b3e68fc",
+ "last_tick_at": "2026-11-12T21:53:50.656Z",
+ "last_entry_hash": "7416fed33db33390f4c9dc3027ee6ee7db26e4a7965dc9d070d930b14867c70a",
  "universe_growth": 605,
  "combos_total": 429,
  "next_stage": null,
@@ -40,18 +40,18 @@
   "cells_visited": 37,
   "cells_total": 40,
   "known_rifts": 3,
-  "moves_succeeded": 11727,
+  "moves_succeeded": 11748,
   "moves_blocked": 666,
   "blocked_rate": 0.054,
   "favorite_spot": "Echo Prism",
-  "favorite_value": 0.647,
+  "favorite_value": 0.666,
   "prefs": {
    "explore": 0.05,
-   "visit": 0.971,
+   "visit": 1,
    "rest": 0.05,
    "play": 1
   },
-  "decisions": 7131,
+  "decisions": 7135,
   "label": "learned behaviour from its own experience, not consciousness"
  },
  "labels": {
@@ -67,6 +67,77 @@
   "source": "recorded hardware counts (birth seed, never re-run)"
  },
  "recent": [
+  {
+   "schema": "zeref-diary/v1",
+   "beast_id": "bb-7f9c2a03",
+   "tick": 806,
+   "at": "2026-11-12T21:53:50.656Z",
+   "hour_local": 15,
+   "timezone": "America/Chicago",
+   "signals": {
+    "energy": 15,
+    "signal": 30,
+    "memory": 100,
+    "resonance": 98
+   },
+   "bond": 100,
+   "mood": "sleepy",
+   "place": "Echo Prism",
+   "places_visited": [
+    "Echo Prism",
+    "Tidewell"
+   ],
+   "discovered_combos": [],
+   "new_combo_count": 0,
+   "combos_total": 429,
+   "xp_gain": 10,
+   "xp": 11520,
+   "stage": 5,
+   "stage_name": "Crescent Sovereign",
+   "grew": false,
+   "care": 0,
+   "birth_spark": {
+    "provider": "IBM Quantum",
+    "backend": "ibm_marrakesh",
+    "job_id": "db4te7slf4us73c3888g",
+    "source": "recorded hardware counts (birth seed, never re-run)"
+   },
+   "growth_source": {
+    "kind": "deterministic-fallback",
+    "simulated": false,
+    "provider": "azure-quantum/rigetti",
+    "target": "rigetti.sim.qvm",
+    "job_id": null,
+    "error": "ResourceExistsError: (SubscriptionDisabled) This Azure subscription is disabled and marked as read-only. Please re-enable the subscription to use Azure Quantum.\nCode: SubscriptionDisabled\nMessage: This Azure subscription is disabled and marked as read-only. Ple"
+   },
+   "learning": {
+    "new_cells": 0,
+    "moves_succeeded": 21,
+    "moves_blocked": 0,
+    "goals": {
+     "explore": 2,
+     "visit": 2
+    },
+    "cells_visited": 37,
+    "cells_total": 40,
+    "known_rifts": 3,
+    "blocked_rate": 0.054,
+    "favorite_spot": "Echo Prism",
+    "prefs": {
+     "explore": 0.05,
+     "visit": 1,
+     "rest": 0.05,
+     "play": 1
+    },
+    "label": "learned behaviour from its own experience, not consciousness"
+   },
+   "thought": {
+    "text": "The Everestaism, per Simple English Wikipedia (1980) as the Austrian Cityus (1767) is a Canadian whoseve theingees.",
+    "by": "rawrphos-native:step-40304 (raw model output, unedited)"
+   },
+   "prev_hash": "12244eeac31799abc88c5833d7c464a3216cb5df7156634900abe8311b3e68fc",
+   "hash": "7416fed33db33390f4c9dc3027ee6ee7db26e4a7965dc9d070d930b14867c70a"
+  },
   {
    "schema": "zeref-diary/v1",
    "beast_id": "bb-7f9c2a03",
@@ -864,81 +935,8 @@
    },
    "prev_hash": "22531d5cf9ee12edde5d38aece37ccb941c040b5e720597237ce8e89534250bf",
    "hash": "e46040c605bdfdfb610b4e84cf780f2d32b5e0b50b8d75beab03e349cfb7a668"
-  },
-  {
-   "schema": "zeref-diary/v1",
-   "beast_id": "bb-7f9c2a03",
-   "tick": 794,
-   "at": "2026-11-12T13:49:26.869Z",
-   "hour_local": 7,
-   "timezone": "America/Chicago",
-   "signals": {
-    "energy": 82,
-    "signal": 42,
-    "memory": 100,
-    "resonance": 92
-   },
-   "bond": 100,
-   "mood": "content",
-   "place": "Echo Prism",
-   "places_visited": [
-    "Echo Prism",
-    "Rift Gate",
-    "Violet Shard"
-   ],
-   "discovered_combos": [],
-   "new_combo_count": 0,
-   "combos_total": 429,
-   "xp_gain": 10,
-   "xp": 11400,
-   "stage": 5,
-   "stage_name": "Crescent Sovereign",
-   "grew": false,
-   "care": 0,
-   "birth_spark": {
-    "provider": "IBM Quantum",
-    "backend": "ibm_marrakesh",
-    "job_id": "db4te7slf4us73c3888g",
-    "source": "recorded hardware counts (birth seed, never re-run)"
-   },
-   "growth_source": {
-    "kind": "deterministic-fallback",
-    "simulated": false,
-    "provider": "azure-quantum/rigetti",
-    "target": "rigetti.sim.qvm",
-    "job_id": null,
-    "error": "ResourceExistsError: (SubscriptionDisabled) This Azure subscription is disabled and marked as read-only. Please re-enable the subscription to use Azure Quantum.\nCode: SubscriptionDisabled\nMessage: This Azure subscription is disabled and marked as read-only. Ple"
-   },
-   "learning": {
-    "new_cells": 0,
-    "moves_succeeded": 11,
-    "moves_blocked": 1,
-    "goals": {
-     "play": 5,
-     "rest": 1,
-     "visit": 6
-    },
-    "cells_visited": 37,
-    "cells_total": 40,
-    "known_rifts": 3,
-    "blocked_rate": 0.054,
-    "favorite_spot": "Rift Gate",
-    "prefs": {
-     "explore": 0.05,
-     "visit": 1,
-     "rest": 0.05,
-     "play": 0.937
-    },
-    "label": "learned behaviour from its own experience, not consciousness"
-   },
-   "thought": {
-    "text": "The Echo (LECORDED diary (197) has a lot of noun,; but has a name of not me.",
-    "by": "rawrphos-native:step-39664 (raw model output, unedited)"
-   },
-   "prev_hash": "f35fe81e1118cd4da802b3e7101863d265a423f12f053b69d94315ac99f4a489",
-   "hash": "22531d5cf9ee12edde5d38aece37ccb941c040b5e720597237ce8e89534250bf"
   }
  ],
- "generated_at": "2026-11-12T21:19:18.832Z",
+ "generated_at": "2026-11-12T21:53:50.656Z",
  "thought_source_note": "rawrphos-ok"
 }
