@@ -234,24 +234,27 @@ async function foreverDoor(request:Request,allowedCrossOrigin:boolean):Promise<R
    if(res.status===429)out.headers.set('Retry-After',String(Number.isInteger(result.retry_after_seconds)?Math.min(60,Math.max(1,result.retry_after_seconds as number)):5));
    return out;
   }
-  // PIN LAG (Nov 12, 1:00 PM CT): a promotion merge redeploys this site in about a minute, but the
-  // bridge takes several minutes to load the new checkpoint. In that window the bridge honestly
-  // reports its older step. That reply is still refused (it is not the pinned brain), but the
-  // visitor is told the true reason with a wait hint instead of a bare "unverified" 502.
-  // The full verification below is unchanged.
-  if(result.schema==='beastbox-guest-local-v1'&&result.model==='rawrphos-native'&&
-     Number.isInteger(result.step)&&(result.step as number)<PIN_STEP){
-   const lag=safeJson(503,{error:'His brain was just promoted and his door is still loading it. Try again in a few minutes.',
-    pin_step:PIN_STEP,bridge_step:result.step,retry_after_seconds:60});
-   lag.headers.set('Retry-After','60');
-   return lag;
-  }
-  // memory_used may be true ONLY on the bridge's persisted Hebbian mode
-  // (PR #675); any other memory claim is still an unverified response.
+  // OWN-STEP DOOR (Cory, Nov 12 2026 2:37 PM CT: "Loosen both the training gate and the chat door").
+  // The door no longer refuses a reply because the bridge's step differs from the site pin (mid-redeploy,
+  // a promotion still loading, or a rollback). Whatever step the bridge actually loaded answers, and the
+  // receipt says so: step/checkpoint_sha256 are the ANSWERING brain's, pin_step/pin_checkpoint_sha256 are
+  // the pin's, and answered_by states both. The previous rule (refuse unless step===PIN_STEP and
+  // sha===PIN_SHA; an older step got a 503 wait) is kept as STRICT_PIN_MATCH for a one-line revert.
+  // What still refuses: anything that is not Zeref's own native brain (schema/model), a malformed step or
+  // fingerprint, owner tools used, a shared provider key, or no reply text. No other model, canned text or
+  // fallback ever speaks for him; an unreachable bridge is an honest error.
+  const STRICT_PIN_MATCH=false;
+  const answeredStep=result.step,answeredSha=result.checkpoint_sha256;
   if(result.schema!=='beastbox-guest-local-v1'||result.model!=='rawrphos-native'||
-     result.step!==PIN_STEP||result.checkpoint_sha256!==PIN_SHA||(result.memory_used!==false&&result.hebbian_mode!=='persisted')||result.owner_tools_used!==false||
-     result.provider_key_shared!==false||typeof result.reply!=='string'||result.reply.length>6000)
-   return safeJson(502,{error:'Unverified guest model response'});
+     !Number.isInteger(answeredStep)||(answeredStep as number)<1||typeof answeredSha!=='string'||!/^[0-9a-f]{64}$/.test(answeredSha)||
+     result.owner_tools_used!==false||result.provider_key_shared!==false||typeof result.reply!=='string')
+   return safeJson(502,{error:'The answer did not come from Zeref\'s own brain, so it was not shown'});
+  const onPin=answeredStep===PIN_STEP&&answeredSha===PIN_SHA;
+  if(STRICT_PIN_MATCH&&!onPin)return safeJson(502,{error:'Unverified guest model response'});
+  // memory_used may be true ONLY on the bridge's persisted Hebbian mode (PR #675). An unbacked memory
+  // claim no longer hides his reply; it is reported as an unverified claim instead.
+  const memoryClaimVerified=result.memory_used===false||result.hebbian_mode==='persisted';
+  const answeredBy=onPin?`answered by step ${answeredStep} (the pin)`:`answered by step ${answeredStep}, pin is ${PIN_STEP}`;
   const reply=result.reply as string;
   // The bridge's persistence receipts, surfaced as reported (null when the
   // bridge predates them). Sanitised to the documented fields only.
@@ -269,16 +272,16 @@ async function foreverDoor(request:Request,allowedCrossOrigin:boolean):Promise<R
   if(cfg){
    const at=new Date().toISOString();
    try{
-    const w=await appendExchange(cfg,threadId,{guestText:text,reply,step:PIN_STEP,at});
+    const w=await appendExchange(cfg,threadId,{guestText:text,reply,step:answeredStep as number,at});
     persisted=w.persisted;
    }catch{/* receipt marks persisted:false */}
    try{
-    const a=await appendArchive(cfg,threadId,{guestText:text,reply,step:PIN_STEP,at,
+    const a=await appendArchive(cfg,threadId,{guestText:text,reply,step:answeredStep as number,at,
      exchange_id:exchangeId('public',threadId,at,text,reply),windowTurns:threadRec?.thread?.turns||[]});
     archived=a.archived;archivedTurns=a.turns;
    }catch{/* receipt marks archived:false */}
    try{
-    recorded=await appendGuestEvent(cfg,{at,thread:threadId,step:PIN_STEP,checkpoint_sha256:PIN_SHA,
+    recorded=await appendGuestEvent(cfg,{at,thread:threadId,step:answeredStep as number,checkpoint_sha256:answeredSha,
      guest_chars:text.length,reply_chars:reply.length,exchange_id:exchangeId('public',threadId,at,text,reply)});
    }catch{/* receipt marks recorded:false */}
   }
@@ -290,7 +293,9 @@ async function foreverDoor(request:Request,allowedCrossOrigin:boolean):Promise<R
   const headers:Record<string,string>={'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'};
   if(minted&&!allowedCrossOrigin)headers['Set-Cookie']=`${COOKIE}=${threadId}; Path=/; HttpOnly; SameSite=Lax; Max-Age=31536000${request.url.startsWith('https:')?'; Secure':''}`;
   return Response.json({provider:'rawrphos-local',model:'rawrphos-native',
-   step:PIN_STEP,checkpoint_sha256:PIN_SHA,reply,
+   step:answeredStep,checkpoint_sha256:answeredSha,reply,
+   pin_step:PIN_STEP,pin_checkpoint_sha256:PIN_SHA,serving_pin:onPin,answered_by:answeredBy,
+   memory_claim_verified:memoryClaimVerified,
    hebbian:result.hebbian===true,hebbian_mode:hebbianMode,guest_thread:guestThread,
    state_mode:result.state_mode==='tri'||result.state_mode==='dyn12'?result.state_mode:null,
    guest_stateless:false,continuity:{thread_id:threadId,identity_source:'thread',persisted,recorded,archive:{archived,turns:archivedTurns,read_turns:archiveTurns.length,window_turns:threadRec?.thread?.turns?.length??0},
