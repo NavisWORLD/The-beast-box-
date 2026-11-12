@@ -1,0 +1,98 @@
+name: Zeref owner feed -> sensor snapshots (candidates only)
+# Cory 2026-11-12: "I committed one injection a file; it should have been fed and decoupled by the engine into
+# sensors for learning, the way my system works through git actions autonomously."
+# When NavisWORLD commits a .txt/.md file to zeref/feed/owner/ on main, this decouples it into token-bounded
+# chunks (<= 1200 UTF-8 bytes, the bridge's text cap) and runs each chunk, one tick at a time, through the public
+# dyn12 reference dynamic: RECORDED sensor snapshots + a hashed, append-only chain, written to the
+# zeref-owner-feed data branch (never main, so no site or bridge redeploy). An unbounded stream folded into a
+# fixed-size 12D state over many ticks; not literal infinite context.
+# CANDIDATES ONLY: training_eligible:false. Nothing here feeds a training mix; a later round may use them only
+# through Cory's fair-gate decision and the unchanged G1-G10 gates. No model call, no quantum time, no secrets
+# beyond the job's own GITHUB_TOKEN. Guest chats stay training_eligible:false and never come through here.
+on:
+  push:
+    branches: [main]
+    paths: ['zeref/feed/owner/**']
+  workflow_dispatch:
+    inputs:
+      files:
+        description: 'Space-separated paths under zeref/feed/owner/ to (re)ingest; already-ingested bytes are skipped'
+        required: true
+permissions:
+  contents: write
+concurrency:
+  group: zeref-owner-feed
+  cancel-in-progress: false
+jobs:
+  ingest:
+    # Owner only: the push (or dispatch) must come from NavisWORLD; each pushed commit is re-checked below.
+    if: github.actor == 'NavisWORLD'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with: {fetch-depth: 0}
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11'}
+      - name: Pick the owner files this push added or changed (commits by NavisWORLD only)
+        id: pick
+        env:
+          EVENT: ${{ github.event_name }}
+          BEFORE: ${{ github.event.before }}
+          AFTER: ${{ github.sha }}
+          DISPATCH_FILES: ${{ github.event.inputs.files }}
+          COMMITS_JSON: ${{ toJSON(github.event.commits) }}
+        run: |
+          set -Eeuo pipefail
+          if [ "$EVENT" = "workflow_dispatch" ]; then
+            files="$DISPATCH_FILES"
+          else
+            # Every commit in the push must be authored by NavisWORLD (the web UI and the gh CLI both record the login).
+            python3 - <<'PY'
+          import json, os, sys
+          commits = json.loads(os.environ["COMMITS_JSON"] or "[]")
+          bad = [c["id"][:8] for c in commits if (c.get("author") or {}).get("username") != "NavisWORLD"]
+          if bad:
+              print("owner feed: commits not by NavisWORLD:", bad); sys.exit(1)
+          PY
+            if [ -z "$BEFORE" ] || [ "$BEFORE" = "0000000000000000000000000000000000000000" ]; then BEFORE="$(git rev-list --max-parents=0 HEAD | tail -1)"; fi
+            files="$(git diff --name-only --diff-filter=AM "$BEFORE" "$AFTER" -- 'zeref/feed/owner/' | tr '\n' ' ')"
+          fi
+          keep=""
+          for f in $files; do
+            case "$f" in zeref/feed/owner/README.md) continue;; zeref/feed/owner/*.txt|zeref/feed/owner/*.md) keep="$keep $f";; *) echo "skip $f (not a .txt/.md under zeref/feed/owner/)";; esac
+          done
+          echo "files=${keep# }" >> "$GITHUB_OUTPUT"
+          echo "owner files: ${keep:-none}"
+      - name: Check out the data branch (append-only)
+        if: steps.pick.outputs.files != ''
+        run: |
+          set -Eeuo pipefail
+          if git ls-remote --exit-code --heads origin zeref-owner-feed >/dev/null; then
+            git worktree add "$RUNNER_TEMP/feed" origin/zeref-owner-feed
+            git -C "$RUNNER_TEMP/feed" checkout -B zeref-owner-feed
+          else
+            git worktree add --detach "$RUNNER_TEMP/feed"
+            git -C "$RUNNER_TEMP/feed" checkout --orphan zeref-owner-feed
+            git -C "$RUNNER_TEMP/feed" rm -rqf .
+          fi
+          mkdir -p "$RUNNER_TEMP/feed/owner-feed"
+      - name: Decouple into sensor snapshots through the 12D engine
+        if: steps.pick.outputs.files != ''
+        env:
+          FILES: ${{ steps.pick.outputs.files }}
+        run: |
+          set -Eeuo pipefail
+          python3 scripts/zeref_owner_feed_ingest.py --out "$RUNNER_TEMP/feed/owner-feed" --commit "$GITHUB_SHA" --author "$GITHUB_ACTOR" $FILES | tee "$RUNNER_TEMP/result.json"
+          { echo '### Owner feed ingest (RECORDED sensor snapshots, CANDIDATES, training_eligible:false)'; echo '```json'; cat "$RUNNER_TEMP/result.json"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+      - name: Commit the snapshots to the data branch
+        if: steps.pick.outputs.files != ''
+        working-directory: ${{ runner.temp }}/feed
+        run: |
+          set -Eeuo pipefail
+          git config user.name "zeref-owner-feed[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add owner-feed
+          git diff --cached --quiet && { echo "nothing new (already ingested)"; exit 0; }
+          git commit -m "Owner feed: sensor snapshots for ${GITHUB_SHA::8} (candidates, training_eligible:false)"
+          git push origin HEAD:zeref-owner-feed
