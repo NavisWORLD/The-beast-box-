@@ -22,7 +22,8 @@ from __future__ import annotations
 
 import re
 import unicodedata
-from typing import Any, Iterable
+from collections.abc import Iterable
+from typing import Any
 
 from .dyn12 import update_dyn12
 from .hashutil import canonical_json, sha256_obj, sha256_text
@@ -182,7 +183,7 @@ def ingest(text: str, *, path: str, commit_sha: str, author_login: str, chain: l
         raise ValueError("owner feed file exceeds the size limit")
     check = verify_chain(chain)
     if not check["ok"]:
-        raise ValueError("existing owner feed chain does not verify at entry %s" % check["broken_at"])
+        raise ValueError(f"existing owner feed chain does not verify at entry {check['broken_at']}")
     file_sha = sha256_text(text)
     base = {"schema": MANIFEST_SCHEMA, "path": path, "file_sha256": file_sha, "commit_sha": commit_sha,
             "author_login": author_login, "ingested_at": ingested_at, "training_eligible": False,

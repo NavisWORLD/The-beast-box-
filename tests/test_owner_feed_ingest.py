@@ -1,11 +1,9 @@
 """Owner feed ingestion: bounded ticks, measured features, verifiable append-only chain, candidates only."""
-import json
 from pathlib import Path
 
 import pytest
 
-from beastbox.owner_feed_ingest import (CHAIN_SCHEMA, MAX_CHUNK_BYTES, chunk_text, ingest, normalize, sense,
-                                        verify_chain)
+from beastbox.owner_feed_ingest import CHAIN_SCHEMA, MAX_CHUNK_BYTES, chunk_text, ingest, normalize, sense, verify_chain
 
 ROOT = Path(__file__).resolve().parents[1]
 STORY = ("In the land of Eridoria the sun dipped low. Arin worked the forge! Did the traveler speak true? "

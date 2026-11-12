@@ -15,7 +15,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from beastbox.owner_feed_ingest import LABELS, ingest, jsonl, verify_chain  # noqa: E402
+from beastbox.owner_feed_ingest import LABELS, ingest, jsonl, verify_chain
 
 
 def main(argv: list[str] | None = None) -> int:
