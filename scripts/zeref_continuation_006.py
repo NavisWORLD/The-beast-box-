@@ -8,7 +8,7 @@ gate controls whether the candidate becomes the NEXT TRAINING PARENT.
 Absolutely no live model promotion, QPU submission or invented game rewards.
 """
 from __future__ import annotations
-import hashlib,json,math,os,random,statistics,time
+import hashlib,json,math,os,random,re,statistics,time
 from pathlib import Path
 import torch
 from rawrphos.inference.engine import Engine
@@ -282,6 +282,12 @@ TIME_BUDGET_S=float(os.environ.get("ZEREF_006_TIME_BUDGET_S","0"))  # 0 = no bud
 WIP_IN=os.environ.get("ZEREF_GROWTH_WIP_IN","");WIP_OUT=os.environ.get("ZEREF_GROWTH_WIP_OUT","build/zeref-006/growth-wip.pt")
 LIMITS_HIT=[]
 HEBBIAN_LR=float(os.environ.get("ZEREF_HEBBIAN_LR","0.0003"))  # new params start from zero; base LR unchanged
+# Gear LR (Cory, 2026-11-12): the 12D/54D "gear" scalars that live in the base group (each block's
+# state-attention gate/sigma and the dyn12/Trinity k, g12/gamma) get their own optimizer group at
+# lr * ZEREF_GEAR_LR_MULT. 0 (default) = off = the exact old [base, hebbian] groups. Gears stay in the
+# L2 anchor exactly as before; only their step size changes. Gate, eval, pin and steps are unchanged.
+GEAR_LR_MULT=float(os.environ.get("ZEREF_GEAR_LR_MULT","0"))
+GEAR_PARAM_RE=re.compile(r"blocks\.\d+\.(attn\.(gate_logit|log_sigma)|transition\.(k|g12|gamma))")
 OPT_RESUME=[]
 def map_optimizer_state(sd,model,groups_now,meta,parent_model=None):
  """2026-10-23 resume fix: map the parent's saved AdamW state onto the param groups built NOW,
@@ -393,14 +399,23 @@ def train_variant(parent_path,tokenizer,pool,seed,chat_pool=(),chat_eval=None,lr
   "planned_batch_attempts":UPDATES,"batch":BATCH,"chat_per_batch":CHAT_PER_BATCH if chat_pool else 0,
   "pretrain_per_batch":PRETRAIN_PER_BATCH if PRETRAIN_POOL else 0,"torch_threads":torch.get_num_threads()}),flush=True)
  anchor=[p.detach().clone() for p in base]  # L2 anchor on the approved parent's weights only
- groups=[{"params":base}]+([{"params":hebb}] if hebb else [])
+ gid=set()
+ if GEAR_LR_MULT>0:
+  bid={id(p) for p in base}
+  gid={id(p) for k,p in model.named_parameters() if GEAR_PARAM_RE.fullmatch(k) and id(p) in bid}
+ gears=[p for p in base if id(p) in gid];base_opt=[p for p in base if id(p) not in gid]
+ groups_now=[base_opt]+([hebb] if hebb else [])+([gears] if gears else [])
+ groups=[{"params":g_} for g_ in groups_now]
  lr=LR if lr is None else lr;min_frac=LR_MIN_FRACTION if min_frac is None else min_frac
+ group_lrs=[lr]+([HEBBIAN_LR] if hebb else [])+([lr*GEAR_LR_MULT] if gears else [])
+ if gears:print("ZEREF_GEAR_LR="+json.dumps({"mult":GEAR_LR_MULT,"lr":lr*GEAR_LR_MULT,"params":len(gears),
+  "scalars":sum(p.numel() for p in gears),"anchored":True}),flush=True)
  opt=torch.optim.AdamW(groups,lr=lr,weight_decay=.01)
- if not hebb:opt.load_state_dict(parent["state"]["optimizer"])  # flag off: exact old resume
+ if not hebb and not gears:opt.load_state_dict(parent["state"]["optimizer"])  # flag off: exact old resume
  else:
-  _sd,_log=map_optimizer_state(parent["state"]["optimizer"],model,[base,hebb],parent["metadata"],parent_model)
+  _sd,_log=map_optimizer_state(parent["state"]["optimizer"],model,groups_now,parent["metadata"],parent_model)
   OPT_RESUME.append(_log);opt.load_state_dict(_sd)
- for gi,group in enumerate(opt.param_groups):group["lr"]=HEBBIAN_LR if gi==1 else lr
+ for gi,group in enumerate(opt.param_groups):group["lr"]=group_lrs[gi]
  by=defaultdict(list)
  for i,(a,_) in enumerate(pool):by[a].append(i)
  classes=sorted(by)
@@ -424,7 +439,7 @@ def train_variant(parent_path,tokenizer,pool,seed,chat_pool=(),chat_eval=None,lr
     "parent_checkpoint_sha256":parent["metadata"]["checkpoint_sha256"],"steps_done":n},WIP_OUT)
    print("ZEREF_GROWTH_LIMIT_HIT="+json.dumps(LIMITS_HIT[-1]),flush=True);break
   attempted=n+1
-  for gi,group in enumerate(opt.param_groups):group["lr"]=(HEBBIAN_LR if gi==1 else lr)*(min_frac+(1-min_frac)*.5*(1+math.cos(math.pi*n/UPDATES)))
+  for gi,group in enumerate(opt.param_groups):group["lr"]=group_lrs[gi]*(min_frac+(1-min_frac)*.5*(1+math.cos(math.pi*n/UPDATES)))
   opt.zero_grad(set_to_none=True)
   idx=[];src=defaultdict(int)
   for _ in range(BATCH):
@@ -736,12 +751,28 @@ def main(recovery=False):
  except Exception as exc:cond_report={"error":type(exc).__name__}
  # Candidate evaluation must NEVER use the heldout actions as training targets.
  temp=ROOT/"unreviewed-candidate"
+ if recovery:kept_at=recovery_progress["applied_optimizer_steps"]
+ else:kept_at=((SEL.get("best_in_cycle") or {}).get("best_in_cycle_step")) or UPDATES
+ _pk=parent["metadata"].get("kept_training_steps_total")
+ STEP_ACCOUNTING={"training_steps_counter":"attempted updates per round (lineage contract, unchanged)",
+  "attempted_this_round":recovery_progress["applied_optimizer_steps"] if recovery else UPDATES,
+  "selected_snapshot_attempt":kept_at,
+  "attempts_discarded_after_snapshot":(UPDATES-kept_at) if not recovery else 0,
+  "kept_training_steps_total":(int(_pk) if type(_pk) is int else 0)+int(kept_at),
+  "kept_counting_since_cycle":parent["metadata"].get("kept_counting_since_cycle") or (cycle+1),
+  "note":"selected_snapshot_attempt counts attempts up to the kept snapshot, including any spike-skipped batches"}
+ print("ZEREF_006_STEP_ACCOUNTING="+json.dumps(STEP_ACCOUNTING,sort_keys=True),flush=True)
  meta={"schema":"rawrphos-zeref-resumable-native-006",
   "parent_checkpoint_sha256":parent["metadata"]["checkpoint_sha256"],
   "canonical_lineage_root_sha256":CANONICAL_APPROVED_ROOT,
   "approved_cycle_count":cycle+1,
   "training_steps":parent["metadata"]["training_steps"]+(recovery_progress["applied_optimizer_steps"] if recovery else UPDATES),
   "cycle_optimizer_updates":recovery_progress["applied_optimizer_steps"] if recovery else UPDATES,
+  # Honest step accounting (Cory, 2026-11-12): training_steps above stays the attempt counter the
+  # lineage contract (expected_steps) and the pin rely on; these record what the kept weights saw.
+  "step_accounting":STEP_ACCOUNTING,
+  "kept_training_steps_total":STEP_ACCOUNTING["kept_training_steps_total"],
+  "kept_counting_since_cycle":STEP_ACCOUNTING["kept_counting_since_cycle"],
   # resume fix: exact parameter names per optimizer group, so the next round maps state by name
   "optimizer_group_param_names":[[{id(p):k for k,p in model.named_parameters()}[id(q)] for q in g["params"]] for g in opt.param_groups],
   "optimizer_resume":OPT_RESUME[-1] if OPT_RESUME else None,
@@ -816,6 +847,7 @@ def main(recovery=False):
   "native_capture_cycle_offset":manifest["teacher_cycle_offset"],
   "parent_training_steps":parent["metadata"]["training_steps"],
   "candidate_training_steps":saved["training_steps"],
+  "step_accounting":STEP_ACCOUNTING,
   "approved_cycle_number_if_accepted":cycle+1,
   "real_cpu_optimizer_steps_this_run":recovery_progress["applied_optimizer_steps"] if recovery else UPDATES,"new_ibm_qpu_jobs":0,
   "heldout_before_nll":original_held,"heldout_after_nll":new_held,
