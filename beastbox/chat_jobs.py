@@ -25,15 +25,15 @@ TTL_SECONDS = 900
 # most GUEST_QUEUE_MAX waiters, each for at most GUEST_WAIT_SECONDS; past
 # either bound the caller still gets the same 429 + retry hint as before.
 # Per-guest and global per-minute caps (guest_local.GuestQuota) are unchanged.
-def _bounded_env(name: str, default: int, low: int, high: int) -> int:
+def _bounded(raw: str | None, default: int, low: int, high: int) -> int:
     try:
-        return max(low, min(high, int(os.environ.get(name, str(default)))))
+        return max(low, min(high, int(raw if raw not in (None, "") else default)))
     except ValueError:
         return default
 
 
-GUEST_WAIT_SECONDS = _bounded_env("BEASTBOX_GUEST_WAIT_SECONDS", 20, 0, 30)
-GUEST_QUEUE_MAX = _bounded_env("BEASTBOX_GUEST_QUEUE_MAX", 8, 0, 32)
+GUEST_WAIT_SECONDS = _bounded(os.environ.get("BEASTBOX_GUEST_WAIT_SECONDS"), 20, 0, 30)
+GUEST_QUEUE_MAX = _bounded(os.environ.get("BEASTBOX_GUEST_QUEUE_MAX"), 8, 0, 32)
 
 # A fixed diagnostic vocabulary: upstream bodies and credentials are never
 # returned to the browser. Retain exact failure identity without auto-retry.
