@@ -2,7 +2,8 @@ import test from 'node:test';import assert from 'node:assert/strict';import {rea
 const h=readFileSync(new URL('../components/home-pocket.tsx',import.meta.url),'utf8');
 test('home tiny universe: guests see the same embedded living world as /beast-cage/world unless they picked the pocket',()=>{
  assert.match(h,/const guestWorld=!own&&!guestPocket/);
- assert.match(h,/\(\(own&&homeView==='world'\)\|\|guestWorld\)&&!world&&!softHome\?<LivingWorld embedded/);
+ assert.match(h,/const oneWorld=guestWorld\|\|!!own\|\|homeView==='pocket'\|\|homeView==='world'/);
+ assert.match(h,/\{oneWorld&&!world&&!softHome\?<LivingWorld embedded/);
  assert.match(h,/genome=\{own\?\.genome\|\|null\}/);assert.doesNotMatch(h,/Math\.random/);
 });
 test('home bubble: Universe button and the world View/Quality chips never overlap',()=>{
