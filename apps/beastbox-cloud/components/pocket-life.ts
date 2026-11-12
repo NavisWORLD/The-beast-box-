@@ -10,7 +10,6 @@
  * Deterministic from the seed (weather/time can be overridden by the play-god toolbar). Mobile tiers via `low`.
  */
 import {oneSunAt,ONE_SUN} from '@/lib/universe/one-sun.mjs';
-import {currentLook,usesGenesisBase} from '@/lib/look/look-mode';
 import {hazeTint} from '@/lib/look/haze';
 import {motionAt} from '@/lib/look/motion';
 import {currentWorldClock} from '@/lib/world/one-world-clock.mjs';
@@ -186,7 +185,7 @@ export function addPocketLife(THREE:Three,scene:import('three').Scene,opts:{seed
   night+=(want-night)*Math.min(1,dt*(tod===null?1:1.5));U.uNight.value=night;
   const os=oneSunAt(Date.now()/1000);sun.position.set(os.dir[0]*7,os.dir[1]*7,os.dir[2]*7);sun.color.set(ONE_SUN.hex);sun.intensity=(1-night)*(1-rainAmt*.7)*1.6;if(opts.hemi)opts.hemi.intensity=1.1+(1-night)*1.4-rainAmt*.4;
   const bg=scene.background as import('three').Color|null;if(bg&&(bg as any).isColor)bg.setRGB(.02+(1-night)*.16,.016+(1-night)*.16,.06+(1-night)*.34);
-  const fog=scene.fog as import('three').FogExp2|null;if(fog){if(usesGenesisBase(currentLook())){const raw=currentWorldClock()?.get?.()?.tick;const tick=browserTickOn()?displayTick(raw):(raw??0);if(Number.isInteger(tick)){const frame=motionAt(seed,tick,reduced);const tint=hazeTint(os.dir,os.sky?.horizon||[.5,.6,.7],os.sky?.zenith||[.1,.2,.4],frame.hazePhase);fog.color.setRGB(tint[0],tint[1],tint[2]);}}else fog.color.setRGB(.05+(1-night)*.2,.04+(1-night)*.2,.15+(1-night)*.35);}
+  const fog=scene.fog as import('three').FogExp2|null;if(fog){{const raw=currentWorldClock()?.get?.()?.tick;const tick=browserTickOn()?displayTick(raw):(raw??0);if(Number.isInteger(tick)){const frame=motionAt(seed,tick,reduced);const tint=hazeTint(os.dir,os.sky?.horizon||[.5,.6,.7],os.sky?.zenith||[.1,.2,.4],frame.hazePhase);fog.color.setRGB(tint[0],tint[1],tint[2]);}}} /* Park is the one look: Genesis haze tint only */
   // lightning (deterministic stream)
   lightningT-=dt;if(stormAmt>.4&&lightningT<=0){lightningT=1.5+lrnd()*5;flash.intensity=3.5;ripple((lrnd()-.5)*6,(lrnd()-.5)*6,.6);}flash.intensity*=Math.exp(-dt*9);
   // rain (slanted by the same wind)

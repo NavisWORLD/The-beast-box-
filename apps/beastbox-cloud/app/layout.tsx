@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import HonestLine from '../components/honest-line';
 import './globals.css';
+import './park-skin.css';
 import { BRAND_CREST_SMALL_SVG, BRAND_ICONS } from '../lib/brand';
 import CompanionProvider from '../components/companion-provider';
 import SiteSoundDock from '../components/site-sound-dock';
@@ -20,5 +21,6 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
   const livedFlag = process.env.BEASTBOX_LIVED_BACKBONE;
   const livedOn = livedFlag == null || livedFlag.trim() === '' || livedFlag === 'on';
   const sensorium = livedOn && await isOwner();
-  return <html lang="en"><body><OneWorldProvider/><SiteNav/><CompanionProvider>{children}</CompanionProvider><HonestLine/><SiteSoundDock/><ZerefVoiceDock/><SiteDock/><ShareWorld/>{sensorium ? <SensoriumProvider enabled /> : null}<GlDebugOverlay/></body></html>;
+  // Park is the one look; the page skin (app/park-skin.css) keys off this attribute.
+  return <html lang="en" data-look="park"><body><OneWorldProvider/><SiteNav/><CompanionProvider>{children}</CompanionProvider><HonestLine/><SiteSoundDock/><ZerefVoiceDock/><SiteDock/><ShareWorld/>{sensorium ? <SensoriumProvider enabled /> : null}<GlDebugOverlay/></body></html>;
 }

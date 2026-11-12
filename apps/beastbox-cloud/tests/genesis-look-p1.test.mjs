@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {readdirSync,readFileSync} from 'node:fs';
-import {readLook,writeLook,lookLabel,snapshotWorld,withLook,DEFAULT_LOOK} from '../lib/look/look-mode.ts';
+import {readLook,currentLook,snapshotWorld,withLook,DEFAULT_LOOK,LOOK_KEY} from '../lib/look/look-mode.ts';
 import {presentationTier,dropTierIfSlow,considerDrop,budgetFor} from '../lib/look/tiers.ts';
 import {motionAt,presentationTick,windSway,cloudDrift,treeSway,FOLIAGE_IN_P1,CREATURE_MOTION,MOTION_LABEL} from '../lib/look/motion.ts';
 import {hazeAmount,hazeStack,hazeTint} from '../lib/look/haze.ts';
@@ -21,25 +21,24 @@ const read=p=>readFileSync(new URL(p,root),'utf8');
 const mem=()=>{const m=new Map();return {getItem:k=>m.has(k)?m.get(k):null,setItem:(k,v)=>m.set(k,String(v)),removeItem:k=>m.delete(k),key:i=>[...m.keys()][i]??null,get length(){return m.size;}};};
 const posHash=geo=>{const a=geo.attributes.position.array;return createHash('sha256').update(Buffer.from(a.buffer,a.byteOffset,a.byteLength)).digest('hex');};
 
-test('Park is the default and a look switch does not change world state',()=>{
+test('Park is the one look, an old saved look is cleared, and the world state is untouched',()=>{
  const s=mem();
  s.setItem('lw:universe','{"seed":"s","tick":3}');
  s.setItem('lw:spawned','1');
  s.setItem('lw:traits:guest','{"calm":0.5}');
- assert.equal(readLook(s),DEFAULT_LOOK);
- assert.equal(lookLabel('classic'),'Look: Classic');
- assert.equal(lookLabel('genesis'),'Look: Genesis');
  const before=snapshotWorld(s);
+ assert.equal(DEFAULT_LOOK,'park');
+ assert.equal(readLook(s),'park');
+ s.setItem(LOOK_KEY,'classic');
+ assert.equal(readLook(s),'park');
+ assert.equal(s.getItem(LOOK_KEY),null);
+ assert.equal(currentLook(),'park');
  const world={seed:'s',tick:3,planets:[{id:'home'}]};
  const frozen=structuredClone(world);
- assert.equal(withLook(world,'genesis').world,world);
- assert.equal(withLook(world,'genesis').look,'genesis');
- writeLook(s,'genesis');
- assert.equal(readLook(s),'genesis');
+ assert.equal(withLook(world).world,world);
+ assert.equal(withLook(world).look,'park');
  assert.deepEqual(snapshotWorld(s),before);
  assert.equal(s.getItem('lw:universe'),'{"seed":"s","tick":3}');
- writeLook(s,'classic');
- assert.deepEqual(snapshotWorld(s),before);
  assert.deepEqual(world,frozen);
 });
 
@@ -175,7 +174,7 @@ test('Genesis adds no second light and lib/look has no Math.random',async()=>{
  const before=structuredClone(world);
  const g=attachGenesisLook(THREE,scene,{
   seed:'s',tier:'LOW',heightAt:()=>Math.sin(0),
-  getLook:()=>'genesis',reduced:()=>true,nowMs:()=>0,readTick:()=>world.tick,
+  getLook:()=>'park',reduced:()=>true,nowMs:()=>0,readTick:()=>world.tick,
   getSun:()=>({dir:[0,.7,.7],day:.2,elevationDeg:-12,sky:{zenith:[.01,.02,.05],horizon:[.05,.04,.08],starAlpha:.8}}),
  });
  const frame=g.sync();
@@ -190,7 +189,7 @@ test('Genesis adds no second light and lib/look has no Math.random',async()=>{
  const classic=new THREE.Object3D();classic.visible=false;
  const skyMark=new THREE.Object3D();skyMark.visible=true;
  const ground=attachGenesisLook(THREE,scene,{
-  seed:'s',tier:'LOW',heightAt:()=>0,getLook:()=>'genesis',reduced:()=>true,nowMs:()=>0,readTick:()=>1,
+  seed:'s',tier:'LOW',heightAt:()=>0,getLook:()=>'park',reduced:()=>true,nowMs:()=>0,readTick:()=>1,
   follow:()=>classic,classicRoots:()=>[classic,skyMark],
  });
  ground.sync();
@@ -208,7 +207,8 @@ test('speckle sources in lib/universe stay untouched, and the page wiring keeps 
  for(const f of SPECKLE_STOP.files)assert.match(f,/^lib\/universe\//);
  const lw=read('components/living-world.tsx');
  assert.match(lw,/attachGenesisLook\(/);
- assert.match(lw,/data-lw-look=/);
+ assert.match(lw,/data-lw-look="park"/);
+ assert.doesNotMatch(lw,/nextLook|writeLook/);
  assert.match(lw,/SeededLand2D/);
  assert.match(lw,/setLand2d\(/);
  assert.match(lw,/FogExp2/);
@@ -221,7 +221,8 @@ test('speckle sources in lib/universe stay untouched, and the page wiring keeps 
  assert.match(lw,/max-width:480px/);
  assert.doesNotMatch(read('components/cage-pocket-dimension.tsx'),/localStorage|fetch\(/);
  assert.match(read('components/cage-pocket-dimension.tsx'),/attachGenesisLook\(/);
- assert.match(read('components/universe-settings.tsx'),/data-look-choice/);
+ assert.doesNotMatch(read('components/universe-settings.tsx'),/data-look-choice/);
+ assert.match(read('components/universe-settings.tsx'),/data-look-park/);
  assert.match(read('components/universe-settings.tsx'),/data-quality-choice/);
  assert.match(read('components/tiny-universe-view.tsx'),/SeededLand2D/);
  assert.doesNotMatch(read('lib/look/attach.ts'),/windSway|cloudDrift|treeSway|InstancedMesh|beastNode|travNode/);

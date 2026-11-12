@@ -75,7 +75,7 @@ const lin=(h:string)=>hexRgb(h).map(v=>Math.pow(v,2.2)) as [number,number,number
 
 type Opts={
  planet:()=>any;radius:number;seed?:string;
- getLook:()=>string;
+ getLook?:()=>string;
  /** True while the camera is out in orbit (the Genesis ground is hidden then). */
  inOrbit:()=>boolean;
  sunDir:()=>{x:number;y:number;z:number};
@@ -122,7 +122,7 @@ export function attachParkPlanet(THREE:typeof import('three'),opts:Opts){
   builtTier=tier;
  }
  function apply(){
-  on=opts.getLook()==='park'&&opts.inOrbit();
+  on=(opts.getLook?opts.getLook():'park')==='park'&&opts.inOrbit();
   const p=opts.planet();
   if(!on){restoreMaterial();hideShells();return null;}
   if(p&&p.material&&p.material.fragmentShader){

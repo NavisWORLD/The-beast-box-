@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {LOOKS,readLook,writeLook,lookLabel,nextLook,isLook,usesGenesisBase,snapshotWorld} from '../lib/look/look-mode.ts';
+import {readLook,currentLook,isLook,usesGenesisBase,snapshotWorld,LOOK_KEY,PARK_ONLY} from '../lib/look/look-mode.ts';
 import {PARK_DAY,PARK_NIGHT,PARK_COST,parkGrade,hexRgb,saturation} from '../lib/look/park-palette.ts';
 import {PARK_VARIANTS,editShader,attachParkLook,PARK_LABEL} from '../lib/look/park.ts';
 import {attachGenesisLook} from '../lib/look/attach.ts';
@@ -12,26 +12,14 @@ const root=new URL('../',import.meta.url);
 const read=p=>readFileSync(new URL(p,root),'utf8');
 const mem=()=>{const m=new Map();return {getItem:k=>m.has(k)?m.get(k):null,setItem:(k,v)=>m.set(k,String(v)),removeItem:k=>m.delete(k),key:i=>[...m.keys()][i]??null,get length(){return m.size;}};};
 
-test('Park is the third look and the default; Classic and Genesis stay selectable and the world is untouched',()=>{
- assert.deepEqual([...LOOKS],['classic','genesis','park']);
+test('Park is the only look: no chooser, an old saved choice is cleared, and the world is untouched',()=>{
+ assert.equal(PARK_ONLY,true);
  assert.ok(isLook('park'));
- assert.equal(lookLabel('park'),'Look: Park');
- assert.equal(nextLook('classic'),'genesis');
- assert.equal(nextLook('genesis'),'park');
- assert.equal(nextLook('park'),'classic');
  assert.equal(usesGenesisBase('park'),true);
- assert.equal(usesGenesisBase('genesis'),true);
- assert.equal(usesGenesisBase('classic'),false);
+ assert.equal(currentLook(),'park');
  const s=mem();s.setItem('lw:universe','{"seed":"s","tick":3}');
- assert.equal(readLook(s),'park');
  const before=snapshotWorld(s);
- writeLook(s,'classic');
- assert.equal(readLook(s),'classic');
- assert.deepEqual(snapshotWorld(s),before);
- writeLook(s,'genesis');
- assert.equal(readLook(s),'genesis');
- writeLook(s,'park');
- assert.equal(readLook(s),'park');
+ for(const old of ['classic','genesis','park']){s.setItem(LOOK_KEY,old);assert.equal(readLook(s),'park');assert.equal(s.getItem(LOOK_KEY),null);}
  assert.deepEqual(snapshotWorld(s),before);
 });
 
@@ -60,7 +48,7 @@ test('Park palette carries the spec hex values and grades brighter than Genesis 
 test('every Park twin edit still matches the Genesis shaders',async()=>{
  const THREE=await import('three');
  const scene=new THREE.Scene();
- const g=attachGenesisLook(THREE,scene,{seed:'s',tier:'LOW',heightAt:(x,z)=>Math.sin(x*.05)*2+Math.cos(z*.04)*1.5,getLook:()=>'genesis',reduced:()=>true,nowMs:()=>0,readTick:()=>1});
+ const g=attachGenesisLook(THREE,scene,{seed:'s',tier:'LOW',heightAt:(x,z)=>Math.sin(x*.05)*2+Math.cos(z*.04)*1.5,getLook:()=>'park',reduced:()=>true,nowMs:()=>0,readTick:()=>1});
  g.sync();
  const names=new Map(g.group.children.map(o=>[o.name,o]));
  for(const v of PARK_VARIANTS){
@@ -79,40 +67,29 @@ test('every Park twin edit still matches the Genesis shaders',async()=>{
 const snap=group=>!group.visible?'hidden':group.children.filter(o=>o.visible).map(o=>({name:o.name,visible:o.visible,mat:o.material?.name||o.material?.type,frag:o.material?.fragmentShader,
  u:o.material?.uniforms?Object.fromEntries(Object.entries(o.material.uniforms).map(([k,v])=>[k,v.value?.toArray?v.value.toArray():v.value])):null}));
 
-test('Classic and Genesis frames are identical with Park mounted; Park swaps twins in and back out',async()=>{
+test('Park swaps all its twins in on the Genesis ground, and draws the meadow',async()=>{
  const THREE=await import('three');
- const make=(withPark,lookRef)=>{
-  const scene=new THREE.Scene();
-  const sun={dir:[.3,.8,.5],day:1,elevationDeg:40,sky:{zenith:[.2,.45,.75],horizon:[.62,.78,.9],starAlpha:0}};
-  const g=attachGenesisLook(THREE,scene,{seed:'park',tier:'LOW',heightAt:(x,z)=>Math.sin(x*.05)*2+Math.cos(z*.04)*1.5,getLook:()=>lookRef.v,reduced:()=>true,nowMs:()=>0,readTick:()=>3,getSun:()=>sun});
-  const p=withPark?attachParkLook(THREE,g,{getLook:()=>lookRef.v,getSun:()=>sun,seed:'park',heightAt:(x,z)=>Math.sin(x*.05)*2+Math.cos(z*.04)*1.5}):null;
-  const frame=()=>{g.anchor.onBeforeRender();};
-  return {g,p,frame};
- };
- for(const look of ['genesis','classic']){
-  const ra={v:look},rb={v:look};
-  const plain=make(false,ra),withPark=make(true,rb);
-  plain.frame();withPark.frame();
-  assert.deepEqual(snap(withPark.g.group),snap(plain.g.group),look+' identical with Park mounted');
-  // Visit Park, then come back: still identical.
-  rb.v='park';withPark.frame();
-  assert.equal(withPark.p.on,true);
-  if(look==='genesis'){
-   const mats=withPark.g.group.children.filter(o=>/^park:genesis-/.test(o.material?.name||''));
-   assert.equal(mats.length,PARK_VARIANTS.length,'all five Park twins swap in');
-   assert.equal(withPark.p.state().swapped,PARK_VARIANTS.length);
-   assert.equal(withPark.p.state().label,PARK_LABEL);
-   const grass=withPark.g.group.children.find(o=>o.name==='park-grass');
-   assert.ok(grass&&grass.visible,'Park meadow is drawn in Park');
-   assert.equal(withPark.p.state().grass.count,grass.geometry.instanceCount);
-  }
-  rb.v=look;withPark.frame();plain.frame();
-  assert.deepEqual(snap(withPark.g.group),snap(plain.g.group),look+' identical after a Park visit');
-  plain.g.dispose();withPark.p.dispose();withPark.g.dispose();
- }
+ const scene=new THREE.Scene();
+ const sun={dir:[.3,.8,.5],day:1,elevationDeg:40,sky:{zenith:[.2,.45,.75],horizon:[.62,.78,.9],starAlpha:0}};
+ const h=(x,z)=>Math.sin(x*.05)*2+Math.cos(z*.04)*1.5;
+ const g=attachGenesisLook(THREE,scene,{seed:'park',tier:'LOW',heightAt:h,reduced:()=>true,nowMs:()=>0,readTick:()=>3,getSun:()=>sun});
+ const p=attachParkLook(THREE,g,{getSun:()=>sun,seed:'park',heightAt:h});
+ g.anchor.onBeforeRender();
+ assert.equal(g.group.visible,true,'Park draws the Genesis ground by default');
+ assert.equal(p.on,true);
+ const mats=g.group.children.filter(o=>/^park:genesis-/.test(o.material?.name||''));
+ assert.equal(mats.length,PARK_VARIANTS.length,'all Park twins swap in');
+ assert.equal(p.state().swapped,PARK_VARIANTS.length);
+ assert.equal(p.state().label,PARK_LABEL);
+ const grass=g.group.children.find(o=>o.name==='park-grass');
+ assert.ok(grass&&grass.visible,'Park meadow is drawn');
+ assert.equal(p.state().grass.count,grass.geometry.instanceCount);
+ const once=snap(g.group);g.anchor.onBeforeRender();
+ assert.deepEqual(snap(g.group),once,'same tick, same frame');
+ p.dispose();g.dispose();
 });
 
-test('Park adds no light, no clock and no unseeded draw, and the page wiring keeps Classic and Genesis',()=>{
+test('Park adds no light, no clock and no unseeded draw, and the page shows Park with no look chooser',()=>{
  for(const f of ['lib/look/park.ts','lib/look/park-palette.ts','lib/look/park-grass.ts','lib/look/park-planet.ts']){
   const s=read(f);
   assert.doesNotMatch(s,/Math\.random|setInterval|setTimeout|Date\.now|performance\.now/,f);
@@ -121,9 +98,8 @@ test('Park adds no light, no clock and no unseeded draw, and the page wiring kee
  }
  const lw=read('components/living-world.tsx');
  assert.match(lw,/attachParkLook\(THREE,genesis/);
- assert.match(read('components/universe-settings.tsx'),/<option value="park">Park<\/option>/);
- assert.match(read('components/universe-settings.tsx'),/<option value="genesis">Genesis<\/option>/);
- assert.match(read('components/universe-settings.tsx'),/<option value="classic">Classic<\/option>/);
+ assert.doesNotMatch(read('components/universe-settings.tsx'),/<option value="(classic|genesis|park)">/);
+ assert.match(lw,/data-lw-look="park"/);
 });
 
 test('Park grass: seeded layout per tier, phone-safe MED, no blades in water, still on LOW and in reduced motion',async()=>{
@@ -163,12 +139,12 @@ test('Park planet shell: orbit only, Park only, graded twin restored exactly, se
  const scene=new THREE.Scene();
  const base=new THREE.ShaderMaterial({uniforms:{uX:{value:0}},vertexShader:'void main(){gl_Position=vec4(position,1.0);}',fragmentShader:frag});
  const planet=new THREE.Mesh(new THREE.SphereGeometry(8,8,6),base);scene.add(planet);
- const st={look:'genesis',orbit:true,tier:'MED',tick:3};
+ const st={look:'off',orbit:true,tier:'MED',tick:3};
  const pp=attachParkPlanet(THREE,{planet:()=>planet,radius:8,seed:'s',parent:scene,getLook:()=>st.look,inOrbit:()=>st.orbit,sunDir:()=>({x:1,y:0,z:0}),tier:()=>st.tier,tick:()=>st.tick});
  const kids=()=>scene.children.filter(o=>o.visible).map(o=>o.name);
  pp.apply();
- assert.equal(planet.material,base,'Genesis orbit: page material untouched');
- assert.deepEqual(kids(),[''],'Genesis orbit: no Park shell drawn');
+ assert.equal(planet.material,base,'shell switched off: page material untouched');
+ assert.deepEqual(kids(),[''],'shell switched off: nothing drawn');
  st.look='park';const a=pp.apply();
  assert.equal(planet.material.name,'park:planet');
  assert.equal(planet.material.uniforms.uX,base.uniforms.uX,'twin shares the page uniforms');
@@ -178,7 +154,7 @@ test('Park planet shell: orbit only, Park only, graded twin restored exactly, se
  assert.equal(planet.material,base,'ground view: restored');
  st.orbit=true;st.tier='LOW';pp.apply();
  assert.ok(!kids().includes('park-planet-clouds')&&kids().includes('park-planet-limb'),'LOW: limb only');
- st.look='classic';pp.apply();
+ st.look='off';pp.apply();
  assert.equal(planet.material,base);assert.deepEqual(kids(),['']);
  assert.equal(base.fragmentShader,frag,'page shader text never edited');
  pp.dispose();
