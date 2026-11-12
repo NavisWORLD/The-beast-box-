@@ -1,17 +1,20 @@
 // The interrupted-round recovery job reports the SAME promotion numbers as a finished round:
-// its rule lines must be byte-identical to the training job's promotion step, and it never promotes.
+// both steps call the one rule module (scripts/zeref_promotion_rule.py), and recovery never promotes.
+// 2026-11-12: Cory loosened the promotion rule; the old strict rule is kept in that module.
 const test=require('node:test');const assert=require('node:assert/strict');const fs=require('node:fs');
 const wf=fs.readFileSync('.github/workflows/zeref-continuous-learning-006.yml','utf8');
-const RULE=[
- "bar=g.get('chat_before_nll') or (pin.get('promotion') or {}).get('candidate_ref_nll') or ev['baseline']['ref_nll']",
- "c=ev['candidate']['ref_nll'];tol=0.005;ok=bool(ev['chat_not_worse'] and c<=bar*(1+tol))",
- "d={'schema':'zeref-promotion-decision-v1','candidate_ref_nll':c,'pin_ref_nll_bar':bar,'tolerance':tol,'rule':'within 0.5% of pin on set A AND fresh held-out set B not worse (training gate)','chat_not_worse_vs_14000':ev['chat_not_worse'],'promote':ok}"];
-test('promotion rule appears identically in the training job and the recovery job',()=>{
- for(const line of RULE)assert.equal(wf.split(line).length-1,2,line);
+const RULE="python -u scripts/zeref_promotion_rule.py apps/beastbox-cloud/lib/rawrphos-public-pin.json build/zeref-006/report.json build/zeref-006/";
+test('promotion rule module is called by the training job and the recovery job',()=>{
+ assert.equal(wf.split(RULE).length-1,2);
+ assert.match(wf,/build\/zeref-006\/chat-eval\.json build\/zeref-006\/promotion-decision\.json/);
+ const mod=fs.readFileSync('scripts/zeref_promotion_rule.py','utf8');
+ assert.match(mod,/STRICT_2026_10_22 = "strict-2026-10-22"/);
+ assert.match(mod,/ok = bool\(chat_not_worse and nll_ok\)/,'old predicate kept for a one-line revert');
+ assert.match(mod,/leaks_ok = type\(leaks\) is int and leaks == 0/,'leak screen stays hard');
 });
 test('recovery decision is report-only and reads the recovery chat eval',()=>{
  const i=wf.indexOf('Same promotion rule on the recovered checkpoint');assert.ok(i>0);
- const block=wf.slice(i,wf.indexOf('PY\n',wf.indexOf("python - <<'PY'",i)+20));
- assert.match(block,/recovery-chat-eval\.json/);assert.match(block,/'report_only':True,'publication_performed':False/);
+ const block=wf.slice(i,wf.indexOf('- name:',i+10));
+ assert.match(block,/recovery-chat-eval\.json/);assert.match(block,/"report_only":true,"publication_performed":false/);
  assert.doesNotMatch(block,/approval\.json|gh pr|git push/);
 });

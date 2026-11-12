@@ -13,6 +13,21 @@ BASE_SHA = "4e45850bfe7b3e2be1d5b12e1956286e1f3f8cfde7b01b70212ad75fbc8610a5"
 PIN_PATH = Path(__file__).resolve().parent.parent / "apps/beastbox-cloud/lib/rawrphos-public-pin.json"
 
 
+# 2026-11-12 2:37 PM CT, Cory: "Loosen both the training gate and the chat door".
+# A promotion recorded under scripts/zeref_promotion_rule.py LOOSE_2026_11_12 may carry
+# chat_not_worse=false (report-only now) but must carry candidate_leaks == 0 (hard).
+# The strict 2026-10-22 shape (chat_not_worse true) is still accepted unchanged.
+LOOSE_PROMOTION_RULE = "loose-2026-11-12"
+
+
+def _promotion_rule_passed(promo):
+    if promo.get("chat_not_worse") is True:
+        return True
+    return (promo.get("promotion_rule") == LOOSE_PROMOTION_RULE
+            and type(promo.get("candidate_leaks")) is int and promo.get("candidate_leaks") == 0
+            and promo.get("promote") is True)
+
+
 def _public_pin():
     """Serve the reviewed public pin; any malformed/unproven promotion keeps 14000."""
     try:
@@ -26,7 +41,7 @@ def _public_pin():
             return BASE_STEP, BASE_SHA
         step, sha = pin.get("training_steps"), pin.get("checkpoint_sha256")
         if (type(step) is not int or step <= BASE_STEP or not isinstance(sha, str) or len(sha) != 64
-                or promo.get("chat_not_worse") is not True or promo.get("baseline_sha256") != BASE_SHA
+                or not _promotion_rule_passed(promo) or promo.get("baseline_sha256") != BASE_SHA
                 or promo.get("candidate_sha256") != sha or not str(promo.get("release_tag", "")).startswith("zeref-006-cycle-")
                 or len(str(promo.get("chat_eval_sha256", ""))) != 64):
             raise ValueError
