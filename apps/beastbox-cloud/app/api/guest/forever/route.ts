@@ -2,6 +2,7 @@ import {bridgeConfigured,safeJson} from '@/lib/security';
 import {storageConfig} from '@/lib/cosmos/azure-blob.mjs';
 import {appendArchive,readArchive,appendExchange,appendGuestEvent,exchangeId,bridgeIdentityForThread,composeContinuityPreface,isThreadId,newThreadId,readThread} from '@/lib/cosmos/forever-store.mjs';
 import {assembleBridgeContext,loadShelfIndex,matchShelf,LIVE_CONTEXT_LABEL} from '@/lib/cosmos/live-context.mjs';
+import {feedReadingEnabled,loadFeedIndex,matchFeed} from '@/lib/cosmos/feed-reading.mjs';
 import {composeSight} from '@/lib/cosmos/sight.mjs';
 import {buildWorldLive} from '@/lib/zeref/world-live.mjs';
 import {DIARY_SCHEMA,entryHash,genesisState} from '@/lib/zeref/zeref-diary.mjs';
@@ -165,6 +166,10 @@ async function foreverDoor(request:Request,allowedCrossOrigin:boolean):Promise<R
   diary:diary?{ok:true,tick:diary.tick,last_tick_at:diary.last_tick_at}:null,pin:PUBLIC_PIN,nowMs:Date.now()});
  const shelf=await loadShelfIndex().catch(()=>null);
  const shelfHits=shelf?matchShelf(shelf,text):[];
+ // Approved Feed Zeref books (lib/cosmos/feed-reading.mjs): READ, NOT TRAINED, only on a shelf miss.
+ // Flag BEASTBOX_FEED_READING: default "pages" = only his GitHub Pages chat (the allowlisted cross-origin caller).
+ const feedHit=!shelfHits.length&&feedReadingEnabled(process.env.BEASTBOX_FEED_READING,allowedCrossOrigin)?
+  matchFeed(await loadFeedIndex().catch(()=>null),text):null;
  const continuityArgs={pinStep:PIN_STEP,diary,threadTurns:threadRec?.thread?.turns||[]};
  // His sight: the light over his own world (DERIVED from its sky) and the
  // visitor's light (MEASURED only when a fresh, valid environment summary
@@ -175,7 +180,7 @@ async function foreverDoor(request:Request,allowedCrossOrigin:boolean):Promise<R
  const bridgeContext=assembleBridgeContext({
   continuity:composeContinuityPreface(continuityArgs,600),
   recompose:(n:number)=>composeContinuityPreface(continuityArgs,n),
-  world,shelfHits,
+  world,shelfHits,feedHit,
   sight:sightBlock.text,sightMeta:sightBlock.receipt,
   refitSight:(n:number)=>composeSight({world,environment:item.environment,nowMs:world.at_ms,maxChars:n})});
  // Context rides only when the visitor text itself fits the contract cap.
@@ -187,6 +192,7 @@ async function foreverDoor(request:Request,allowedCrossOrigin:boolean):Promise<R
  try{after(()=>teacherJoinPending());}catch{/* outside a request scope (tests): nothing to keep alive */}
  const liveReceipt=contextSent?bridgeContext.live:{...bridgeContext.live,composed:false};
  const libraryReceipt=contextSent?bridgeContext.library:{...bridgeContext.library,composed:false};
+ const readFrom=contextSent?bridgeContext.read_from:null;
  const sightReceipt=contextSent?bridgeContext.sight:{
   world_light:{...bridgeContext.sight.world_light,composed:false},
   visitor_light:{...bridgeContext.sight.visitor_light,composed:false}};
@@ -280,6 +286,7 @@ async function foreverDoor(request:Request,allowedCrossOrigin:boolean):Promise<R
     source:'zeref-diary branch + Azure guestbook (beasts/bb-deada969/guestbook)',
     live_universe:liveReceipt,
     library:libraryReceipt,
+    reading:{composed:readFrom!==null,label:'READ, NOT TRAINED: an approved Feed Zeref passage handed to him as reading context for this reply only; it never enters training, conditioning, the god core or the checkpoint.'},
     sight:sightReceipt,
     bridge_context:{sent:contextSent,bytes:sentContextBytes,
      label:'Composed pieces sent through the bridge context contract (continuity, universe, library, sight), not inside the prompt text; sent:false means the visitor text exceeded the contract text cap and the plain contract served the reply.'},
@@ -289,6 +296,7 @@ async function foreverDoor(request:Request,allowedCrossOrigin:boolean):Promise<R
    ...(()=>{const used=sentMemory&&result.self_memory_in_prompt===true;
     return {self_memory_used:used,memory_read:used?selfMem.memory_read:[],self_memory:{schema:SELF_MEMORY_SCHEMA,label:SELF_MEMORY_LABEL,...(used&&(selfMem as any).origins?{origins:(selfMem as any).origins}:{}),...(used&&(selfMem as any).screens?{screens:(selfMem as any).screens}:{})}};})(),
    prompt_chars:text.length,
+   ...(readFrom?{read_from:readFrom}:{}),
    ...(result.routing&&typeof result.routing==='object'&&!Array.isArray(result.routing)?{routing:result.routing}:{}),
    ...(lived?{lived_state:lived}:{})},
    {status:200,headers});
