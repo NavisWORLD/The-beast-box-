@@ -29,6 +29,7 @@ test('guest CORS: responses gain the read grant only for the allowlisted origin'
  const a=withGuestCors(Response.json({reply:'x'}),'https://navisworld.github.io');
  assert.equal(a.headers.get('access-control-allow-origin'),'https://navisworld.github.io');
  assert.match(a.headers.get('vary'),/Origin/);
+ assert.equal(a.headers.get('access-control-expose-headers'),'Retry-After');
  const b=withGuestCors(Response.json({reply:'x'}),'https://evil.example');
  assert.equal(b.headers.get('access-control-allow-origin'),null);
 });
@@ -41,4 +42,9 @@ test('forever door: same-origin rule kept for everyone else; guest records stay 
  assert.match(route,/training_eligible:false/);
  assert.match(route,/if\(minted&&!allowedCrossOrigin\)headers\['Set-Cookie'\]/);
  assert.doesNotMatch(route,/Access-Control-Allow-Origin['"]?\s*[:,]\s*['"]\*/);
+});
+
+test('forever door: a 429 carries the bridge wait hint as Retry-After',()=>{
+ assert.match(route,/out\.headers\.set\('Retry-After'/);
+ assert.match(route,/retry_after_seconds:Math\.min\(60,Math\.max\(1,result\.retry_after_seconds/);
 });
