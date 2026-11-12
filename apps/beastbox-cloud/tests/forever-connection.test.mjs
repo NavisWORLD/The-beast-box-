@@ -157,6 +157,9 @@ test('liveness route: read-only, per-request, shaped from the shared store helpe
  assert.match(src,/buildWorldLive/);
  assert.match(src,/no-store/);
  assert.doesNotMatch(src,/putBlob|appendGuestEvent|method:'POST'/);
+ assert.match(src,/withPublicStatusCors/);
+ assert.match(src,/export function OPTIONS/);
+ assert.doesNotMatch(src,/diaryRaw\.thought|recent\[.*\]\.thought/);
 });
 
 test('the stateless door is untouched by the forever layer',()=>{

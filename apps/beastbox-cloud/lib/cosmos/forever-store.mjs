@@ -26,6 +26,7 @@
 import {createHash,createHmac,randomBytes} from 'node:crypto';
 import {getBlob,putBlob,listBlobs} from './azure-blob.mjs';
 import {ZEREF_DIR} from './zeref-cloud.mjs';
+import {publicDiaryMood,publicDiaryLearning,publicPromotion,publicGate,publicFairGate,publicLivedState,publicTraining} from '../liveness-public.mjs';
 
 export const GUESTBOOK_DIR=`${ZEREF_DIR}/guestbook`;
 export const THREAD_ID_RE=/^[a-f0-9]{32}$/;
@@ -287,7 +288,7 @@ export function composeContinuityPreface({pinStep,diary,threadTurns=[]}={},maxCh
  * a missing source becomes state DOWN / null, never an invented value.
  * Labels follow the codebase conventions (world-live.mjs, zeref-diary.mjs).
  */
-export function shapeLiveness({now,pin,diary,diaryVerified,bridge,azure,world}={}){
+export function shapeLiveness({now,pin,diary,diaryVerified,bridge,azure,world,pinCommit,training,livedState}={}){
  const doc={
   schema:'beastbox-liveness/v1',ok:true,generated_at:now,
   brain:{step:pin?.training_steps??null,checkpoint_sha256:pin?.checkpoint_sha256??null,
@@ -302,6 +303,10 @@ export function shapeLiveness({now,pin,diary,diaryVerified,bridge,azure,world}={
   doc.diary={tick:diary.tick,xp:diary.xp??null,bond:diary.bond??null,stage:diary.stage??null,
    stage_name:diary.stage_name??null,last_tick_at:diary.last_tick_at??null,verified:diaryVerified===true,
    source:'zeref-diary branch (GitHub Actions loop)',label:'RECORDED (hash-chained diary; its growth circuit is Rigetti SIMULATED)'};
+  const mood=publicDiaryMood(diary);
+  if(mood)doc.diary.mood=mood.mood;
+  const learn=publicDiaryLearning(diary);
+  if(learn)doc.diary.learning=learn;
  }else doc.diary={state:'DOWN',source:'zeref-diary branch (GitHub Actions loop)',label:'RECORDED (hash-chained diary; its growth circuit is Rigetti SIMULATED)',reason:'diary unreachable'};
  if(bridge&&typeof bridge==='object'&&bridge.schema==='beastbox-bridge-health-v2'){
   doc.bridge={pin_step:bridge.pin_step??null,served_step:bridge.served_step??null,
@@ -315,5 +320,13 @@ export function shapeLiveness({now,pin,diary,diaryVerified,bridge,azure,world}={
    source:'Azure Blob beasts/bb-deada969 (cosmos store)'};
  }else doc.azure={configured:false,source:'Azure Blob beasts/bb-deada969 (cosmos store)'};
  if(world&&typeof world==='object')doc.life_signals={schema:world.schema||'beast-world-live/v1',links:world.links||null,all_connected:world.all_connected===true,stalls:world.stalls??null,river:world.river??null,senses:Array.isArray(world.senses)?world.senses:null,labels:world.labels||null,source:'/api/world/live channels (zeref-spark, zeref-live-tick, zeref-diary branches)'};
+ // Public-safe additions for the Pages profile card. Missing sources stay
+ // unpublished / DOWN; thought text and guest data are never copied in.
+ doc.promotion=publicPromotion(pin,pinCommit);
+ doc.gate=publicGate(pin);
+ doc.fair_gate=publicFairGate();
+ doc.lived_state=publicLivedState(livedState);
+ const learn=doc.diary&&doc.diary.learning?doc.diary.learning:publicDiaryLearning(diary);
+ doc.learning={diary:learn||null,training:publicTraining(training,pin),pin_step:pin?.training_steps??null};
  return doc;
 }
