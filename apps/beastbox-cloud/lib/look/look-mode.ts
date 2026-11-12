@@ -1,5 +1,6 @@
-// Classic stays the default. Genesis is a presentation choice and does not write world state.
-export const LOOKS=Object.freeze(['classic','genesis'] as const);
+// Classic stays the default. Genesis and Park are presentation choices and do not write world state.
+// Park builds on Genesis: it draws the same Genesis ground, then grades it. Classic and Genesis are unchanged by it.
+export const LOOKS=Object.freeze(['classic','genesis','park'] as const);
 export type Look=(typeof LOOKS)[number];
 export const LOOK_KEY='beastbox.look.v1';
 export const DEFAULT_LOOK:Look='classic';
@@ -7,7 +8,9 @@ export const LOOK_EVENT='beastbox:look';
 
 type Store={getItem?(key:string):string|null;setItem?(key:string,value:string):void;removeItem?(key:string):void;key?(index:number):string|null;length?:number}|null|undefined;
 
-export function isLook(v:unknown):v is Look{return v==='classic'||v==='genesis';}
+export function isLook(v:unknown):v is Look{return v==='classic'||v==='genesis'||v==='park';}
+/** Park draws on the Genesis ground. True for Genesis and Park. */
+export function usesGenesisBase(v:unknown){return v==='genesis'||v==='park';}
 export function readLook(storage:Store):Look{
  try{const v=storage?.getItem?.(LOOK_KEY);return isLook(v)?v:DEFAULT_LOOK;}catch{return DEFAULT_LOOK;}
 }
@@ -16,8 +19,9 @@ export function writeLook(storage:Store,look:Look):Look{
  try{if(next===DEFAULT_LOOK)storage?.removeItem?.(LOOK_KEY);else storage?.setItem?.(LOOK_KEY,next);}catch{}
  return next;
 }
-export function lookLabel(look:Look){return look==='genesis'?'Look: Genesis':'Look: Classic';}
-export function nextLook(look:Look):Look{return look==='genesis'?'classic':'genesis';}
+export function lookLabel(look:Look){return look==='park'?'Look: Park':look==='genesis'?'Look: Genesis':'Look: Classic';}
+/** Classic -> Genesis -> Park -> Classic. */
+export function nextLook(look:Look):Look{return look==='classic'?'genesis':look==='genesis'?'park':'classic';}
 
 /** The look currently saved on this page. Classic when storage is missing. */
 export function currentLook():Look{
