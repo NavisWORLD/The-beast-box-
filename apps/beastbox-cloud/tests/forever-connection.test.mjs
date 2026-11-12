@@ -124,11 +124,11 @@ test('liveness shaping: missing sources are DOWN, never invented; pin cross-chec
 
 test('forever door route: same bridge verification as /api/guest, guestbook writes only via the store',()=>{
  const src=read('app/api/guest/forever/route.ts');
- // A memory claim is accepted ONLY on the bridge's persisted mode (PR #675);
- // the exact relaxed conjunct replaces the old memory_used!==false check.
- assert.match(src,/\(result\.memory_used!==false&&result\.hebbian_mode!=='persisted'\)\|\|result\.owner_tools_used!==false/);
- assert.doesNotMatch(src,/result\.memory_used!==false\|\|/,'the old unconditional memory rejection is gone');
- assert.match(src,/result\.step!==PIN_STEP\|\|result\.checkpoint_sha256!==PIN_SHA/);
+ // A memory claim is verified ONLY on the bridge's persisted mode (PR #675). Since 2026-11-12 (Cory: loosen
+ // the chat door) an unbacked claim is reported as memory_claim_verified:false instead of hiding his reply.
+ assert.match(src,/memoryClaimVerified=result\.memory_used===false\|\|result\.hebbian_mode==='persisted'/);
+ assert.match(src,/result\.owner_tools_used!==false\|\|result\.provider_key_shared!==false/);
+ assert.match(src,/result\.model!=='rawrphos-native'/,'only his own native brain is ever shown');
  assert.match(src,/guest_stateless:false/);
  assert.match(src,/training_eligible:false/);
  assert.match(src,/HttpOnly/);
@@ -240,5 +240,5 @@ test('forever door forwards the lived receipt and does not treat environment as 
  assert.match(src,/\{text,guest_identity:identity\}/);
  assert.equal((src.match(/await send\(\)/g)||[]).length,1);
  assert.doesNotMatch(src,/lived_state:item\.environment|state12:item/);
- assert.match(src,/\(result\.memory_used!==false&&result\.hebbian_mode!=='persisted'\)\|\|result\.owner_tools_used!==false/);
+ assert.match(src,/memoryClaimVerified=result\.memory_used===false\|\|result\.hebbian_mode==='persisted'/);
 });
