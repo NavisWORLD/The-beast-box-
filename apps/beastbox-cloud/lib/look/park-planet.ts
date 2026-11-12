@@ -18,15 +18,25 @@ export const PARK_PLANET_BUDGET=Object.freeze({
 export function planetBudget(tier:string){return PARK_PLANET_BUDGET[tier]||PARK_PLANET_BUDGET.MED;}
 
 const GRADE=`uniform vec3 uPkShallow,uPkDeep,uPkMeadow;
+float pkLum(vec3 c){return dot(c,vec3(.2126,.7152,.0722));}
+/* Park re-colour that keeps the light: each surface keeps its own brightness (sun, night side, texture detail) and takes a Park hue.
+   Seas go pool-cyan, every land biome (icy, violet or grey included) goes meadow green, warm soil stays biscuit sand or terracotta. */
 vec3 pkPlanet(vec3 c){
- float l=dot(c,vec3(.2126,.7152,.0722));
- vec3 s=max(vec3(0.0),mix(vec3(l),c,1.45));
- float water=smoothstep(.02,.1,c.b-c.g*1.05)*step(c.r,c.b);
- float land=smoothstep(-.04,.04,c.g-c.b*.98)*smoothstep(-.02,.04,c.g-c.r);
- float lift=clamp(l*3.2,0.0,1.3);
- s=mix(s,mix(uPkDeep,uPkShallow,smoothstep(.08,.35,l))*lift,water*.55);
- s=mix(s,uPkMeadow*mix(.75,1.15,lift),land*.62);
- return s*1.06;
+ float l=pkLum(c);
+ float mx=max(c.r,max(c.g,c.b)),mn=min(c.r,min(c.g,c.b));float sat=(mx-mn)/max(mx,1e-3);
+ float water=step(c.r,c.b)*smoothstep(.02,.07,c.b-c.g*.92)*smoothstep(.2,.36,sat);
+ float warm=smoothstep(.05,.15,c.r-c.g)*smoothstep(.08,.2,c.r-c.b)*(1.0-water);
+ float ice=smoothstep(.5,.75,l)*(1.0-smoothstep(.1,.28,sat))*(1.0-water);
+ vec3 sand=vec3(.96,.84,.63),cliff=vec3(.88,.54,.38);
+ vec3 meadow=mix(uPkMeadow*.72,uPkMeadow*1.08,smoothstep(.2,.65,l));
+ vec3 landT=mix(meadow,mix(cliff,sand,smoothstep(.45,.7,l)),warm);
+ float lL=l*mix(1.0,.7,ice);
+ vec3 land=landT*(lL/max(pkLum(landT),.05));
+ vec3 seaT=mix(uPkDeep,uPkShallow,smoothstep(.12,.45,l));
+ vec3 sea=seaT*(l*1.2/max(pkLum(seaT),.05));
+ vec3 o=mix(land,sea,water);
+ float lo=pkLum(o);o=max(vec3(0.0),mix(vec3(lo),o,1.15));
+ return mix(c,o,.88);
 }
 `;
 
@@ -122,9 +132,11 @@ export function attachParkPlanet(THREE:typeof import('three'),opts:Opts){
   builtTier=tier;
  }
  function apply(){
-  on=(opts.getLook?opts.getLook():'park')==='park'&&opts.inOrbit();
+  const look=(opts.getLook?opts.getLook():'park')==='park';
+  on=look&&opts.inOrbit();
   const p=opts.planet();
-  if(!on){restoreMaterial();hideShells();return null;}
+  if(!look){restoreMaterial();hideShells();return null;}
+  /* Nov 12: the Park colour twin now stays on from orbit down to the ground (one world, one palette); only the cloud shell and limb are orbit-only */
   if(p&&p.material&&p.material.fragmentShader){
    if(!twin||(twin.base!==p.material&&twin.mat!==p.material)){
     const frag=gradePlanetShader(p.material.fragmentShader);
@@ -146,6 +158,7 @@ export function attachParkPlanet(THREE:typeof import('three'),opts:Opts){
   const s=opts.sunDir();
   const reduced=!!opts.reduced?.();
   const drift=reduced?0:drift0+Number(opts.tick?.()||0)*.0025;
+  if(!on){hideShells();return {drift};}
   if(clouds){clouds.visible=true;clouds.material.uniforms.uSun.value.set(s.x,s.y,s.z);clouds.material.uniforms.uDrift.value=drift;}
   if(limb){limb.visible=true;limb.material.uniforms.uSun.value.set(s.x,s.y,s.z);}
   return {drift};
