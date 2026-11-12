@@ -443,6 +443,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     };
     const uw=(!soft||lcForced)?buildWorlds(THREE,scene,{low,universe:UNIVERSE_R,neon:neonU}):quietWorlds;const land=(!soft||lcForced)?buildTerrain(THREE,scene,{low}):null;if(lcForced)(window as any).__lcLand=land;const gj=(!soft||lcForced)?buildIsland(THREE,scene,{low,open:true}):null;const gjEv=gj?addGeyserEvents(THREE,gj,{low}):null;const gjLife=gj&&gjEv?addIslandLife(THREE,gj,gjEv.puff,{low}):null;const gjSnd=gj?createGeyserSound():null;gjEv?.on(e=>{gjSnd?.event(e==='geyser-tap'?'':e);if(e==='tremor'||e==='erupt')gjLife?.scare();});gjLife?.on(e=>gjSnd?.event(e));if(lcForced){(window as any).__geyser=gj;(window as any).__geyserEv=gjEv;(window as any).__geyserLife=gjLife;}
     const genesisLook=soft?null:(await import('../lib/look/attach')).attachGenesisLook(THREE,scene,{seed:String(key||'cage'),phone:window.innerWidth<=820,softGL:false,heightAt:(x:number,z:number)=>terrainHeight(x,z),reduced:()=>reduced,nowMs:()=>performance.now(),classicRoots:()=>land?.root?[land.root]:[],renderer});
+    const parkLook=genesisLook?(await import('../lib/look/park')).attachParkLook(THREE,genesisLook):null; /* Park grades the same Genesis ground; Classic and Genesis unchanged */
     const onGj=(e:any)=>{const a=String(e?.detail?.action||'');if(a==='erupt')gjEv?.erupt();else if(a==='tremor')gjEv?.tremor();else if(a==='geyser')gjEv?.geyser();else if(a==='breach')gjLife?.breach();else if(a==='castoff')gjLife?.castoff();};window.addEventListener('beastbox:geyser',onGj);if(gj){(window as any).__geyserReady=true;window.dispatchEvent(new Event('beastbox:geyser-ready'));}
     // tap the geyser, volcano, whale or boat to trigger it (taps only; drags keep orbiting the camera)
     const gjRay=new THREE.Raycaster(),gjNdc=new THREE.Vector2();let gjDown:{x:number;y:number;t:number}|null=null;
@@ -711,7 +712,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
      lcS.syn?.dispose();if(lcS.g){lcS.g.remove(lcS.LC.group);zActorNode.remove(lcS.g);}extras.dispose();gcam.dispose();lcBus.current=null;
      pickRef.current=null;godRef.current=null;world.dispose();window.removeEventListener('beastbox:genome',syncPlush);window.removeEventListener('beastbox:pixel-mode',syncPlush);window.removeEventListener('beastbox:spark-chirp',onTalk);document.documentElement.removeAttribute('data-beast-3d');life.dispose();plush?.dispose();
      {const ze=(window as any).__zerefEmbed;if(ze?.root?.parent===zActorNode){zActorNode.remove(ze.root);ze.root.position.y=0;ze.claimed=false;}}
-     cancelAnimationFrame(frame);window.removeEventListener('scroll',holdScroll);genesisLook?.dispose();ro?.disconnect();io?.disconnect();
+     cancelAnimationFrame(frame);window.removeEventListener('scroll',holdScroll);parkLook?.dispose();genesisLook?.dispose();ro?.disconnect();io?.disconnect();
      canvas.removeEventListener('webglcontextlost',onContextLost);
      const geometries=new Set<import('three').BufferGeometry>(),materials=new Set<import('three').Material>();
      scene.traverse(o=>{

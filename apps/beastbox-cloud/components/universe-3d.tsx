@@ -5,7 +5,7 @@
 // Art: Cosmo's deepspace sheets (accretion disk + photon ring on real black-hole remnants, storm clouds on real storms).
 // Seeded only (string hash LCG from the universe seed); no Math.random.
 import {isPanGesture,panStep,decayPan,centroid,keyPanPixels,worldPerPixel} from '@/lib/universe/view-gestures.mjs';
-import {currentLook} from '@/lib/look/look-mode';
+import {currentLook,usesGenesisBase} from '@/lib/look/look-mode';
 import {genesisPoints} from '@/lib/look/speckle';
 import {allStorms} from '@/lib/universe/seeded-storms.mjs';
 import {seededBlackHoles,seededInfall,BH_LABEL} from '@/lib/universe/seeded-black-holes.mjs';
@@ -93,7 +93,7 @@ vec3 c=texture2D(tScene,bhScreen+s).rgb;float ring=exp(-pow((r-1.5*rs)/(0.08*rs+
   // seeded background stars (the shell follows the camera and scales with its distance, so zoom-out never leaves it behind)
   let bgStars:THREE.Points|null=null;
   {const r=rand(String(uRef.current?.seed||'tiny'));const n=1800,p=new Float32Array(n*3);for(let i=0;i<n;i++){const th=r()*Math.PI*2,ph=Math.acos(2*r()-1),R=2500+r()*800;p[i*3]=R*Math.sin(ph)*Math.cos(th);p[i*3+1]=R*Math.cos(ph);p[i*3+2]=R*Math.sin(ph)*Math.sin(th);}
-   const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(p,3));const starMat=currentLook()==='genesis'?genesisPoints(THREE,0xffffff,36):new THREE.PointsMaterial({color:0xffffff,size:2.2,sizeAttenuation:false,transparent:true,opacity:.75});bgStars=new THREE.Points(g,starMat);scene.add(bgStars);}
+   const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(p,3));const starMat=usesGenesisBase(currentLook())?genesisPoints(THREE,0xffffff,36):new THREE.PointsMaterial({color:0xffffff,size:2.2,sizeAttenuation:false,transparent:true,opacity:.75});bgStars=new THREE.Points(g,starMat);scene.add(bgStars);}
   const world=new THREE.Group();scene.add(world);
   const MAXT=160;const tPos=new Float32Array(MAXT*SEG*2*3),tCol=new Float32Array(MAXT*SEG*2*3);const tGeo=new THREE.BufferGeometry();
   tGeo.setAttribute('position',new THREE.BufferAttribute(tPos,3));tGeo.setAttribute('color',new THREE.BufferAttribute(tCol,3));tGeo.setDrawRange(0,0);
