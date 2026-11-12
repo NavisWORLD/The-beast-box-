@@ -289,6 +289,20 @@ async function foreverDoor(request:Request,allowedCrossOrigin:boolean):Promise<R
   const ownerWrite=ownerChainWrite('visitor');
   if(ownerWrite.wrote||ownerWrite.reason!=='isolated')throw new Error('visitor exchange stays off the owner chain');
   const lived=mouthReceipt(result.lived_state,{exchangeId:livedExchangeId,scope:'visitor',spokenBy:'gated',environment:item.environment});
+  // Decoding/conditioning receipts from the bridge (Cory, 2026-11-12 4:03 PM CT), surfaced as reported and whitelisted:
+  // how his own brain sampled (heart) and what it was conditioned on. Never owner state12; never text.
+  const obj=(v:unknown)=>v&&typeof v==='object'&&!Array.isArray(v)?v as Record<string,unknown>:null;
+  const num=(v:unknown)=>typeof v==='number'&&Number.isFinite(v)?v:null;
+  const hd=obj(result.heart_decoding),hb=obj(hd?.heartbeat),cd=obj(result.conditioning),c54=obj(cd?.condition54);
+  const heartDecoding=hd&&hd.schema==='zeref-heart-decoding-v1'?{schema:'zeref-heart-decoding-v1',temperature:num(hd.temperature),
+   temperature_source:hd.temperature_source==='heart'||hd.temperature_source==='canonical_no_heart_signal'?hd.temperature_source:null,
+   arousal:num(hd.arousal),heartbeat:hb?{status:typeof hb.status==='string'&&hb.status.length<24?hb.status:null,energy:num(hb.energy),signal:num(hb.signal),
+    recorded_tick:Number.isInteger(hb.recorded_tick)?hb.recorded_tick:null,age_s:num(hb.age_s),label:'SIMULATED (per-second live tick, deterministic)'}:null,
+   same_pinned_brain:hd.same_pinned_brain===true,rewrites_reply:hd.rewrites_reply===true}:null;
+  const conditioning=cd&&cd.schema==='zeref-guest-conditioning-v1'?{schema:'zeref-guest-conditioning-v1',state12:'isolated',owner_state_used:false,
+   descriptor_sha256:typeof cd.descriptor_sha256==='string'&&/^[0-9a-f]{64}$/.test(cd.descriptor_sha256)?cd.descriptor_sha256:null,
+   condition54:{source:c54?.source==='spark SIMULATED'?'spark SIMULATED':null,sent:c54?.sent===true,used_by_server:c54?.used_by_server===true},
+   temperature:num(cd.temperature),same_pinned_brain:cd.same_pinned_brain===true,rewrites_reply:cd.rewrites_reply===true}:null;
   environmentIsNotCanonical(item.environment);
   const headers:Record<string,string>={'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'};
   if(minted&&!allowedCrossOrigin)headers['Set-Cookie']=`${COOKIE}=${threadId}; Path=/; HttpOnly; SameSite=Lax; Max-Age=31536000${request.url.startsWith('https:')?'; Secure':''}`;
@@ -315,7 +329,9 @@ async function foreverDoor(request:Request,allowedCrossOrigin:boolean):Promise<R
    prompt_chars:text.length,
    ...(readFrom?{read_from:readFrom}:{}),
    ...(result.routing&&typeof result.routing==='object'&&!Array.isArray(result.routing)?{routing:result.routing}:{}),
-   ...(lived?{lived_state:lived}:{})},
+   ...(lived?{lived_state:lived}:{}),
+   ...(heartDecoding?{heart_decoding:heartDecoding}:{}),
+   ...(conditioning?{conditioning}:{})},
    {status:200,headers});
  }catch{return safeJson(502,{error:'Local guest inference unavailable or timed out'});}
 }
