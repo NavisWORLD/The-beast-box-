@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Any, Mapping
 
 from .hashutil import canonical_json, sha256_obj, sha256_text
-from .lived_hebb import DT_MAX, RULE, initial_weights, recorded_transition
+from .lived_hebb import DT_MAX, RULE, RULES, active_rule, initial_weights, recorded_transition
 from .lived_events import (
     STALE_MS,
     ChainRejected,
@@ -403,7 +403,7 @@ class LivedStore:
             body = self._load(payload)
             if body.get("previous") != head or body.get("subject_id") != self.subject_id:
                 raise ChainRejected("chain", "lived chain broke or crossed subjects")
-            if body.get("kind") == "exchange" and body.get("hebb_rule") == RULE:
+            if body.get("kind") == "exchange" and body.get("hebb_rule") in RULES:
                 weights, replayed = self._replay_recorded(current, body, weights, int(sequence))
                 recomputed = self._carry_snapshot(
                     current, int(body["sequence"]), event_id, state12=replayed,
@@ -740,7 +740,7 @@ class LivedStore:
         causation: Mapping[str, Any] | None = None,
     ) -> tuple[dict[str, Any], dict[str, Any]]:
         stepped = recorded_transition(
-            previous["state12"], self._weight_matrix(), text, DT_MAX, sequence,
+            previous["state12"], self._weight_matrix(), text, DT_MAX, sequence, rule=active_rule(),
         )
         body = _exchange_event(
             "exchange", role, "RECORDED", exchange_id, text, previous, sequence, now_ms, self,
@@ -791,6 +791,7 @@ class LivedStore:
     ) -> tuple[list[list[float]], list[float]]:
         stepped = recorded_transition(
             previous["state12"], weights, str(body.get("text") or ""), body.get("dt", 0.0), sequence,
+            rule=str(body.get("hebb_rule")),
         )
         if sha256_obj(stepped["state12"]) != body.get("state_sha256"):
             raise ChainRejected("chain", "replay did not reproduce the committed state")

@@ -3,12 +3,16 @@ from __future__ import annotations
 import math
 from collections.abc import Sequence
 
+RETAIN = 0.86
+INPUT_GAIN = 0.14
 
-def update_dyn12(state: Sequence[float], drive: Sequence[float], step: int = 0) -> list[float]:
+
+def update_dyn12(state: Sequence[float], drive: Sequence[float], step: int = 0, retain: float = RETAIN) -> list[float]:
     """Small auditable 12-scalar reference dynamic.
 
     This is a public reference mechanism inspired by the documented dyn12 idea;
     it is not a claim of byte-for-byte equivalence with any private COSMOS code.
+    `retain` (memory) defaults to 0.86; only the tuned chat rule passes another value.
     """
     if len(state) != 12:
         raise ValueError("dyn12 state must contain exactly 12 scalars")
@@ -17,7 +21,7 @@ def update_dyn12(state: Sequence[float], drive: Sequence[float], step: int = 0) 
     for i, x in enumerate(state):
         u = float(d[i % len(d)])
         forcing = 0.015 * math.sin((step + 1) * (i + 1) * 0.17320508075688773)
-        out.append(math.tanh(0.86 * float(x) + 0.14 * u + forcing))
+        out.append(math.tanh(retain * float(x) + INPUT_GAIN * u + forcing))
     return out
 
 

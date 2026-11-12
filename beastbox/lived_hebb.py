@@ -7,6 +7,7 @@ hash of its bytes. That drive is not a sensor measurement.
 from __future__ import annotations
 
 import hashlib
+import os
 from typing import Any, Mapping, Sequence
 
 from .dyn12 import update_dyn12
@@ -18,6 +19,25 @@ VERSION = 1
 DT_MAX = 0.05
 BLEND = 0.05
 _HALF = 0.5
+DRIVE_SCALE = 1.0 / 16.0
+RETAIN = 0.86
+
+# Lived engine tune (Cory, 2026-11-12), behind BEASTBOX_LIVED_TUNE=on (default off).
+# Chat drive +-1/4, memory 0.86 -> 0.93, Hebbian feedback 0.05 -> 0.2. It is its own
+# rule name, recorded on every exchange it steps, so replay always uses the rule an
+# event was written with and old chains replay exactly. The drive stays "computed"
+# (a fixed hash of the text bytes, not a sensor and not meaning).
+TUNED_RULE = "lived-hebb-v1-tuned"
+TUNE_FLAG = "BEASTBOX_LIVED_TUNE"
+PARAMS = {
+    RULE: {"drive_scale": DRIVE_SCALE, "retain": RETAIN, "blend": BLEND},
+    TUNED_RULE: {"drive_scale": 1.0 / 4.0, "retain": 0.93, "blend": 0.2},
+}
+RULES = frozenset(PARAMS)
+
+
+def active_rule() -> str:
+    return TUNED_RULE if os.environ.get(TUNE_FLAG, "off") == "on" else RULE
 
 
 def initial_weights() -> list[list[float]]:
@@ -33,13 +53,13 @@ def clip_dt(dt: float) -> float:
     return value
 
 
-def text_drive(text: str) -> list[float]:
+def text_drive(text: str, scale: float = DRIVE_SCALE) -> list[float]:
     raw = text.encode("utf-8")
     drive: list[float] = []
     for index in range(12):
         digest = hashlib.sha256(f"{PROJECTION}\n{index}\n".encode("utf-8") + raw).digest()
         unit = int.from_bytes(digest[:8], "big") / float(2**64)
-        drive.append((unit * 2.0 - 1.0) / 16.0)
+        drive.append((unit * 2.0 - 1.0) * scale)
     return drive
 
 
@@ -83,15 +103,19 @@ def recorded_transition(
     step: int,
     *,
     use_weights: bool = True,
+    rule: str = RULE,
 ) -> dict[str, Any]:
+    if rule not in PARAMS:
+        raise ValueError("unknown lived hebb rule")
+    params = PARAMS[rule]
     pre = [abs(float(item)) for item in state]
-    base = text_drive(text)
+    base = text_drive(text, params["drive_scale"])
     if use_weights:
         hebb = _hebb_drive(weights, state)
-        mixed = [base[i] + BLEND * hebb[i] for i in range(12)]
+        mixed = [base[i] + params["blend"] * hebb[i] for i in range(12)]
     else:
         mixed = list(base)
-    nxt = update_dyn12(list(state), mixed, step=int(step))
+    nxt = update_dyn12(list(state), mixed, step=int(step), retain=params["retain"])
     post = [abs(float(item)) for item in nxt]
     return {
         "state12": nxt,
@@ -101,7 +125,7 @@ def recorded_transition(
         "post_activation": post,
         "dt": clip_dt(dt),
         "drive_label": "computed",
-        "rule": RULE,
+        "rule": rule,
         "basis": BASIS,
         "version": VERSION,
         "projection": PROJECTION,
@@ -114,9 +138,10 @@ def replay_weights(initial_state: Sequence[float], events: Sequence[Mapping[str,
     weights = initial_weights()
     for body in events:
         kind = body.get("kind")
-        if kind == "exchange" and body.get("label") == "RECORDED" and body.get("hebb_rule") == RULE:
+        if kind == "exchange" and body.get("label") == "RECORDED" and body.get("hebb_rule") in RULES:
             stepped = recorded_transition(
                 state, weights, str(body.get("text") or ""), body.get("dt", 0.0), int(body["sequence"]),
+                rule=body["hebb_rule"],
             )
             weights = stepped["weights"]
             state = stepped["state12"]
