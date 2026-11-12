@@ -3,7 +3,10 @@
 // Genesis uniforms (sun, day, clock) plus their own uPk* colours, and swaps them in only while Park is chosen.
 // Classic and Genesis frames therefore stay exactly as they were. No new light, no second sun, no second clock.
 import {usesGenesisBase,currentLook} from './look-mode.ts';
-import {parkGrade,type ParkGrade,type RGB} from './park-palette.ts';
+import {parkGrade,PK_OUT,PK_SAT,type ParkGrade,type RGB} from './park-palette.ts';
+import {buildParkGrass,syncParkGrass,PARK_GRASS_LABEL} from './park-grass.ts';
+import {shoreSurface} from './water.ts';
+export {PK_OUT,PK_SAT};
 
 export const PARK_LABEL='Park grade · SIMULATED';
 
@@ -12,13 +15,6 @@ type Variant={key:string;edits:Edit[];uniforms:(THREE:typeof import('three'))=>R
 
 const col=(THREE:typeof import('three'))=>new THREE.Color(0,0,0);
 /** Saturation lift. The page's ACES output flattens colour; Park pre-lifts it so the meadow and sky stay vivid. */
-/**
- * Genesis shaders write display colours and skip three's output chunks, so the page's post chain encodes them a second time
- * and they wash out. Park twins decode to linear and then run three's own tone-map and colour-space chunks, so the hex
- * values above land on screen on every tier, with or without the post chain.
- */
-export const PK_OUT=' #include <tonemapping_fragment>\n #include <colorspace_fragment>\n';
-export const PK_SAT='vec3 pkLin(vec3 c){return pow(max(c,vec3(0.0)),vec3(2.2));}\nvec3 pkSat(vec3 c,float k){float l=dot(c,vec3(.2126,.7152,.0722));return max(vec3(0.0),mix(vec3(l),c,k));}\n';
 function setC(u:{value:{setRGB:(r:number,g:number,b:number)=>void}},c:RGB){u.value.setRGB(c[0],c[1],c[2]);}
 
 /** Park twin of the Genesis sky: same dome, same disc, Park zenith and horizon. */
@@ -115,10 +111,14 @@ export function parkTwin(THREE:typeof import('three'),base:Mat,v:Variant){
  return {material:mat,own};
 }
 
-type GenesisHandle={anchor:{onBeforeRender:(...a:any[])=>void};group:{children:any[];visible:boolean};sync:()=>any};
+type GenesisHandle={anchor:{onBeforeRender:(...a:any[])=>void};group:any;sync:()=>any;tier?:string};
 type Opts={getLook?:()=>string;getSun?:()=>{elevationDeg?:number}|null;
  /** Extra page layers Park hides while it is on (for example the pale far-horizon shells). Restored exactly when Park is off. */
- conceal?:()=>any[]};
+ conceal?:()=>any[];
+ /** PK3 meadow: the same seeded height the Genesis ground uses, and the same seed. Without heightAt there is no Park grass. */
+ heightAt?:(x:number,z:number)=>number;seed?:string;
+ camera?:()=>{position:{x:number;y:number;z:number}}|null;
+ tier?:()=>string};
 
 /**
  * Mount Park on an attached Genesis look. Call once, right after attachGenesisLook.
@@ -130,6 +130,27 @@ export function attachParkLook(THREE:typeof import('three'),genesis:GenesisHandl
  const byKey=new Map(PARK_VARIANTS.map(v=>[v.key,v]));
  let lastElev=NaN,rising=true,grade:ParkGrade|null=null,on=false,swapped=0;
  const look=()=>opts.getLook?opts.getLook():currentLook();
+ let grass:ReturnType<typeof buildParkGrass>&{tier:string}|null=null;
+ let shore:ReturnType<typeof shoreSurface>|null=null;
+ const eye=new THREE.Vector3();
+ function meadow(g:ParkGrade){
+  if(!opts.heightAt)return;
+  const tier=String(opts.tier?.()||genesis.tier||'MED');
+  if(!grass||grass.mesh.parent!==genesis.group||grass.tier!==tier){
+   if(grass){grass.mesh.parent?.remove(grass.mesh);grass.mesh.geometry.dispose();(grass.mesh.material as any).dispose();}
+   const seed=opts.seed||'genesis',h=opts.heightAt;
+   shore=shore||shoreSurface(h,seed);
+   const s=shore; // the spawn pad (inside 14) is meadow in the Genesis terrain shader, so it is meadow here too
+   grass={...buildParkGrass(THREE,{seed,tier,heightAt:h,wetAt:(x,z)=>Math.hypot(x,z)>14&&s.at(x,z)>h(x,z)-.02}),tier};
+   genesis.group.add(grass.mesh);
+  }
+  grass.mesh.visible=true;
+  const gg=genesis.group.children.find((o:any)=>o.name==='genesis-grass');
+  const wu=gg?.material?.uniforms;
+  const cam=opts.camera?.();
+  if(cam){eye.set(cam.position.x,cam.position.y,cam.position.z);genesis.group.worldToLocal(eye);}
+  syncParkGrass(grass.uniforms,{phase:Number(wu?.uPhase?.value??0),amp:Number(wu?.uAmp?.value??0)},g,cam?eye:undefined);
+ }
  const hidden=new Map<any,boolean>();
  function hide(){
   for(const o of opts.conceal?.()||[]){
@@ -140,6 +161,7 @@ export function attachParkLook(THREE:typeof import('three'),genesis:GenesisHandl
  }
  function restore(){
   swapped=0;
+  if(grass)grass.mesh.visible=false;
   for(const [o,v] of hidden)o.visible=v;
   hidden.clear();
   for(const o of genesis.group.children){
@@ -174,6 +196,7 @@ export function attachParkLook(THREE:typeof import('three'),genesis:GenesisHandl
    const t=twins.get(orig);
    if(t){t.variant.sync(t.own,grade);swapped++;}
   }
+  if(genesis.group.visible)meadow(grade);
   return grade;
  }
  const base=genesis.anchor.onBeforeRender;
@@ -181,8 +204,8 @@ export function attachParkLook(THREE:typeof import('three'),genesis:GenesisHandl
  return {
   apply,
   get on(){return on;},
-  state(){return {on,stop:grade?.stop??null,day:grade?+grade.day.toFixed(3):null,swapped,label:PARK_LABEL};},
-  dispose(){genesis.anchor.onBeforeRender=base;restore();},
+  state(){return {on,stop:grade?.stop??null,day:grade?+grade.day.toFixed(3):null,swapped,label:PARK_LABEL,grass:grass?{count:grass.count,tier:grass.tier,visible:grass.mesh.visible,label:PARK_GRASS_LABEL}:null};},
+  dispose(){genesis.anchor.onBeforeRender=base;restore();if(grass){grass.mesh.parent?.remove(grass.mesh);grass.mesh.geometry.dispose();(grass.mesh.material as any).dispose();grass=null;}},
  };
 }
 
