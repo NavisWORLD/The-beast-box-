@@ -17,7 +17,7 @@ def test_flag_default_off(monkeypatch):
 
 def test_secrets_are_never_stored(tmp_path):
     for bad in ("my key is ghp_" + "a" * 30, "password: hunter2hunter2", "token=abcdefabcdef1234",
-                "card 4111 1111 1111 1111", "-----BEGIN RSA PRIVATE KEY-----"):
+                "card 4111 1111 1111 1111", "-----BEGIN " + "RSA PRIVATE" + " KEY-----"):
         r = self_learn.record(tmp_path, scope="guest", user=bad, reply="okay", step=1)
         assert r["candidate"] is False and r["why"] == "secret_pattern"
     assert self_learn.export(tmp_path) == []

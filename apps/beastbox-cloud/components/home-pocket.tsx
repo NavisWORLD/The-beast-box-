@@ -36,6 +36,10 @@ export default function HomePocket(){
  // one sun (lib/universe/one-sun.mjs) and residents as /beast-cage/world, unless they picked the pocket explorer on this device.
  const [guestPocket,setGuestPocket]=useState(false);useEffect(()=>{const read=()=>setGuestPocket(guestPickedPocket());read();window.addEventListener(VIEW_EVENT,read);return()=>window.removeEventListener(VIEW_EVENT,read);},[]);
  const guestWorld=!own&&!guestPocket;
+ // Nov 12 (Cory: "merge all the universe into one"): the home window is ONE world for everyone. Living world and Pocket explorer both open
+ // the same zoomable living world (orbit down to the grass, one seed, one sun, one clock). The classic pocket stays only as the
+ // software-GL fallback below, so the window is never black on a CPU rasteriser. guestWorld is kept for the guest default record.
+ const oneWorld=guestWorld||!!own||homeView==='pocket'||homeView==='world';
  const [hosts,setHosts]=useState<MenuHosts>({place:null,tools:null,about:null});
  useEffect(()=>{if(own||zeref)return;let live=true;fetch(ZEREF_HOME_DEFAULT.src).then(r=>r.ok?r.json():null).then(d=>{const b=d?.beast;if(live&&b?.qbeast?.profile?.id===ZEREF_HOME_DEFAULT.id)setZeref(b);}).catch(()=>{});return()=>{live=false;};},[own,zeref]);
  const beast=own||zeref;const [world,setWorld]=useState(false);const [envOpen,setEnvOpen]=useState(false);
@@ -50,7 +54,7 @@ export default function HomePocket(){
  const chat=Array.isArray(session?.chat)?session.chat:[];const lastYou=[...chat].reverse().find((m:any)=>m?.role==='you')?.text||null;
  // Oct 16: the same cage look Cory loves; living-core Zeref + life layer live inside it. The ⋯ button tucks sound/game/help on phones.
  return <><div className="home-pocket-layer is-roamer" data-home-pocket={own?'saved-beast':zeref?'zeref-bb-deada969':'guide'}>
-  {((own&&homeView==='world')||guestWorld)&&!world&&!softHome?<LivingWorld embedded menuHost={hosts.place} infoHost={hosts.about} genome={own?.genome||null} beastKey={own?.qbeast?.profile?.id||null} beastName={own?beastDisplayName(own):null} onExpand={()=>setWorld(true)}/>:<CagePocketDimension seed={beast?beast.genome?.seed||beast.seed:null} qbeastId={beast?beast.qbeast.profile.id:null}
+  {oneWorld&&!world&&!softHome?<LivingWorld embedded menuHost={hosts.place} infoHost={hosts.about} genome={own?.genome||null} beastKey={own?.qbeast?.profile?.id||null} beastName={own?beastDisplayName(own):null} onExpand={()=>setWorld(true)}/>:<CagePocketDimension seed={beast?beast.genome?.seed||beast.seed:null} qbeastId={beast?beast.qbeast.profile.id:null}
    stage={beast?(beast.nativeStage||1):1} behaviorPosition={beast?beast.behavior?.position||null:null}
    state={beast?visualStateFromBeast(beast):'idle'} reduced={reduced} onActiveChange={noop} qvmCounts={qvmCounts} autoOrbit chatLine={lastYou} menuHost={hosts.tools} ignorePixel/>}
   {world&&typeof document!=='undefined'?createPortal(<LivingWorld genome={own?.genome||null} beastKey={own?.qbeast?.profile?.id||null} beastName={own?(beastDisplayName(own)):null} onClose={()=>setWorld(false)}/>,document.body):null}

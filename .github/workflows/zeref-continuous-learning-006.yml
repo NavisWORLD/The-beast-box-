@@ -343,6 +343,10 @@ jobs:
           ZEREF_HEBBIAN: '1'
           ZEREF_TRINITY: '1'
           ZEREF_006_LR: '0.00005'  # 008: local EMA trial passed chat A/B at 5e-5 step 64 (A 2.842, B 2.897)
+          # Gear LR ON (Cory, 2026-11-12 4:03 PM CT: "Turn on the gear learning rate"). Gears = each block's
+          # state-attention gate_logit/log_sigma and the dyn12/Trinity k, g12/gamma, at 10x the base LR, still anchored.
+          # One-line revert: set this to '0' (the exact old [base, hebbian] optimizer groups).
+          ZEREF_GEAR_LR_MULT: '10'
           ZEREF_GROW_LAYERS: ${{ steps.growth.outputs.add_layers || '0' }}
           ZEREF_GROWTH_WIP_IN: ${{ steps.growth.outputs.wip || '' }}
           ZEREF_GROWTH_WIP_OUT: build/zeref-006/growth/growth-wip-new.pt
