@@ -59,6 +59,6 @@ export function addCosmoSky(THREE:T,scene:import('three').Scene,{radius,phone}:{
   const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(P,3));g.setAttribute('color',new THREE.BufferAttribute(C,3));g.setAttribute('aM',new THREE.BufferAttribute(A,3));
   pts=new THREE.Points(g,new THREE.ShaderMaterial({uniforms:U,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,
    vertexShader:OCC_DECL+'attribute vec3 aM;attribute vec3 color;uniform float uT;varying vec3 vC;varying float vA;void main(){float tw=.7+.3*sin(uT*6.2832*aM.z+aM.y);float b=clamp(1.6-aM.x*.25,.2,1.6);vC=color;vA=tw;gl_PointSize=(1.5+2.5*b)*tw;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);'+OCC_CULL+'}',
-   fragmentShader:'uniform float uA;varying vec3 vC;varying float vA;void main(){float d=length(gl_PointCoord-.5);if(d>.5)discard;gl_FragColor=vec4(vC*smoothstep(.5,0.,d)*vA*uA,1.);}'}));pts.renderOrder=-9;pts.frustumCulled=false;scene.add(pts);}).catch(()=>{});
+   fragmentShader:'uniform float uA;varying vec3 vC;varying float vA;void main(){float d=length(gl_PointCoord-.5);if(d>.5)discard;gl_FragColor=vec4(vC*(1.0-smoothstep(0.,.5,d))*vA*uA,1.);}'}));pts.renderOrder=-9;pts.frustumCulled=false;scene.add(pts);}).catch(()=>{});
  return {dome,update(t:number,night:number,center:V3){U.uT.value=t;mat.opacity=night;U.uA.value=night;dome.visible=night>.02;dome.position.copy(center);if(pts){pts.position.copy(center);pts.visible=night>.02;}}};
 }
