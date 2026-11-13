@@ -37,7 +37,9 @@ export function seededStream(key:string){
  * Seeded blade layout on the dry ground. Returns offsets (x,y,z) and params (yaw, height, width, tint).
  * Blades are denser near the eye and thin out toward the reach, where the shader fades them into the meadow colour.
  */
-export function layoutGrass(o:{seed:string;tier:string;heightAt:(x:number,z:number)=>number;wetAt?:(x:number,z:number)=>boolean}){
+/** Clump field 0..1 (pure, deterministic): patches a few metres across. */
+export function clumpAt(x:number,z:number){const a=Math.sin(x*.83+z*.31)*Math.sin(z*.77-x*.27+1.3),b=Math.sin(x*2.3+1.7)*Math.sin(z*2.1+.4);const v=.5+.38*a+.12*b;return Math.min(1,Math.max(0,v));}
+export function layoutGrass(o:{seed:string;tier:string;heightAt:(x:number,z:number)=>number;wetAt?:(x:number,z:number)=>boolean;wornAt?:(x:number,z:number)=>number}){
  const b=grassBudget(o.tier);
  const offsets=new Float32Array(b.blades*3),params=new Float32Array(b.blades*4);
  let n=0;
@@ -53,8 +55,10 @@ export function layoutGrass(o:{seed:string;tier:string;heightAt:(x:number,z:numb
    const x=Math.cos(a)*r,z=Math.sin(a)*r;
    const yaw=r01()*Math.PI,h=.24+r01()*.26,w=.035+r01()*.03,tint=r01();
    if(o.wetAt?.(x,z))continue;
+   /* Nov 12 (Cory: 'clumpy and patchy, no uniform carpet'): a deterministic clump field makes tall lush tufts and short dry patches, with matching tint; the valley path wears the blades short or bare */
+   const cl=clumpAt(x,z);const worn=o.wornAt?o.wornAt(x,z):0;if(worn>.8&&tint<.85)continue;
    offsets[n*3]=x;offsets[n*3+1]=o.heightAt(x,z);offsets[n*3+2]=z;
-   params[n*4]=yaw;params[n*4+1]=h;params[n*4+2]=w;params[n*4+3]=tint;
+   params[n*4]=yaw;params[n*4+1]=h*(.55+.85*cl)*(1-.75*worn);params[n*4+2]=w;params[n*4+3]=tint*.45+cl*.55;
    n++;made++;
   }
  }
@@ -90,7 +94,7 @@ ${PK_SAT}void main(){
 ${PK_OUT}}`;
 
 /** Build the meadow mesh. One draw call: a 5-vertex blade instanced over the seeded layout. */
-export function buildParkGrass(THREE:typeof import('three'),o:{seed:string;tier:string;heightAt:(x:number,z:number)=>number;wetAt?:(x:number,z:number)=>boolean}){
+export function buildParkGrass(THREE:typeof import('three'),o:{seed:string;tier:string;heightAt:(x:number,z:number)=>number;wetAt?:(x:number,z:number)=>boolean;wornAt?:(x:number,z:number)=>number}){
  const L=layoutGrass(o);
  const g=new THREE.InstancedBufferGeometry();
  g.setAttribute('position',new THREE.Float32BufferAttribute([-1,0,0, 1,0,0, -.75,.5,0, .75,.5,0, 0,1,0],3));

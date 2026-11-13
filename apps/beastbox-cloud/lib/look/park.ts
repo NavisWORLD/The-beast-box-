@@ -117,6 +117,7 @@ type Opts={getLook?:()=>string;getSun?:()=>{elevationDeg?:number}|null;
  conceal?:()=>any[];
  /** PK3 meadow: the same seeded height the Genesis ground uses, and the same seed. Without heightAt there is no Park grass. */
  heightAt?:(x:number,z:number)=>number;seed?:string;
+ /** 0..1, 1 on the first-person valley path (blades worn short or bare there) */ wornAt?:(x:number,z:number)=>number;
  camera?:()=>{position:{x:number;y:number;z:number}}|null;
  tier?:()=>string};
 
@@ -141,7 +142,7 @@ export function attachParkLook(THREE:typeof import('three'),genesis:GenesisHandl
    const seed=opts.seed||'genesis',h=opts.heightAt;
    shore=shore||shoreSurface(h,seed);
    const s=shore; // the spawn pad (inside 14) is meadow in the Genesis terrain shader, so it is meadow here too
-   grass={...buildParkGrass(THREE,{seed,tier,heightAt:h,wetAt:(x,z)=>Math.hypot(x,z)>14&&s.at(x,z)>h(x,z)-.02}),tier};
+   grass={...buildParkGrass(THREE,{seed,tier,heightAt:h,wetAt:(x,z)=>Math.hypot(x,z)>14&&s.at(x,z)>h(x,z)-.02,wornAt:opts.wornAt}),tier};
    genesis.group.add(grass.mesh);
   }
   grass.mesh.visible=true;
