@@ -18,6 +18,11 @@ on:
       - 'scripts/zeref_promotion_rule.py'
       - 'tests/test_zeref_promotion_rule.py'
       - 'tests/zeref_recovery_decision_contract.test.cjs'
+      - 'scripts/zeref_english_mix.py'
+      - 'scripts/zeref_english_clarity.py'
+      - 'scripts/zeref_english_corpus_build.py'
+      - 'tests/test_zeref_english_corpus.py'
+      - 'evidence/zeref-english-001/**'
   schedule:
     - cron: '17 */6 * * *'
   workflow_dispatch:
@@ -303,6 +308,24 @@ jobs:
           if curl -fsSL --retry 3 -r "${off}-$((off+1999999))" -o build/zeref-006/tinystories-range.txt "https://huggingface.co/datasets/roneneldan/TinyStories/resolve/f54c09fd23315a6f9c86f9dc80f725de7d8f9c64/TinyStories-train.txt"; then
             python scripts/zeref_pretrain_slice.py build/zeref-006/tinystories-range.txt build/zeref-006/pretrain-slice.jsonl "$off"
           else echo 'ZEREF_PRETRAIN_SLICE_UNAVAILABLE (continuing without it)'; fi
+      - name: English foundation share (RECORDED corpus, people-written; Cory 2026-11-12 5:51 PM CT)
+        # Public-domain books (Project Gutenberg, header/licence stripped) + Taskmaster-1 human dialogue (CC BY 4.0),
+        # PII/toxicity-screened, deduped, sha-pinned (evidence/zeref-english-001/manifest.json). Not Zeref's experience;
+        # no model-generated text. Fills ZEREF_ENGLISH_SHARE (default 0.5) of the SAME pretrain pool (still 2 rows per
+        # batch next to 4 game + 12 chat rows), rotated per cycle. Gate, pin, eval sets and flags unchanged.
+        # One-line revert: ZEREF_ENGLISH_SHARE: '0' (exact old pool).
+        env:
+          ZEREF_ENGLISH_SHARE: '0.5'
+        run: |
+          set -Eeuo pipefail
+          m=evidence/zeref-english-001/manifest.json
+          commit="$(python -c "import json;print(json.load(open('$m'))['data_branch']['commit'])")"
+          case "$commit" in *[!0-9a-f]*|'') echo 'bad corpus commit'; exit 1;; esac
+          if curl -fsSL --retry 3 --max-time 180 -o build/zeref-006/english-train.jsonl.gz "https://raw.githubusercontent.com/${{ github.repository }}/${commit}/zeref-english-001/train.jsonl.gz"; then
+            parent_cycle="$(python -c "import json,os;print(int(json.load(open(os.path.join(os.environ['BEAST_006_PARENT_PATH'],'metadata.json')))['approved_cycle_count']))")"
+            python scripts/zeref_english_mix.py build/zeref-006/english-train.jsonl.gz "$m" build/zeref-006/pretrain-slice.jsonl "zeref-english-001-cycle-$((parent_cycle + 1))" build/zeref-006/english-mix.json
+            rm -f build/zeref-006/english-train.jsonl.gz
+          else echo 'ZEREF_ENGLISH_CORPUS_UNAVAILABLE (continuing with the old pretrain slice)'; fi
       - name: Install pinned PUBLIC 14000 (fixed anti-ratchet chat reference + promotion baseline)
         run: |
           set -Eeuo pipefail
@@ -458,6 +481,29 @@ jobs:
               --title "Zeref 006 approved cycle $cyc (CPU, not production-promoted)" \
               --notes "Approved Zeref (bb-deada969) RAWRPHOS checkpoint ${sha}. CPU-only behavioral cloning on real native-game observations; batch order seeded from RECORDED Rigetti SIMULATOR counts (rigetti.sim.qvm, not QPU). Not production-promoted. Run ${{ github.run_id }}." \
               "build/$tag.tar.gz" "build/$tag.tar.gz.sha256"
+      - name: English clarity vs the pin (REPORT-ONLY, never a gate input; runs after publication)
+        if: always() && hashFiles('build/zeref-006/report.json') != ''
+        continue-on-error: true
+        timeout-minutes: 25
+        run: |
+          set -Eeuo pipefail
+          cand=build/zeref-006/accepted-checkpoint
+          [ -s "$cand/model.safetensors" ] || cand=build/zeref-006/unreviewed-candidate
+          args=""
+          if [ -n "${ZEREF_006_PIN_DIR:-}" ]; then args="pin=$ZEREF_006_PIN_DIR"; fi
+          if [ -s "$cand/model.safetensors" ]; then args="$args candidate=$cand"; fi
+          test -n "$args"
+          python -c "import json;d=json.load(open('build/zeref-006/promotion-decision.json'));print('ZEREF_GATE_NEXT_TO_CLARITY='+json.dumps({k:d.get(k) for k in ('promote','promotion_rule','candidate_ref_nll','pin_ref_nll_bar','delta_vs_pin_nats','candidate_action_leaks')}))" || true
+          python -u scripts/zeref_english_clarity.py build/zeref-006/english-clarity.json $args
+      - name: Persist English clarity and mix receipts (report-only)
+        if: always() && hashFiles('build/zeref-006/english-clarity.json', 'build/zeref-006/english-mix.json') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: zeref-english-clarity-${{ github.run_id }}
+          path: |
+            build/zeref-006/english-clarity.json
+            build/zeref-006/english-mix.json
+          if-no-files-found: warn
 
   recovery-contract:
     if: github.event_name == 'pull_request'
@@ -482,6 +528,7 @@ jobs:
           python -m unittest discover -s tests -p test_zeref_served_shape.py
           python -m unittest discover -s tests -p test_zeref_promotion_rule.py
           python -m unittest discover -s tests -p test_rawrphos_public_pin.py
+          python -m unittest discover -s tests -p test_zeref_english_corpus.py
           python -m py_compile scripts/zeref_continuation_006.py scripts/zeref_round_recovery.py scripts/zeref_resume_parent.py scripts/zeref_served_shape.py scripts/zeref_chat_corpus.py scripts/zeref_promotion_rule.py
   score-interrupted:
     # Independent runner/timeout: job cancellation cannot consume the scoring reserve.
