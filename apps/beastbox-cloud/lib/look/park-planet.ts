@@ -93,7 +93,7 @@ export function gradePlanetShader(src:string){
 
 const SHELL_VERT=`varying vec3 vN;varying vec3 vW;
 void main(){vN=normalize(position);vec4 w=modelMatrix*vec4(position,1.0);vW=w.xyz;gl_Position=projectionMatrix*viewMatrix*w;}`;
-const CLOUD_FRAG=`uniform vec3 uSun,uLit,uShade;uniform float uDrift,uSeed,uOpacity;
+const CLOUD_FRAG=`uniform vec3 uSun,uLit,uShade;uniform float uDrift,uSeed,uOpacity,uPR;
 varying vec3 vN;varying vec3 vW;
 float h31(vec3 p){p=fract(p*.1031+uSeed);p+=dot(p,p.yzx+33.33);return fract((p.x+p.y)*p.z);}
 float vn3(vec3 p){vec3 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);
@@ -110,7 +110,8 @@ void main(){
  vec3 col=mix(uShade,uLit,lit);
  vec3 V=normalize(cameraPosition-vW);
  float edge=smoothstep(.0,.25,dot(n,V));
- float alpha=k*uOpacity*edge*mix(.35,1.0,lit);
+ float camK=smoothstep(uPR*1.12,uPR*1.5,length(cameraPosition)); /* zooming down through the cloud shell fades it out: no white-out on the way to the ground */
+ float alpha=k*uOpacity*edge*mix(.35,1.0,lit)*camK;
  gl_FragColor=vec4(col,alpha);
 ${PK_OUT}}`;
 /* Realistic-cosmic pass (Cory, Nov 12: "Realistic cosmic"). A designed look, not a physical simulation:
@@ -118,7 +119,7 @@ ${PK_OUT}}`;
    - halo: an outer back-face shell glowing by how closely each view ray grazes the planet (blue by day, orange at twilight, dark on the night side);
    - terminator: a soft night side with a twilight band; cloud shadow: the cloud field sampled toward the sun, darkening the ground below;
    - glint: sun specular + fresnel on the sea only (sea mask from the page's height map), the one sun's direction. */
-const LIMB_FRAG=`uniform vec3 uSun,uDayC,uNightC;
+const LIMB_FRAG=`uniform vec3 uSun,uDayC,uNightC;uniform float uPR;
 varying vec3 vN;varying vec3 vW;
 void main(){
  vec3 n=normalize(vN);vec3 V=normalize(cameraPosition-vW);vec3 L=normalize(uSun);
@@ -126,6 +127,7 @@ void main(){
  float sd=dot(n,L);float day=smoothstep(-.28,.32,sd);float twi=exp(-pow(sd/.16,2.0));
  float ph=.75*(1.0+pow(max(0.0,dot(-V,L))*.5+.5,2.0));
  vec3 col=mix(uNightC*.35,uDayC*ph,day)+vec3(1.0,.46,.2)*twi*.8;
+ rim*=smoothstep(uPR*1.1,uPR*1.4,length(cameraPosition));
  gl_FragColor=vec4(col*rim*1.35,rim*clamp(.25+.85*day+.5*twi,0.0,1.0));
 ${PK_OUT}}`;
 const HALO_FRAG=`uniform vec3 uSun,uDayC;uniform float uR,uRa;
@@ -135,6 +137,7 @@ void main(){
  float h=clamp((d-uR)/(uRa-uR),0.0,1.0);float g=exp(-h*4.2)*(1.0-h);
  vec3 n0=normalize(c);vec3 L=normalize(uSun);float sd=dot(n0,L);float day=smoothstep(-.3,.3,sd);float twi=exp(-pow(sd/.18,2.0));
  vec3 col=uDayC*(.3+day*1.2)+vec3(1.0,.5,.22)*twi*.9;
+ float camK=smoothstep(uRa*1.02,uRa*1.3,length(cameraPosition));g*=camK; /* inside the halo (zoomed down) it would wash the whole frame white */
  gl_FragColor=vec4(col*g*1.3,g*clamp(.35+.65*day+.5*twi,0.0,1.0));
 ${PK_OUT}}`;
 /** sRGB hex to linear: the planet and shells go through the page's linear output path. */
@@ -174,7 +177,7 @@ export function attachParkPlanet(THREE:typeof import('three'),opts:Opts){
   clouds=null;limb=null;halo=null;
   if(B.segments>0){
    const cm=new THREE.ShaderMaterial({
-    uniforms:{uSun:{value:new THREE.Vector3(0,1,0)},uLit:{value:new THREE.Color().setRGB(...lin(PARK_DAY.cloudLit))},uShade:{value:new THREE.Color().setRGB(...lin(PARK_NIGHT.skyFill)).multiplyScalar(.35)},uDrift:{value:0},uSeed:{value:seedF},uOpacity:{value:.72}},
+    uniforms:{uSun:{value:new THREE.Vector3(0,1,0)},uLit:{value:new THREE.Color().setRGB(...lin(PARK_DAY.cloudLit))},uShade:{value:new THREE.Color().setRGB(...lin(PARK_NIGHT.skyFill)).multiplyScalar(.35)},uDrift:{value:0},uSeed:{value:seedF},uOpacity:{value:.72},uPR:{value:opts.radius}},
     vertexShader:SHELL_VERT,fragmentShader:CLOUD_FRAG,transparent:true,depthWrite:false,fog:false,
    });
    cm.name='park:planet-clouds';
@@ -183,7 +186,7 @@ export function attachParkPlanet(THREE:typeof import('three'),opts:Opts){
    opts.parent?.add(clouds);
   }
   const lm=new THREE.ShaderMaterial({
-   uniforms:{uSun:{value:new THREE.Vector3(0,1,0)},uDayC:{value:new THREE.Color().setRGB(...lin(PARK_DAY.skyHorizon))},uNightC:{value:new THREE.Color().setRGB(...lin('#1A2F8A'))}},
+   uniforms:{uSun:{value:new THREE.Vector3(0,1,0)},uDayC:{value:new THREE.Color().setRGB(...lin(PARK_DAY.skyHorizon))},uNightC:{value:new THREE.Color().setRGB(...lin('#1A2F8A'))},uPR:{value:opts.radius}},
    vertexShader:SHELL_VERT,fragmentShader:LIMB_FRAG,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.FrontSide,fog:false,
   });
   lm.name='park:planet-limb';

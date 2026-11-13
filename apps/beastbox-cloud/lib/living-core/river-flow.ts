@@ -30,7 +30,7 @@ export function addRiverFlow(THREE:T,parent:import('three').Object3D,{low,seed='
  const fs=`uniform sampler2D uAtlas;varying float vG;varying float vA;varying float vS;
  void main(){vec3 col=mix(vec3(.62,.48,1.),vec3(.45,.85,1.),vS);float a;
   if(vG>0.){vec2 uv=vec2((vG-1.+gl_PointCoord.x)/16.,1.-gl_PointCoord.y);a=texture2D(uAtlas,uv).a*.38;}
-  else{a=smoothstep(.5,0.,length(gl_PointCoord-.5));}
+  else{a=(1.0-smoothstep(0.0,.5,length(gl_PointCoord-.5)));}
   gl_FragColor=vec4(col,a*vA);}`;
  const m=new THREE.ShaderMaterial({uniforms:U as any,vertexShader:vs,fragmentShader:fs,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending});
  const pts=new THREE.Points(g,m);pts.name='lc-river';pts.frustumCulled=false;parent.add(pts);

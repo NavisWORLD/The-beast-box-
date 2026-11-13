@@ -29,7 +29,7 @@ export function addHeaven(THREE:T,scene:import('three').Object3D,{low,rand,far,n
   const mg=new THREE.BufferGeometry();mg.setAttribute('position',new THREE.BufferAttribute(P,3));mg.setAttribute('aS',new THREE.BufferAttribute(S,1));
   const motes=new THREE.Points(mg,new THREE.ShaderMaterial({transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,fog:false,uniforms:{uT:{value:0}},
    vertexShader:'attribute float aS;uniform float uT;varying float vA;void main(){vec3 p=position;p.y=mod(p.y+uT*(.08+.12*aS),16.)-.2;p.x+=sin(uT*.1+aS*20.)*.4;vec4 mv=modelViewMatrix*vec4(p,1.);vA=smoothstep(0.,2.,p.y)*(1.-smoothstep(12.,16.,p.y))*(.4+.6*aS);gl_PointSize=min(40.,(3.+5.*aS)*30./-mv.z)*smoothstep(.35,1.1,-mv.z);gl_Position=projectionMatrix*mv;}',
-   fragmentShader:'varying float vA;void main(){float d=length(gl_PointCoord-.5);if(d>.5)discard;gl_FragColor=vec4(vec3(1.,.88,.66)*smoothstep(.5,0.,d)*vA*1.35,1.);}'}));motes.frustumCulled=false;root.add(motes);
+   fragmentShader:'varying float vA;void main(){float d=length(gl_PointCoord-.5);if(d>.5)discard;gl_FragColor=vec4(vec3(1.,.88,.66)*(1.0-smoothstep(0.0,.5,d))*vA*1.35,1.);}'}));motes.frustumCulled=false;root.add(motes);
   // far sun (Cory, Oct 22): the star cluster sits far off in the sky, not as a sticker over the pocket; its light still reaches
   // the ground (key light + shaft), with its own stars, a heat glow and seeded flares / bursts on a seeded schedule.
   const flares:{sp:any;t0:number;per:number;dur:number;k:number}[]=[];let far0:any=null;

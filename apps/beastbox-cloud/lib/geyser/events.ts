@@ -12,7 +12,7 @@ export function addGeyserEvents(THREE:T,isl:Island,{low}:{low:boolean}){
   const pg=new THREE.BufferGeometry();pg.setAttribute('position',new THREE.BufferAttribute(pp,3));pg.setAttribute('aL',new THREE.BufferAttribute(pl,1));pg.setAttribute('aK',new THREE.BufferAttribute(pk,1));pg.setAttribute('aS',new THREE.BufferAttribute(ps,1));
   const puffs=new THREE.Points(pg,new THREE.ShaderMaterial({transparent:true,depthWrite:false,uniforms:{},
     vertexShader:'attribute float aL,aK,aS;varying float vL,vK;void main(){vL=aL;vK=aK;vec4 mv=modelViewMatrix*vec4(position,1.);gl_PointSize=aL>0.?min(64.,aS*(1.6-aL)*60./-mv.z)*smoothstep(.35,1.1,-mv.z):0.;gl_Position=projectionMatrix*mv;}',
-    fragmentShader:'varying float vL,vK;void main(){if(vL<=0.)discard;float d=length(gl_PointCoord-.5);if(d>.5)discard;vec3 c=vK<.5?vec3(.92,.96,1.):vK<1.5?vec3(.25,.22,.24):vec3(.75,.95,1.);float a=smoothstep(.5,0.,d)*vL*(vK<1.5?.55:.8);gl_FragColor=vec4(c,a);}'}));
+    fragmentShader:'varying float vL,vK;void main(){if(vL<=0.)discard;float d=length(gl_PointCoord-.5);if(d>.5)discard;vec3 c=vK<.5?vec3(.92,.96,1.):vK<1.5?vec3(.25,.22,.24):vec3(.75,.95,1.);float a=(1.0-smoothstep(0.0,.5,d))*vL*(vK<1.5?.55:.8);gl_FragColor=vec4(c,a);}'}));
   puffs.frustumCulled=false;root.add(puffs);
   function puff(x:number,y:number,z:number,kind:0|1|2,vx=0,vy=.4,vz=0,size=.6){const i=pi++%N;pp.set([x,y,z],i*3);pv.set([vx+(r()-.5)*.2,vy*(0.7+r()*.6),vz+(r()-.5)*.2],i*3);pl[i]=1;pk[i]=kind;ps[i]=size*(.7+r()*.6);}
   // ---- Strokkur: pool, dome, boardwalk, hot springs, mud pot

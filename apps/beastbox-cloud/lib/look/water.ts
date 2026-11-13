@@ -94,7 +94,7 @@ const VERT=`attribute float aDepth;
 uniform float uTime,uMotion,uLevel;
 varying float vDepth;varying vec3 vW;varying vec3 vN;
 void main(){
- float shore=smoothstep(1.2,0.0,aDepth);
+ float shore=(1.0-smoothstep(0.0,1.2,aDepth));
  float wave=uMotion*(sin(position.x*.31+uTime)*.62+sin(position.z*.22-uTime*.8)*.36);
  float roll=uMotion*shore*sin(aDepth*3.4-uTime*1.6)*.48;
  vec3 p=position;p.y+=wave+roll;
