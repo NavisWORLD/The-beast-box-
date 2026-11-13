@@ -31,7 +31,7 @@ float n3(vec3 p){vec3 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(mix
 float f3(vec3 p){return .5*n3(p)+.25*n3(p*2.03+7.1)+.125*n3(p*4.01+3.7)+.0625*n3(p*8.05+1.3);}
 vec3 starLayer(vec3 d,float sc,float th,float sz,float gain,float t,float boost){vec3 g=d*sc;vec3 c=floor(g);float h=h31(c);if(h<th-boost*.18)return vec3(0.0);
  vec3 sp=c+.25+.5*vec3(h31(c+11.3),h31(c+27.1),h31(c+53.9));float dd=length(g-sp);float m=h31(c+91.7);
- float tw=.75+.25*sin(t*(1.3+2.0*m)+m*40.0);float core=smoothstep(sz,0.0,dd);float halo=gain>1.5?.22*smoothstep(sz*2.2,0.0,dd):0.0;
+ float tw=.75+.25*sin(t*(1.3+2.0*m)+m*40.0);float core=1.0-smoothstep(0.0,sz,dd);core*=core;float halo=gain>1.5?.22*(1.0-smoothstep(0.0,sz*2.2,dd)):0.0; /* soft round points: smoothstep with edge0>edge1 is undefined in GLSL and drew whole cells as blue squares on some GPUs */
  vec3 tint=mix(vec3(.70,.80,1.0),vec3(1.0,.86,.68),h31(c+5.5));return tint*(core+halo)*gain*tw*(.5+.8*m);}
 vec3 nightSky(vec3 d,float e,vec3 ax,float t){vec3 b1=normalize(abs(ax.y)<.9?cross(ax,vec3(0,1,0)):cross(ax,vec3(1,0,0)));vec3 b2=cross(ax,b1);
  float lat=dot(d,ax);float band=exp(-pow(lat/.36,2.0));vec3 q=d*3.2;float n=f3(q);float n2=f3(q*2.2+4.0);float dust=smoothstep(.48,.7,f3(q*4.1+9.0));
