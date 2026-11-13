@@ -1,0 +1,279 @@
+{
+ "schema": "beastbox-companion-session-v1",
+ "tab": "play",
+ "beast": {
+  "seed": "99dc004a31cc649f94937ba465c119ec57fe625dee91a348304e7be3a8124186",
+  "genome": {
+   "schema": "lost-cosmos-beast-genome-v2",
+   "seed": "99dc004a31cc649f94937ba465c119ec57fe625dee91a348304e7be3a8124186",
+   "inputs": {
+    "traits": {
+     "focus": 0,
+     "calm": 90,
+     "spark": 0
+    },
+    "quantum_run": "ibm_marrakesh:da6ona3sq5js73bj0pc0#pub0",
+    "user_id": null
+   },
+   "quantum": {
+    "backend": "ibm_marrakesh",
+    "job_id": "da6ona3sq5js73bj0pc0",
+    "pub_index": 0,
+    "counts_sha256": "d437ad227c2e36c82041e721dbf1773f774ad3668dc6db3c639572ef74c44296",
+    "top_state": "1",
+    "top_state_int": 1,
+    "num_bits": 1,
+    "entropy_norm": 0.6778,
+    "marginals": [
+     0.821
+    ]
+   },
+   "engine": {
+    "dyn12": [
+     -0.09995,
+     -0.11869,
+     -0.33756,
+     0.32789,
+     -0.29856,
+     -0.43191,
+     -0.32979,
+     0.3215,
+     -0.15884,
+     -0.32643,
+     -0.17996,
+     0.40736
+    ],
+    "island_affinity": {
+     "Eridoria Prime": 0.0354,
+     "Hollow Verdance": 0.4803,
+     "The Crown": 0.0549,
+     "The Pale Expanse": 0.9817,
+     "Rust Meridian": 0.0002,
+     "Cinder Drift": 0.0006,
+     "Umbral Deep": 0.0268,
+     "The Shattered Reef": 0.0524
+    }
+   },
+   "island": "The Pale Expanse",
+   "element": "frost",
+   "body": "serpent",
+   "ears": "crystal",
+   "tail": "tip",
+   "wings": "none",
+   "pattern": "belly",
+   "pattern_variant": 9,
+   "pattern_variant_source": "top_state bit + seed-hash bits",
+   "pose": "side",
+   "eye_style": "round",
+   "mouth": "smile",
+   "glow": "cyan",
+   "facing": "right",
+   "temperament": "Serene",
+   "behavior": {
+    "gait": "scuttle",
+    "tempo_hz": 1.15,
+    "amplitude_px": 3,
+    "swing": 0.146,
+    "accents": [
+     1,
+     0,
+     0,
+     1,
+     1
+    ],
+    "accents_source": "top_state bits q0..q0 + seed-hash padding",
+    "breath_hz": 0.199,
+    "breath_px": 2,
+    "appendage_mul": 2.75,
+    "appendage_px": 1,
+    "blink_mean_s": 5.81,
+    "double_blink_p": 0.17,
+    "habits": [
+     {
+      "name": "spin_hop",
+      "every_s": 8.5
+     },
+     {
+      "name": "peek",
+      "every_s": 8.88
+     },
+     {
+      "name": "stretch",
+      "every_s": 6.14
+     }
+    ],
+    "quirks": [
+     {
+      "name": "echo_bounce",
+      "every_s": 7.04,
+      "strength": 0.988
+     },
+     {
+      "name": "moonwalk",
+      "every_s": 3.28,
+      "strength": 0.851
+     }
+    ],
+    "sensitivity": {
+     "focus": 1.008,
+     "calm": 1.058,
+     "spark": 0.934
+    },
+    "reacts_most_to": "calm",
+    "thresholds": {
+     "focus": 28,
+     "calm": 58,
+     "spark": 48
+    },
+    "latency_s": 0.29,
+    "flavors": {
+     "focus": "paces",
+     "calm": "melts",
+     "spark": "bounces"
+    },
+    "chattiness": 0.96,
+    "tic": "rim?",
+    "prng_seed": 2581332042
+   },
+   "voice": {
+    "style": "trill",
+    "base_pitch_hz": 590.3,
+    "formants_hz": [
+     722,
+     2186
+    ],
+    "formant_q": 4.47,
+    "wave": "triangle",
+    "brightness": 0.345,
+    "breath": 0.075,
+    "speed_sps": 6.88,
+    "vibrato_hz": 19.09,
+    "vibrato_cents": 103.1,
+    "am_hz": 0,
+    "contour": "arch",
+    "jump_semitones": 2.23,
+    "rhythm": [
+     1,
+     0,
+     1,
+     1,
+     0
+    ],
+    "rhythm_source": "top_state bit + seed-hash padding (1-bit run)",
+    "vowels": [
+     "e",
+     "a"
+    ],
+    "vowel_formants": [
+     [
+      500,
+      1900
+     ],
+     [
+      800,
+      1200
+     ]
+    ],
+    "vowel_source": "top outcomes of the run",
+    "consonants": [
+     "tr",
+     "l",
+     "r",
+     "tl"
+    ],
+    "phrase_syllables": [
+     2,
+     4
+    ],
+    "gain": 0.552,
+    "prng_seed": 1476289117,
+    "chattiness": 0.96
+   },
+   "genes": {
+    "chub": 0.2737,
+    "head": 0.2173,
+    "legs": 0.4586,
+    "ear_size": 0.6185,
+    "tail_size": 0.6803,
+    "wing_size": 0.4354,
+    "eye_size": 0.2966,
+    "eye_gap": 0.7569,
+    "hue": 0.3837,
+    "sat": 0.4392,
+    "val": 0.2214,
+    "pattern_density": 0.3335,
+    "pattern_scale": 0.4463,
+    "glow_amount": 0.8961
+   },
+   "stats": {
+    "1": {
+     "hp": 45,
+     "atk": 33,
+     "def": 43,
+     "spd": 27,
+     "spark": 32
+    },
+    "2": {
+     "hp": 75,
+     "atk": 54,
+     "def": 72,
+     "spd": 45,
+     "spark": 54
+    },
+    "3": {
+     "hp": 110,
+     "atk": 79,
+     "def": 105,
+     "spd": 66,
+     "spark": 79
+    }
+   },
+   "names": {
+    "1": "Rimecoil",
+    "2": "Glacecoil",
+    "3": "Shivernaga"
+   }
+  },
+  "displayName": "",
+  "xp": 36,
+  "bond": 11,
+  "energy": 72,
+  "stage": 1,
+  "mood": "idle"
+ },
+ "bestiary": [],
+ "chat": [
+  {
+   "role": "you",
+   "text": "hi"
+  },
+  {
+   "role": "beast",
+   "text": "rim? hi!"
+  }
+ ],
+ "mind": {
+  "schema": "companion-mind-v1",
+  "steps": 2
+ },
+ "emulator": {
+  "mounted": true,
+  "ticks": 0,
+  "booted": false
+ },
+ "train": {
+  "score": 0,
+  "rounds": 0
+ },
+ "mood": "idle",
+ "pet": null,
+ "lost_cosmos": {
+  "available": true,
+  "version": "V11.2 Spark",
+  "chapter": 2,
+  "islands_visited": [
+   "The Pale Expanse"
+  ],
+  "note": "fixture data for tests"
+ }
+}
