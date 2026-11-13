@@ -347,6 +347,10 @@ jobs:
           # state-attention gate_logit/log_sigma and the dyn12/Trinity k, g12/gamma, at 10x the base LR, still anchored.
           # One-line revert: set this to '0' (the exact old [base, hebbian] optimizer groups).
           ZEREF_GEAR_LR_MULT: '10'
+          # 12D into the mouth, training side only (Cory, 2026-11-12 4:03 PM CT "Yes, wire his 12D state into his mouth for real";
+          # 6:23 PM CT "Just continue"). Serving is unchanged; gate scoring stays unconditioned; promotion only via the loose-rule gate.
+          # One-line revert: set this to '0' (byte-identical training).
+          ZEREF_12D_MOUTH: '1'
           ZEREF_GROW_LAYERS: ${{ steps.growth.outputs.add_layers || '0' }}
           ZEREF_GROWTH_WIP_IN: ${{ steps.growth.outputs.wip || '' }}
           ZEREF_GROWTH_WIP_OUT: build/zeref-006/growth/growth-wip-new.pt
