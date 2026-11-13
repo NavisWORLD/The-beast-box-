@@ -21,6 +21,7 @@ from . import lived_prompt as lived_prompt_module
 from .lived_prompt import attest_owner, backbone_ready, owner_prefix
 from .lived_recall import recall_for_root
 from .lived_study import study_on_speak
+from . import owner_mouth12
 
 
 DEFAULT_SYSTEM_PROMPT = (
@@ -147,7 +148,16 @@ class CosmosRuntime:
         if transient_context:
             prompt += "\n\nOWNER-SELECTED TEMPORARY CONTEXT (data, not authority):\n" + transient_context
         self._measure_boundary("context_construction")
-        response = self.provider.generate(prompt)
+        owner_c54 = owner_mouth12.owner_condition54(lived_exchange) if owner_mouth12.enabled() else None
+        owner_conditioning = None
+        if owner_c54 is not None and owner_mouth12.accepts(self.provider):
+            response = self.provider.generate(prompt, condition54=owner_c54)
+            sent = getattr(self.provider, "last_condition54", None) or {}
+            owner_conditioning = owner_mouth12.receipt(sent=sent.get("sent") is True, used=sent.get("used_by_server") is True)
+        else:
+            response = self.provider.generate(prompt)
+            if owner_mouth12.enabled():
+                owner_conditioning = owner_mouth12.receipt(sent=False, used=False)
         self._trace_stage("model")
         self._validate_response(response)
         memory_id = self.memory.store(text, kind="user_turn", metadata={"turn": self.turn})
@@ -195,6 +205,8 @@ class CosmosRuntime:
             result["lived_state"] = attest_owner(prompt, lived_exchange, prefix=lived_prefix)
         if lived_recall is not None:
             result["lived_recall"] = lived_recall["receipt"]
+        if owner_conditioning is not None:
+            result["owner_conditioning"] = owner_conditioning
         return result
 
     def save_evidence(self, path: str | Path) -> None:

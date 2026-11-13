@@ -79,3 +79,10 @@ This is recorded with the door PR. The door serves the bridge's own Zeref reply 
 - **Public disclosure while on:** "Zeref may learn from this chat (personal info removed)".
 - **Revert in one line:** `BEASTBOX_SELF_LEARN=off`. That is the existing behaviour, where guest chats are `training_eligible:false` and nothing is stored as a candidate.
 - **Switch-on needs Cory's separate yes.** The flag ships off.
+
+## 2026-11-12 19:20 CT (01:20 UTC): owner chat can carry his 12D as a tensor (flag OFF); honest `condition54_used`
+
+- **Who / words:** Cory, "Yes, wire his 12D state into his mouth for real" (4:03 PM CT), "Just continue" (6:23 PM CT).
+- **Built (`BEASTBOX_OWNER_12D_MOUTH`, default `off`):** on the owner chat only, the owner's own delivered lived state12 is also sent as `condition54` (state12 in slots 0–11, 42 zeros), the training-row shape. It goes only to the loopback native server, never to a remote provider, never to a guest or visitor. The owner turn result carries an `owner_conditioning` receipt with booleans only (`sent`, `used_by_server`), no vector, no hash.
+- **Fixed:** the native server now reports `condition54_used` on every completion (it was missing, so guest receipts always read `used_by_server: false`), and `/ready` no longer references a request-local name.
+- **Revert in one line:** `BEASTBOX_OWNER_12D_MOUTH=off`. **Switch-on needs Cory's separate yes.**
