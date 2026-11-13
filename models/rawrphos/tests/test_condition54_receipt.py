@@ -6,7 +6,7 @@ from fastapi.testclient import TestClient
 def _cond54_checkpoint(tmp_path):
     from rawrphos.architecture.model import RawrphosConfig, RawrphosLM, upgrade_to_cond54
     from rawrphos.tokenizer.tokenizer import RawrphosTokenizer
-    from rawrphos.training.checkpoint import save_checkpoint, rng_state
+    from rawrphos.training.checkpoint import rng_state, save_checkpoint
     t = RawrphosTokenizer.train(['The little cat sat on a warm mat.'] * 10, 300)
     torch.manual_seed(8)
     m = RawrphosLM(RawrphosConfig(vocab_size=t.vocab_size, d_model=32, n_heads=4, n_layers=2, max_seq_len=512, state_mode='tri'))

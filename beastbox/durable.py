@@ -72,7 +72,7 @@ class MeasuredProvider:
         started = time.perf_counter()
         try:
             output = (self.delegate.generate(prompt) if condition54 is None
-                      else self.delegate.generate(prompt, condition54=condition54))
+                      else cast(Any, self.delegate).generate(prompt, condition54=condition54))
         finally:
             self.measurements["provider_ms"] = (time.perf_counter() - started) * 1000
         if not isinstance(output, str) or len(output) > 65536:
