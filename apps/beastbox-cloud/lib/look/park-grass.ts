@@ -67,7 +67,7 @@ export function layoutGrass(o:{seed:string;tier:string;heightAt:(x:number,z:numb
 
 const VERT=`attribute vec3 aOffset;attribute vec4 aParams;
 uniform float uPhase,uAmp,uSway,uRadius;uniform vec3 uEye;
-varying float vT,vTint,vFade;
+varying float vT,vTint,vFade,vGust;
 void main(){
  float t=position.y;
  float h=aParams.y,w=aParams.z;
@@ -77,16 +77,17 @@ void main(){
  float cs=cos(aParams.x),sn=sin(aParams.x);
  p=vec3(p.x*cs,p.y,-p.x*sn);
  float wave=sin(uPhase+aOffset.x*.21+aOffset.z*.17)+.45*sin(uPhase*1.7+aOffset.x*.53-aOffset.z*.41);
- float lean=(wave*uAmp*uSway*1.7+(aParams.w-.5)*.22)*t*t;
+ /* visible gust waves (pallet-town-3d foliageWind idea, MIT): bright packets roll across the meadow along one wind direction */float gust=pow(.5+.5*sin(dot(aOffset.xz,vec2(.31,.17))-uPhase*1.3),5.0)*(.65+.35*sin(dot(aOffset.xz,vec2(-.07,.13))+uPhase*.21));vGust=gust;
+ float lean=(wave*uAmp*uSway*1.7+(aParams.w-.5)*.22+gust*.55*step(1e-5,uAmp)*uSway)*t*t;
  p.x+=lean*h;p.z+=lean*h*.35;p.y-=abs(lean)*h*.3;
  vT=t;vTint=aParams.w;vFade=fade;
  gl_Position=projectionMatrix*modelViewMatrix*vec4(aOffset+p,1.0);
 }`;
 const FRAG=`uniform vec3 uRoot,uTip,uGround;uniform float uDay;
-varying float vT,vTint,vFade;
+varying float vT,vTint,vFade,vGust;
 ${PK_SAT}void main(){
  vec3 c=mix(uRoot,uTip,smoothstep(.0,.65,vT));
- c*=.88+.24*vTint;
+ c*=.8+.4*vTint;c=mix(c,c*vec3(1.16,1.14,.98),vGust*smoothstep(.3,1.0,vT)); /* clump tint, and gust sheen on the bent tips */
  c=mix(uGround,c,smoothstep(.0,.3,vT)*.7+.3);
  c=mix(uGround,c,vFade);
  c*=mix(.85,1.0,clamp(uDay,0.0,1.0));

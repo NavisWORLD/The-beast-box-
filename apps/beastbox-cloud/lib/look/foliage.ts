@@ -71,8 +71,8 @@ export function buildFoliage(THREE:typeof import('three'),o:{
  });
  const grass=new THREE.InstancedMesh(grassGeo,grassMat,n.grass);
  grass.name='genesis-grass';grass.frustumCulled=false;
- const treeGeo=new THREE.ConeGeometry(.28,1.15,5);
- treeGeo.translate(0,.58,0);
+ /* Cory Nov 12: the 5-sided cone read as a boxy pine. Now a round, tiered pine (three soft skirts on a short trunk, 12 sides, lathed), same height and footprint. */
+ const treeGeo=new THREE.LatheGeometry([[0,0],[.045,0],[.045,.16],[.29,.2],[.25,.26],[.13,.46],[.23,.5],[.19,.56],[.09,.76],[.16,.8],[.12,.86],[.03,1.1],[0,1.15]].map(([x,y])=>new THREE.Vector2(x,y)),12);
  const treeMat=new THREE.ShaderMaterial({
   uniforms:{uLean:{value:0},uDay:{value:1}},
   vertexShader:TREE_VERT,fragmentShader:TREE_FRAG,fog:false,

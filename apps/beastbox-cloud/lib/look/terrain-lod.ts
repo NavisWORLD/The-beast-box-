@@ -8,12 +8,14 @@ const PLANS:Record<string,Ring[]>={
   {r0:.5,r1:16,a:96,rad:24},
   {r0:16,r1:48,a:112,rad:28},
   {r0:48,r1:180,a:128,rad:40},
+  {r0:180,r1:420,a:96,rad:18}, /* Cory Nov 12: LOW gets real 3D far hills too (coarse, ~3.5k tris), not water or a flat card at the horizon */
  ],
  MED:[
   {r0:.4,r1:12,a:128,rad:28},
   {r0:12,r1:36,a:144,rad:28},
   {r0:36,r1:90,a:160,rad:32},
   {r0:90,r1:240,a:180,rad:40},
+  {r0:240,r1:480,a:128,rad:20}, /* Cory Nov 12: 3D far hills out to the haze on phones */
  ],
  HIGH:[
   {r0:.4,r1:10,a:160,rad:32},

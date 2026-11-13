@@ -100,7 +100,7 @@ test('seeded height is read only and the same seed builds the same hills',async(
  assert.ok(calls>100);
  assert.equal(JSON.stringify(opts),before);
  assert.equal(posHash(a.geometry),posHash(b.geometry));
- assert.equal(a.rings,3);
+ assert.equal(a.rings,4); /* Cory Nov 12: LOW adds one coarse far ring so the horizon is 3D hills, not a flat card */
  assert.ok(plannedTris(ringPlan('MED'))<budgetFor('MED').tris);
  assert.ok(plannedTris(ringPlan('LOW'))<budgetFor('LOW').tris);
  const p=a.geometry.attributes.position,n=a.geometry.attributes.normal;

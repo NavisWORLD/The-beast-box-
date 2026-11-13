@@ -9,7 +9,7 @@ export function autoTier(h={}){
   if(h.softGL)return 'LOW';
   if(h.reducedMotion)return 'LOW';
   const cores=+h.cores||4,mem=+h.memoryGB||4;
-  if(h.phone)return (cores<=4||mem<=3)?'LOW':'MED';
+  if(h.phone)return (cores<=2||(h.memoryGB!=null&&mem<=3))?'LOW':'MED'; /* Cory Nov 12: iOS Safari reports at most 4 cores and no deviceMemory, so a modern iPhone used to land on LOW; MED is the phone floor unless the device really reports a weak CPU or little memory */
   if(cores>=8&&mem>=8)return 'GOD';
   if(cores>=6)return 'HIGH';
   return 'MED';

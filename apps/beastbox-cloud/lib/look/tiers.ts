@@ -36,6 +36,7 @@ export function dropTierIfSlow(tier:string,avgMs:number,userPick:string):Tier{
  const cap=(TIERS as readonly string[]).includes(userPick)?userPick as Tier:tier as Tier;
  const cur=(TIERS as readonly string[]).includes(tier)?tier as Tier:'MED';
  if(!(avgMs>20))return cur;
+ if(cur==='MED'&&!(avgMs>34))return cur; /* Cory Nov 12: MED is the floor for a modern phone; only a really slow run (avg over 34 ms, under ~30 fps) drops MED to LOW */
  const dropped=ORDER[Math.max(0,ORDER.indexOf(cur)-1)];
  return ORDER.indexOf(dropped)>ORDER.indexOf(cap)?cap:dropped;
 }
