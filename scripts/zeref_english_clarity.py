@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """REPORT-ONLY English clarity metric for a Zeref checkpoint (never a gate input).
 
-1. held-out English NLL: mean per-token loss (nats) over the fixed 200 held-out passages in
-   evidence/zeref-english-001/clarity-heldout.jsonl (never trained on), first 128 tokens each,
+1. held-out English NLL: mean per-token loss (nats) over the fixed 64 held-out passages in
+   evidence/zeref-english-001/clarity-heldout.jsonl (never trained on), exactly 64 predicted tokens each,
    plus perplexity = exp(NLL).
 2. real-word share: sampled replies to the fixed 8 chat prompts (rawrphos_chat_eval CHAT_V1, same
    served template and the same Engine decoding as the chat eval: temperature 0, seed 7+i, 40 tokens);
@@ -16,7 +16,7 @@ import json,math,re,sys
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 EV=ROOT/"evidence/zeref-english-001"
-MAX_TOKENS=128
+MAX_TOKENS=64
 WORD=re.compile(r"[A-Za-z]+(?:'[A-Za-z]+)?")
 def word_share(replies,words):
  toks=[w.lower() for r in replies for w in WORD.findall(r)]
@@ -24,16 +24,17 @@ def word_share(replies,words):
  hit=sum(1 for t,b in zip(toks,base) if t in words or b in words)
  return {"words":len(toks),"dictionary_words":hit,"real_word_share":round(hit/len(toks),4) if toks else None}
 def heldout_nll(model,tok,rows):
- """Token-weighted mean NLL (nats) overall and per kind, one forward pass per passage."""
+ """Token-weighted mean NLL (nats), overall and per kind. Every row is cut to exactly MAX_TOKENS
+ predicted tokens (no padding), one batched forward per kind."""
  import torch
  tot={};n={}
  with torch.inference_mode():
-  for r in rows:
-   ids=tok.encode(r["text"],add_bos=True,add_eos=False)[:MAX_TOKENS+1]
-   if len(ids)<8:continue
-   x=torch.tensor([ids[:-1]]);y=torch.tensor([ids[1:]])
-   loss=float(model(x,targets=y)["loss"]);k=r.get("kind","all")
-   tot[k]=tot.get(k,0.)+loss*(len(ids)-1);n[k]=n.get(k,0)+len(ids)-1
+  for k in sorted({r.get("kind","all") for r in rows}):
+   ids=[tok.encode(r["text"],add_bos=True,add_eos=False)[:MAX_TOKENS+1] for r in rows if r.get("kind","all")==k]
+   ids=[i for i in ids if len(i)==MAX_TOKENS+1]
+   if not ids:continue
+   x=torch.tensor([i[:-1] for i in ids]);y=torch.tensor([i[1:] for i in ids])
+   tot[k]=float(model(x,targets=y)["loss"])*y.numel();n[k]=y.numel()
  N=sum(n.values())
  return sum(tot.values())/N,N,{k:round(tot[k]/n[k],4) for k in sorted(n)}
 def score(ckpt):
@@ -53,7 +54,7 @@ def score(ckpt):
   **word_share([r["reply"] for r in reps],words),"replies":reps}
 def main(out,*pairs):
  res={"schema":"zeref-english-clarity-v1","report_only":True,"gate_input":False,
-  "heldout":"evidence/zeref-english-001/clarity-heldout.jsonl (200 passages, first %d tokens)"%MAX_TOKENS,
+  "heldout":"evidence/zeref-english-001/clarity-heldout.jsonl (64 passages, first %d tokens)"%MAX_TOKENS,
   "dictionary":"evidence/zeref-english-001/wordlist.txt (proxy)","decoding":"chat-eval Engine, temperature 0, seed 7+i, 40 tokens, CHAT_V1 prompts",
   "models":{}}
  for p in pairs:

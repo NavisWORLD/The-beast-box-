@@ -24,7 +24,7 @@ class Manifest(unittest.TestCase):
   d=self.m["data_branch"];self.assertRegex(d["commit"],r"^[0-9a-f]{40}$")
   self.assertEqual(sha((EV/"wordlist.txt").read_bytes()),self.m["files"]["wordlist.txt"]["sha256"])
   rows=[json.loads(l) for l in (EV/"clarity-heldout.jsonl").read_text().splitlines()]
-  self.assertEqual(len(rows),200);self.assertTrue(all(r["label"]==LABEL for r in rows))
+  self.assertEqual(len(rows),64);self.assertTrue(all(r["label"]==LABEL for r in rows))
 class Screen(unittest.TestCase):
  def test_pii_and_toxicity(self):
   self.assertEqual(screen("Write to me at someone@example.com please, it is a nice day today."),"pii_email")

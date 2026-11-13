@@ -1,8 +1,9 @@
 {
  "clarity_heldout": {
   "file": "evidence/zeref-english-001/clarity-heldout.jsonl",
-  "rows": 200,
-  "rule": "first 100 book + 100 dialogue held-out rows by row_sha256 order"
+  "rows": 64,
+  "rule": "held-out rows with >=65 tokens (RAWRPHOS tokenizer), first 32 book + 32 dialogue by row_sha256 order; sized so two models score in minutes on the free runner",
+  "tokens_per_row": 64
  },
  "data_branch": {
   "branch": "zeref-english-corpus",

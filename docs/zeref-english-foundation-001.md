@@ -25,7 +25,7 @@ served shape, Dolly) + 2 pretrain rows, so about one English passage per batch. 
 flags and the 12D work are untouched. One-line revert: `ZEREF_ENGLISH_SHARE: '0'`.
 
 ## How clarity is reported
-`scripts/zeref_english_clarity.py`, REPORT-ONLY, after publication: held-out English NLL and perplexity on 200 fixed
+`scripts/zeref_english_clarity.py`, REPORT-ONLY, after publication: held-out English NLL and perplexity on 64 fixed (64 tokens each)
 passages, plus the real-word share of replies to the 8 fixed chat prompts (proxy dictionary `wordlist.txt`).
 
 ## Honest limits
