@@ -11,6 +11,8 @@ import {inBlock as gjInBlock,islandGround,GJ as GJ_ALL} from '../lib/geyser/geys
 const GJ_V=GJ_ALL.volcano,GJ_G=GJ_ALL.geyser;
 import {addHeaven,HEAVEN} from '../lib/worlds/heaven';
 import {oneSunAt} from '../lib/universe/one-sun.mjs';
+import {addParkPocketSky,pocketLightColors} from '../lib/look/park-pocket';
+import {scaleMix} from './pocket-god-view';
 import {browserLightOn,paintKeyAndSky} from '@/public/universe/one-universe-light.mjs';
 /** ONE SUN (SEEDED): the pocket's far sun sits where the living world's one sun is, not at a second seeded spot. */
 const pocketSunDir=():[number,number,number]=>{const d=oneSunAt(Date.now()/1000).dir;return [d[0],Math.max(.08,d[1]),d[2]];};
@@ -312,18 +314,18 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     // Living Cosmos polish: filmic tone mapping for deeper, less flat contrast.
     renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=HEAVEN.exposure;
     const scene=new THREE.Scene();
-    scene.background=new THREE.Color(0x05040f);
-    scene.fog=new THREE.FogExp2(0x0d0a26,.017);
+    scene.background=new THREE.Color(0x3bcbfd);// Park: day sky behind everything (the Park dome below paints the gradient, clouds and the one sun)
+    scene.fog=new THREE.FogExp2(0x90d4e8,.017);
     const camera=new THREE.PerspectiveCamera(46,1,.1,30000);
-    const hemi=new THREE.HemisphereLight(0x94d9ff,0x20113b,1.8);scene.add(hemi);
+    const hemi=new THREE.HemisphereLight(0x7ec8e8,0x4c9661,1.8);scene.add(hemi);
     const moonlight=new THREE.PointLight(0xa8eaff,24,12);
     moonlight.position.set(0,4,1);scene.add(moonlight);
-    const glow=new THREE.PointLight(0xba82f4,13,11);glow.position.set(-2,2,-3);scene.add(glow);
+    const glow=new THREE.PointLight(0xffe7a8,9,11);glow.position.set(-2,2,-3);scene.add(glow);
     const heaven=addHeaven(THREE,scene,{low,rand:randomFor(key+':heaven'),far:soft?undefined:{dir:pocketSunDir(),dist:70}});// the user's heaven: warm divine light, endless depth, serene flow
     // Lost COSMOS look: dark cosmic sand floor instead of blue stone.
-    const stone=new THREE.MeshStandardMaterial({color:0x1c1530,emissive:0x0a0618,roughness:1,metalness:.02});
-    const floraMat=new THREE.MeshStandardMaterial({color:0x6fe7ff,emissive:0x2aa6d6,emissiveIntensity:.9,metalness:.3,roughness:.18,transparent:true,opacity:.9});
-    const crystalMat=new THREE.MeshStandardMaterial({color:0xc6a2ff,emissive:0x7a4fe0,emissiveIntensity:.95,metalness:.3,roughness:.18,transparent:true,opacity:.92});
+    const stone=new THREE.MeshStandardMaterial({color:0x4c9661,emissive:0x10301c,roughness:1,metalness:.02});// Park: meadow floor
+    const floraMat=new THREE.MeshStandardMaterial({color:0x9ff0d0,emissive:0x2f9a7a,emissiveIntensity:.35,metalness:.15,roughness:.3,transparent:true,opacity:.92});// Park re-grade: mint glass, softer glow
+    const crystalMat=new THREE.MeshStandardMaterial({color:0xcdeeff,emissive:0x4dd9fc,emissiveIntensity:.3,metalness:.15,roughness:.25,transparent:true,opacity:.92});// Park re-grade: pale sky-blue crystal
     const ground=new THREE.Mesh(new THREE.BoxGeometry(9.1,.22,9.1),stone);
     ground.position.y=-.17;scene.add(ground);
     // Feet on the world: a real downward raycast against the habitat floor (cached on a coarse grid; the floor is static).
@@ -335,7 +337,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     // Bigger universe: the same grid continues far out (same colours, even fainter) on a wide dark floor.
     const farGrid=new THREE.GridHelper(UNIVERSE_R*2.2,low?40:72,0x4983a4,0x284c74);farGrid.position.y=-.06;
     (farGrid.material as import('three').Material).transparent=true;(farGrid.material as import('three').Material).opacity=.05;scene.add(farGrid);
-    const farFloor=new THREE.Mesh(new THREE.CircleGeometry(UNIVERSE_R*1.1,low?48:96),new THREE.MeshBasicMaterial({color:0x0b0820,transparent:true,opacity:.92,depthWrite:false}));farFloor.rotation.x=-Math.PI/2;farFloor.position.y=-.075;farFloor.renderOrder=-1;scene.add(farFloor);
+    const farFloor=new THREE.Mesh(new THREE.CircleGeometry(UNIVERSE_R*1.1,low?48:96),new THREE.MeshBasicMaterial({color:0x3e7d52,transparent:true,opacity:.95,depthWrite:false}));farFloor.rotation.x=-Math.PI/2;farFloor.position.y=-.075;farFloor.renderOrder=-1;scene.add(farFloor);
     // Faded, not deleted: the grid now only whispers under the sand.
     (grid.material as import('three').Material).transparent=true;(grid.material as import('three').Material).opacity=.07;
     // Dimensional pocket: finite cubic world occupying only the circle.
@@ -343,6 +345,7 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
       new THREE.EdgesGeometry(new THREE.BoxGeometry(9.2,5.2,9.2)),
       new THREE.LineBasicMaterial({color:0x8f7ad8,transparent:true,opacity:.06}));
     bounds.position.y=2.45;scene.add(bounds);
+    grid.visible=false;farGrid.visible=false;bounds.visible=false;// Park: no wire grid or box edges over the meadow
     const seedRandom=randomFor(key),flora:import('three').Object3D[]=[];
     for(let i=0;i<(low?17:34);i++){
      const x=(seedRandom()-.5)*7.8,z=(seedRandom()-.5)*7.8;
@@ -375,12 +378,15 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
     const starMat=new THREE.PointsMaterial({color:0xb2dfff,size:.042,transparent:true,opacity:.75});
     flowStars(starMat,flowU);flowGrid(grid.material as import('three').Material,flowU);flowGrid(farGrid.material as import('three').Material,flowU);
     scene.add(new THREE.Points(starsGeom,starMat));
+    // Park day sky: gradient dome, seeded painted clouds and a sun disc on the ONE sun (one-sun.mjs, same clock as the living world).
+    if(lcForced)(window as any).__pocketScene=scene;// capture hook only with ?livingcore=1 (scene review)
+    const parkSky=addParkPocketSky(THREE,scene,{seed:String(key||'pocket'),low,radius:60,sunDir:()=>oneSunAt(Date.now()/1000).dir});
     // Living Cosmos depth polish (visual only): far star shell for parallax,
     // a soft portal rim at the pocket floor, and a nebula backdrop.
     const farGeom=new THREE.BufferGeometry(),far:number[]=[];
     for(let i=0;i<(low?70:180);i++){const t=seedRandom()*Math.PI*2,u=seedRandom()*.9+.05,r=26;far.push(Math.cos(t)*Math.sin(u*Math.PI)*r,Math.cos(u*Math.PI)*r*.6+6,Math.sin(t)*Math.sin(u*Math.PI)*r);}
     farGeom.setAttribute('position',new THREE.Float32BufferAttribute(far,3));
-    scene.add(new THREE.Points(farGeom,new THREE.PointsMaterial({color:0xe6d9ff,size:.16,transparent:true,opacity:.55,fog:false,depthWrite:false})));
+    const farStarMat=new THREE.PointsMaterial({color:0xe6d9ff,size:.16,transparent:true,opacity:.55,fog:false,depthWrite:false});scene.add(new THREE.Points(farGeom,farStarMat)); /* Park: shown only at night or zoomed out, faded with the grade below */
     const rim=new THREE.Mesh(new THREE.RingGeometry(4.25,4.75,low?48:96),new THREE.MeshBasicMaterial({color:0x7fe6ff,transparent:true,opacity:.22,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide}));
     rim.rotation.x=-Math.PI/2;rim.position.y=-.04;scene.add(rim);
     // Nebula shader adapted from Cory's "Genesis Engine: The Definitive Core" (createNebula: fbm noise,
@@ -398,12 +404,12 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
       'void main(){vec3 p=vP*noiseScale+vec3(time*.015,0.0,time*.01);float f=fbm(p);float g=fbm(p*2.3+f);float m=smoothstep(.38,.9,f*.7+g*.5)*density;'+
       'vec3 c=mix(baseColor,altColor,smoothstep(.3,.8,g));gl_FragColor=vec4(c*m,m*.8);}'});
     const nebula=new THREE.Mesh(new THREE.SphereGeometry(30,low?24:40,low?12:24),nebulaMat);
-    scene.add(nebula);
+    scene.add(nebula);nebula.visible=false;// Park: the day sky replaces the violet nebula shell
     // Cosmic dust (Lost COSMOS particles): additive motes drifting up through the pocket.
     const dustN=low?60:220,dustGeom=new THREE.BufferGeometry(),dust=new Float32Array(dustN*3);
     for(let i=0;i<dustN;i++){dust[i*3]=(seedRandom()-.5)*8.6;dust[i*3+1]=seedRandom()*4.8;dust[i*3+2]=(seedRandom()-.5)*8.6;}
     dustGeom.setAttribute('position',new THREE.BufferAttribute(dust,3));
-    const dustPts=new THREE.Points(dustGeom,new THREE.PointsMaterial({color:0xd7b8ff,size:.07,transparent:true,opacity:.7,blending:THREE.AdditiveBlending,depthWrite:false}));
+    const dustPts=new THREE.Points(dustGeom,new THREE.PointsMaterial({color:0xffe7a8,size:.06,transparent:true,opacity:.45,blending:THREE.AdditiveBlending,depthWrite:false}));
     scene.add(dustPts);
     // Shimmering fluid pool: a small cosmic spring off to one side of the creature.
     const poolMat=soft?new THREE.MeshBasicMaterial({color:0x3a6ea5,transparent:true,opacity:.45,depthWrite:false}):new THREE.ShaderMaterial({transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,uniforms:{time:{value:0}},
@@ -678,6 +684,9 @@ export default function CagePocketDimension({seed,qbeastId,stage,reduced,behavio
      neonU.uNeon.value=neonOn.current?1:0;neonU.uNeonDist.value=neonDistGain(camera.position.distanceTo(zHolder.position));// farther = brighter wire network
      gcam.step(reduced?0:dt);
      camera.lookAt(f);
+     {const pg=parkSky.update(camera.position);const pc=pocketLightColors(pg);const away=scaleMix(v.zoom,40,160);parkSky.group.visible=away<.98;
+      (scene.fog as import('three').FogExp2).color.setRGB(pc.fog[0],pc.fog[1],pc.fog[2]);(scene.background as import('three').Color).setRGB(pc.fog[0]*(1-away),pc.fog[1]*(1-away),pc.fog[2]*(1-away)+.02*away);
+      hemi.color.setRGB(pc.skyFill[0],pc.skyFill[1],pc.skyFill[2]);hemi.groundColor.setRGB(pc.groundFill[0],pc.groundFill[1],pc.groundFill[2]);starMat.opacity=.75*Math.max(1-pg.day,away);farStarMat.opacity=.55*Math.max(1-pg.day,away);}// Park grade on the one sun; zooming out to the god view fades the day sky into space
      try{gcam.render(camera.position.distanceTo(zHolder.position));}catch{setReady(false);setFailed(true);return;}
      if(soft){const cost=performance.now()-now;if(cost>32)quietUntil=performance.now()+Math.min(900,Math.max(500,cost));}
      if(!rendered){rendered=true;setReady(true);}

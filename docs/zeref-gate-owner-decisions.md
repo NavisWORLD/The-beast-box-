@@ -80,6 +80,14 @@ This is recorded with the door PR. The door serves the bridge's own Zeref reply 
 - **Revert in one line:** `BEASTBOX_SELF_LEARN=off`. That is the existing behaviour, where guest chats are `training_eligible:false` and nothing is stored as a candidate.
 - **Switch-on needs Cory's separate yes.** The flag ships off.
 
+## 2026-11-12 18:56 CT (00:56 UTC): 12D into the mouth, training side ON
+
+- **Who:** Cory (NavisWORLD), the owner.
+- **Words:** "Yes, wire his 12D state into his mouth for real" (4:03 PM CT), then "Just continue" (6:23 PM CT).
+- **Change:** `ZEREF_12D_MOUTH: '1'` in the training step of `.github/workflows/zeref-continuous-learning-006.yml`. Serving is unchanged. Gate scoring stays unconditioned. A round still promotes only through the fair gate under the loose rule from the 14:37 entry.
+- **Why now, without the probe threshold:** the report-only H1 probe v2 on the pin (step 40304, sha256 `ee17330f…`) showed a closed tensor path before training (tensor KL 0.0) and still ~0 after a 24-step CPU micro-train (tensor-with-text 1e-06 nats). 24 steps is too short to test the change, so Cory chose to let the regular rounds train it. The probe re-runs on the next round's candidate.
+- **One-line revert:** set `ZEREF_12D_MOUTH: '0'`.
+
 ## 2026-11-12 19:20 CT (01:20 UTC): owner chat can carry his 12D as a tensor (flag OFF); honest `condition54_used`
 
 - **Who / words:** Cory, "Yes, wire his 12D state into his mouth for real" (4:03 PM CT), "Just continue" (6:23 PM CT).

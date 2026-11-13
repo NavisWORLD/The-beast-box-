@@ -5,6 +5,8 @@
 html[data-look=park]{--bg:#020c45;--surface:#0a1a5c;--surface-2:#10226a;--line:rgba(160,220,255,.18)}
 html[data-look=park] body{background:linear-gradient(180deg,#001B6D 0,#000E57 38%,#000444 100%) fixed,var(--bg)}
 html[data-look=park] .landing{background:linear-gradient(180deg,#001B6D 0,#000E57 45%,#000444 100%)}
+/* The home window itself: Park sky and meadow while the world loads (no dark cosmic flash). */
+html[data-look=park] .beast-landing-art{background:linear-gradient(180deg,#1AA6FF 0,#3BCBFD 55%,#79D389 80%,#4C9661 100%)}
 
 /* Day sky behind the header and hero: one full-bleed layer with painterly cloud puffs, then rolling meadow hills. */
 html[data-look=park] .hero{isolation:isolate}

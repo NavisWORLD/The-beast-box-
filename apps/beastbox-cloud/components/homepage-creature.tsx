@@ -43,6 +43,8 @@ export default function HomepageCreature(){
  // Panels start collapsed on phones so nothing covers the creature; always reopenable.
  const [cardOpen,setCardOpen]=useState(true);
  useEffect(()=>{if(window.matchMedia('(max-width:560px)').matches)setCardOpen(false);},[]);
+ /* Nov 12 one world: when the living world fills the home window it has its own bottom-left beast panel, so this card starts minimized (✦ Hi!) instead of covering it; one tap reopens it. */
+ useEffect(()=>{let n=0;const id=window.setInterval(()=>{n++;if(document.querySelector('.beast-landing-art [data-living-world]')){setCardOpen(false);window.clearInterval(id);}else if(n>20)window.clearInterval(id);},500);return ()=>window.clearInterval(id);},[]);
  const turn=spin?undefined:(angle??0);
  return <div className="cosmos-home-hero" aria-label="Interactive cosmic companion observatory" data-home-view={showZeref?'zeref':showDimensional?'zeref-3d':genome?'my-beast':'3d-model'}>
   {showDimensional?<ZerefSprite3D embed greet={greet} autoRotate={angle===null} turntable={spin} turntableAngle={angle}/>:showZeref?<div className={'cosmos-zeref-turn'+(spin?' is-spinning':'')} data-zeref-turn={spin?'spin':String(turn)} style={spin?undefined:{transform:'rotateY('+turn+'deg)'}}><ZerefMoonwraith greet={greet} showCaption={false} onMood={mood=>{setLine(mood.line);setZMood(mood.mood);}}/></div>:
