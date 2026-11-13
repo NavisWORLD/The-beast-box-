@@ -10,15 +10,15 @@
   "source_path": "/spark/ibm-moonwraith-cassette-kit-20261010.json",
   "source_class": "RECORDED_IBM_HARDWARE"
  },
- "tick": 838,
- "xp": 11843,
+ "tick": 839,
+ "xp": 11853,
  "stage": 5,
  "stage_name": "Crescent Sovereign",
  "signals": {
-  "energy": 35,
-  "signal": 31,
+  "energy": 27,
+  "signal": 30,
   "memory": 100,
-  "resonance": 93
+  "resonance": 96
  },
  "bond": 100,
  "care_total": 0,
@@ -31,8 +31,8 @@
   "Violet Shard": 630,
   "Selene Pool": 73
  },
- "last_tick_at": "2026-11-13T18:15:17.830Z",
- "last_entry_hash": "9b0bbe453802fddcb82c9b510f547bed8de45fc2f9a00dfa5459d732d314008c",
+ "last_tick_at": "2026-11-13T18:55:46.762Z",
+ "last_entry_hash": "8db2e9f6f3fc5511bdda9973de2e62ce634bf392d7c84784324584bc19b15286",
  "universe_growth": 605,
  "combos_total": 430,
  "next_stage": null,
@@ -40,7 +40,7 @@
   "cells_visited": 37,
   "cells_total": 40,
   "known_rifts": 3,
-  "moves_succeeded": 12211,
+  "moves_succeeded": 12229,
   "moves_blocked": 690,
   "blocked_rate": 0.053,
   "favorite_spot": "Rift Gate",
@@ -51,7 +51,7 @@
    "rest": 0.059,
    "play": 1
   },
-  "decisions": 7399,
+  "decisions": 7406,
   "label": "learned behaviour from its own experience, not consciousness"
  },
  "labels": {
@@ -67,6 +67,75 @@
   "source": "recorded hardware counts (birth seed, never re-run)"
  },
  "recent": [
+  {
+   "schema": "zeref-diary/v1",
+   "beast_id": "bb-7f9c2a03",
+   "tick": 839,
+   "at": "2026-11-13T18:55:46.762Z",
+   "hour_local": 12,
+   "timezone": "America/Chicago",
+   "signals": {
+    "energy": 27,
+    "signal": 30,
+    "memory": 100,
+    "resonance": 96
+   },
+   "bond": 100,
+   "mood": "sleepy",
+   "place": null,
+   "places_visited": [],
+   "discovered_combos": [],
+   "new_combo_count": 0,
+   "combos_total": 430,
+   "xp_gain": 10,
+   "xp": 11853,
+   "stage": 5,
+   "stage_name": "Crescent Sovereign",
+   "grew": false,
+   "care": 0,
+   "birth_spark": {
+    "provider": "IBM Quantum",
+    "backend": "ibm_marrakesh",
+    "job_id": "db4te7slf4us73c3888g",
+    "source": "recorded hardware counts (birth seed, never re-run)"
+   },
+   "growth_source": {
+    "kind": "deterministic-fallback",
+    "simulated": false,
+    "provider": "azure-quantum/rigetti",
+    "target": "rigetti.sim.qvm",
+    "job_id": null,
+    "error": "ResourceExistsError: (SubscriptionDisabled) This Azure subscription is disabled and marked as read-only. Please re-enable the subscription to use Azure Quantum.\nCode: SubscriptionDisabled\nMessage: This Azure subscription is disabled and marked as read-only. Ple"
+   },
+   "learning": {
+    "new_cells": 0,
+    "moves_succeeded": 18,
+    "moves_blocked": 0,
+    "goals": {
+     "explore": 4,
+     "play": 1,
+     "visit": 2
+    },
+    "cells_visited": 37,
+    "cells_total": 40,
+    "known_rifts": 3,
+    "blocked_rate": 0.053,
+    "favorite_spot": "Rift Gate",
+    "prefs": {
+     "explore": 0.05,
+     "visit": 1,
+     "rest": 0.059,
+     "play": 1
+    },
+    "label": "learned behaviour from its own experience, not consciousness"
+   },
+   "thought": {
+    "text": "Worder (bornt \"HL-CORDED guide\".",
+    "by": "rawrphos-native:step-41264 (raw model output, unedited)"
+   },
+   "prev_hash": "9b0bbe453802fddcb82c9b510f547bed8de45fc2f9a00dfa5459d732d314008c",
+   "hash": "8db2e9f6f3fc5511bdda9973de2e62ce634bf392d7c84784324584bc19b15286"
+  },
   {
    "schema": "zeref-diary/v1",
    "beast_id": "bb-7f9c2a03",
@@ -865,81 +934,8 @@
    },
    "prev_hash": "6d68a4eb3147c76a556c7cb84bf406a6566aa7a2f4f2f6203a44f02301bba3f2",
    "hash": "fee6c4cbf0cf934c7366580093c195128cef61930244e00a464edcd63f06c750"
-  },
-  {
-   "schema": "zeref-diary/v1",
-   "beast_id": "bb-7f9c2a03",
-   "tick": 827,
-   "at": "2026-11-13T11:14:34.028Z",
-   "hour_local": 5,
-   "timezone": "America/Chicago",
-   "signals": {
-    "energy": 100,
-    "signal": 33,
-    "memory": 100,
-    "resonance": 87
-   },
-   "bond": 100,
-   "mood": "content",
-   "place": "Echo Prism",
-   "places_visited": [
-    "Echo Prism",
-    "Rift Gate",
-    "Tidewell"
-   ],
-   "discovered_combos": [],
-   "new_combo_count": 0,
-   "combos_total": 430,
-   "xp_gain": 10,
-   "xp": 11733,
-   "stage": 5,
-   "stage_name": "Crescent Sovereign",
-   "grew": false,
-   "care": 0,
-   "birth_spark": {
-    "provider": "IBM Quantum",
-    "backend": "ibm_marrakesh",
-    "job_id": "db4te7slf4us73c3888g",
-    "source": "recorded hardware counts (birth seed, never re-run)"
-   },
-   "growth_source": {
-    "kind": "deterministic-fallback",
-    "simulated": false,
-    "provider": "azure-quantum/rigetti",
-    "target": "rigetti.sim.qvm",
-    "job_id": null,
-    "error": "ResourceExistsError: (SubscriptionDisabled) This Azure subscription is disabled and marked as read-only. Please re-enable the subscription to use Azure Quantum.\nCode: SubscriptionDisabled\nMessage: This Azure subscription is disabled and marked as read-only. Ple"
-   },
-   "learning": {
-    "new_cells": 0,
-    "moves_succeeded": 25,
-    "moves_blocked": 0,
-    "goals": {
-     "explore": 1,
-     "play": 4,
-     "visit": 4
-    },
-    "cells_visited": 37,
-    "cells_total": 40,
-    "known_rifts": 3,
-    "blocked_rate": 0.054,
-    "favorite_spot": "Echo Prism",
-    "prefs": {
-     "explore": 0.05,
-     "visit": 1,
-     "rest": 0.05,
-     "play": 1
-    },
-    "label": "learned behaviour from its own experience, not consciousness"
-   },
-   "thought": {
-    "text": "The East of Isborn March 1, 1930 is written in the Canadian from Italy.",
-    "by": "rawrphos-native:step-40944 (raw model output, unedited)"
-   },
-   "prev_hash": "500402ef76b3e73fd6fa8cec5fd69d9ea11b8bbd4343eb825beb3bf494880d79",
-   "hash": "6d68a4eb3147c76a556c7cb84bf406a6566aa7a2f4f2f6203a44f02301bba3f2"
   }
  ],
- "generated_at": "2026-11-13T18:15:17.830Z",
+ "generated_at": "2026-11-13T18:55:46.762Z",
  "thought_source_note": "rawrphos-ok"
 }
