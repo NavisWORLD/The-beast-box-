@@ -6,6 +6,7 @@ models, names or creature skins from these projects are used; Cory's creatures a
 ## pallet-town-3d (MIT)
 
 Used in: `lib/look/third-party/texture-lab.ts` (seeded simplex, torus-tiled fbm, wrap-around Sobel normal bake).
+Also: the day hemisphere ground colour (green-meadow bounce) in `components/living-world.tsx`, taken from its Atmosphere rig idea; applied to our existing one-sun hemisphere, no new light.
 Our changes: seeded from our sha256 stream instead of an RNG, returns raw bytes, tier-scaled bake size.
 
 MIT License
