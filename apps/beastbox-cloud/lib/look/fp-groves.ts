@@ -27,7 +27,7 @@ export function addFpGroves(THREE:T,parent:import('three').Object3D,o:Opts){
  const shadowGeo=new THREE.PlaneGeometry(1,1).rotateX(-Math.PI/2);
  const haze=new THREE.Color().setRGB(...((o.haze||[.72,.84,.95]) as [number,number,number]));
  const centres:{x:number;z:number;s:number}[]=[];
- if(o.frameBearing!=null){for(const side of [-1,1])for(let k=0;k<(B.far?3:2);k++){const a=o.frameBearing+side*(.42+r()*.4+k*.12);const d=6.5+k*4+r()*4;const x=Math.cos(a)*d,z=Math.sin(a)*d;if(o.valley(x,z)<.5)continue;centres.push({x,z,s:1.6+r()*1.8});}} /* framing groves on the hills either side of the valley */
+ if(o.frameBearing!=null){for(const side of [-1,1])for(let k=0;k<(B.far?4:3);k++){const a=o.frameBearing+side*(k===3?.26+r()*.08:.42+r()*.4+k*.12);const d=k===3?10.5+r()*5:6.5+k*4+r()*4; /* k 3: a grove just inside a phone's narrow portrait view */const x=Math.cos(a)*d,z=Math.sin(a)*d;if(o.valley(x,z)<.22)continue;centres.push({x,z,s:1.6+r()*1.8});}} /* framing groves on the hills either side of the valley */
  for(let i=0;i<B.groves*6&&centres.length<B.groves;i++){const a=r()*Math.PI*2;const near=centres.length<Math.ceil(B.groves*.35);const d=near?6+r()*10:B.far?14+Math.pow(r(),1.3)*110:12+r()*20;const x=Math.cos(a)*d,z=Math.sin(a)*d;
   if(o.inBay(x,z)||o.valley(x,z)<.6)continue;centres.push({x,z,s:(near?1.4:2.6)+r()*(near?1.6:5)});}
  const placed:{x:number;z:number}[]=[];
@@ -39,8 +39,8 @@ export function addFpGroves(THREE:T,parent:import('three').Object3D,o:Opts){
    const sp=new THREE.Sprite(m);sp.center.set(.5,.02);sp.scale.set(hU*f.rect[2]/f.rect[3],hU,1);const y=o.heightAt(x,z);sp.position.set(x,y-hU*.01,z);g.add(sp);placed.push({x,z});
    if(shadow&&shadowMat&&d<40){const s=new THREE.Mesh(shadowGeo,shadowMat);const w=hU*f.rect[2]/f.rect[3]*.75;s.scale.set(w*1.5,1,w);s.position.set(x+w*.25,y+.01,z);s.renderOrder=-5;g.add(s);}
    made++;}return made;};
- const nT=put(trees,B.trees,1,5.5,.55,[.7,1.45],true);
- const nB=put(bushes,B.bushes,1.25,4.5,.4,[.7,1.4],true);
+ const nT=put(trees,B.trees,1,5.5,.25,[.7,1.45],true);
+ const nB=put(bushes,B.bushes,1.25,4.5,.2,[.7,1.4],true);
  const nF=put(flowers,B.flowers,1.6,4.0,.2,[.6,1.3],false);
  (globalThis as any).__lwFpGroves={label:GROVE_LABEL,tier:o.tier,groves:centres.length,trees:nT,bushes:nB,flowers:nF};
  return {group:g,count:()=>({trees:nT,bushes:nB,flowers:nF}),dispose(){parent.remove(g);for(const t of tex.values())t.dispose();shadowTex?.dispose();shadowGeo.dispose();}};
