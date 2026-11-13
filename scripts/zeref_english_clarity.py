@@ -8,6 +8,7 @@
    served template and the same Engine decoding as the chat eval: temperature 0, seed 7+i, 40 tokens);
    share of alphabetic words found in the proxy dictionary evidence/zeref-english-001/wordlist.txt
    (words from the public-domain books and human dialogue). A proxy, not a human rating.
+   Reported twice: greedy (as above) and sampled at temperature 0.8, seed 67+i (like the live door).
 
 Usage: zeref_english_clarity.py OUT.json LABEL=CKPT_DIR [LABEL=CKPT_DIR ...]
 """
@@ -17,6 +18,7 @@ from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 EV=ROOT/"evidence/zeref-english-001"
 MAX_TOKENS=64
+SAMPLED_T=0.8
 WORD=re.compile(r"[A-Za-z]+(?:'[A-Za-z]+)?")
 def word_share(replies,words):
  toks=[w.lower() for r in replies for w in WORD.findall(r)]
@@ -49,19 +51,22 @@ def score(ckpt):
  meta=c["metadata"];del c,m
  e=Engine(ckpt,max_new_tokens=40,threads=2)
  reps=[{"prompt":p,"reply":e.complete(fmt(p),max_tokens=40,temperature=0,seed=7+i,timeout=60)} for i,p in enumerate(CHAT_V1)]
- return {"checkpoint_sha256":meta.get("checkpoint_sha256"),"training_steps":meta.get("training_steps"),
+ # Sampled like the live door (Engine default temperature 0.8), fixed seeds so pin and candidate see the same draws.
+ samp=[{"prompt":p,"reply":e.complete(fmt(p),max_tokens=40,temperature=SAMPLED_T,seed=67+i,timeout=60)} for i,p in enumerate(CHAT_V1)]
+ ws=word_share([r["reply"] for r in samp],words)
+ return {"real_word_share_sampled":ws["real_word_share"],"sampled_words":ws["words"],"sampled_replies":samp,"checkpoint_sha256":meta.get("checkpoint_sha256"),"training_steps":meta.get("training_steps"),
   "heldout_english_nll":round(nll,4),"heldout_english_ppl":round(math.exp(nll),2),"heldout_tokens":ntok,"heldout_nll_by_kind":by,
   **word_share([r["reply"] for r in reps],words),"replies":reps}
 def main(out,*pairs):
  res={"schema":"zeref-english-clarity-v1","report_only":True,"gate_input":False,
   "heldout":"evidence/zeref-english-001/clarity-heldout.jsonl (64 passages, first %d tokens)"%MAX_TOKENS,
-  "dictionary":"evidence/zeref-english-001/wordlist.txt (proxy)","decoding":"chat-eval Engine, temperature 0, seed 7+i, 40 tokens, CHAT_V1 prompts",
+  "dictionary":"evidence/zeref-english-001/wordlist.txt (proxy)","decoding":"chat-eval Engine, CHAT_V1 prompts, 40 tokens: greedy (temperature 0, seed 7+i) and sampled (temperature 0.8, seed 67+i)",
   "models":{}}
  for p in pairs:
   label,path=p.split("=",1)
   try:res["models"][label]=score(path)
   except Exception as exc:res["models"][label]={"error":type(exc).__name__+": "+str(exc)[:200]}
  Path(out).write_text(json.dumps(res,indent=1,sort_keys=True)+"\n")
- print("ZEREF_ENGLISH_CLARITY="+json.dumps({k:{x:v.get(x) for x in("training_steps","heldout_english_nll","heldout_english_ppl","real_word_share","error")} for k,v in res["models"].items()}),flush=True)
+ print("ZEREF_ENGLISH_CLARITY="+json.dumps({k:{x:v.get(x) for x in("training_steps","heldout_english_nll","heldout_english_ppl","real_word_share","real_word_share_sampled","error")} for k,v in res["models"].items()}),flush=True)
  return res
 if __name__=="__main__":main(*sys.argv[1:])
