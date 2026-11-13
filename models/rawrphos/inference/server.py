@@ -27,7 +27,7 @@ def create_app(checkpoint,api_key,max_new_tokens=256,threads=4,expected_sha256=N
     def health(): return {'status':'alive'}
     @app.get('/ready')
     def ready(): return {'ready':True,'model_id':'rawrphos-native','checkpoint_sha256':engine.metadata['checkpoint_sha256'],'hebbian':bool(engine.model.config.hebbian),'state_mode':engine.model.config.state_mode,
-                'cond54':bool(engine.model.config.cond54),'condition54_used':c54 is not None}
+                'cond54':bool(engine.model.config.cond54)}
     @app.get('/model/info')
     def info(): return engine.info()
     @app.get('/v1/models')
@@ -77,7 +77,9 @@ def create_app(checkpoint,api_key,max_new_tokens=256,threads=4,expected_sha256=N
             usage['total_tokens']=sum(usage.values())
             return {'id':identifier,'object':'chat.completion' if chat else 'text_completion','created':int(time.time()),
                 'model':'rawrphos-native','choices':[choice],'usage':usage,'checkpoint_sha256':engine.metadata['checkpoint_sha256'],
-                'hebbian':bool(engine.model.config.hebbian),'state_mode':engine.model.config.state_mode}
+                'hebbian':bool(engine.model.config.hebbian),'state_mode':engine.model.config.state_mode,
+                # Honest per-request receipt: True only when this request's condition54 went into the forward pass.
+                'condition54_used':c54 is not None}
         except (ValueError,RuntimeError,TimeoutError,FloatingPointError):
             return JSONResponse({'error':'native inference unavailable; no fallback'},status_code=503)
     @app.post('/v1/condition-probe')
