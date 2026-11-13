@@ -151,7 +151,7 @@ test('Park planet shell: orbit only, Park only, graded twin restored exactly, se
  assert.ok(kids().includes('park-planet-clouds')&&kids().includes('park-planet-limb'));
  assert.equal(pp.apply().drift,a.drift,'same tick, same clouds');
  st.orbit=false;pp.apply();
- assert.equal(planet.material,base,'ground view: restored');
+ assert.equal(planet.material.name,'park:planet','ground view: one world, Park grade stays on');assert.ok(!kids().includes('park-planet-clouds')&&!kids().includes('park-planet-limb'),'ground view: orbit shells hidden');
  st.orbit=true;st.tier='LOW';pp.apply();
  assert.ok(!kids().includes('park-planet-clouds')&&kids().includes('park-planet-limb'),'LOW: limb only');
  st.look='off';pp.apply();
