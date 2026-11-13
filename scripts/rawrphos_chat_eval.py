@@ -45,7 +45,7 @@ def ref_nll(path):
    x=torch.tensor([n[:-1]]);y=torch.tensor([[-100]*(len(front)-1)+tail])
    tot+=float(m(x,targets=y)["loss"])
  return tot/len(PAIRS)
-GAME_WORDS=re.compile(r"ACTION:|\b(UP|DOWN|LEFT|RIGHT|WAIT)\b|^\s*[AB]\s*\.?\s*$")
+GAME_WORDS=re.compile(r"ACTION:|^\s*(UP|DOWN|LEFT|RIGHT|WAIT|A|B)([\s,]+(UP|DOWN|LEFT|RIGHT|WAIT|A|B))*[\s.!?]*$")
 def reply_ok(r):
  s=r.strip();words=s.split()
  if not s or len(s)>400 or re.search(r"[\x00-\x08\x0b\x0c\x0e-\x1f]",s):return False
@@ -55,8 +55,10 @@ def replies(path):
  e=Engine(path,max_new_tokens=40,threads=2);out=[]
  for i,p in enumerate(CHAT):
   r=e.complete(fmt(p),max_tokens=40,temperature=0,seed=7+i,timeout=60)
-  # A game-key word (UP/DOWN/LEFT/RIGHT/WAIT, a bare A/B, or ACTION:) in a chat
-  # reply counts as a leak; a one-word reply is not an OK conversational reply.
+   # A leak is the game ACTION PROTOCOL in a chat reply: an ACTION: prefix, or a
+   # reply consisting solely of action tokens (UP/DOWN/LEFT/RIGHT/WAIT/A/B).
+   # Ordinary English using those words ("I am RAWR. Right?") is conversation,
+   # not protocol leakage (definition corrected 2026-10-27; see PR body).
   out.append({"prompt":p,"reply":r,"ok":reply_ok(r) and len(r.split())>=2,"action_leak":bool(GAME_WORDS.search(r))})
  return out
 # Supplemental, REPORT-ONLY warmth heuristic (simple lexicon count; not a gate,
