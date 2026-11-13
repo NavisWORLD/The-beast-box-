@@ -23,6 +23,7 @@ type Opts={
  phone?:boolean;
  softGL?:boolean;
  heightAt:(x:number,z:number)=>number;
+ /** first-person dirt path down the valley (bearing in the local ground frame, seed for its winding) */ path?:()=>{bearing:number;seed:number}|null;
  reduced?:()=>boolean;
  nowMs?:()=>number;
  readTick?:()=>number;
@@ -108,7 +109,7 @@ export function attachGenesisLook(THREE:typeof import('three'),scene:{add:(o:any
   built=true;
   const shore=shoreSurface(opts.heightAt,opts.seed||'genesis');
   const lod=buildTerrainLod(THREE,{heightAt:opts.heightAt,tier:live,seed:opts.seed||'genesis',waterLevel:shore.coeff});
-  terrain=createTerrainMaterial(THREE,shore.coeff);
+  terrain=createTerrainMaterial(THREE,shore.coeff,opts.path?.()||null);
   const mesh=new THREE.Mesh(lod.geometry,terrain.material);
   mesh.name='genesis-terrain';mesh.frustumCulled=false;mesh.renderOrder=-8;group.add(mesh);
   const wet=buildWater(THREE,{heightAt:opts.heightAt,waterLevel:shore.coeff,surface:shore.at,tier:live,span:WATER_SPAN[live]||220});

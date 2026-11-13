@@ -13,7 +13,7 @@ void main(){
  gl_Position=projectionMatrix*viewMatrix*w;
 }`;
 
-const FRAG=`uniform vec3 uSun,uHaze,uZen;uniform float uDay,uWater,uHazePhase,uMotion;
+const FRAG=`uniform vec3 uSun,uHaze,uZen;uniform float uDay,uWater,uHazePhase,uMotion;uniform vec3 uPath;
 varying float vH,vAo,vNoise,vD;varying vec3 vN,vW,vP;
 ${NOISE}
 ${HAZE_GLSL}
@@ -29,6 +29,7 @@ void main(){
  c=mix(c,forest,smoothstep(.55,1.7,above));
  c=mix(c,rock,smoothstep(32.0,38.0,slope+n*6.0));
  c=mix(c,snow,smoothstep(3.4,4.8,above)*(1.0-smoothstep(28.0,36.0,slope)));
+ if(uPath.z>.5){vec2 fw=vec2(cos(uPath.x),sin(uPath.x)),sd=vec2(-fw.y,fw.x);float f=dot(vP.xz,fw),x=dot(vP.xz,sd);float px=1.6*sin(f*.19+uPath.y*.01)*smoothstep(0.0,4.0,f);float w=.32+.018*f+.08*vn(vP.xz*1.7);float pm=(1.0-smoothstep(w*.55,w,abs(x-px)))*smoothstep(1.2,2.6,f)*(1.0-smoothstep(40.0,60.0,f));vec3 dirt=mix(vec3(.50,.40,.27),vec3(.62,.52,.36),vn(vP.xz*3.1));c=mix(c,dirt,pm*.92);c=mix(c,c*vec3(.92,.9,.78),(1.0-smoothstep(w,w*2.2,abs(x-px)))*smoothstep(1.2,2.6,f)*.6);} /* first person: a winding dirt path down the valley floor toward the bay, with worn edges (same curve as the terrain valley, SEEDED) */
  vec3 bn=abs(normalize(vN));float bs=bn.x+bn.y+bn.z;bn/=bs;
  float rockN=vn(vP.yz*2.4)*bn.x+vn(vP.xz*2.4)*bn.y+vn(vP.xy*2.4)*bn.z;
  c=mix(c,c*mix(.72,1.18,rockN),smoothstep(28.0,42.0,slope));
@@ -49,7 +50,7 @@ void main(){
  gl_FragColor=vec4(c,1.0);
 }`;
 
-export function createTerrainMaterial(THREE:typeof import('three'),waterLevel:number){
+export function createTerrainMaterial(THREE:typeof import('three'),waterLevel:number,path?:{bearing:number;seed:number}|null){
  const uniforms={
   uSun:{value:new THREE.Vector3(0,1,0)},
   uHaze:{value:new THREE.Color(.62,.74,.84)},
@@ -58,6 +59,7 @@ export function createTerrainMaterial(THREE:typeof import('three'),waterLevel:nu
   uWater:{value:waterLevel},
   uHazePhase:{value:0},
   uMotion:{value:1},
+  uPath:{value:new THREE.Vector3(path?.bearing??0,path?.seed??0,path?1:0)},
  };
  const mat=new THREE.ShaderMaterial({uniforms,vertexShader:VERT,fragmentShader:FRAG,fog:false});
  return {material:mat,uniforms};
