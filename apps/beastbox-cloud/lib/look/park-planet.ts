@@ -40,12 +40,33 @@ vec3 pkPlanet(vec3 c){
 }
 `;
 
+/* Realistic-cosmic surface light, inside the planet's own shader so displaced mountains never poke through a shell:
+   soft terminator with a twilight band, cloud shadows (the cloud field sampled toward the sun), sea-only sun glint + fresnel.
+   Needs the page's world-position varying (vWp), height map and eqUV; skipped when the shader does not have them. */
+const COSMIC=`uniform vec3 uPkSun;uniform float uPkDrift,uPkSeed,uPkFx,uPkCloud;
+float pkH3(vec3 p){p=fract(p*.1031+uPkSeed);p+=dot(p,p.yzx+33.33);return fract((p.x+p.y)*p.z);}
+float pkV3(vec3 p){vec3 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);
+ return mix(mix(mix(pkH3(i),pkH3(i+vec3(1,0,0)),f.x),mix(pkH3(i+vec3(0,1,0)),pkH3(i+vec3(1,1,0)),f.x),f.y),
+  mix(mix(pkH3(i+vec3(0,0,1)),pkH3(i+vec3(1,0,1)),f.x),mix(pkH3(i+vec3(0,1,1)),pkH3(i+vec3(1,1,1)),f.x),f.y),f.z);}
+vec3 pkCosmic(vec3 c){
+ vec3 n=normalize(vWp);vec3 L=normalize(uPkSun);vec3 V=normalize(cameraPosition-vWp);float sd=dot(n,L);
+ if(uPkCloud>0.0){vec3 m=normalize(n+L*.035);float a=uPkDrift;vec3 q=vec3(m.x*cos(a)-m.z*sin(a),m.y,m.x*sin(a)+m.z*cos(a));
+  float f=pkV3(q*3.2)*.55+pkV3(q*7.1)*.3+pkV3(q*15.0)*.15;float band=.5+.5*sin(m.y*7.5+f*3.0);
+  c*=1.0-smoothstep(.62,.82,f*.75+band*.35)*.3*uPkCloud*smoothstep(-.05,.3,sd);}
+ float night=1.0-smoothstep(-.22,.1,sd);float twi=exp(-pow((sd+.02)/.1,2.0));
+ c=mix(c,c*vec3(.2,.26,.52),night*.5*uPkFx);c+=vec3(.9,.42,.2)*twi*.07*uPkFx;
+ float sea=(1.0-smoothstep(.40,.43,texture2D(uHeight,eqUV(n)).r))*step(.5,uUseMap);
+ vec3 H=normalize(L+V);float nh=max(dot(n,H),0.0);float lit=smoothstep(-.05,.2,sd);
+ c+=(vec3(1.0,.95,.82)*(pow(nh,220.0)*2.4+pow(nh,28.0)*.12)+vec3(.45,.72,1.0)*pow(1.0-max(dot(n,V),0.0),5.0)*.3)*sea*lit*uPkFx;
+ return c;}
+`;
 /** Insert the Park grade into a planet fragment shader: helpers before main, grade on the final colour. Null if it does not fit. */
 export function gradePlanetShader(src:string){
  const i=src.indexOf('void main(');
  const j=src.lastIndexOf('}');
  if(i<0||j<i)return null;
- return src.slice(0,i)+GRADE+src.slice(i,j)+'gl_FragColor.rgb=pkPlanet(gl_FragColor.rgb);\n'+src.slice(j);
+ const cosmic=/varying vec3 vWp/.test(src)&&/uHeight/.test(src)&&/vec2 eqUV\(/.test(src)&&/uUseMap/.test(src);
+ return src.slice(0,i)+GRADE+(cosmic?COSMIC:'')+src.slice(i,j)+(cosmic?'gl_FragColor.rgb=pkCosmic(gl_FragColor.rgb);\n':'')+'gl_FragColor.rgb=pkPlanet(gl_FragColor.rgb);\n'+src.slice(j);
 }
 
 const SHELL_VERT=`varying vec3 vN;varying vec3 vW;
@@ -70,16 +91,30 @@ void main(){
  float alpha=k*uOpacity*edge*mix(.35,1.0,lit);
  gl_FragColor=vec4(col,alpha);
 ${PK_OUT}}`;
+/* Realistic-cosmic pass (Cory, Nov 12: "Realistic cosmic"). A designed look, not a physical simulation:
+   - limb: Rayleigh-blue in-scatter along the rim of the disc, brighter toward the sun (forward-scatter phase), warm twilight band at the terminator;
+   - halo: an outer back-face shell glowing by how closely each view ray grazes the planet (blue by day, orange at twilight, dark on the night side);
+   - terminator: a soft night side with a twilight band; cloud shadow: the cloud field sampled toward the sun, darkening the ground below;
+   - glint: sun specular + fresnel on the sea only (sea mask from the page's height map), the one sun's direction. */
 const LIMB_FRAG=`uniform vec3 uSun,uDayC,uNightC;
 varying vec3 vN;varying vec3 vW;
 void main(){
- vec3 n=normalize(vN);vec3 V=normalize(cameraPosition-vW);
- float rim=pow(1.0-abs(dot(n,V)),2.6);
- float day=smoothstep(-.3,.35,dot(n,normalize(uSun)));
- vec3 col=mix(uNightC,uDayC,day);
- gl_FragColor=vec4(col*rim*mix(.35,1.25,day),rim*mix(.3,.95,day));
+ vec3 n=normalize(vN);vec3 V=normalize(cameraPosition-vW);vec3 L=normalize(uSun);
+ float rim=pow(1.0-abs(dot(n,V)),2.8);
+ float sd=dot(n,L);float day=smoothstep(-.28,.32,sd);float twi=exp(-pow(sd/.16,2.0));
+ float ph=.75*(1.0+pow(max(0.0,dot(-V,L))*.5+.5,2.0));
+ vec3 col=mix(uNightC*.35,uDayC*ph,day)+vec3(1.0,.46,.2)*twi*.8;
+ gl_FragColor=vec4(col*rim*1.35,rim*clamp(.25+.85*day+.5*twi,0.0,1.0));
 ${PK_OUT}}`;
-
+const HALO_FRAG=`uniform vec3 uSun,uDayC;uniform float uR,uRa;
+varying vec3 vN;varying vec3 vW;
+void main(){
+ vec3 D=normalize(vW-cameraPosition);float t=-dot(cameraPosition,D);vec3 c=cameraPosition+D*t;float d=length(c);
+ float h=clamp((d-uR)/(uRa-uR),0.0,1.0);float g=exp(-h*4.2)*(1.0-h);
+ vec3 n0=normalize(c);vec3 L=normalize(uSun);float sd=dot(n0,L);float day=smoothstep(-.3,.3,sd);float twi=exp(-pow(sd/.18,2.0));
+ vec3 col=uDayC*(.3+day*1.2)+vec3(1.0,.5,.22)*twi*.9;
+ gl_FragColor=vec4(col*g*1.3,g*clamp(.35+.65*day+.5*twi,0.0,1.0));
+${PK_OUT}}`;
 /** sRGB hex to linear: the planet and shells go through the page's linear output path. */
 const lin=(h:string)=>hexRgb(h).map(v=>Math.pow(v,2.2)) as [number,number,number];
 
@@ -98,6 +133,8 @@ type Opts={
 export function attachParkPlanet(THREE:typeof import('three'),opts:Opts){
  let twin:{base:any;mat:any}|null=null;
  let clouds:any=null,limb:any=null,builtTier='';
+ let halo:any=null;
+ const shells=()=>[clouds,limb,halo];
  let on=false;
  const seed=opts.seed||'park';
  const seedF=stream01(seed+':park-planet:clouds');
@@ -106,11 +143,11 @@ export function attachParkPlanet(THREE:typeof import('three'),opts:Opts){
   const p=opts.planet();
   if(p&&twin&&p.material===twin.mat)p.material=twin.base;
  }
- function hideShells(){if(clouds)clouds.visible=false;if(limb)limb.visible=false;}
+ function hideShells(){for(const m of shells())if(m)m.visible=false;}
  function build(tier:string){
   const B=planetBudget(tier);
-  for(const m of [clouds,limb]){if(m){opts.parent?.remove?.(m);m.geometry.dispose();m.material.dispose();}}
-  clouds=null;limb=null;
+  for(const m of shells()){if(m){opts.parent?.remove?.(m);m.geometry.dispose();m.material.dispose();}}
+  clouds=null;limb=null;halo=null;
   if(B.segments>0){
    const cm=new THREE.ShaderMaterial({
     uniforms:{uSun:{value:new THREE.Vector3(0,1,0)},uLit:{value:new THREE.Color().setRGB(...lin(PARK_DAY.cloudLit))},uShade:{value:new THREE.Color().setRGB(...lin(PARK_NIGHT.skyFill)).multiplyScalar(.35)},uDrift:{value:0},uSeed:{value:seedF},uOpacity:{value:.72}},
@@ -129,6 +166,10 @@ export function attachParkPlanet(THREE:typeof import('three'),opts:Opts){
   limb=new THREE.Mesh(new THREE.SphereGeometry(opts.radius*1.06,Math.max(32,B.segments),Math.max(20,Math.round(B.segments*.6))),lm);
   limb.name='park-planet-limb';limb.renderOrder=4;
   opts.parent?.add(limb);
+  const R=opts.radius,segs=Math.max(32,B.segments),rings=Math.max(20,Math.round(B.segments*.6));
+  const shell=(name:string,frag:string,r:number,u:any,o:any,order:number)=>{const m=new THREE.ShaderMaterial({uniforms:{uSun:{value:new THREE.Vector3(0,1,0)},...u},vertexShader:SHELL_VERT,fragmentShader:frag,transparent:true,depthWrite:false,fog:false,...o});m.name='park:'+name;const me=new THREE.Mesh(new THREE.SphereGeometry(R*r,segs,rings),m);me.name=name;me.renderOrder=order;opts.parent?.add(me);return me;};
+  /* outer halo on every tier (cheap, one draw): LOW keeps a real atmosphere edge */
+  halo=shell('park-planet-halo',HALO_FRAG,1.16,{uDayC:{value:new THREE.Color().setRGB(...lin('#4FA8FF'))},uR:{value:R},uRa:{value:R*1.16}},{blending:THREE.AdditiveBlending,side:THREE.BackSide},5);
   builtTier=tier;
  }
  function apply(){
@@ -143,7 +184,7 @@ export function attachParkPlanet(THREE:typeof import('three'),opts:Opts){
     if(frag){
      const base=p.material;
      const mat=new THREE.ShaderMaterial({
-      uniforms:{...base.uniforms,uPkShallow:{value:new THREE.Color().setRGB(...lin(PARK_DAY.oceanShallow))},uPkDeep:{value:new THREE.Color().setRGB(...lin(PARK_DAY.oceanDeep))},uPkMeadow:{value:new THREE.Color().setRGB(...lin(PARK_DAY.meadowSun))}},
+      uniforms:{...base.uniforms,uPkShallow:{value:new THREE.Color().setRGB(...lin(PARK_DAY.oceanShallow))},uPkDeep:{value:new THREE.Color().setRGB(...lin(PARK_DAY.oceanDeep))},uPkMeadow:{value:new THREE.Color().setRGB(...lin(PARK_DAY.meadowSun))},uPkSun:{value:new THREE.Vector3(0,1,0)},uPkDrift:{value:0},uPkSeed:{value:seedF},uPkFx:{value:0},uPkCloud:{value:0}},
       vertexShader:base.vertexShader,fragmentShader:frag,side:base.side,transparent:base.transparent,depthWrite:base.depthWrite,depthTest:base.depthTest,
       extensions:base.extensions,defines:base.defines,fog:false,
      });
@@ -158,15 +199,17 @@ export function attachParkPlanet(THREE:typeof import('three'),opts:Opts){
   const s=opts.sunDir();
   const reduced=!!opts.reduced?.();
   const drift=reduced?0:drift0+Number(opts.tick?.()||0)*.0025;
+  if(twin){const U=twin.mat.uniforms;U.uPkSun.value.set(s.x,s.y,s.z);U.uPkDrift.value=drift;U.uPkFx.value=tier==='LOW'?0:1;U.uPkCloud.value=on&&tier!=='LOW'?1:0;}
   if(!on){hideShells();return {drift};}
   if(clouds){clouds.visible=true;clouds.material.uniforms.uSun.value.set(s.x,s.y,s.z);clouds.material.uniforms.uDrift.value=drift;}
   if(limb){limb.visible=true;limb.material.uniforms.uSun.value.set(s.x,s.y,s.z);}
+  if(halo){halo.visible=true;halo.material.uniforms.uSun.value.set(s.x,s.y,s.z);}
   return {drift};
  }
  return {
   apply,
   get on(){return on;},
   state(){return {on,tier:builtTier||null,clouds:!!clouds&&clouds.visible,limb:!!limb&&limb.visible,graded:!!twin&&opts.planet()?.material===twin.mat,label:PARK_PLANET_LABEL};},
-  dispose(){restoreMaterial();for(const m of [clouds,limb]){if(m){opts.parent?.remove?.(m);m.geometry.dispose();m.material.dispose();}}twin?.mat.dispose();},
+  dispose(){restoreMaterial();for(const m of shells()){if(m){opts.parent?.remove?.(m);m.geometry.dispose();m.material.dispose();}}twin?.mat.dispose();},
  };
 }
