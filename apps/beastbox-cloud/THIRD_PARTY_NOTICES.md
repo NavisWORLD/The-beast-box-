@@ -8,6 +8,7 @@ models, names or creature skins from these projects are used; Cory's creatures a
 Used in: `lib/look/third-party/texture-lab.ts` (seeded simplex, torus-tiled fbm, wrap-around Sobel normal bake).
 Also: the day hemisphere ground colour (green-meadow bounce) in `components/living-world.tsx`, taken from its Atmosphere rig idea; applied to our existing one-sun hemisphere, no new light.
 Also: `lib/look/third-party/park-grade.ts` (the Grade pass technique: split tone, contrast/saturation, highlight rolloff, vignette; SMAA last), wired in `lib/universe/post-chain-three.ts` after our OutputPass.
+Also: the first-person grass wind (its FoliageMaterials `foliageWind` idea: gust packets that always travel along the wind, plus flutter) and the far-grass aerial perspective (its Atmosphere haze idea), re-written inside our existing blade shader in `components/living-world.tsx`.
 Our changes: seeded from our sha256 stream instead of an RNG, returns raw bytes, tier-scaled bake size.
 
 MIT License
