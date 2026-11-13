@@ -6,10 +6,10 @@ export function buildTerrain(THREE:T,scene:import('three').Scene,{low}:{low:bool
   const root=new THREE.Group();root.name='home-terrain';scene.add(root);
   const U={uTime:{value:0}};
   // land reads through the cage fog: thinner fog (40% density, capped at 80%) only on terrain materials; the cage keeps its fog
-  const landFog=(m:any,rim=false)=>{m.onBeforeCompile=(sh:any)=>{sh.fragmentShader=sh.fragmentShader.replace('#include <fog_fragment>',(rim?'{float rimK=pow(1.0-abs(dot(normalize(normal),normalize(vViewPosition))),3.0);gl_FragColor.rgb+=vec3(.62,.55,1.0)*rimK*.9;}\n':'')+'#if defined(USE_FOG)&&defined(FOG_EXP2)\n float lfD=fogDensity*.25;float lfF=min(.7,1.0-exp(-lfD*lfD*vFogDepth*vFogDepth));gl_FragColor.rgb=mix(gl_FragColor.rgb,fogColor,lfF);\n#endif');};m.customProgramCacheKey=()=>rim?'landfog-rim':'landfog';return m;};
-  const land=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.95,metalness:.02,emissive:0x1a1038,emissiveIntensity:1.4,flatShading:true});landFog(land,true);// hilltop rim light
-  const wire=new THREE.LineBasicMaterial({color:0x7af0ff,transparent:true,opacity:low?.26:.34,blending:THREE.AdditiveBlending,depthWrite:false});
-  const S=TERRAIN.size,N=TERRAIN.chunks,cs=S/N,ca=new THREE.Color(0x2a2048),cb=new THREE.Color(0x4a3790),cc=new THREE.Color(0x7656c8);
+  const landFog=(m:any,rim=false)=>{m.onBeforeCompile=(sh:any)=>{sh.fragmentShader=sh.fragmentShader.replace('#include <fog_fragment>',(rim?'{float rimK=pow(1.0-abs(dot(normalize(normal),normalize(vViewPosition))),3.0);gl_FragColor.rgb+=vec3(.55,.85,.95)*rimK*.35;}\n':'')+'#if defined(USE_FOG)&&defined(FOG_EXP2)\n float lfD=fogDensity*.25;float lfF=min(.7,1.0-exp(-lfD*lfD*vFogDepth*vFogDepth));gl_FragColor.rgb=mix(gl_FragColor.rgb,fogColor,lfF);\n#endif');};m.customProgramCacheKey=()=>rim?'landfog-rim':'landfog';return m;};
+  const land=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.95,metalness:.02,emissive:0x0c2414,emissiveIntensity:.6,flatShading:true});landFog(land,true);// hilltop rim light
+  const wire=new THREE.LineBasicMaterial({color:0xc8ffd8,transparent:true,opacity:low?.05:.07,blending:THREE.AdditiveBlending,depthWrite:false});
+  const S=TERRAIN.size,N=TERRAIN.chunks,cs=S/N,ca=new THREE.Color(0x2f5a43),cb=new THREE.Color(0x4c9661),cc=new THREE.Color(0x79d389);// Park meadow ramp (was cage purples)
   function chunkGeo(cx:number,cz:number,seg:number){const g=new THREE.PlaneGeometry(cs,cs,seg,seg);g.rotateX(-Math.PI/2);const P=g.attributes.position as any;const col=new Float32Array(P.count*3);
     for(let i=0;i<P.count;i++){const x=P.getX(i)+cx,z=P.getZ(i)+cz,r=Math.hypot(x,z);const y=r<TERRAIN.flatR-1?-.4:terrainHeight(x,z)-.12;P.setY(i,y);const k=Math.min(1,Math.max(0,y/18));const c=ca.clone().lerp(cb,Math.min(1,k*2)).lerp(cc,Math.max(0,k*2-1));col.set([c.r,c.g,c.b],i*3);}
     g.setAttribute('color',new THREE.BufferAttribute(col,3));g.computeVertexNormals();return g;}
@@ -23,9 +23,9 @@ export function buildTerrain(THREE:T,scene:import('three').Scene,{low}:{low:bool
   const trees=forest(low?TERRAIN.treesLow:TERRAIN.treesHigh);
   const trunkG=new THREE.CylinderGeometry(.06,.14,1,low?5:7);trunkG.translate(0,.5,0);
   const crownG=new THREE.IcosahedronGeometry(.5,low?0:1);
-  const trunkM=new THREE.MeshStandardMaterial({color:0x2a1f45,roughness:1,emissive:0x0c0820});
-  const crownM=new THREE.MeshStandardMaterial({color:0x2c6a78,roughness:.8,emissive:0x15607a,emissiveIntensity:1.1,flatShading:true});
-  const crownW=new THREE.MeshBasicMaterial({color:0x9ff4ff,wireframe:true,transparent:true,opacity:.26,blending:THREE.AdditiveBlending,depthWrite:false});
+  const trunkM=new THREE.MeshStandardMaterial({color:0x8a5a48,roughness:1,emissive:0x1a0c06});
+  const crownM=new THREE.MeshStandardMaterial({color:0x3e8a55,roughness:.8,emissive:0x12361f,emissiveIntensity:.6,flatShading:true});
+  const crownW=new THREE.MeshBasicMaterial({color:0xc8ffd8,wireframe:true,transparent:true,opacity:.06,blending:THREE.AdditiveBlending,depthWrite:false});
   [wire,trunkM,crownM,crownW].forEach(m=>landFog(m));
   const trunks=new THREE.InstancedMesh(trunkG,trunkM,trees.length),crowns=new THREE.InstancedMesh(crownG,crownM,trees.length*2),shells=low?null:new THREE.InstancedMesh(crownG,crownW,trees.length);
   const m4=new THREE.Matrix4(),q=new THREE.Quaternion(),e=new THREE.Euler(),v=new THREE.Vector3(),s=new THREE.Vector3();
@@ -40,12 +40,12 @@ export function buildTerrain(THREE:T,scene:import('three').Scene,{low}:{low:bool
         const g=new THREE.Group();g.add(tube,arch);root.add(g);return {c,g,arch};});
   // ---- the whole home planet: the land above is a patch of this sphere; zooming out reveals the globe + atmosphere
   const cy=-Math.sqrt(PLANET_R*PLANET_R-361)-.6;// sphere surface meets the curved land edge (y=planetDrop(r)), sunk 0.6 to avoid z-fighting
-  const globeM=landFog(new THREE.MeshStandardMaterial({color:0x3a2a70,emissive:0x1a1038,emissiveIntensity:1.4,roughness:.95,flatShading:true}),true);
+  const globeM=landFog(new THREE.MeshStandardMaterial({color:0x4c9661,emissive:0x0c2414,emissiveIntensity:.6,roughness:.95,flatShading:true}),true);
   const globe=new THREE.Mesh(new THREE.IcosahedronGeometry(PLANET_R,low?5:7),globeM);globe.position.set(0,cy,0);globe.name='home-planet';root.add(globe);
   const globeW=new THREE.LineSegments(new THREE.WireframeGeometry(new THREE.IcosahedronGeometry(PLANET_R+.4,low?3:4)),wire);globeW.position.copy(globe.position);root.add(globeW);
   const atmo=new THREE.Mesh(new THREE.SphereGeometry(PLANET_R*1.08,low?32:64,low?16:32),new THREE.ShaderMaterial({transparent:true,depthWrite:false,side:THREE.BackSide,blending:THREE.AdditiveBlending,fog:false,
    vertexShader:'varying vec3 vN;varying vec3 vV;void main(){vN=normalize(normalMatrix*normal);vec4 mv=modelViewMatrix*vec4(position,1.);vV=normalize(-mv.xyz);gl_Position=projectionMatrix*mv;}',
-   fragmentShader:'varying vec3 vN;varying vec3 vV;void main(){float f=pow(1.-abs(dot(vN,vV)),2.5);gl_FragColor=vec4(vec3(.62,.5,1.)*f*.9,f);}'}));atmo.position.copy(globe.position);atmo.name='home-atmosphere';root.add(atmo);
+   fragmentShader:'varying vec3 vN;varying vec3 vV;void main(){float f=pow(1.-abs(dot(vN,vV)),2.5);gl_FragColor=vec4(vec3(.23,.8,.99)*f*.9,f);}'}));atmo.position.copy(globe.position);atmo.name='home-atmosphere';root.add(atmo);
   // keep the cage floor feel: terrain edge hides under fog; nothing here touches the cage floor itself
   return {root,caves,trees,U,
     update(t:number,cam:import('three').Camera){U.uTime.value=t;for(const l of lods)l.update(cam);wire.opacity=(low?.26:.34)*(.8+.2*Math.sin(t*.6));for(const k of caves)(k.arch.material as any).opacity=.65+.25*Math.sin(t*1.7+k.c.a);},

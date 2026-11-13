@@ -35,15 +35,15 @@ export function buildWorlds(THREE:T,scene:import('three').Scene,{low,universe=30
   const sky=new THREE.Mesh(new THREE.SphereGeometry(1800,low?24:40,low?12:20),new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,fog:false,
    uniforms:{uTime:U.uTime},vertexShader:'varying vec3 vD;void main(){vD=normalize(position);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
    fragmentShader:`varying vec3 vD;uniform float uTime;void main(){float y=vD.y;
-    vec3 zen=vec3(.02,.016,.06),mid=vec3(.09,.05,.2),hor=vec3(.27,.16,.45);
+    vec3 zen=vec3(.01,.38,1.),mid=vec3(.024,.41,1.),hor=vec3(.45,.78,.98);   // Park day sky (linear #1AA6FF / #2BACFF / #3BCBFD toward white)
     vec3 c=mix(hor,mid,smoothstep(-.02,.22,y));c=mix(c,zen,smoothstep(.2,.85,y));
-    c+=vec3(.35,.2,.55)*exp(-abs(y)*14.)*.5;
-    float band=sin(vD.x*3.+vD.z*2.+uTime*.02)*.5+.5;c+=vec3(.05,.12,.18)*band*smoothstep(.05,.4,y)*(1.-smoothstep(.4,.8,y))*.6;
+    c=mix(c,vec3(.28,.66,.79),smoothstep(0.,-.2,y));
+    float band=sin(vD.x*3.+vD.z*2.+uTime*.02)*.5+.5;c+=vec3(.05,.06,.04)*band*smoothstep(.05,.4,y)*(1.-smoothstep(.4,.8,y))*.4;
     gl_FragColor=vec4(c,1.);}`}));
   sky.renderOrder=-10;sky.frustumCulled=false;root.add(sky);
   // ---- parallax depth layers: three silhouette rings with soft haze (move at different apparent rates)
   const layers:import('three').Mesh[]=[];
-  [[universe*2.1,6,.2,0x3a2a6a],[universe*3.8,13,.15,0x30225e],[universe*6.5,24,.11,0x281c52]].forEach(([R,H,a,col],i)=>{
+  [[universe*2.1,6,.35,0x4c9661],[universe*3.8,13,.3,0x6fae9a],[universe*6.5,24,.26,0x90d4e8]].forEach(([R,H,a,col],i)=>{
    const g=new THREE.CylinderGeometry(R,R,H,low?64:128,1,true);g.translate(0,H/2-.2,0);
    const mat=new THREE.ShaderMaterial({transparent:true,depthWrite:false,side:THREE.DoubleSide,fog:false,uniforms:{uC:{value:new THREE.Color(col)},uA:{value:a},uS:{value:i*7.1}},
     vertexShader:'varying vec2 vU;void main(){vU=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
@@ -59,16 +59,16 @@ export function buildWorlds(THREE:T,scene:import('three').Scene,{low,universe=30
   const segTotal=Math.min(LIMITS.maxSegments,trees.reduce((n,t)=>n+t.segs.length,0));
   const tips=trees.map(t=>treeTips(t.segs));const CLUMP=low?2:3;const tipTotal=tips.reduce((n,t)=>n+t.length,0)*CLUMP;
   const branchGeo=new THREE.CylinderGeometry(.7,1,1,low?5:7,1,true);branchGeo.translate(0,.5,0);
-  const bark=swayMat(THREE,U,{color:0x6a4a9a,emissive:0x3a2068,emissiveIntensity:.7,roughness:.85,flatShading:true},{rim:.35,shade:.6,key:'bark'});
+  const bark=swayMat(THREE,U,{color:0x8a5a48,emissive:0x2a160c,emissiveIntensity:.5,roughness:.85,flatShading:true},{rim:.35,shade:.6,key:'bark'});
   const branches=new THREE.InstancedMesh(branchGeo,bark,segTotal);branches.name='cst-trees';
   neonPatch(bark,neon,{mode:'rim',amt:.45});// branch outlines
   const leafGeo=new THREE.IcosahedronGeometry(1,low?0:1);
-  const leaf=swayMat(THREE,U,{color:0x6b4fc0,emissive:0x6a3fe0,emissiveIntensity:.5,roughness:.6,flatShading:true,transparent:true,opacity:1},{rim:.55,shade:1,fade:true,key:'leaf'});
+  const leaf=swayMat(THREE,U,{color:0x7fd38f,emissive:0x1d5a33,emissiveIntensity:.35,roughness:.6,flatShading:true,transparent:true,opacity:1},{rim:.55,shade:1,fade:true,key:'leaf'});
   const canopy=new THREE.InstancedMesh(leafGeo,leaf,tipTotal);canopy.name='cst-canopy';
   const tc=new THREE.Color();let si=0,li=0;
   trees.forEach((t,ti)=>{for(const s of t.segs){if(si>=segTotal)break;va.set(t.x+s.a[0]*t.s,-.06+s.a[1]*t.s,t.z+s.a[2]*t.s);vb.set(t.x+s.b[0]*t.s,-.06+s.b[1]*t.s,t.z+s.b[2]*t.s);
     const L=va.distanceTo(vb);q.setFromUnitVectors(up,vb.clone().sub(va).normalize());const th=s.r*t.s*(s.d===1?1.7:1.25);vs.set(th,L,th);m4.compose(va,q,vs);branches.setMatrixAt(si++,m4);}
-   const hue=ti%3===0?.47:ti%3===1?.74:.8;
+   const hue=ti%3===0?.33:ti%3===1?.37:.29;// Park canopy greens (were violet)
    for(const p of tips[ti])for(let c=0;c<CLUMP;c++){// layered clumps: inner dark big, outer lighter smaller, lifted
     const o=c*.6;va.set(t.x+(p[0]+(rnd()-.5)*.12*o)*t.s,-.06+(p[1]+.04*c)*t.s,t.z+(p[2]+(rnd()-.5)*.12*o)*t.s);q.setFromEuler(new THREE.Euler(rnd()*3,rnd()*3,0));
     vs.set(1,.8,1).multiplyScalar(t.s*(.15-.03*c)*(.85+rnd()*.3));m4.compose(va,q,vs);canopy.setMatrixAt(li,m4);
@@ -83,7 +83,7 @@ export function buildWorlds(THREE:T,scene:import('three').Scene,{low,universe=30
     vec3 c=aP.xyz;c.x=mod(c.x+uTime*.35+200.,400.)-200.;vec4 mv=viewMatrix*vec4(c,1.);
     float d=-mv.z;vA=smoothstep(2.,10.,d)*(1.-smoothstep(150.,260.,d));mv.xy+=position.xy*aP.w;gl_Position=projectionMatrix*mv;}`,
    fragmentShader:`varying vec2 vU;varying float vA;void main(){float r=length(vU)*2.;float a=(1.-smoothstep(.2,1.,r))*.32*vA;
-    vec3 c=mix(vec3(.62,.5,.9),vec3(.32,.24,.6),r);gl_FragColor=vec4(c,a);}`});
+    vec3 c=mix(vec3(1.,1.,1.),vec3(.62,.82,.92),r);gl_FragColor=vec4(c,a*2.2);   // Park: white painted puffs, cool edge}`});
   const cg=new THREE.InstancedBufferGeometry();const pg=new THREE.PlaneGeometry(1,1);cg.index=pg.index;cg.attributes.position=pg.attributes.position;cg.attributes.uv=pg.attributes.uv;
   const aP=new Float32Array(nP*4);for(let c=0;c<nC;c++){const a=rnd()*6.283,r=14+rnd()*90,cx=Math.cos(a)*r,cz=Math.sin(a)*r,cy=10+rnd()*14,sz=5+rnd()*7;
    for(let p=0;p<LIMITS.puffs;p++){const k=(c*LIMITS.puffs+p)*4;aP[k]=cx+(rnd()-.5)*sz*1.4;aP[k+1]=cy+(rnd()-.5)*sz*.3;aP[k+2]=cz+(rnd()-.5)*sz*.6;aP[k+3]=sz*(.6+rnd()*.6);}}
