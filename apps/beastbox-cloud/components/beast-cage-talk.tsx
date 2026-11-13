@@ -45,6 +45,7 @@ export default function BeastCageTalk(){
    {/* site_labels.json (Emeth): each creature thinks with its own brain on the shared RAWRPHØS model, never as Zeref */}
    {talkingToZeref?<p data-talk-subtitle>He's still learning to speak. Some replies come out strange.</p>:<p data-talk-subtitle>{persona.name} thinks with its own brain, built on Zeref (RAWRPHØS). It's still learning, so some replies come out strange.</p>}
    <p data-talk-honesty>{talkingToZeref?'Zeref is RAWRPHØS, running on the rawrphos-local model. Every reply comes from that model. If it is offline you will see that, never a made-up answer.':`${persona.name} keeps its own name, traits and memories. Zeref answers through the RAWRPHØS model. If it's offline, you'll see that.`}</p>
+   <p data-self-learn-disclosure>Zeref may learn from this chat (personal info removed). A chat does not change him until a training round learns from it and passes the fair gate.</p>
   </section>
   <div className={styles.main}>
    <section className={styles.scene} aria-label="Animated cosmic companion">

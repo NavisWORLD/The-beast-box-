@@ -52,3 +52,102 @@ def test_zeref_picks_by_his_own_signals_and_records_why():
     assert all(r["source"] == "self-selected" and r["why"]["rank"] == n + 1 for n, r in enumerate(rows))
     assert all(r["why"]["of"] == 6 for r in rows)  # the secret-bearing candidate never entered the pool
     assert rows[0]["trains_only_through"] == "fair gate, loose promotion rule"
+
+
+def test_maybe_record_stays_off_by_default(tmp_path, monkeypatch):
+    monkeypatch.delenv("BEASTBOX_SELF_LEARN", raising=False)
+    monkeypatch.delenv("ZEREF_SELF_LEARN_PUBLISH", raising=False)
+    assert self_learn.maybe_record(tmp_path, scope="guest", user="hello there", reply="Hi friend.") is None
+    assert self_learn.export(tmp_path) == []
+
+
+def test_one_chat_turn_lands_as_scrubbed_row_the_next_round_reads(tmp_path, monkeypatch):
+    """The same path the 006 join step uses: one door turn -> scrubbed candidate -> mix row."""
+    import zeref_self_learn_join as join
+    monkeypatch.setenv("BEASTBOX_SELF_LEARN", "on")
+    monkeypatch.delenv("ZEREF_SELF_LEARN_PUBLISH", raising=False)
+    user = "Hi, my name is Alice. Email me at alice@example.com. Please remember the violet cedar porch lantern."
+    reply = "Hello friend, I will keep the porch lantern in mind."
+    receipt = self_learn.maybe_record(tmp_path, scope="guest", user=user, reply=reply, step=40624)
+    assert receipt["candidate"] is True
+    assert "user" not in receipt and "assistant" not in receipt
+    dumped = tmp_path / "cands.jsonl"
+    assert self_learn.dump_jsonl(tmp_path, dumped) == 1
+    raw = dumped.read_text()
+    for leak in ("Alice", "alice@example.com"):
+        assert leak not in raw
+    assert "violet cedar porch lantern" in raw
+    mix = tmp_path / "mix.jsonl"
+    mix.write_text(json.dumps({"mode": "chat", "user": "old question", "assistant": "old answer", "source": "reviewed"}) + "\n")
+    out = tmp_path / "out.jsonl"
+    rec_path = tmp_path / "receipt.json"
+    assert join.main(["--mix", str(mix), "--out", str(out), "--candidates", str(dumped),
+                      "--receipt", str(rec_path), "--branch-url", "", "--export-url", "", "--k", "8"]) == 0
+    text = out.read_text()
+    assert "violet cedar porch lantern" in text
+    for leak in ("Alice", "alice@example.com"):
+        assert leak not in text
+    rows = [json.loads(l) for l in text.splitlines() if l.strip()]
+    picked = [r for r in rows if r.get("source") == "self-selected"]
+    assert len(picked) == 1
+    assert picked[0]["trains_only_through"] == "fair gate, loose promotion rule"
+    assert "[email]" in picked[0]["user"] and "[name]" in picked[0]["user"]
+    rec = json.loads(rec_path.read_text())
+    assert rec["fetched"] == 1 and rec["picked"] == 1 and rec["why"] is None
+    assert "Alice" not in rec_path.read_text()
+
+
+def test_export_payload_and_bridge_allowlist():
+    src = (ROOT / "apps" / "beastbox-cloud" / "bridge" / "owner_bridge.py").read_text()
+    assert '"self-learn-export"' in src and "export_payload" in src
+    wf = (ROOT / ".github" / "workflows" / "zeref-continuous-learning-006.yml").read_text()
+    assert "scripts/zeref_self_learn_join.py" in wf
+    talk = (ROOT / "apps" / "beastbox-cloud" / "components" / "beast-cage-talk.tsx").read_text()
+    assert "Zeref may learn from this chat (personal info removed)" in talk
+
+
+def test_publish_is_opt_in_and_never_writes_pii(tmp_path, monkeypatch):
+    monkeypatch.setenv("BEASTBOX_SELF_LEARN", "on")
+    monkeypatch.delenv("ZEREF_SELF_LEARN_PUBLISH", raising=False)
+    monkeypatch.delenv("ZEREF_SELF_LEARN_PUBLISH_TOKEN", raising=False)
+    monkeypatch.delenv("BEASTBOX_GITHUB_DISPATCH_TOKEN", raising=False)
+    self_learn.record(tmp_path, scope="guest", user="Hi, my name is Alice.", reply="Hello friend.", step=1)
+    calls = []
+
+    def opener(req, timeout=20):
+        raise AssertionError("publish must not hit the network when the publish flag is off")
+
+    monkeypatch.setenv("ZEREF_SELF_LEARN_PUBLISH", "on")
+    monkeypatch.setenv("ZEREF_SELF_LEARN_PUBLISH_TOKEN", "test-token-not-real")
+    # With the flag on, a mocked opener records the PUT body (already scrubbed).
+    class Resp:
+        def __init__(self, payload):
+            self._payload = json.dumps(payload).encode()
+        def read(self):
+            return self._payload
+        def __enter__(self):
+            return self
+        def __exit__(self, *a):
+            return False
+
+    def fake(req, timeout=20):
+        import base64
+        url = req.full_url
+        calls.append(url)
+        if url.endswith("/git/ref/heads/main"):
+            return Resp({"object": {"sha": "a" * 40}})
+        if url.endswith("/git/ref/heads/zeref-self-learn"):
+            return Resp({"object": {"sha": "b" * 40}})
+        if "candidates.jsonl" in url and req.get_method() == "GET":
+            return Resp({})
+        if "candidates.jsonl" in url and req.get_method() == "PUT":
+            body = json.loads(req.data.decode())
+            decoded = base64.b64decode(body["content"]).decode()
+            assert "Alice" not in decoded
+            assert "[name]" in decoded
+            assert "test-token-not-real" not in decoded
+            return Resp({"content": {"path": "candidates.jsonl"}})
+        return Resp({})
+
+    out = self_learn.publish_to_github(tmp_path, "test-token-not-real", opener=fake)
+    assert out["ok"] is True and out["count"] == 1 and out["pin_written"] is False
