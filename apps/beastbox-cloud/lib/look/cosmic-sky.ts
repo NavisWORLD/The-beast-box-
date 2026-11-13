@@ -45,3 +45,19 @@ export function addCosmicSky(THREE:typeof import('three'),scene:{add:(o:any)=>vo
   dispose(){if(mesh){scene.remove(mesh);mesh.geometry.dispose();mesh.material.dispose();}},
  };
 }
+
+/** The one sun's glow sprite map: a soft round core, warm falloff and seeded faint rays, fully transparent at the edge
+ *  (the painted corona PNG left a visible square against the cosmic backdrop). Browser only; null elsewhere (caller falls back). */
+export function sunGlowTexture(THREE:typeof import('three'),seed:string){
+ if(typeof document==='undefined')return null;
+ const S=256,c=document.createElement('canvas');c.width=c.height=S;const g=c.getContext('2d');if(!g)return null;
+ const r=S/2;const rad=g.createRadialGradient(r,r,0,r,r,r);
+ rad.addColorStop(0,'rgba(255,255,250,1)');rad.addColorStop(.1,'rgba(255,246,220,.95)');rad.addColorStop(.22,'rgba(255,214,150,.42)');
+ rad.addColorStop(.45,'rgba(255,170,90,.12)');rad.addColorStop(.75,'rgba(255,140,70,.03)');rad.addColorStop(1,'rgba(0,0,0,0)');
+ g.fillStyle=rad;g.fillRect(0,0,S,S);
+ g.globalCompositeOperation='lighter';
+ for(let i=0;i<14;i++){const a=stream01(seed+':ray:a:'+i)*Math.PI*2,len=r*(.45+.45*stream01(seed+':ray:l:'+i)),w=.012+.02*stream01(seed+':ray:w:'+i);
+  const lg=g.createLinearGradient(r,r,r+Math.cos(a)*len,r+Math.sin(a)*len);lg.addColorStop(0,'rgba(255,236,200,.22)');lg.addColorStop(1,'rgba(255,236,200,0)');
+  g.fillStyle=lg;g.beginPath();g.moveTo(r,r);g.lineTo(r+Math.cos(a-w)*len,r+Math.sin(a-w)*len);g.lineTo(r+Math.cos(a+w)*len,r+Math.sin(a+w)*len);g.closePath();g.fill();}
+ const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;t.needsUpdate=true;return t;
+}
