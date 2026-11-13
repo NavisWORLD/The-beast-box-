@@ -495,15 +495,15 @@ uniform vec3 uPlay[8];uniform vec3 uPlayT[8];uniform float uWindK;uniform float 
    // ---- things to explore: seeded flowers, crystals, cairns, ponds, burrows, trees; they wake as the grass reaches them
    const COL:Record<string,number>={flower:0xff7ad9,crystal:0xcdeeff,cairn:0xb2a28e,pond:0x4dd9fc,burrow:0x5a4030,tree:0x4c9661}; /* Park palette */
    const mkThing=(kind:string)=>{const g=new THREE.Group();const m=(geo:any,c:number,em=0)=>{const x=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({color:c,emissive:c,emissiveIntensity:em,roughness:.7}));g.add(x);return x;};
-    if(kind==='flower'){m(new THREE.CylinderGeometry(.015,.02,.25,5),0x3b9b4b).position.y=.125;m(new THREE.IcosahedronGeometry(.07,0),COL.flower,.4).position.y=.27;}
+    if(kind==='flower'){m(new THREE.CylinderGeometry(.015,.02,.25,5),0x3b9b4b).position.y=.125;m(new THREE.IcosahedronGeometry(.07,2),COL.flower,.4).position.y=.27;}
     else if(kind==='crystal'){const c=m(new THREE.OctahedronGeometry(.13,0),COL.crystal,.8);c.scale.y=2;c.position.y=.2;}
-    else if(kind==='cairn'){for(let i=0;i<3;i++){const st=m(new THREE.DodecahedronGeometry(.09-i*.02,0),COL.cairn);st.position.y=.08+i*.12;}}
+    else if(kind==='cairn'){for(let i=0;i<3;i++){const st=m(new THREE.DodecahedronGeometry(.09-i*.02,1),COL.cairn);st.position.y=.08+i*.12;}}
     else if(kind==='pond'){const c=m(new THREE.CircleGeometry(.4,20),COL.pond,.25);c.rotation.x=-Math.PI/2;c.position.y=.02;}
     else if(kind==='burrow'){const c=m(new THREE.CircleGeometry(.16,16),COL.burrow);c.rotation.x=-Math.PI/2;c.position.y=.015;const t=m(new THREE.TorusGeometry(.17,.04,6,16),0x5a4030);t.rotation.x=-Math.PI/2;t.position.y=.03;}
     else if(kind==='ice'){const c=m(new THREE.TetrahedronGeometry(.18,0),0xbfe6ff,.35);c.scale.y=1.8;c.position.y=.18;}
     else if(kind==='ember'){m(new THREE.ConeGeometry(.28,.35,7),0x3a1d14).position.y=.17;m(new THREE.SphereGeometry(.08,8,6),0xff6a1a,1.4).position.y=.36;}
-    else if(kind==='mushroom'){m(new THREE.CylinderGeometry(.03,.04,.22,6),0xeeddcc).position.y=.11;const c=m(new THREE.SphereGeometry(.13,10,6,0,6.3,0,1.6),0xc04fa0,.5);c.position.y=.2;}
-    else if(kind==='cactus'){m(new THREE.CapsuleGeometry(.05,.3,3,6),0x3f8a4a).position.y=.2;}
+    else if(kind==='mushroom'){m(new THREE.CylinderGeometry(.03,.04,.22,14),0xeeddcc).position.y=.11;const c=m(new THREE.SphereGeometry(.13,24,12,0,6.3,0,1.6),0xc04fa0,.5); /* rounder cap and stalk (Cory, Nov 12) */c.position.y=.2;}
+    else if(kind==='cactus'){m(new THREE.CapsuleGeometry(.05,.3,6,14),0x3f8a4a).position.y=.2;}
     else {m(new THREE.CylinderGeometry(.04,.06,.4,6),0x5a3a22).position.y=.2;m(new THREE.ConeGeometry(.22,.5,7),COL.tree,.1).position.y=.6;}
     return g;};
    /* Park (Nov 12): the floating dark sky-island rocks are gone; the Park ground has hills, not debris in the air */

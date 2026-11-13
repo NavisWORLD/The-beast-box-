@@ -1,5 +1,6 @@
 // The Cage surface on any ground: Cosmo's ground cover + trees as InstancedMesh, wind-swayed, with the per-instance
 // hash dissolve LOD from the README (clumps shrink to nothing before they fade, so nothing pops). Seeded streams only.
+import {roundMode,roundGeometry} from '../look/prop-round.ts';
 import {GROUND_ASSETS,TREE_KINDS,GRASS,LOD,plantGround,plantTrees} from './groundcover.mjs';
 import {GC_MODELS,TREE_MODELS} from './surface-data.mjs';
 import {DEPTH_LOD} from './depth-bands.mjs';
@@ -66,8 +67,8 @@ function patch(THREE:T,mat:any,cfg:{h:number;near:number;far:number;inner:number
 export const PARK_PROP_COLORS:Record<string,number>=Object.freeze({leaf_purple:0x79d389,tipv:0xf0d23a,cap:0xe07ab0,crystal:0xcdeeff,crack_glow:0x8a5a48,rock:0xb2a28e,bark:0x8a5a48,
  leaf_teal:0x5fb86e,leaf_teal_dark:0x3e8a55,blade:0x4c9661,trim_teal:0x8ee09a,tip:0x8ee09a,wire_teal:0x8ee09a,moss:0x79d389,crystal_teal:0xbff3e8,leaf_crystal:0xd8f7e0});
 function parkProp(m:any){const c=m&&PARK_PROP_COLORS[m.name];if(c==null||!m.color||m.userData?.parkProp)return;m.color.setHex(c);if(m.emissive&&/crystal|tip|trim|wire/.test(m.name))m.emissive.setHex(c).multiplyScalar(.25);m.userData={...(m.userData||{}),parkProp:true};}
-async function loadParts(url:string){const {GLTFLoader}=await import('three/examples/jsm/loaders/GLTFLoader.js');const g:any=await new GLTFLoader().loadAsync(url);g.scene.updateMatrixWorld(true);
- const parts:any[]=[];g.scene.traverse((o:any)=>{if(o.isMesh){(Array.isArray(o.material)?o.material:[o.material]).forEach(parkProp);const geo=o.geometry.clone();geo.morphAttributes={};geo.morphTargetsRelative=false;geo.applyMatrix4(o.matrixWorld);/* breathing is done in the shader; instanced meshes carry no morph targets */
+async function loadParts(url:string){const {GLTFLoader}=await import('three/examples/jsm/loaders/GLTFLoader.js');const THREE0=await import('three');const g:any=await new GLTFLoader().loadAsync(url);g.scene.updateMatrixWorld(true);
+ const parts:any[]=[];g.scene.traverse((o:any)=>{if(o.isMesh){(Array.isArray(o.material)?o.material:[o.material]).forEach(parkProp);let geo=o.geometry.clone();geo.morphAttributes={};geo.morphTargetsRelative=false;geo.applyMatrix4(o.matrixWorld);{const rm=roundMode((Array.isArray(o.material)?o.material[0]:o.material)?.name,url);if(rm)geo=roundGeometry(THREE0,geo,rm);} /* Cory, Nov 12: rounded rocks/caps, soft-shaded crystals (props only) *//* breathing is done in the shader; instanced meshes carry no morph targets */
   let n:any=o;while(n&&!/^(head(_\d+)?|crack_glow|crystal_body|mushroom_body)$/.test(n.name||''))n=n.parent;
   const e=n?n.matrixWorld.elements:null;parts.push({geo,mat:o.material,node:n?.name||null,pivot:e?[e[12],e[13],e[14]]:[0,0,0]});}});return parts;}
 /** Flower heads -> one geometry (one group per material) with per-vertex aPivot, so all blooms of a type are ONE InstancedMesh. */
