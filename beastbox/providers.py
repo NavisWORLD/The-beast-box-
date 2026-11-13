@@ -108,6 +108,9 @@ class CompatibleChatProvider:
     timeout: float = 120.0
     # Injected from an encrypted host-only vault, never serialized to a profile.
     api_key: str | None = field(default=None, repr=False, compare=False)
+    # BEASTBOX_OWNER_12D_MOUTH: condition54 is sent only to the loopback native server.
+    accepts_condition54 = True
+    last_condition54 = None  # class default; per-call receipt set in generate(), not a dataclass field
 
     def __post_init__(self) -> None:
         parsed = urllib.parse.urlparse(self.base_url)
@@ -119,8 +122,9 @@ class CompatibleChatProvider:
             if self.allow_remote is not True or parsed.scheme != 'https' or not parsed.hostname:
                 raise ValueError('remote provider requires explicit --allow-remote and HTTPS') from None
 
-    def generate(self, prompt: str) -> str:
+    def generate(self, prompt: str, condition54: list[float] | None = None) -> str:
         import os
+        self.last_condition54 = None
         headers = {'Content-Type': 'application/json'}
         if self.api_key is not None:
             if not self.api_key or any(c in self.api_key for c in '\r\n'):
@@ -140,6 +144,11 @@ class CompatibleChatProvider:
                   self.allow_remote is False)
         payload = {'model': self.model, 'messages': [{'role': 'user', 'content': prompt}],
                    'stream': False, 'temperature': 0, 'max_tokens': 64 if native else 256}
+        if condition54 is not None:
+            # Owner 12D mouth: only the local native server ever receives it.
+            if native:
+                payload['condition54'] = [float(v) for v in condition54]
+            self.last_condition54 = {'sent': native, 'used_by_server': False}
         if self.base_url.rstrip('/') == 'https://ollama.com/v1' and self.model in {'gpt-oss:120b', 'gpt-oss:20b'}:
             # GPT-OSS can exhaust a tiny output budget on reasoning before
             # producing user-facing content. Explicitly request low reasoning;
@@ -156,6 +165,8 @@ class CompatibleChatProvider:
             content = data['choices'][0]['message']['content']
             if not isinstance(content, str) or not content.strip():
                 raise ProviderDiagnosticError('MODEL_OUTPUT_EMPTY')
+            if self.last_condition54 is not None and self.last_condition54['sent']:
+                self.last_condition54['used_by_server'] = data.get('condition54_used') is True
             return content
         except urllib.error.HTTPError as exc:
             # Never read/expose upstream body or headers. A 200 from the

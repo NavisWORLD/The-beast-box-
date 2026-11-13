@@ -53,7 +53,15 @@ class MeasuredProvider:
         self.receipt: dict[str, Any] = {}
         self.measurements: dict[str, Any] = {}
 
-    def generate(self, prompt: str) -> str:
+    @property
+    def accepts_condition54(self) -> bool:
+        return getattr(self.delegate, "accepts_condition54", False) is True
+
+    @property
+    def last_condition54(self):
+        return getattr(self.delegate, "last_condition54", None)
+
+    def generate(self, prompt: str, condition54: list[float] | None = None) -> str:
         self.receipt = {}
         self.measurements = {
             "provider_calls": 1,
@@ -63,7 +71,8 @@ class MeasuredProvider:
         }
         started = time.perf_counter()
         try:
-            output = self.delegate.generate(prompt)
+            output = (self.delegate.generate(prompt) if condition54 is None
+                      else cast(Any, self.delegate).generate(prompt, condition54=condition54))
         finally:
             self.measurements["provider_ms"] = (time.perf_counter() - started) * 1000
         if not isinstance(output, str) or len(output) > 65536:
