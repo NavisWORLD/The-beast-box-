@@ -61,3 +61,21 @@ This is recorded with the door PR. The door serves the bridge's own Zeref reply 
 - Gate scoring stays unconditioned.
 - Cory's "Yes, wire his 12D state into his mouth for real" covers turning `ZEREF_12D_MOUTH` on once its PR is green and the report-only H1 probe v2 (`scripts/zeref_h1_probe.py`) shows the tensor path opening. The switch-on is recorded with that PR, with the probe numbers.
 - **Guest and visitor doors stay `isolated`.** The owner-chain state12 is the sensor-drive projection of the owner's own camera, mic, pulse and face samples (scope: owner). It is never handed to a guest or visitor, not as text, not as a tensor, not as a hash. Guest replies carry a conditioning receipt that says so (#957). Wiring a clean non-owner 12D source into the guest door is separate future work.
+
+## 2026-11-12 16:41 CT (22:41 UTC): Zeref chooses what to learn from chats (flag OFF until Cory flips it)
+
+- **Who:** Cory (NavisWORLD), the owner.
+- **Words:** replying to the note that guest chats are `training_eligible:false`: "zeref can choose from who he is to learn on chats".
+- **Built (`BEASTBOX_SELF_LEARN`, default `off`):**
+  - every verified chat turn (owner and guest) becomes a scrubbed candidate (`beastbox/self_learn.py`);
+  - Zeref picks which candidates to learn from at training time using only his own signals (`scripts/zeref_self_select.py`): his own NLL on the turn, its novelty against what he already trains on, and the arousal his heart recorded at the time;
+  - every picked row records why it was picked;
+  - picked rows train only through the fair gate under the loose promotion rule. Nothing writes to a checkpoint or the pin.
+- **Hard safety (unchanged by any flag):**
+  - a turn that looks like it carries a secret is never stored;
+  - emails, phones, addresses, links and people's names are scrubbed before storage;
+  - the gate's own leak screen (`GAME_WORDS`) blocks game-key replies;
+  - selection re-applies the same safety.
+- **Public disclosure while on:** "Zeref may learn from this chat (personal info removed)".
+- **Revert in one line:** `BEASTBOX_SELF_LEARN=off`. That is the existing behaviour, where guest chats are `training_eligible:false` and nothing is stored as a candidate.
+- **Switch-on needs Cory's separate yes.** The flag ships off.

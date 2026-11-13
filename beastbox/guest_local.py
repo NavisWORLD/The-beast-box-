@@ -26,7 +26,7 @@ import time
 import urllib.error
 import urllib.request
 
-from . import heart_decoding, mouth12
+from . import heart_decoding, mouth12, self_learn
 from .guest_hebbian import (MAX_TEXT_WITH_CONTEXT, GuestHebbianStore,
                             assemble_messages, guest_key, memory_in_prompt,
                             persist_enabled, validate_context)
@@ -348,6 +348,9 @@ def guest_local_infer(root: Path, payload: dict, *, owner_jobs_busy: bool = Fals
         archive_ok = (save_ok and archived_before is not None and archived_after is not None
                       and archived_after == archived_before + 2)
         persisted = store is not None
+        # BEASTBOX_SELF_LEARN=on (default off): this turn becomes a scrubbed CANDIDATE; Zeref picks at training time.
+        learn = self_learn.record(root, scope="guest", user=payload["text"].strip(), reply=text, step=STEP,
+                                  heart=heart_receipt) if self_learn.enabled() else None
         return 200, {"schema": SCHEMA, "model": MODEL, "step": STEP,
                      "checkpoint_sha256": SHA, "reply": text,
                      # True only when a persisted thread actually fed this reply.
@@ -371,6 +374,7 @@ def guest_local_infer(root: Path, payload: dict, *, owner_jobs_busy: bool = Fals
                      **({"lived_state": lived_receipt} if lived_receipt else {}),
                      **({"heart_decoding": heart_receipt} if heart_receipt else {}),
                      **({"plain_turn": True} if plain_turn else {}),
+                     **({"self_learn": learn} if learn is not None else {}),
                      # Conditioning receipt: what this reply was conditioned on (never owner state12).
                      # Only on the context or lived contract; the plain stateless body stays byte-identical.
                      **({"conditioning": mouth12.guest_receipt(messages, condition54_sent="condition54" in request_body,
