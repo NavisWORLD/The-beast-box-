@@ -76,6 +76,7 @@ export default function BeastCagePortal(){
   useEffect(()=>{let t=0;const on=(e:Event)=>{const id=(e as CustomEvent).detail?.id;const ok=id==='beast'||id==='zeref';setLookId(ok?id:null);if(ok){/* E2: a tap on your creature opens Look Closer */window.location.assign('/beast-cage/look'+(id==='zeref'?'?with=zeref':''));}clearTimeout(t);t=window.setTimeout(()=>setLookId(null),7000);};window.addEventListener('beastbox:look-closer',on);return()=>{window.removeEventListener('beastbox:look-closer',on);clearTimeout(t);};},[]);
  // ONE shared view state (Living world / Pocket explorer / Classic pixel sprite): same saved choice as the home pocket and the menu.
  const {view,setView}=useWorldView(sameSpark);const [worldFull,setWorldFull]=useState(false);
+ const cageOneWorld=!softTap&&!worldFull&&(view==='pocket'||view==='world');
  const [hosts,setHosts]=useState<MenuHosts>({place:null,tools:null,about:null});
  const [cageMode,setCageMode]=useState<'friendly'|'advanced'>('friendly');
  useEffect(()=>{try{if(window.localStorage.getItem('beastbox-cage-mode-v1')==='advanced'||/^#(menagerie)/.test(window.location.hash))setCageMode('advanced');}catch{}},[]);
@@ -136,6 +137,7 @@ export default function BeastCagePortal(){
     <GeyserControls/>
     <WorldMenu context="cage" view={view} onView={setView} hasBeast={sameSpark} beastName={pocketName} onHosts={setHosts}/>
     {/* Oct 25: 'Look Closer' lives in the menu now so nothing sits on top of the creatures. */}
+    {cageOneWorld?<LivingWorld embedded menuHost={hosts.place} infoHost={hosts.about} genome={sameSpark?session.beast.genome||null:null} beastKey={sameSpark?session.beast.qbeast.profile.id:null} beastName={sameSpark?beastDisplayName(session.beast):null} onExpand={()=>setWorldFull(true)}/>:<>
     <CagePocketDimension
      seed={sameSpark?session.beast.genome?.seed||session.beast.seed:null}
      qbeastId={sameSpark?session.beast.qbeast.profile.id:null}
@@ -143,13 +145,13 @@ export default function BeastCagePortal(){
      behaviorPosition={sameSpark?session.beast.behavior?.position||null:null}
      state={sameSpark?visualStateFromBeast(session.beast):ambient}
      reduced={prefersReduced} onActiveChange={onPocketActive}
-     qvmCounts={qvmCounts} menuHost={hosts.tools}/>
+     qvmCounts={qvmCounts} menuHost={hosts.tools}/></>} {/* Nov 12 one world: on a real GPU the habitat is the same living world as home (one renderer, one seed, one sun, one zoom); the pocket stays the software-GL fallback */}
     {overlay!=='none'?<SparkBeastArena profile={creature} fallbackLook={look}
      state={sameSpark?visualStateFromBeast(session.beast):ambient==='rest'?'sleeping':ambient==='orbit'?'celebrating':ambient==='perch'?'observing':'idle'}
      label="Active beast companion" preferSavedBeast={sameSpark}
      rig={overlay==='rig'}/>:null}
-    {view==='world'&&sameSpark&&!worldFull?<LivingWorld embedded menuHost={hosts.place} infoHost={hosts.about} genome={session.beast.genome||null} beastKey={session.beast.qbeast.profile.id} beastName={beastDisplayName(session.beast)} onExpand={()=>setWorldFull(true)}/>:null}
-    {worldFull&&sameSpark?<LivingWorld genome={session.beast.genome||null} beastKey={session.beast.qbeast.profile.id} beastName={beastDisplayName(session.beast)} onClose={()=>setWorldFull(false)}/>:null}
+    {!cageOneWorld&&view==='world'&&sameSpark&&!worldFull?<LivingWorld embedded menuHost={hosts.place} infoHost={hosts.about} genome={session.beast.genome||null} beastKey={session.beast.qbeast.profile.id} beastName={beastDisplayName(session.beast)} onExpand={()=>setWorldFull(true)}/>:null}
+    {worldFull?<LivingWorld genome={sameSpark?session.beast.genome||null:null} beastKey={sameSpark?session.beast.qbeast.profile.id:null} beastName={sameSpark?beastDisplayName(session.beast):null} onClose={()=>setWorldFull(false)}/>:null}
     <span className="cage-habitat-caption">✧ YOUR OWN POCKET UNIVERSE</span>
    </div>
    <div className="cage-details-row"><CageCreatureSwitch context="cage"/></div>
