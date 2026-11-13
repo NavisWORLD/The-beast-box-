@@ -1,7 +1,7 @@
 /**
  * Rounded props (Cory, Nov 12 2026: "smooth or bevel the crystals, rocks and mushrooms"). PROPS ONLY: never creatures, Zeref or Cory's eyed trees.
  * soft: weld, two midpoint subdivisions, Taubin smoothing (volume-keeping, so pebbles and caps round off instead of shrinking), smooth normals.
- * gem:  weld and smooth normals only, so crystals keep their silhouette but lose the hard flat-shaded facets.
+ * gem:  the same with lighter smoothing (3 Taubin passes), so crystals keep their spire shape with rounded, soft edges.
  * Pure geometry maths, no random calls. The idea of rounding props comes from pallet-town-3d's Sculpt approach (MIT); this code is our own.
  */
 type T=typeof import('three');
@@ -18,5 +18,5 @@ export function taubin(P:number[],I:number[],iters=6,lam=.5,mu=-.53){const n=P.l
 /** Round one prop geometry in place of the original (returns a new BufferGeometry; position + normal only). */
 export function roundGeometry(THREE:T,geo:import('three').BufferGeometry,mode:'soft'|'gem'){
  const pa=geo.getAttribute('position');if(!pa)return geo;const idx=geo.index?Array.from(geo.index.array as ArrayLike<number>):null;let {P,I}=weld(pa.array as ArrayLike<number>,idx);
- if(mode==='soft'&&P.length/3<4000){for(let s=0;s<2;s++)({P,I}=subdivide(P,I));P=taubin(P,I);}
+ if(P.length/3<4000){for(let s=0;s<2;s++)({P,I}=subdivide(P,I));P=taubin(P,I,mode==='gem'?3:6);} /* gem: lighter smoothing, so crystals become soft rounded gems but keep their spire shape */
  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(P,3));g.setIndex(I);g.computeVertexNormals();g.computeBoundingSphere();return g;}

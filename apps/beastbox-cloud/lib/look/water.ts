@@ -92,7 +92,7 @@ export function buildWater(THREE:typeof import('three'),o:{
 
 const VERT=`attribute float aDepth;
 uniform float uTime,uMotion,uLevel;
-varying float vDepth;varying vec3 vW;varying vec3 vN;
+varying float vDepth;varying vec3 vW;varying vec3 vN;varying float vDl;
 void main(){
  float shore=(1.0-smoothstep(0.0,1.2,aDepth));
  float wave=uMotion*(sin(position.x*.31+uTime)*.62+sin(position.z*.22-uTime*.8)*.36);
@@ -100,11 +100,11 @@ void main(){
  vec3 p=position;p.y+=wave+roll;
  vec3 n=normalize(vec3(uMotion*-cos(position.x*.31+uTime)*.19,1.0,uMotion*-cos(position.z*.22-uTime*.8)*.08));
  vN=normalize(normalMatrix*n);vDepth=aDepth;
- vec4 w=modelMatrix*vec4(p,1.0);vW=w.xyz;
+ vec4 w=modelMatrix*vec4(p,1.0);vW=w.xyz;vDl=length(cameraPosition-w.xyz)/max(length(modelMatrix[0].xyz),1e-4); /* distance in the look's own units */
  gl_Position=projectionMatrix*viewMatrix*w;
 }`;
 const FRAG=`uniform vec3 uSun,uSky,uDeep;uniform float uDay,uTime,uMotion;
-varying float vDepth;varying vec3 vW;varying vec3 vN;
+varying float vDepth;varying vec3 vW;varying vec3 vN;varying float vDl;
 void main(){
  if(vDepth<=-0.02)discard;
  vec3 N=normalize(vN);vec3 V=normalize(cameraPosition-vW);
@@ -119,6 +119,7 @@ void main(){
  float foamLine=vDepth+uMotion*sin(vW.x*.35+uTime)*.28;
  float foam=smoothstep(.55,0.02,foamLine);
  c=mix(c,vec3(.9,.95,.96),foam*.82);
+ c=mix(c,mix(uSky,vec3(.80,.88,.92),.55),smoothstep(25.0,110.0,vDl)*.75); /* Cory Nov 12: far sea fades into the sky horizon (aerial perspective), no saturated cyan band at the skyline */
  float edge=smoothstep(0.0,1.15,max(vDepth,0.0));
  float a=edge*mix(.4,.9,fres);
  c*=a;
