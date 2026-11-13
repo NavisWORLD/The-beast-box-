@@ -1049,3 +1049,44 @@ body[data-one-dock][data-dock-home] .qd-home-row{display:none}
 }
 /* #754 (Cosmo): the Habitat chip sat at top:5%/right:11% of the round cage scene, outside its 50% radius mask, so most of it was clipped and clicks on the clipped part fell through to the scene. Keep it inside the circle. */
 .cage-habitat-visual [data-world-menu=cage]{top:15%;right:17%}
+
+/* ── Nov 7 2026 · phone bottom bar + overlap cleanup (Cory's iPhone shots, Cosmo's bottom-bar-390 spec) ──
+   ONE bottom bar on phones: Share my world · Quick buttons · LOST COSMOS · Sound. The loose share card and the Quick buttons pill
+   fold into it (same controls, same wording; they open as sheets above the bar). Safe-area aware. Desktop is unchanged. */
+.phone-bar{display:none}
+@media (max-width:560px){
+ body[data-has-phone-bar]{--pb-h:60px;--pb-gap:calc(var(--pb-h) + 14px + env(safe-area-inset-bottom,0px));padding-bottom:var(--pb-gap)}
+ body[data-has-phone-bar] .phone-bar{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));position:fixed;z-index:72;left:max(8px,env(safe-area-inset-left,0px));right:max(8px,env(safe-area-inset-right,0px));bottom:calc(6px + env(safe-area-inset-bottom,0px));min-height:var(--pb-h);padding:4px 0;border-radius:20px;background:#121a33f5;border:1px solid #3b4a7acc;box-shadow:0 10px 32px #0009;backdrop-filter:blur(12px)}
+ body[data-has-phone-bar] .phone-bar>*{display:flex;align-items:center;justify-content:center;text-align:center;min-height:48px;margin:0;padding:4px 6px;border:0;border-left:1px solid #3b4a7a99;border-radius:0;background:transparent;color:#e8ecff;font:600 13px/1.25 system-ui,sans-serif;text-decoration:none;cursor:pointer}
+ body[data-has-phone-bar] .phone-bar>*:first-child{border-left:0}
+ body[data-has-phone-bar] .phone-bar>[aria-expanded=true],body[data-has-phone-bar] .phone-bar>[aria-current]{color:#fff3c4}
+ body[data-has-phone-bar] .phone-bar>*:focus-visible{outline:2px solid #b9a6ff;outline-offset:-3px;border-radius:12px}
+ /* the Quick buttons pill and the loose share card are now opened from the bar */
+ body[data-has-phone-bar] .qd-toggle{display:none!important}
+ body[data-has-phone-bar] .quick-dock,body[data-has-phone-bar][data-dock-home] .quick-dock{right:10px!important;left:auto!important;bottom:calc(var(--pb-gap) - 4px)!important;z-index:71!important}
+ body[data-has-phone-bar] .qd-panel{max-height:calc(100dvh - var(--pb-gap) - 90px);overflow:auto;overscroll-behavior:contain}
+ body[data-has-phone-bar] [data-share-world]{display:none!important}
+ body[data-has-phone-bar][data-share-sheet=open] [data-share-world]{display:block!important;left:10px!important;right:10px!important;bottom:calc(var(--pb-gap) - 4px)!important;max-width:none!important;z-index:71!important}
+ body[data-has-phone-bar] [data-share-world][data-share-state=live]{display:block!important;left:10px!important;bottom:calc(var(--pb-gap) - 4px)!important;max-width:200px!important}
+ body[data-has-phone-bar] aside[data-sound-room]{display:none!important}
+ /* full-page living world: its action buttons (Beach view, Spawn in…) sit above the bar */
+ body[data-has-phone-bar] [data-living-world]:not([data-lw-embedded]) [data-lw-actions]{margin-bottom:var(--pb-gap)!important}
+ /* Tiny Universe: the zoom row (+, stage, −, ⌂, ✦) moves to the left under the honesty labels, clear of View / Motion / Quality */
+ [data-u3d-zoom]{top:206px!important;left:12px!important;right:auto!important}
+ [data-u3d-zoom] button{width:32px!important;height:32px!important}
+ /* Home world frame: the narration line moves to the bottom of the frame, clear of the Universe chip and the View chips */
+ .beast-landing-art [data-lw-line],[data-lw-embedded] [data-lw-line]{top:auto!important;bottom:12px!important;max-width:92%!important}
+}
+/* Brain / Workbench chat on phones: a real chat box. The thread scrolls, the composer is pinned to the bottom above the keyboard
+   (visual viewport + safe area), and the global overlays step aside on this page. */
+@media (max-width:850px){
+ body[data-brain-chat]{padding-bottom:0!important}
+ body[data-brain-chat] :is(.phone-bar,.quick-dock,[data-share-world],.site-dock,aside[data-sound-room],[data-zeref-voice-dock],[data-beast-chat-launcher],aside.cosmic-support,[data-spark-player][data-player-mode=minimized],[data-companion-overlay]){display:none!important}
+ body[data-brain-chat] .brain-layout{display:block;min-height:0}
+ body[data-brain-chat] .chat-panel{position:fixed;z-index:10;left:max(8px,env(safe-area-inset-left,0px));right:max(8px,env(safe-area-inset-right,0px));top:calc(var(--vvtop,0px) + 84px);height:calc(var(--vvh,100dvh) - 90px);min-height:0;max-height:none;border-radius:16px}
+ body[data-brain-chat] .chat-top{padding:10px 14px}
+ body[data-brain-chat] .chat-panel>.composer-area{order:3}
+ body[data-brain-chat] .chat-panel>article{order:2;flex:0 0 auto;max-height:22%;overflow-y:auto;overscroll-behavior:contain;margin:0;border-radius:0;border-left:0;border-right:0}
+ body[data-brain-chat] .chat-thread{flex:1 1 auto;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:14px}
+ body[data-brain-chat] .composer-area{flex:0 0 auto;position:sticky;bottom:0;z-index:2;max-height:55%;overflow-y:auto;background:#0f1627;padding:8px 10px calc(8px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--line)}
+}

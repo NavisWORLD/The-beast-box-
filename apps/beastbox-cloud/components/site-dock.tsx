@@ -57,6 +57,13 @@ export default function SiteDock(){
    setCard(prev=>{const next=act?{label:/restore/i.test(act.textContent||'')?'restore':'open',go:()=>act.click()}:null;return (prev?.label||null)===(next?.label||null)?(next?{...prev!,go:next.go}:null):next;});
    setFeed(!!document.querySelector('aside.cosmic-support:not(.is-open) .cosmic-support-launcher'));};
   look();const iv=setInterval(look,900);return()=>clearInterval(iv);},[auto,pathname]);
+ // Nov 7 (Cory's iPhone shots + Cosmo's bottom-bar-390 spec): phones get ONE bottom bar (Share my world · Quick buttons · LOST COSMOS ·
+ // Sound). It drives the very same controls: the share card (share-world.tsx) opens as a sheet above it, the Quick buttons column opens
+ // above it, LOST COSMOS is the same link, Sound is the same switch. Automated suites keep the old layout (the dock is not drawn under navigator.webdriver), as before.
+ const [shareOpen,setShareOpen]=useState(false);
+ useEffect(()=>{if(auto)return;document.body.dataset.hasPhoneBar='1';return()=>{delete document.body.dataset.hasPhoneBar;};},[auto]);
+ useEffect(()=>{if(auto)return;document.body.dataset.shareSheet=shareOpen?'open':'closed';const close=()=>setShareOpen(false);window.addEventListener('beastbox:share-sheet-close',close);return()=>{window.removeEventListener('beastbox:share-sheet-close',close);delete document.body.dataset.shareSheet;};},[auto,shareOpen]);
+ useEffect(()=>{if(open)setShareOpen(false);},[open]);
  if(auto)return null;
  const inCage=pathname==='/'||pathname==='/beast-cage';
  const inGame=pathname.startsWith('/sol-game');
@@ -73,7 +80,14 @@ export default function SiteDock(){
  // Honest: 'Sound on' only once the browser is really playing; before the first tap it says so.
  const soundWord=!soundOn?'Sound off':audible?'Sound on':'Tap for sound';
  const homeSound=<button type="button" className="dock-home-sound" data-home-sound aria-pressed={soundOn} onClick={()=>{if(soundOn&&!audible){audio.unlock();audio.sfx('confirm',{element:'starlight',seedKey:'cosmos-workshop'});}else toggleSound();}} aria-label={soundOn&&!audible?'Tap for sound (plays a test chirp)':`${soundWord}. Tap to turn ${soundOn?'off':'on'}`} title={soundWord}>{soundOn?'🔊':'🔇'}<span>{soundWord}</span></button>;
+ const phoneBar=<nav className="phone-bar" data-phone-bar aria-label="Bottom bar">
+  <button type="button" data-bar-share aria-expanded={shareOpen} aria-controls="share-world-card" onClick={()=>{setShareOpen(v=>!v);setOpen(false);}}>Share my world</button>
+  <button type="button" data-bar-quick aria-expanded={open} aria-controls={open?'quick-dock-panel':undefined} aria-label={open?'Close quick buttons':'Open quick buttons'} onClick={toggle}>{open?'Close':'Quick buttons'}</button>
+  {inGame?<span data-bar-game aria-current="page"><b>LOST COSMOS</b></span>:<Link prefetch={false} href="/sol-game" data-bar-game aria-label="Play Lost COSMOS"><b>LOST COSMOS</b></Link>}
+  <button type="button" data-bar-sound aria-pressed={soundOn} onClick={()=>{if(soundOn&&!audible){audio.unlock();audio.sfx('confirm',{element:'starlight',seedKey:'cosmos-workshop'});}else toggleSound();}} aria-label={soundOn&&!audible?'Tap for sound (plays a test chirp)':`${soundWord}. Tap to turn ${soundOn?'off':'on'}`}>{soundWord}</button>
+ </nav>;
  return <>
+ {phoneBar}
  {/* Desktop and tablets keep the original compact pill; phones use the column below. */}
  <nav className="site-dock" aria-label="Quick dock" data-site-dock={open?'open':'closed'}>
   <button type="button" onClick={e=>window.dispatchEvent(new CustomEvent('beastbox:open-chat',{detail:{opener:e.currentTarget}}))} aria-label={`Talk to ${short}`}>💬<span>{name&&name!=='your beast'?`Talk to ${name}`:'Talk'}</span></button>
