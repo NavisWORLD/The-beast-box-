@@ -42,6 +42,12 @@ MAX_TEXT_WITH_CONTEXT = 1200
 # under the served model's 2048-token context even at one token per byte.
 MAX_ASSEMBLED_BYTES = 1900
 MAX_REPLAY_MESSAGES = 28  # the model server accepts at most 32 messages
+# Prompt replay window: the trained served shape carries 1-3 prior exchanges
+# (scripts/zeref_served_shape.py), so only the most recent 3 exchanges are
+# replayed into the prompt. The store keeps the full thread and the archive
+# keeps everything; this caps only what the mouth is asked to continue, so
+# his own past fragment replies stop dominating the context he answers from.
+SERVED_REPLAY_MESSAGES = 6
 # Reserved host descriptor. Not a client context field. The caps above stay put.
 MAX_DESCRIPTOR_BYTES = 1200
 MAX_TURNS = 40
@@ -113,13 +119,15 @@ def assemble_messages(context: dict, history: list[dict], text: str) -> list[dic
     continuity field and the guest's current text are never cut.
     """
     fields = [context[name] for name in CONTEXT_ORDER if context.get(name)]
-    hist = list(history)
+    hist = list(history)[-SERVED_REPLAY_MESSAGES:]
+    while hist and hist[0]["role"] != "user":  # replay starts with the guest's words
+        hist = hist[1:]
 
     def build() -> list[dict]:
         msgs = []
         if fields:
             msgs.append({"role": "system", "content": "\n".join(fields)})
-        msgs.extend(hist[-MAX_REPLAY_MESSAGES:])
+        msgs.extend(hist[-SERVED_REPLAY_MESSAGES:])
         msgs.append({"role": "user", "content": text})
         return msgs
 
@@ -173,13 +181,15 @@ def assemble_lived_messages(context: dict, history: list[dict], text: str, descr
     ):
         return {"messages": plain, "omitted_current_text_bytes": 0, "descriptor_included": False}
     fields = [context[name] for name in CONTEXT_ORDER if context.get(name)]
-    hist = list(history)
+    hist = list(history)[-SERVED_REPLAY_MESSAGES:]
+    while hist and hist[0]["role"] != "user":  # replay starts with the guest's words
+        hist = hist[1:]
 
     def build(user_text: str) -> list[dict]:
         msgs = [{"role": "system", "content": descriptor}]
         if fields:
             msgs.append({"role": "system", "content": "\n".join(fields)})
-        msgs.extend(hist[-MAX_REPLAY_MESSAGES:])
+        msgs.extend(hist[-SERVED_REPLAY_MESSAGES:])
         msgs.append({"role": "user", "content": user_text})
         return msgs
 
