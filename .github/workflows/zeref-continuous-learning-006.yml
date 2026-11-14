@@ -301,6 +301,23 @@ jobs:
           # 2026-10-22: Zeref's own experiences (bb-deada969 diary, training cycles, this capture, universe genesis), capped 5%.
           python -u scripts/zeref_experience_rows.py build/zeref-006/chat-mix.jsonl build/zeref-006/experiences.jsonl build/zeref-006/inputs/native-evidence-manifest.json
           python -c "import json;m=json.load(open('build/zeref-006/chat-mix.manifest.json'));print('ZEREF_INGEST_BY_SOURCE='+json.dumps({'rows':m.get('rows'),'teacher_distill':m.get('teacher_distill',{}).get('rows'),'experience':m.get('experience_rows',{}).get('by_kind'),'extra':m.get('extra_sources',{}).get('rows_by_source'),'music_001':m.get('music_rows'),'warm_001':m.get('warm_rows'),'dad_voice':m.get('dad_voice_rows'),'knowledge':m.get('knowledge_rows'),'served_shape':m.get('served_shape')}),flush=True)"
+      - name: Zeref chooses chats (scrubbed self-learn rows into the 006 mix)
+        # Cory, 2026-11-12 11:10 PM CT: chatting should teach him. Fail open.
+        # Transport: data-only zeref-self-learn branch, then optional authenticated export.
+        # Zeref picks with zeref_self_select; rows train only through the fair gate.
+        # Stdout is counts only; candidate text is never printed. Pin, eval, G1–G10 unchanged.
+        env:
+          ZEREF_SELF_LEARN_EXPORT_URL: ${{ secrets.ZEREF_SELF_LEARN_EXPORT_URL }}
+          ZEREF_SELF_LEARN_EXPORT_TOKEN: ${{ secrets.ZEREF_SELF_LEARN_EXPORT_TOKEN }}
+        run: |
+          set -Eeuo pipefail
+          python scripts/zeref_self_learn_join.py \
+            --mix build/zeref-006/chat-mix.jsonl \
+            --out build/zeref-006/chat-mix.jsonl \
+            --checkpoint "${BEAST_006_PARENT_PATH}" \
+            --branch-url "https://raw.githubusercontent.com/${{ github.repository }}/zeref-self-learn/candidates.jsonl" \
+            --export-url "${ZEREF_SELF_LEARN_EXPORT_URL:-}" \
+            --receipt build/zeref-006/self-learn-join.json || echo 'ZEREF_SELF_LEARN_JOIN_UNAVAILABLE (continuing without it)'
       - name: Free pretraining slice (TinyStories past the first 50k, CDLA-Sharing-1.0, rotated per run)
         run: |
           set -Eeuo pipefail

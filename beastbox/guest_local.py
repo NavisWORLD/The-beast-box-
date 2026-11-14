@@ -349,8 +349,8 @@ def guest_local_infer(root: Path, payload: dict, *, owner_jobs_busy: bool = Fals
                       and archived_after == archived_before + 2)
         persisted = store is not None
         # BEASTBOX_SELF_LEARN=on (default off): this turn becomes a scrubbed CANDIDATE; Zeref picks at training time.
-        learn = self_learn.record(root, scope="guest", user=payload["text"].strip(), reply=text, step=STEP,
-                                  heart=heart_receipt) if self_learn.enabled() else None
+        learn = self_learn.maybe_record(root, scope="guest", user=payload["text"].strip(), reply=text, step=STEP,
+                                        heart=heart_receipt)
         return 200, {"schema": SCHEMA, "model": MODEL, "step": STEP,
                      "checkpoint_sha256": SHA, "reply": text,
                      # True only when a persisted thread actually fed this reply.

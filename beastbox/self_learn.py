@@ -56,6 +56,7 @@ _PII = [
 # Proper nouns that are Zeref's own world, not people. Everything else capitalised mid-sentence is
 # treated as a possible person's name and replaced.
 _WORLD = frozenset({"Zeref", "Moonwraith", "RAWRPHOS", "NavisWORLD", "Beast", "Box", "Cosmos", "Rigetti", "IBM",
+                    "Cory", "Emeth",
                     "I", "I'm", "I'll", "I've", "I'd", "OK", "Okay", "God", "Earth", "Moon", "Sun", "Mars", "Raven",
                     "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday", "English"})
 _CAP = re.compile(r"(?<![.!?]\s)(?<!^)(?<![.!?])\b([A-Z][a-z]{1,})\b")
@@ -145,3 +146,118 @@ def export(root: Path, since_id: int = 0) -> list[dict[str, Any]]:
     with _db(root) as db:
         rows = db.execute("SELECT id,at,payload FROM candidates WHERE id>? ORDER BY id", (since_id,)).fetchall()
     return [{"id": i, "at": at, **json.loads(p)} for i, at, p in rows]
+
+
+def maybe_record(root: Path, *, scope: str, user: str, reply: str, step: int | None = None,
+                 heart: Mapping[str, Any] | None = None) -> dict[str, Any] | None:
+    """Record one candidate when the flag is on and the reply is real. Returns the public receipt or None."""
+    if not enabled():
+        return None
+    if not isinstance(user, str) or not isinstance(reply, str) or not user.strip() or not reply.strip():
+        return None
+    receipt = record(root, scope=scope, user=user, reply=reply, step=step, heart=heart)
+    if receipt.get("candidate"):
+        try:
+            schedule_publish(root)
+        except Exception:
+            pass
+    return receipt
+
+
+def export_payload(root: Path, since_id: int = 0) -> dict[str, Any]:
+    """Authenticated export body: scrubbed candidates only, never secrets or un-scrubbed text."""
+    rows = export(root, since_id=since_id)
+    return {"schema": SCHEMA, "count": len(rows), "since_id": since_id,
+            "last_id": rows[-1]["id"] if rows else since_id, "candidates": rows,
+            "disclosure": DISCLOSURE, "pin_written": False}
+
+
+def dump_jsonl(root: Path, path: Path, since_id: int = 0) -> int:
+    """Write scrubbed candidates as JSONL (append-safe overwrite of the snapshot file). Returns the count."""
+    rows = export(root, since_id=since_id)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("".join(json.dumps(r, ensure_ascii=False, sort_keys=True) + "\n" for r in rows))
+    return len(rows)
+
+
+_PUBLISH_LOCK = False
+
+
+def schedule_publish(root: Path) -> None:
+    """Best-effort, non-blocking publish to the data-only branch. Fail open. Never logs a token."""
+    global _PUBLISH_LOCK
+    if _PUBLISH_LOCK:
+        return
+    # Only when explicitly on. Never fall back to a generic GITHUB_TOKEN, so a
+    # laptop or CI job cannot publish by accident.
+    if os.environ.get("ZEREF_SELF_LEARN_PUBLISH", "off") != "on":
+        return
+    token = (os.environ.get("ZEREF_SELF_LEARN_PUBLISH_TOKEN")
+             or os.environ.get("BEASTBOX_GITHUB_DISPATCH_TOKEN"))
+    if not token:
+        return
+    _PUBLISH_LOCK = True
+
+    def _run():
+        global _PUBLISH_LOCK
+        try:
+            publish_to_github(root, token)
+        except Exception:
+            pass
+        finally:
+            _PUBLISH_LOCK = False
+
+    import threading
+    threading.Thread(target=_run, name="zeref-self-learn-publish", daemon=True).start()
+
+
+def publish_to_github(root: Path, token: str, *, repo: str | None = None, branch: str = "zeref-self-learn",
+                      opener=None) -> dict[str, Any]:
+    """Append-only snapshot of already-scrubbed candidates to a data-only branch. Counts only in the result."""
+    import base64
+    repo = repo or os.environ.get("GITHUB_REPOSITORY") or "NavisWORLD/The-beast-box-"
+    rows = export(root)
+    body = "".join(json.dumps(r, ensure_ascii=False, sort_keys=True) + "\n" for r in rows)
+    encoded = base64.b64encode(body.encode()).decode("ascii")
+    opener = opener or urllib_opener()
+    api = f"https://api.github.com/repos/{repo}/contents/candidates.jsonl"
+    # Ensure the data-only branch exists (from main SHA). Fail open on any error.
+    sha_main = _gh_json(opener, token, f"https://api.github.com/repos/{repo}/git/ref/heads/main")
+    main_sha = ((sha_main or {}).get("object") or {}).get("sha")
+    if main_sha and not _gh_json(opener, token, f"https://api.github.com/repos/{repo}/git/ref/heads/{branch}"):
+        _gh_json(opener, token, f"https://api.github.com/repos/{repo}/git/refs", method="POST",
+                 payload={"ref": f"refs/heads/{branch}", "sha": main_sha})
+        readme = ("# Zeref self-learn (data only)\n\nAppend-only, already PII-scrubbed candidates "
+                  "for the 006 chat mix. Vercel deploys should stay disabled on this branch. [skip ci]\n")
+        _gh_json(opener, token, f"https://api.github.com/repos/{repo}/contents/README.md", method="PUT",
+                 payload={"message": "zeref self-learn: init [skip ci]", "content": base64.b64encode(readme.encode()).decode("ascii"),
+                          "branch": branch})
+    existing = _gh_json(opener, token, api + f"?ref={branch}") or {}
+    payload = {"message": "zeref self-learn: snapshot [skip ci]", "content": encoded, "branch": branch}
+    if isinstance(existing.get("sha"), str):
+        payload["sha"] = existing["sha"]
+    written = _gh_json(opener, token, api, method="PUT", payload=payload)
+    return {"ok": bool(written), "count": len(rows), "branch": branch, "pin_written": False}
+
+
+def urllib_opener():
+    import urllib.request
+    return urllib.request.urlopen
+
+
+def _gh_json(opener, token, url, method="GET", payload=None):
+    import urllib.error
+    import urllib.request
+    headers = {"Authorization": "Bearer " + token, "Accept": "application/vnd.github+json",
+               "X-GitHub-Api-Version": "2022-11-28", "User-Agent": "zeref-self-learn"}
+    data = None if payload is None else json.dumps(payload).encode()
+    if data is not None:
+        headers["Content-Type"] = "application/json"
+    req = urllib.request.Request(url, data=data, headers=headers, method=method)
+    try:
+        with opener(req, timeout=20) as resp:
+            raw = resp.read()
+        return json.loads(raw.decode()) if raw else {}
+    except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, ValueError, OSError, json.JSONDecodeError):
+        return None
+

@@ -27,3 +27,9 @@ test('galaxy creature art is preserved while the site icon moves to the Cosmic F
  assert.doesNotMatch(manifest,/beast-icon\.svg/);
  assert.match(layout,/BRAND_ICONS\.apple180/);
 });
+test('talk page discloses that chats may be learned from',()=>{
+ const talk=read('components/beast-cage-talk.tsx');
+ assert.match(talk,/data-self-learn-disclosure/);
+ assert.match(talk,/Zeref may learn from this chat \(personal info removed\)/);
+ assert.match(talk,/fair gate/);
+});
