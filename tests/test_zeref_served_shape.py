@@ -99,10 +99,29 @@ class ServedShapeTest(unittest.TestCase):
             self.assertLessEqual(len(prior_users), 3)
             self.assertIn("step %s" % recorded["pin_step"], "\n".join(m["content"] for m in messages if m["role"] == "system"))
 
+    def test_guest_surface_trains_the_exact_isolated_descriptor(self):
+        from beastbox.lived_prompt import guest_view
+        from scripts.zeref_served_shape import build_messages
+
+        recorded = _recorded()
+        row = {"user": "Short question?", "assistant": "Short answer."}
+        messages = build_messages(
+            row, [("earlier question", "earlier answer")], recorded, _encode, guest=True
+        )
+        self.assertIsNotNone(messages)
+        self.assertEqual(messages[0]["role"], "system")
+        self.assertEqual(messages[0]["content"], guest_view("test-guest").descriptor)
+        body = json.loads(messages[0]["content"])
+        self.assertEqual(body["schema"], "lived-state-descriptor-v1")
+        self.assertEqual(body["status"], "unavailable")
+        self.assertEqual(body["reason"], "isolated")
+        self.assertNotIn("state12", body)
+
     def test_token_cap_drops_prior_turns_before_preface_fields(self):
         def priced(text, add_bos=False, add_eos=False):
             # The full absent-channel descriptor does not fit; the state12 object does.
-            count = 400 if '"channels"' in text else max(1, len(text) // 8)
+            # (Priced above the 512 token cap so the drop order is exercised.)
+            count = 800 if '"channels"' in text else max(1, len(text) // 8)
             return [0] * (count + int(add_bos) + int(add_eos))
 
         recorded = _recorded()
@@ -126,9 +145,11 @@ class ServedShapeTest(unittest.TestCase):
     def test_last_prior_drops_before_the_recorded_state(self):
         def tight(text, add_bos=False, add_eos=False):
             if '"channels"' in text:
-                count = 500
+                # Priced above the 512 token cap so the drop order is exercised.
+                count = 900
             elif "earlier question" in text:
-                count = 300
+                # Also above the 512 cap, so the last prior must drop.
+                count = 600
             else:
                 count = 80
             return [0] * (count + int(add_bos) + int(add_eos))
@@ -179,7 +200,7 @@ class ServedShapeTest(unittest.TestCase):
         apply_served_shape(first, forbidden, recorded, _encode)
         apply_served_shape(second, forbidden, recorded, _encode)
         self.assertEqual(first, second)
-        self.assertEqual(FRACTION, 0.15)
+        self.assertEqual(FRACTION, 0.5)
         self.assertNotEqual(SELECTION_SEED, "zeref-gate-v2-20261023")
         again = row_selected(first[0], SELECTION_SEED, FRACTION)
         self.assertEqual(again, row_selected(dict(first[0]), SELECTION_SEED, FRACTION))
@@ -216,7 +237,12 @@ class PerRowRecordedStateTest(unittest.TestCase):
         self.assertEqual(field["state12"]["decimals"], 2)
         for row in rows:
             if row.get("served_shape"):
-                self.assertRegex(row["state12_source"], r"^evidence/.+routing-trace\.jsonl#L\d+$")
+                if row.get("descriptor_surface") == "guest-isolated":
+                    body = json.loads(row["messages"][0]["content"])
+                    self.assertEqual(body["reason"], "isolated")
+                    self.assertNotIn("state12", body)
+                else:
+                    self.assertRegex(row["state12_source"], r"^evidence/.+routing-trace\.jsonl#L\d+$")
 
     def test_rounded_descriptor_is_small_on_the_site_tokenizer(self):
         from scripts.zeref_served_shape import STATE_DECIMALS, load_training_encoder, row_state
