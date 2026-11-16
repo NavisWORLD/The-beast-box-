@@ -3,8 +3,11 @@
 
 The trainer's plain row is `user: Q\\nassistant: A`. The mouth sends a system
 preface, then earlier turns, then the question (models/rawrphos/inference/server.py).
-About 15% of existing authored rows are rebuilt in that shape. The preface uses
-only recorded pin, diary, and 12D engine values. Loss stays on the final answer.
+About half of existing authored rows are rebuilt in that shape. The preface uses
+only recorded pin, diary, and 12D engine values. A seeded half of the rebuilt
+rows carry the exact isolated descriptor the public guest door serves
+(beastbox.lived_prompt.guest_view), so the mouth trains on the lead-in every
+guest prompt actually starts with. Loss stays on the final answer.
 Heldout, gate, and eval prompts never enter the source or the prior-turn pool.
 """
 from __future__ import annotations
@@ -14,9 +17,15 @@ import json
 import os
 from pathlib import Path
 
-FRACTION = 0.15
+FRACTION = 0.50
 SELECTION_SEED = "zeref-served-shape-v1"
-TOKEN_CAP = 256
+TOKEN_CAP = 512
+# Seeded share of served-shape rows rebuilt with the public guest door's exact
+# isolated descriptor instead of a recorded state12 descriptor (2026-11-16:
+# the guest surface appeared in zero training rows while opening every
+# production guest prompt).
+GUEST_DESCRIPTOR_FRACTION = 0.5
+GUEST_DESCRIPTOR_SEED = "zeref-served-shape-guest-v1"
 PIN_PATH = Path("apps/beastbox-cloud/lib/rawrphos-public-pin.json")
 DIARY_PATH = Path("evidence/rawrphos-closed-loop-002/zeref-diary-ticks-1-18.jsonl")
 DYN12_PATH = Path("apps/beastbox-cloud/public/spark/zeref-live-20261010/unsigned-session.json")
@@ -47,6 +56,12 @@ def row_selected(row, seed=SELECTION_SEED, fraction=FRACTION):
 def prior_turn_count(row, seed=SELECTION_SEED):
     key = "%s\nprior\n%s\n%s" % (seed, row.get("source") or "", row.get("user") or "")
     return 1 + (_hash_int(key) % 3)
+
+
+def guest_surface(row, seed=GUEST_DESCRIPTOR_SEED):
+    """Seeded hash choice: this served-shape row trains the guest door's surface."""
+    key = "%s\n%s\n%s" % (seed, row.get("source") or "", row.get("user") or "")
+    return (_hash_int(key) / float(2**64)) < GUEST_DESCRIPTOR_FRACTION
 
 
 def render_prompt(messages):
@@ -349,7 +364,7 @@ def _fits(messages, answer, encode, limit):
     return count <= limit
 
 
-def build_messages(row, priors, recorded, encode, limit=TOKEN_CAP):
+def build_messages(row, priors, recorded, encode, limit=TOKEN_CAP, guest=False):
     """Mouth-format messages that fit the token cap.
 
     Extra prior turns drop first. Optional preface fields drop next: the
@@ -357,11 +372,17 @@ def build_messages(row, priors, recorded, encode, limit=TOKEN_CAP):
     line. The last prior turn drops before the recorded state12. The constant
     `changes_model_tensors` flag drops before `state12` itself, and the identity
     line drops last.
+
+    With guest=True the descriptor is the public guest door's exact lead-in
+    (lived_prompt.guest_view): an unavailable record, reason "isolated".
     """
     from beastbox.hashutil import canonical_json
-    state12, _source = row_state(row, recorded)
-    decimals = STATE_DECIMALS if recorded.get("state_bank") else None
-    exact = descriptor_from_recorded(state12, recorded.get("sequence"), decimals)
+    if guest:
+        exact = _unavailable("isolated")
+    else:
+        state12, _source = row_state(row, recorded)
+        decimals = STATE_DECIMALS if recorded.get("state_bank") else None
+        exact = descriptor_from_recorded(state12, recorded.get("sequence"), decimals)
     parsed = json.loads(exact)
     diary = list(recorded.get("diary") or [])
     pin_step = recorded["pin_step"]
@@ -472,6 +493,7 @@ def apply_served_shape(rows, forbidden, recorded, encode, seed=SELECTION_SEED, f
     for index, row in enumerate(rows):
         by_source.setdefault(row.get("source") or "", []).append(index)
     kept = 0
+    guest_rows = 0
     states_used, priors_kept = set(), []
     for index, row in enumerate(rows):
         user = row.get("user") or ""
@@ -486,7 +508,8 @@ def apply_served_shape(rows, forbidden, recorded, encode, seed=SELECTION_SEED, f
         priors = _earlier_priors(rows, by_source.get(row.get("source") or "", []), index, forbidden, count)
         if not priors:
             continue
-        messages = build_messages(row, priors, recorded, encode, limit)
+        guest = guest_surface(row)
+        messages = build_messages(row, priors, recorded, encode, limit, guest=guest)
         if messages is None:
             continue
         if any(_norm(message.get("content")) in forbidden and message.get("role") == "user" for message in messages):
@@ -494,10 +517,14 @@ def apply_served_shape(rows, forbidden, recorded, encode, seed=SELECTION_SEED, f
         updated = dict(row)
         updated["served_shape"] = True
         updated["messages"] = messages
-        _state, state_source = row_state(row, recorded)
-        if state_source:
-            updated["state12_source"] = state_source
-            states_used.add(state_source)
+        updated["descriptor_surface"] = "guest-isolated" if guest else "recorded"
+        if guest:
+            guest_rows += 1
+        else:
+            _state, state_source = row_state(row, recorded)
+            if state_source:
+                updated["state12_source"] = state_source
+                states_used.add(state_source)
         priors_kept.append(sum(1 for m in messages if m.get("role") == "assistant"))
         rows[index] = updated
         kept += 1
@@ -506,6 +533,8 @@ def apply_served_shape(rows, forbidden, recorded, encode, seed=SELECTION_SEED, f
         "fraction": fraction,
         "selection_seed": seed,
         "rows": kept,
+        "guest_descriptor_rows": guest_rows,
+        "guest_descriptor_fraction": GUEST_DESCRIPTOR_FRACTION,
         "token_cap": limit,
         "loss": "final assistant answer only",
         "state12": {
