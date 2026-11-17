@@ -24,6 +24,8 @@ SECRET_NAMES = (
     "GITHUB_TOKEN",
     "GH_TOKEN",
     "BEASTBOX_SEAL_PASSPHRASE",
+    "ZEREF_SELF_LEARN_PUBLISH_TOKEN",
+    "BEASTBOX_GITHUB_DISPATCH_TOKEN",
 )
 
 
@@ -44,6 +46,8 @@ def _configured_secret_values() -> dict[str, str]:
         "GITHUB_TOKEN": os.environ.get("GITHUB_TOKEN", ""),
         "GH_TOKEN": os.environ.get("GH_TOKEN", ""),
         "BEASTBOX_SEAL_PASSPHRASE": os.environ.get("BEASTBOX_SEAL_PASSPHRASE", ""),
+        "ZEREF_SELF_LEARN_PUBLISH_TOKEN": os.environ.get("ZEREF_SELF_LEARN_PUBLISH_TOKEN", ""),
+        "BEASTBOX_GITHUB_DISPATCH_TOKEN": os.environ.get("BEASTBOX_GITHUB_DISPATCH_TOKEN", ""),
     }
 
 

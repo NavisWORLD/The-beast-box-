@@ -27,6 +27,7 @@ from .activation_queue import ActivationEngine
 from .cypher.workspace import FULL_REPLACEMENT_DIFF_HEADER, Workspace
 from .durable import DurableRuntime
 from .lived_exchange import speak_owner
+from . import self_learn
 from .semantic_retrieval import EmbeddingProvider
 from .optional_resources import ResourceUnavailable, quantum_event
 from .portable_state import import_snapshot, verify_snapshot
@@ -313,6 +314,10 @@ class CosmicApp:
                 self.root, text, lambda: runtime.respond(text, transient_context=context),
                 now_ms=int(time.time() * 1000),
             )
+            learn = self_learn.maybe_record(
+                Path(self.root), scope="owner", user=text.strip(),
+                reply=(result.get("reply") or "") if isinstance(result, dict) else "",
+            )
             after = runtime.inspect()
         finally:
             runtime.close()
@@ -324,6 +329,7 @@ class CosmicApp:
             "context_used": ids,
             "response_persistent": not bool(context),
             "result": result,
+            **({"self_learn": learn} if learn is not None else {}),
             "runtime": after,
             "brain_changed": changed,
             "authority_revoked": revoked,

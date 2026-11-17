@@ -51,7 +51,7 @@ from beastbox.signal_model_probe import signal_model_probe
 from beastbox.soul.archive_summary import archive_manifest
 
 MAX_BYTES = 256_000
-GET_ALLOW = frozenset({"orbit", "memory", "trace", "provider", "conversation", "storage", "context", "connections", "bio", "chat-job", "observations", "models", "model-inventory", "hf-model-inventory", "engine-growth", "engine-loop", "activation", "sensorium"})
+GET_ALLOW = frozenset({"orbit", "memory", "trace", "provider", "conversation", "storage", "context", "connections", "bio", "chat-job", "observations", "models", "model-inventory", "hf-model-inventory", "engine-growth", "engine-loop", "activation", "sensorium", "self-learn-export"})
 POST_ALLOW = frozenset({"chat", "chat-start", "context", "connections", "bio", "observations", "models", "azure-read", "guest-local", "guest-growing", "cns-model-probe", "signal-model-probe", "activation", "authority", "features", "sensorium"})
 _SENSOR_ID = re.compile(r"^[a-z0-9][a-z0-9_-]{0,63}$")
 _SENSOR_FORBIDDEN = frozenset({
@@ -784,7 +784,7 @@ class OwnerBridge:
         ):
             return 401, {"error": "unauthorized"}
         parsed = urllib.parse.urlsplit(path)
-        if parsed.fragment or (parsed.query and not (method == "GET" and parsed.path == "/api/chat-job")):
+        if parsed.fragment or (parsed.query and not (method == "GET" and parsed.path in ("/api/chat-job", "/api/self-learn-export"))):
             return 404, {"error": "unsupported route"}
         if not parsed.path.startswith("/api/"):
             return 404, {"error": "unsupported route"}
@@ -830,6 +830,22 @@ class OwnerBridge:
                          "status": "PUBLIC_MODEL_LIST_ONLY",
                          "credential_reused": True, "account_access_verified": False,
                          "inference_attested": False, "model_invoked": False}
+        if name == "self-learn-export" and method == "GET":
+            query = urllib.parse.parse_qs(parsed.query, keep_blank_values=True)
+            since = 0
+            if "since_id" in query:
+                if set(query) != {"since_id"} or len(query["since_id"]) != 1:
+                    return 400, {"error": "invalid self-learn export query"}
+                try:
+                    since = int(query["since_id"][0])
+                except ValueError:
+                    return 400, {"error": "invalid self-learn export query"}
+                if since < 0:
+                    return 400, {"error": "invalid self-learn export query"}
+            elif query:
+                return 400, {"error": "invalid self-learn export query"}
+            from beastbox import self_learn
+            return 200, self_learn.export_payload(self.root, since_id=since)
         if name == "chat-job" and method == "GET":
             query = urllib.parse.parse_qs(parsed.query, keep_blank_values=True)
             if set(query) != {"id"} or len(query["id"]) != 1:
