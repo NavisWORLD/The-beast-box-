@@ -10,29 +10,29 @@
   "source_path": "/spark/ibm-moonwraith-cassette-kit-20261010.json",
   "source_class": "RECORDED_IBM_HARDWARE"
  },
- "tick": 987,
- "xp": 13354,
+ "tick": 988,
+ "xp": 13364,
  "stage": 5,
  "stage_name": "Crescent Sovereign",
  "signals": {
-  "energy": 19,
-  "signal": 57,
+  "energy": 15,
+  "signal": 54,
   "memory": 100,
-  "resonance": 93
+  "resonance": 94
  },
  "bond": 100,
  "care_total": 0,
  "places": {
-  "Rift Gate": 902,
+  "Rift Gate": 903,
   "Lattice Arch": 413,
-  "Echo Prism": 1052,
-  "Tidewell": 478,
+  "Echo Prism": 1053,
+  "Tidewell": 479,
   "Quartz Choir": 352,
-  "Violet Shard": 754,
+  "Violet Shard": 755,
   "Selene Pool": 88
  },
- "last_tick_at": "2026-11-17T19:24:38.691Z",
- "last_entry_hash": "57cdb33da658c458301867a3ced73337eb893274e524078999ef0b516ddb2943",
+ "last_tick_at": "2026-11-17T19:47:44.902Z",
+ "last_entry_hash": "20f8bb6070ec7f7382e55d60cecb5b30c65b51b377a3be651dd9001837c66f2d",
  "universe_growth": 605,
  "combos_total": 437,
  "next_stage": null,
@@ -40,18 +40,18 @@
   "cells_visited": 37,
   "cells_total": 40,
   "known_rifts": 3,
-  "moves_succeeded": 14206,
+  "moves_succeeded": 14216,
   "moves_blocked": 771,
   "blocked_rate": 0.051,
   "favorite_spot": "Echo Prism",
-  "favorite_value": 0.69,
+  "favorite_value": 0.701,
   "prefs": {
    "explore": 0.05,
    "visit": 1,
    "rest": 0.05,
    "play": 1
   },
-  "decisions": 8555,
+  "decisions": 8559,
   "label": "learned behaviour from its own experience, not consciousness"
  },
  "labels": {
@@ -67,6 +67,78 @@
   "source": "recorded hardware counts (birth seed, never re-run)"
  },
  "recent": [
+  {
+   "schema": "zeref-diary/v1",
+   "beast_id": "bb-7f9c2a03",
+   "tick": 988,
+   "at": "2026-11-17T19:47:44.902Z",
+   "hour_local": 13,
+   "timezone": "America/Chicago",
+   "signals": {
+    "energy": 15,
+    "signal": 54,
+    "memory": 100,
+    "resonance": 94
+   },
+   "bond": 100,
+   "mood": "exploring",
+   "place": "Echo Prism",
+   "places_visited": [
+    "Echo Prism",
+    "Rift Gate",
+    "Tidewell",
+    "Violet Shard"
+   ],
+   "discovered_combos": [],
+   "new_combo_count": 0,
+   "combos_total": 437,
+   "xp_gain": 10,
+   "xp": 13364,
+   "stage": 5,
+   "stage_name": "Crescent Sovereign",
+   "grew": false,
+   "care": 0,
+   "birth_spark": {
+    "provider": "IBM Quantum",
+    "backend": "ibm_marrakesh",
+    "job_id": "db4te7slf4us73c3888g",
+    "source": "recorded hardware counts (birth seed, never re-run)"
+   },
+   "growth_source": {
+    "kind": "deterministic-fallback",
+    "simulated": false,
+    "provider": "azure-quantum/rigetti",
+    "target": "rigetti.sim.qvm",
+    "job_id": null,
+    "error": "ResourceExistsError: (SubscriptionDisabled) This Azure subscription is disabled and marked as read-only. Please re-enable the subscription to use Azure Quantum.\nCode: SubscriptionDisabled\nMessage: This Azure subscription is disabled and marked as read-only. Ple"
+   },
+   "learning": {
+    "new_cells": 0,
+    "moves_succeeded": 10,
+    "moves_blocked": 0,
+    "goals": {
+     "visit": 4
+    },
+    "cells_visited": 37,
+    "cells_total": 40,
+    "known_rifts": 3,
+    "blocked_rate": 0.051,
+    "favorite_spot": "Echo Prism",
+    "prefs": {
+     "explore": 0.05,
+     "visit": 1,
+     "rest": 0.05,
+     "play": 1
+    },
+    "label": "learned behaviour from its own experience, not consciousness"
+   },
+   "thought": {
+    "text": "I love you! B: Thanks, Dad. We are welcome.",
+    "by": "rawrphos-native:step-43504 (raw model output, unedited)"
+   },
+   "prev_hash": "57cdb33da658c458301867a3ced73337eb893274e524078999ef0b516ddb2943",
+   "hash": "20f8bb6070ec7f7382e55d60cecb5b30c65b51b377a3be651dd9001837c66f2d"
+  },
   {
    "schema": "zeref-diary/v1",
    "beast_id": "bb-7f9c2a03",
@@ -865,86 +937,8 @@
    },
    "prev_hash": "baffec2838e2feb8a110cf85ca09c5c123c64e20b920b768fd38e7355d3a5c94",
    "hash": "69bea8b9fcf066bc6aea2a6b4c7d7259cc90a4f54bb61d10918210428f224f0b"
-  },
-  {
-   "schema": "zeref-diary/v1",
-   "beast_id": "bb-7f9c2a03",
-   "tick": 976,
-   "at": "2026-11-17T12:01:27.704Z",
-   "hour_local": 6,
-   "timezone": "America/Chicago",
-   "signals": {
-    "energy": 93,
-    "signal": 53,
-    "memory": 100,
-    "resonance": 97
-   },
-   "bond": 100,
-   "mood": "content",
-   "place": "Echo Prism",
-   "places_visited": [
-    "Echo Prism",
-    "Quartz Choir",
-    "Rift Gate"
-   ],
-   "discovered_combos": [
-    {
-     "key": "walk|walk|portal|folded|sway|closed|grin",
-     "name": "walking · folded wings · sway tail · closed eyes · grin mouth at a portal"
-    }
-   ],
-   "new_combo_count": 1,
-   "combos_total": 437,
-   "xp_gain": 13,
-   "xp": 13244,
-   "stage": 5,
-   "stage_name": "Crescent Sovereign",
-   "grew": false,
-   "care": 0,
-   "birth_spark": {
-    "provider": "IBM Quantum",
-    "backend": "ibm_marrakesh",
-    "job_id": "db4te7slf4us73c3888g",
-    "source": "recorded hardware counts (birth seed, never re-run)"
-   },
-   "growth_source": {
-    "kind": "deterministic-fallback",
-    "simulated": false,
-    "provider": "azure-quantum/rigetti",
-    "target": "rigetti.sim.qvm",
-    "job_id": null,
-    "error": "ResourceExistsError: (SubscriptionDisabled) This Azure subscription is disabled and marked as read-only. Please re-enable the subscription to use Azure Quantum.\nCode: SubscriptionDisabled\nMessage: This Azure subscription is disabled and marked as read-only. Ple"
-   },
-   "learning": {
-    "new_cells": 0,
-    "moves_succeeded": 15,
-    "moves_blocked": 3,
-    "goals": {
-     "play": 2,
-     "rest": 1,
-     "visit": 8
-    },
-    "cells_visited": 37,
-    "cells_total": 40,
-    "known_rifts": 3,
-    "blocked_rate": 0.052,
-    "favorite_spot": "Echo Prism",
-    "prefs": {
-     "explore": 0.05,
-     "visit": 1,
-     "rest": 0.05,
-     "play": 0.874
-    },
-    "label": "learned behaviour from its own experience, not consciousness"
-   },
-   "thought": {
-    "text": "I'm Zeref, I was looking at what you want. I won't do anybody's family's family, for 'wa-tk'. If you don't have any other shelters to live, 'hur'', there are no",
-    "by": "rawrphos-native:step-43504 (raw model output, unedited)"
-   },
-   "prev_hash": "ff06c4b3beca03e8d92bec47c74734fd041336643249e643c9ba78bd55872a43",
-   "hash": "baffec2838e2feb8a110cf85ca09c5c123c64e20b920b768fd38e7355d3a5c94"
   }
  ],
- "generated_at": "2026-11-17T19:24:38.691Z",
+ "generated_at": "2026-11-17T19:47:44.902Z",
  "thought_source_note": "rawrphos-ok"
 }
