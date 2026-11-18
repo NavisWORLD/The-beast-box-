@@ -169,7 +169,7 @@ test('resume parent must chain to the pin; the gate bar stays the pin re-score',
  assert.ok(t.includes('chat_bar=max(.01,original_chat)'));
  assert.ok(t.includes('CHAT_A_TOLERANCE=0.005')&&t.includes('CHAT_B_TOLERANCE=0.005'));
  assert.match(w,/ZEREF_006_CANDIDATES: '4'/);
- assert.match(w,/ZEREF_006_CANDIDATE_BUDGET_S: '12000'/);
- assert.match(w,/ZEREF_006_TIME_BUDGET_S: '2700'/);
+ assert.match(w,/ZEREF_006_CANDIDATE_BUDGET_S: '15000'/);
+ assert.match(w,/ZEREF_006_TIME_BUDGET_S: '3600'/);
  assert.doesNotMatch(w, />\s*apps\/beastbox-cloud\/lib\/rawrphos-public-pin\.json/);
 });
