@@ -40,9 +40,13 @@ jobs:
     runs-on: ubuntu-24.04
     # A round is one 320-attempt control plus four 320-attempt candidates.
     # 2026-11-18 (Emeth, under Cory's "you decide what to fix" delegation):
-    # post-#997 variants outgrew the 2700s cap and rounds died at that boundary
-    # (runs 43968443797, 44026287128). 340 minutes covers five variants at the
-    # new 3600s cap inside the step, plus the final unchanged gate.
+    # the envelope was raised because post-#997 variants outgrew the 2700s cap
+    # (slowest scored pre-fix variant 2228s). Correction, same day: run
+    # 44352488666 then died ~2,746s into the step under the new 3600s cap, so
+    # the budget boundary was NOT the trigger; the runner vanishes ~45 min in
+    # and uploads no log. The heartbeat diagnostic in the train step exists to
+    # catch that death with evidence. 340 minutes covers five variants at the
+    # 3600s cap inside the step, plus the final unchanged gate.
     timeout-minutes: 340
     env:
       GH_TOKEN: ${{ github.token }}
@@ -407,7 +411,26 @@ jobs:
           ZEREF_006_TIME_BUDGET_S: '3600'
         run: |
           set -Eeuo pipefail
-          python -u scripts/zeref_continuation_006.py
+          mkdir -p build/zeref-006
+          # 2026-11-18 diagnostic (Emeth): rounds die with the runner vanishing
+          # ~45 min into this step and no log is ever uploaded. The trainer runs
+          # in the background under a one-minute heartbeat
+          # (scripts/zeref_round_heartbeat.py) that pushes RSS/memory/disk plus
+          # the trainer's own progress tail to the zeref-round-heartbeat branch,
+          # which survives the runner. Report-only; exit code is the trainer's.
+          python -u scripts/zeref_continuation_006.py > build/zeref-006/trainer.log 2>&1 &
+          TRAIN_PID=$!
+          tail -f build/zeref-006/trainer.log &
+          TAIL_PID=$!
+          ( while kill -0 "$TRAIN_PID" 2>/dev/null; do sleep 60; python3 scripts/zeref_round_heartbeat.py || true; done ) &
+          WATCH_PID=$!
+          set +e
+          wait "$TRAIN_PID"
+          TRAIN_RC=$?
+          set -e
+          kill "$TAIL_PID" "$WATCH_PID" 2>/dev/null || true
+          python3 scripts/zeref_round_heartbeat.py || true
+          if [ "$TRAIN_RC" -ne 0 ]; then exit "$TRAIN_RC"; fi
           test -s build/zeref-006/report.json
       - name: Prepare latest complete checkpoint for independent interruption scoring
         id: prepare-recovery
@@ -437,6 +460,8 @@ jobs:
             build/zeref-006/promotion-decision.json
             build/zeref-006/character-check.json
             build/zeref-006/identity-probe.json
+            build/zeref-006/trainer.log
+            build/zeref-006/heartbeat.json
           retention-days: 90
           if-no-files-found: warn
       - name: Chat test vs public 14000 (decides ONLY whether a promotion PR may be proposed)
