@@ -102,3 +102,11 @@ This is recorded with the door PR. The door serves the bridge's own Zeref reply 
 - **Built:** transport of PII-scrubbed, leak-screened candidates from the door into the 006 chat mix (`scripts/zeref_self_learn_join.py`); Zeref still picks with `scripts/zeref_self_select.py`; public disclosure on the talk page; owner turns use the same `record(scope='owner')` path. The fair gate is unchanged. The pin, eval and G1–G10 are unchanged.
 - **Switch-on:** `BEASTBOX_SELF_LEARN=on` after this path is merged on real green and a proof row shows one chat turn landing as a scrubbed row the next round reads. Revert: `BEASTBOX_SELF_LEARN=off`.
 
+
+## 2026-11-18 09:58 CT (15:58 UTC): Cory delegates engine and gate fix decisions to Emeth; 12D serving ON; round envelope raised
+
+- **Who / words:** Cory: "I want you to fix and I want you to decide what to fix in my engine and gates :)"
+- **12D serving ON:** `BEASTBOX_OWNER_12D_MOUTH=on` set on the Railway bridge. This is the separate yes the 2026-11-12 19:20 entry reserved, given by the delegation above. Bridge redeployed at main `2cd58666`; healthz pin = served = 43504, serving_pin true. Owner door only, loopback native only, guests unchanged. One-line revert: `BEASTBOX_OWNER_12D_MOUTH=off`.
+- **Round envelope raised:** three consecutive 006 rounds died at the 2700s per-variant budget boundary after PR #997 raised per-step cost. Per-variant budget 2700 -> 3600s, candidate-start budget 12000 -> 15000s, train step timeout 240 -> 300 min, job timeout 280 -> 340 min. Recipe, 320 updates, mix and Gate v2 unchanged; nothing he learns was trimmed to fit a clock.
+- **Bookkeeping saves hardened:** the budget-expiry WIP save and the recovery snapshot saves in `scripts/zeref_continuation_006.py` now print and continue on failure, so a bookkeeping save cannot kill a round silently; the best-so-far still faces the same gate.
+- **Reviewed and left alone:** the promotion gate (loose rule, 2026-11-12 14:37 entry) stays as recorded. `BEASTBOX_SIGNAL_ACCEPTANCE_ON_START` stays NO (yes crash-loops the bridge, verified 2026-11-14).
