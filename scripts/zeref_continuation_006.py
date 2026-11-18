@@ -274,6 +274,7 @@ def cond54_ab(model,rows):
  res["gain_abs_sum"]=float(model.cond_gain.detach().abs().sum());res["gain_nonzero_slots"]=int((model.cond_gain.detach().abs()>1e-9).sum())
  model.train();return res
 EMA_DECAY=float(os.environ.get("ZEREF_006_EMA_DECAY","0.98"))  # 008 steadier training (0 = off)
+GRAD_CKPT=os.environ.get("ZEREF_006_GRAD_CKPT","1") not in ("0","false","False","")  # 2026-11-18 memory fix: rounds died of trainer RAM (14.8 GB on a 16 GB runner); checkpointing keeps the math, drops the retained t x t attention
 GROW_LAYERS=int(os.environ.get("ZEREF_GROW_LAYERS","0"))  # set by scripts/zeref_growth_trigger.py on plateau
 # 009 unbounded growth: the only limits are physical. Time budget is detected at runtime; when hit,
 # training stops early, the best-so-far still faces the SAME gate, and the grown weights are saved
@@ -404,6 +405,8 @@ def train_variant(parent_path,tokenizer,pool,seed,chat_pool=(),chat_eval=None,lr
   if w.get("parent_checkpoint_sha256")==parent["metadata"]["checkpoint_sha256"] and w.get("n_layers")==model.config.n_layers:
    model.load_state_dict(w["model"]);print("ZEREF_GROWTH_WIP_RESUMED="+json.dumps({"n_layers":w["n_layers"],"steps_done":w.get("steps_done")}),flush=True)
   else:print("ZEREF_GROWTH_WIP_IGNORED (different parent or shape)",flush=True)
+ model.grad_checkpointing=GRAD_CKPT
+ print("ZEREF_006_GRAD_CKPT="+json.dumps({"enabled":GRAD_CKPT}),flush=True)
  print("ZEREF_006_VARIANT_WORKLOAD="+json.dumps({"candidate":recovery_candidate,"role":"report_only_control" if recovery_candidate is None else "candidate",
   "parameters":model.parameter_count(),"layers":model.config.n_layers,"model_max_seq_len":model.config.max_seq_len,
   "planned_batch_attempts":UPDATES,"batch":BATCH,"chat_per_batch":CHAT_PER_BATCH if chat_pool else 0,
