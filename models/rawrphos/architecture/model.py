@@ -216,6 +216,12 @@ class Block(nn.Module):
 class RawrphosLM(nn.Module):
     def __init__(self,config):
         super().__init__(); self.config=config
+        # Memory fix (2026-11-18): when True AND training with grad enabled, each block's
+        # forward is recomputed during backward instead of retaining every layer's
+        # t x t attention tensors. Plain attribute (not a Parameter/buffer): state_dict,
+        # parameter order and config bytes are unchanged, and the math is identical.
+        # Default False = exact old behavior everywhere (inference, eval, tests).
+        self.grad_checkpointing=False
         self.token=nn.Embedding(config.vocab_size,config.d_model)
         self.state_init=nn.Linear(config.d_model,12)
         self.blocks=nn.ModuleList(Block(config,final=i==config.n_layers-1) for i in range(config.n_layers))
@@ -289,7 +295,12 @@ class RawrphosLM(nn.Module):
         if c.attention_mode=='frozen_state': state=state.detach()
         caches=[]; telemetry=[]
         for i,block in enumerate(self.blocks):
-            x,state,cache,tel=block(x,state,attention_mask,None if past_key_values is None else past_key_values[i],return_attention)
+            if self.grad_checkpointing and self.training and torch.is_grad_enabled() \
+               and past_key_values is None and not use_cache and not return_attention:
+                x,state,cache,tel=torch.utils.checkpoint.checkpoint(
+                    block,x,state,attention_mask,None,False,use_reentrant=False)
+            else:
+                x,state,cache,tel=block(x,state,attention_mask,None if past_key_values is None else past_key_values[i],return_attention)
             if use_cache: caches.append(cache)
             telemetry.append(tel)
         if c.hebbian:
