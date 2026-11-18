@@ -443,11 +443,13 @@ def train_variant(parent_path,tokenizer,pool,seed,chat_pool=(),chat_eval=None,lr
  for n in range(UPDATES):
   if recovery_candidate is not None and n%EVAL_EVERY==0:
    from zeref_round_recovery import save_snapshot
-   save_snapshot(ROOT,model,tokenizer,parent["metadata"],opt,g,candidate=recovery_candidate,attempted=attempted,applied=applied,data_summary=data_summary)
+   try:save_snapshot(ROOT,model,tokenizer,parent["metadata"],opt,g,candidate=recovery_candidate,attempted=attempted,applied=applied,data_summary=data_summary)
+   except Exception as exc:print("ZEREF_ROUND_SNAPSHOT_FAILED="+json.dumps({"error":type(exc).__name__,"at_step":n}),flush=True)  # 2026-11-18: a bookkeeping save must never kill a round
   if TIME_BUDGET_S and time.perf_counter()-t0>TIME_BUDGET_S:
    LIMITS_HIT.append({"limit":"time","at_step":n,"budget_s":TIME_BUDGET_S})
-   torch.save({"model":{k:v.detach().clone() for k,v in model.state_dict().items()},"n_layers":model.config.n_layers,
+   try:torch.save({"model":{k:v.detach().clone() for k,v in model.state_dict().items()},"n_layers":model.config.n_layers,
     "parent_checkpoint_sha256":parent["metadata"]["checkpoint_sha256"],"steps_done":n},WIP_OUT)
+   except Exception as exc:print("ZEREF_GROWTH_WIP_SAVE_FAILED="+json.dumps({"error":type(exc).__name__,"at_step":n}),flush=True)  # 2026-11-18: the WIP save is bookkeeping; the best-so-far still faces the gate
    print("ZEREF_GROWTH_LIMIT_HIT="+json.dumps(LIMITS_HIT[-1]),flush=True);break
   attempted=n+1
   for gi,group in enumerate(opt.param_groups):group["lr"]=group_lrs[gi]*(min_frac+(1-min_frac)*.5*(1+math.cos(math.pi*n/UPDATES)))
@@ -525,7 +527,9 @@ def train_variant(parent_path,tokenizer,pool,seed,chat_pool=(),chat_eval=None,lr
   from zeref_round_recovery import save_snapshot
   # Save raw latest weights before the existing best-on-A selection restores an earlier state.
   path=ROOT/f"recovery/candidate-{recovery_candidate}-{attempted:06d}"
-  if not path.exists():save_snapshot(ROOT,model,tokenizer,parent["metadata"],opt,g,candidate=recovery_candidate,attempted=attempted,applied=applied,data_summary=data_summary)
+  if not path.exists():
+   try:save_snapshot(ROOT,model,tokenizer,parent["metadata"],opt,g,candidate=recovery_candidate,attempted=attempted,applied=applied,data_summary=data_summary)
+   except Exception as exc:print("ZEREF_ROUND_SNAPSHOT_FAILED="+json.dumps({"error":type(exc).__name__,"at_step":attempted,"final":True}),flush=True)  # 2026-11-18: bookkeeping save, never fatal
  logs.append({"attempted_updates":attempted,"applied_optimizer_steps":applied,"elapsed_s":round(time.perf_counter()-t0,3)})
  if best is not None:
   model.load_state_dict(best[2]);logs.append({"best_in_cycle_step":best[1],"best_in_cycle_chat_nll":best[0]})
