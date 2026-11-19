@@ -43,7 +43,7 @@ from zeref_heldout_b import PAIRS_B
 A=pairs(CHAT_PAIRS);B=pairs(PAIRS_B)
 ce=lambda m:Z.pair_nll(m,A)
 par=load_checkpoint(PARENT,load_training_state=False)["model"]
-info={"arm":arm,"seed":seed,"lr":Z.LR*mult,"lr_min_fraction":floor,"warmup":os.environ.get("ZEREF_006_WARMUP","0"),
+info={"arm":arm,"seed":seed,"lr":Z.LR*mult,"lr_min_fraction":floor,"warmup":os.environ.get("ZEREF_006_WARMUP","0"),"loss_weighting":Z.LOSS_WEIGHTING,
  "game_rows":len(pool),"chat_rows":len(chat_pool),"served_shape_rows":served,"pretrain_rows":len(Z.PRETRAIN_POOL),
  "chat_len_p50":sorted(len(r["input"]) for r in chat_pool)[len(chat_pool)//2],
  "parent_sha256":load_checkpoint(PARENT,load_training_state=False)["metadata"]["checkpoint_sha256"],

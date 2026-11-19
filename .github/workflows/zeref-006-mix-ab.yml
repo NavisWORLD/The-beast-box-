@@ -8,6 +8,7 @@ on:
     paths:
       - '.github/workflows/zeref-006-mix-ab.yml'
       - 'scripts/zeref_006_mix_ab.py'
+      - 'scripts/zeref_continuation_006.py'
 permissions:
   contents: read
   actions: read
@@ -34,7 +35,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        arm: [main, pre997, served_reverted, lessons_reverted, warmup32]
+        # round 2 (16:10 CT): loss weighting + LR. main x1.6 is round 1's control.
+        arm: [row, row_hi, main_hi]
         seed: ['154729005410380', '239216221093753']
     steps:
       - uses: actions/checkout@v4
@@ -52,6 +54,9 @@ jobs:
           set -Eeuo pipefail
           case "${{ matrix.arm }}" in
             main) ;;
+            row) echo "ZEREF_006_LOSS_WEIGHTING=row" >> "$GITHUB_ENV" ;;
+            row_hi) echo "ZEREF_006_LOSS_WEIGHTING=row" >> "$GITHUB_ENV"; echo "AB_MULT=2.0" >> "$GITHUB_ENV" ;;
+            main_hi) echo "AB_MULT=2.0" >> "$GITHUB_ENV" ;;
             pre997)
               sed -i 's/^FRACTION = 0.50$/FRACTION = 0.15/; s/^TOKEN_CAP = 512$/TOKEN_CAP = 256/; s/^GUEST_DESCRIPTOR_FRACTION = 0.5$/GUEST_DESCRIPTOR_FRACTION = 0.0/' scripts/zeref_served_shape.py
               sed -i 's#("evidence/zeref-lessons-006/dialogue.jsonl",0.60,1)#("evidence/zeref-lessons-006/dialogue.jsonl",0.18,1)#' scripts/zeref_chat_corpus.py ;;
@@ -93,4 +98,4 @@ jobs:
           curl -fsSL --max-time 60 "https://raw.githubusercontent.com/${{ github.repository }}/zeref-spark/zeref/ticks.jsonl" -o build/zeref-006/spark-ticks.jsonl || : > build/zeref-006/spark-ticks.jsonl
           wc -l build/zeref-006/chat-mix.jsonl build/zeref-006/pretrain-slice.jsonl build/zeref-006/spark-ticks.jsonl
       - name: Full 320-attempt variant (candidate-2 spec x1.6 / floor 0.3), scored on set A and set B
-        run: python -u scripts/zeref_006_mix_ab.py "${{ matrix.arm }}" "${{ matrix.seed }}" 1.6 0.3 2>&1 | grep -E 'ZEREF_006_AB|INCYCLE_CHAT|SKIPPED_BATCH|Error|Traceback'
+        run: python -u scripts/zeref_006_mix_ab.py "${{ matrix.arm }}" "${{ matrix.seed }}" "${AB_MULT:-1.6}" 0.3 2>&1 | grep -E 'ZEREF_006_AB|INCYCLE_CHAT|INCYCLE_EMA_CHAT|SKIPPED_BATCH|LENGTH_GROUPING|Error|Traceback'
