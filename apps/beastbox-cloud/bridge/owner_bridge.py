@@ -777,7 +777,43 @@ class OwnerBridge:
             return 422, {**refused, "error": exc.code, "receipts": receipts}
         return 200, {"enabled": True, "admitted": True, "model_invoked": False, "qpu_invoked": False, "receipts": receipts, "snapshot": self._sensor_view(snap)}
 
+    def _export_key_ok(self, method: str, path: str, auth: str) -> bool:
+        """Dedicated self-learn export key (2026-11-19 transport fix).
+
+        ZEREF_SELF_LEARN_EXPORT_KEY is a separate random value the owner places on this service and
+        in the round workflow's ZEREF_SELF_LEARN_EXPORT_TOKEN secret. It opens exactly one route,
+        GET /api/self-learn-export (already-scrubbed candidates), and nothing else. It is not a
+        GitHub token and never equals the owner bridge token. Unset or short = off."""
+        key = os.environ.get("ZEREF_SELF_LEARN_EXPORT_KEY", "")
+        if method != "GET" or len(key) < 32 or key == self.token:
+            return False
+        if urllib.parse.urlsplit(path).path != "/api/self-learn-export":
+            return False
+        return hmac.compare_digest(auth.encode("utf-8", errors="replace"), ("Bearer " + key).encode("utf-8"))
+
+    def _self_learn_export(self, parsed):
+        query = urllib.parse.parse_qs(parsed.query, keep_blank_values=True)
+        since = 0
+        if "since_id" in query:
+            if set(query) != {"since_id"} or len(query["since_id"]) != 1:
+                return 400, {"error": "invalid self-learn export query"}
+            try:
+                since = int(query["since_id"][0])
+            except ValueError:
+                return 400, {"error": "invalid self-learn export query"}
+            if since < 0:
+                return 400, {"error": "invalid self-learn export query"}
+        elif query:
+            return 400, {"error": "invalid self-learn export query"}
+        from beastbox import self_learn
+        return 200, self_learn.export_payload(self.root, since_id=since)
+
     def dispatch(self, method: str, path: str, auth: str, body: bytes = b""):
+        if self._export_key_ok(method, path, auth):
+            parsed = urllib.parse.urlsplit(path)
+            if parsed.fragment:
+                return 404, {"error": "unsupported route"}
+            return self._self_learn_export(parsed)
         if not hmac.compare_digest(
             auth.encode("utf-8", errors="replace"),
             ("Bearer " + self.token).encode("utf-8")
@@ -831,21 +867,7 @@ class OwnerBridge:
                          "credential_reused": True, "account_access_verified": False,
                          "inference_attested": False, "model_invoked": False}
         if name == "self-learn-export" and method == "GET":
-            query = urllib.parse.parse_qs(parsed.query, keep_blank_values=True)
-            since = 0
-            if "since_id" in query:
-                if set(query) != {"since_id"} or len(query["since_id"]) != 1:
-                    return 400, {"error": "invalid self-learn export query"}
-                try:
-                    since = int(query["since_id"][0])
-                except ValueError:
-                    return 400, {"error": "invalid self-learn export query"}
-                if since < 0:
-                    return 400, {"error": "invalid self-learn export query"}
-            elif query:
-                return 400, {"error": "invalid self-learn export query"}
-            from beastbox import self_learn
-            return 200, self_learn.export_payload(self.root, since_id=since)
+            return self._self_learn_export(parsed)
         if name == "chat-job" and method == "GET":
             query = urllib.parse.parse_qs(parsed.query, keep_blank_values=True)
             if set(query) != {"id"} or len(query["id"]) != 1:
