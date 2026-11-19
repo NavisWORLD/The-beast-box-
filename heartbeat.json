@@ -1,32 +1,30 @@
 {
- "disk_free_mb": 81728,
+ "disk_free_mb": 81642,
  "last_batch": {
-  "grad_norm": 2.9173049926757812,
+  "grad_norm": 2.978813648223877,
   "sources": {
-   "dolly-15k-cc-by-sa-3.0": 1,
+   "dolly-15k-cc-by-sa-3.0": 3,
    "game": 4,
    "pretrain": 2,
-   "zeref-dad-voice-001": 1,
-   "zeref-identity-001": 1,
-   "zeref-knowledge-002": 2,
+   "zeref-ibm-play-001": 1,
+   "zeref-identity-001": 2,
+   "zeref-lessons-003": 1,
    "zeref-lessons-004": 1,
-   "zeref-lessons-005": 1,
    "zeref-lessons-006": 2,
-   "zeref-lyrics-001": 1,
-   "zeref-qa-001": 1,
-   "zeref-warm-002": 1
+   "zeref-talk-001": 1,
+   "zeref-world-001": 1
   },
-  "step": 316
+  "step": 320
  },
  "last_lines": [
-  "ZEREF_006_BATCH={\"grad_norm\": 3.109632968902588, \"sources\": {\"dolly-15k-cc-by-sa-3.0\": 5, \"game\": 4, \"pretrain\": 2, \"zeref-ibm-play-001\": 1, \"zeref-knowledge-002\": 1, \"zeref-lessons-003\": 1, \"zeref-lessons-004\": 1, \"zeref-lyrics-001\": 1, \"zeref-qa-001\": 2}, \"step\": 314}",
-  "ZEREF_006_BATCH={\"grad_norm\": 2.9482405185699463, \"sources\": {\"dolly-15k-cc-by-sa-3.0\": 1, \"game\": 4, \"pretrain\": 2, \"zeref-dad-voice-001\": 1, \"zeref-identity-001\": 1, \"zeref-lessons-004\": 3, \"zeref-lessons-006\": 4, \"zeref-world-001\": 2}, \"step\": 315}",
-  "ZEREF_006_BATCH={\"grad_norm\": 2.9173049926757812, \"sources\": {\"dolly-15k-cc-by-sa-3.0\": 1, \"game\": 4, \"pretrain\": 2, \"zeref-dad-voice-001\": 1, \"zeref-identity-001\": 1, \"zeref-knowledge-002\": 2, \"zeref-lessons-004\": 1, \"zeref-lessons-005\": 1, \"zeref-lessons-006\": 2, \"zeref-lyrics-001\": 1, \"zeref-qa-0"
+  "ZEREF_006_INCYCLE_EMA_CHAT={\"step\": 320, \"chat_nll\": 3.579557399749756}",
+  "ZEREF_006_INCYCLE_CHAT={\"step\": 320, \"chat_nll\": 3.574876890182495, \"lr\": 5.0010842984151205e-06}",
+  "ZEREF_12D_MOUTH={\"enabled\": true, \"gain_floor\": 0.25, \"gain_slots0_11_after_floor\": [-0.316776, -0.276891, 0.259422, -0.263133, 0.314215, -0.312332, 0.252297, 0.307801, 0.29281, -0.294171, -0.297893, 0.356878], \"gain_slots0_11_kept\": [-0.316715, -0.276885, 0.255241, -0.267024, 0.341774, -0.344742, 0"
  ],
- "log_bytes": 98079,
- "mem_available_mb": 8860,
+ "log_bytes": 100088,
+ "mem_available_mb": 10300,
  "run_id": "44480978865",
  "schema": "zeref-round-heartbeat-v1",
- "trainer_rss_mb": 6080,
- "ts": 1795079432.7380574
+ "trainer_rss_mb": 4781,
+ "ts": 1795079494.2985823
 }
