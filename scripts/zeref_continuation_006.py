@@ -284,6 +284,10 @@ GRAD_CKPT=os.environ.get("ZEREF_006_GRAD_CKPT","1") not in ("0","false","False",
 #     (equal up to float summation order). 0 = the exact old single padded collate.
 GRAD_CKPT_EVERY=max(1,int(os.environ.get("ZEREF_006_GRAD_CKPT_EVERY","2")))
 LENGTH_GROUPING=os.environ.get("ZEREF_006_LENGTH_GROUPING","1") not in ("0","false","False","")
+# 2026-11-19 no-promotion fix (A/B): "token" = token-mean CE over the whole batch (old); "row" = every row
+# weighs the same (mean of each row's own token-mean), so long served/pretrain rows no longer outvote short chat replies.
+LOSS_WEIGHTING=os.environ.get("ZEREF_006_LOSS_WEIGHTING","token")
+if LOSS_WEIGHTING not in ("token","row"):raise ValueError("ZEREF_006_LOSS_WEIGHTING must be token or row")
 GROUP_MAX_TOKENS=int(os.environ.get("ZEREF_006_GROUP_MAX_TOKENS","3072"))  # padded tokens per micro-batch (a lone row may exceed)
 # Cost model (fitted on CPU timings of this model, tri+cond54+Hebbian): one group of `rows` rows padded to L
 # costs ~ rows*L*(L+K) + Q*L + P  (attention ~L^2 and linear ~L per row; the Hebbian scan and per-position
@@ -417,7 +421,10 @@ def grouped_backward(model,batch,y,m,game_n,cond):
   if not torch.equal(yg,y[gidx,:yg.shape[1]]):raise AssertionError("length group changed a row's targets")
   kw={} if cond is None else {"condition54":cond[gidx]}
   logits=model(xg,attention_mask=mg,**kw)["logits"]
-  part=F_.cross_entropy(logits.float().reshape(-1,V),yg.reshape(-1),ignore_index=-100,reduction="sum")/n_sup
+  if LOSS_WEIGHTING=="row":
+   tok=F_.cross_entropy(logits.float().reshape(-1,V),yg.reshape(-1),ignore_index=-100,reduction="none").reshape(yg.shape)
+   sup=(yg!=-100).float();part=((tok*sup).sum(1)/sup.sum(1).clamp_min(1.)).sum()/len(batch)
+  else:part=F_.cross_entropy(logits.float().reshape(-1,V),yg.reshape(-1),ignore_index=-100,reduction="sum")/n_sup
   dl=[];dt=[]
   for kk,j in enumerate(gidx):
    if j<game_n:  # decision-token loss on GAME rows only (same token as the old path)
@@ -466,7 +473,7 @@ def train_variant(parent_path,tokenizer,pool,seed,chat_pool=(),chat_eval=None,lr
  model.grad_checkpointing=GRAD_CKPT;model.grad_checkpointing_every=GRAD_CKPT_EVERY
  print("ZEREF_006_GRAD_CKPT="+json.dumps({"enabled":GRAD_CKPT,"every":GRAD_CKPT_EVERY}),flush=True)
  print("ZEREF_006_LENGTH_GROUPING="+json.dumps({"enabled":LENGTH_GROUPING,"max_tokens_per_group":GROUP_MAX_TOKENS,
-  "rows_per_attempt_unchanged":True,"attempts_unchanged":UPDATES}),flush=True)
+  "rows_per_attempt_unchanged":True,"attempts_unchanged":UPDATES,"loss_weighting":LOSS_WEIGHTING}),flush=True)
  print("ZEREF_006_VARIANT_WORKLOAD="+json.dumps({"candidate":recovery_candidate,"role":"report_only_control" if recovery_candidate is None else "candidate",
   "parameters":model.parameter_count(),"layers":model.config.n_layers,"model_max_seq_len":model.config.max_seq_len,
   "planned_batch_attempts":UPDATES,"batch":BATCH,"chat_per_batch":CHAT_PER_BATCH if chat_pool else 0,
@@ -542,6 +549,7 @@ def train_variant(parent_path,tokenizer,pool,seed,chat_pool=(),chat_eval=None,lr
    cond=torch.tensor(rowsc,dtype=torch.float32)
   elif m12_on and any(r.get("state12") is not None for r in batch):
    cond=torch.tensor(M12.condition_rows(batch,lambda j:[0.]*54),dtype=torch.float32)
+  if LOSS_WEIGHTING=="row" and not LENGTH_GROUPING:raise ValueError("row loss weighting needs ZEREF_006_LENGTH_GROUPING=1")
   if not LENGTH_GROUPING:  # exact old path: one batch padded to its longest row
    out=model(x,targets=y,attention_mask=m,**({} if cond is None else {"condition54":cond}));loss=out["loss"]
    # Decision-token loss: the shared "ACTION: " prefix dominated the mean
