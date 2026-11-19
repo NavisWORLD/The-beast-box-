@@ -275,6 +275,40 @@ def cond54_ab(model,rows):
  model.train();return res
 EMA_DECAY=float(os.environ.get("ZEREF_006_EMA_DECAY","0.98"))  # 008 steadier training (0 = off)
 GRAD_CKPT=os.environ.get("ZEREF_006_GRAD_CKPT","1") not in ("0","false","False","")  # 2026-11-18 memory fix: rounds died of trainer RAM (14.8 GB on a 16 GB runner); checkpointing keeps the math, drops the retained t x t attention
+# 2026-11-18 late clock fix (Cory: "the clock is the killer now"). Same math, less wall time:
+# (a) selective checkpointing: only every Nth block is recomputed in backward (1 = every block, #1001);
+# (b) length-grouped micro-batches: each attempt's SAME 18 rows (same draw, same order, same RNG streams)
+#     are sorted by length and collated in a few groups, so short rows are no longer padded to the longest
+#     row in the batch. Every group's loss is weighted by the WHOLE batch's token / game-row counts and the
+#     gradients are summed before the one clip + one optimizer step, so the update is the same objective
+#     (equal up to float summation order). 0 = the exact old single padded collate.
+GRAD_CKPT_EVERY=max(1,int(os.environ.get("ZEREF_006_GRAD_CKPT_EVERY","2")))
+LENGTH_GROUPING=os.environ.get("ZEREF_006_LENGTH_GROUPING","1") not in ("0","false","False","")
+GROUP_MAX_TOKENS=int(os.environ.get("ZEREF_006_GROUP_MAX_TOKENS","3072"))  # padded tokens per micro-batch (a lone row may exceed)
+# Cost model (fitted on CPU timings of this model, tri+cond54+Hebbian): one group of `rows` rows padded to L
+# costs ~ rows*L*(L+K) + Q*L + P  (attention ~L^2 and linear ~L per row; the Hebbian scan and per-position
+# work ~L per group; P = one more forward/backward call). Only decides HOW the same rows are grouped.
+GROUP_COST_K=340;GROUP_COST_Q=570;GROUP_COST_P=143000
+def length_groups(lens,max_tokens=None):
+ """Deterministic partition of row positions into length groups. Positions are sorted by
+ (length, position); groups are contiguous runs of that order chosen by an exact DP that minimises
+ sum(rows*L*(L+K)+Q*L+P) over groups, subject to rows*L<=max_tokens (a single row is always allowed).
+ Returns a list of position lists. Every position appears exactly once (asserted)."""
+ max_tokens=GROUP_MAX_TOKENS if max_tokens is None else max_tokens
+ order=sorted(range(len(lens)),key=lambda j:(lens[j],j));L=[lens[j] for j in order];n=len(L)
+ best=[0.]+[math.inf]*n;cut=[0]*(n+1)
+ for b in range(1,n+1):
+  for a in range(b):
+   rows=b-a;Lb=L[b-1]
+   if rows>1 and max_tokens and rows*Lb>max_tokens:continue
+   c=best[a]+rows*Lb*(Lb+GROUP_COST_K)+GROUP_COST_Q*Lb+GROUP_COST_P
+   if c<best[b]:best[b]=c;cut[b]=a
+ groups=[];b=n
+ while b>0:a=cut[b];groups.append(order[a:b]);b=a
+ groups.reverse()
+ flat=sorted(j for g in groups for j in g)
+ if flat!=list(range(n)):raise AssertionError("length grouping lost or duplicated a row")
+ return groups
 GROW_LAYERS=int(os.environ.get("ZEREF_GROW_LAYERS","0"))  # set by scripts/zeref_growth_trigger.py on plateau
 # 009 unbounded growth: the only limits are physical. Time budget is detected at runtime; when hit,
 # training stops early, the best-so-far still faces the SAME gate, and the grown weights are saved
@@ -369,6 +403,30 @@ def identity_probe(path):
  for kind in("identity","controls"):out[kind+"_hits"]=sum(x["hit"] for x in out[kind])
  out["hebbian"]=bool(e.model.config.hebbian);del e
  return out
+def grouped_backward(model,batch,y,m,game_n,cond):
+ """Backward of the 006 batch loss (token-mean CE over ALL rows + DECISION_WEIGHT x mean decision-token CE
+ over the game rows) computed in length groups. y/m are the full padded batch tensors (used only for the
+ whole-batch counts and to check each group's targets). Returns the batch loss value as a tensor (logging)."""
+ F_=torch.nn.functional;V=model.config.vocab_size
+ n_sup=int((y!=-100).sum())
+ if n_sup<1:raise ValueError("no supervised tokens")
+ lens=[int(m[k].sum()) for k in range(len(batch))]
+ total=0.
+ for gidx in length_groups(lens):
+  xg,yg,mg=collate([batch[j] for j in gidx])
+  if not torch.equal(yg,y[gidx,:yg.shape[1]]):raise AssertionError("length group changed a row's targets")
+  kw={} if cond is None else {"condition54":cond[gidx]}
+  logits=model(xg,attention_mask=mg,**kw)["logits"]
+  part=F_.cross_entropy(logits.float().reshape(-1,V),yg.reshape(-1),ignore_index=-100,reduction="sum")/n_sup
+  dl=[];dt=[]
+  for kk,j in enumerate(gidx):
+   if j<game_n:  # decision-token loss on GAME rows only (same token as the old path)
+    pos=(yg[kk]!=-100).nonzero().flatten();p_=int(pos[DECISION_INDEX])
+    dl.append(logits[kk,p_]);dt.append(int(yg[kk,p_]))
+  if dl:part=part+DECISION_WEIGHT*F_.cross_entropy(torch.stack(dl),torch.tensor(dt),reduction="sum")/game_n
+  if not bool(torch.isfinite(part)):raise FloatingPointError("Nonfinite Zeref CPU training loss")
+  part.backward();total+=float(part.detach())
+ return torch.tensor(total)
 def train_variant(parent_path,tokenizer,pool,seed,chat_pool=(),chat_eval=None,lr=None,min_frac=None,recovery_candidate=None):
  """Configured bounded AdamW attempts with action-balanced sampling and parent anchor."""
  from collections import defaultdict
@@ -405,8 +463,10 @@ def train_variant(parent_path,tokenizer,pool,seed,chat_pool=(),chat_eval=None,lr
   if w.get("parent_checkpoint_sha256")==parent["metadata"]["checkpoint_sha256"] and w.get("n_layers")==model.config.n_layers:
    model.load_state_dict(w["model"]);print("ZEREF_GROWTH_WIP_RESUMED="+json.dumps({"n_layers":w["n_layers"],"steps_done":w.get("steps_done")}),flush=True)
   else:print("ZEREF_GROWTH_WIP_IGNORED (different parent or shape)",flush=True)
- model.grad_checkpointing=GRAD_CKPT
- print("ZEREF_006_GRAD_CKPT="+json.dumps({"enabled":GRAD_CKPT}),flush=True)
+ model.grad_checkpointing=GRAD_CKPT;model.grad_checkpointing_every=GRAD_CKPT_EVERY
+ print("ZEREF_006_GRAD_CKPT="+json.dumps({"enabled":GRAD_CKPT,"every":GRAD_CKPT_EVERY}),flush=True)
+ print("ZEREF_006_LENGTH_GROUPING="+json.dumps({"enabled":LENGTH_GROUPING,"max_tokens_per_group":GROUP_MAX_TOKENS,
+  "rows_per_attempt_unchanged":True,"attempts_unchanged":UPDATES}),flush=True)
  print("ZEREF_006_VARIANT_WORKLOAD="+json.dumps({"candidate":recovery_candidate,"role":"report_only_control" if recovery_candidate is None else "candidate",
   "parameters":model.parameter_count(),"layers":model.config.n_layers,"model_max_seq_len":model.config.max_seq_len,
   "planned_batch_attempts":UPDATES,"batch":BATCH,"chat_per_batch":CHAT_PER_BATCH if chat_pool else 0,
@@ -482,21 +542,28 @@ def train_variant(parent_path,tokenizer,pool,seed,chat_pool=(),chat_eval=None,lr
    cond=torch.tensor(rowsc,dtype=torch.float32)
   elif m12_on and any(r.get("state12") is not None for r in batch):
    cond=torch.tensor(M12.condition_rows(batch,lambda j:[0.]*54),dtype=torch.float32)
-  out=model(x,targets=y,attention_mask=m,**({} if cond is None else {"condition54":cond}));loss=out["loss"]
-  # Decision-token loss: the shared "ACTION: " prefix dominated the mean
-  # token loss, so the one token that names the key barely trained.
-  dec=[]
-  for k in range(game_n):  # decision-token loss on GAME rows only
-   pos=(y[k]!=-100).nonzero().flatten()
-   dec.append((k,int(pos[DECISION_INDEX]),int(y[k,pos[DECISION_INDEX]])))
-  logits=out["logits"]
-  dec_loss=torch.nn.functional.cross_entropy(torch.stack([logits[k,j] for k,j,_ in dec]),
-     torch.tensor([t for _,_,t in dec]))
-  loss=loss+DECISION_WEIGHT*dec_loss
-  drift=sum(((p-a)**2).sum() for p,a in zip(base,anchor))
-  total=loss+ANCHOR*drift
-  if not bool(torch.isfinite(total)):raise FloatingPointError("Nonfinite Zeref CPU training loss")
-  total.backward()
+  if not LENGTH_GROUPING:  # exact old path: one batch padded to its longest row
+   out=model(x,targets=y,attention_mask=m,**({} if cond is None else {"condition54":cond}));loss=out["loss"]
+   # Decision-token loss: the shared "ACTION: " prefix dominated the mean
+   # token loss, so the one token that names the key barely trained.
+   dec=[]
+   for k in range(game_n):  # decision-token loss on GAME rows only
+    pos=(y[k]!=-100).nonzero().flatten()
+    dec.append((k,int(pos[DECISION_INDEX]),int(y[k,pos[DECISION_INDEX]])))
+   logits=out["logits"]
+   dec_loss=torch.nn.functional.cross_entropy(torch.stack([logits[k,j] for k,j,_ in dec]),
+      torch.tensor([t for _,_,t in dec]))
+   loss=loss+DECISION_WEIGHT*dec_loss
+   drift=sum(((p-a)**2).sum() for p,a in zip(base,anchor))
+   total=loss+ANCHOR*drift
+   if not bool(torch.isfinite(total)):raise FloatingPointError("Nonfinite Zeref CPU training loss")
+   total.backward()
+  else:  # length-grouped micro-batches of the SAME rows; same objective, gradients summed
+   loss=grouped_backward(model,batch,y,m,game_n,cond)
+   drift=sum(((p-a)**2).sum() for p,a in zip(base,anchor))
+   dpart=ANCHOR*drift
+   if not bool(torch.isfinite(dpart)):raise FloatingPointError("Nonfinite Zeref CPU training loss")
+   dpart.backward()
   grad=torch.nn.utils.clip_grad_norm_(model.parameters(),1.,error_if_nonfinite=True)
   gn=float(grad);med=statistics.median(gnorms) if len(gnorms)>=8 else None
   # Gate v2 spike guard: a batch whose PRE-clip norm is >SPIKE_X x the running median is
