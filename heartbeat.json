@@ -1,30 +1,30 @@
 {
  "disk_free_mb": 81727,
  "last_batch": {
-  "grad_norm": 2.876343011856079,
+  "grad_norm": 3.0488462448120117,
   "sources": {
-   "dolly-15k-cc-by-sa-3.0": 1,
+   "dolly-15k-cc-by-sa-3.0": 3,
    "game": 4,
    "pretrain": 2,
-   "zeref-heartbeat-001-numbers": 1,
-   "zeref-identity-001": 3,
+   "zeref-dad-voice-001": 1,
+   "zeref-identity-001": 1,
+   "zeref-knowledge-002": 1,
    "zeref-lessons-003": 1,
-   "zeref-lessons-004": 3,
-   "zeref-qa-001": 1,
-   "zeref-reviewed-dialogue": 1,
+   "zeref-lessons-004": 1,
+   "zeref-lessons-006": 3,
    "zeref-world-001": 1
   },
-  "step": 256
+  "step": 259
  },
  "last_lines": [
-  "ZEREF_006_BATCH={\"grad_norm\": 3.7278215885162354, \"sources\": {\"game\": 4, \"pretrain\": 2, \"talk006-alien-authored\": 1, \"zeref-knowledge-002\": 2, \"zeref-lessons-004\": 1, \"zeref-lessons-005\": 2, \"zeref-lessons-006\": 1, \"zeref-warm-001\": 1, \"zeref-world-001\": 4}, \"step\": 255}",
-  "ZEREF_006_BATCH={\"grad_norm\": 2.876343011856079, \"sources\": {\"dolly-15k-cc-by-sa-3.0\": 1, \"game\": 4, \"pretrain\": 2, \"zeref-heartbeat-001-numbers\": 1, \"zeref-identity-001\": 3, \"zeref-lessons-003\": 1, \"zeref-lessons-004\": 3, \"zeref-qa-001\": 1, \"zeref-reviewed-dialogue\": 1, \"zeref-world-001\": 1}, \"step",
-  "ZEREF_006_REAL_CPU_UPDATE={\"step\": 256, \"train_loss\": 2.549250602722168, \"anchor_drift\": 0.060665663331747055, \"grad_norm\": 2.876343011856079}"
+  "ZEREF_006_BATCH={\"grad_norm\": 2.7642271518707275, \"sources\": {\"dolly-15k-cc-by-sa-3.0\": 3, \"game\": 4, \"pretrain\": 2, \"zeref-dad-voice-001\": 1, \"zeref-identity-001\": 2, \"zeref-lessons-006\": 1, \"zeref-lyrics-001\": 2, \"zeref-talk-001\": 1, \"zeref-voice-guide-001\": 1, \"zeref-world-001\": 1}, \"step\": 257}",
+  "ZEREF_006_BATCH={\"grad_norm\": 3.343259334564209, \"sources\": {\"dolly-15k-cc-by-sa-3.0\": 2, \"game\": 4, \"pretrain\": 2, \"zeref-dad-voice-001\": 1, \"zeref-identity-001\": 1, \"zeref-knowledge-002\": 1, \"zeref-lessons-003\": 2, \"zeref-lessons-004\": 1, \"zeref-lessons-006\": 3, \"zeref-world-001\": 1}, \"step\": 258}",
+  "ZEREF_006_BATCH={\"grad_norm\": 3.0488462448120117, \"sources\": {\"dolly-15k-cc-by-sa-3.0\": 3, \"game\": 4, \"pretrain\": 2, \"zeref-dad-voice-001\": 1, \"zeref-identity-001\": 1, \"zeref-knowledge-002\": 1, \"zeref-lessons-003\": 1, \"zeref-lessons-004\": 1, \"zeref-lessons-006\": 3, \"zeref-world-001\": 1}, \"step\": 259"
  ],
- "log_bytes": 83099,
- "mem_available_mb": 10174,
+ "log_bytes": 84171,
+ "mem_available_mb": 10232,
  "run_id": "44526017452",
  "schema": "zeref-round-heartbeat-v1",
  "trainer_rss_mb": 4825,
- "ts": 1795095814.6552694
+ "ts": 1795095876.1815312
 }
