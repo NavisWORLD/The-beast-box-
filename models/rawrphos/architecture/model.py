@@ -222,6 +222,12 @@ class RawrphosLM(nn.Module):
         # parameter order and config bytes are unchanged, and the math is identical.
         # Default False = exact old behavior everywhere (inference, eval, tests).
         self.grad_checkpointing=False
+        # Clock fix (2026-11-18 late): selective checkpointing. With grad_checkpointing on,
+        # block i is recomputed in backward only when i % grad_checkpointing_every == 0
+        # (1 = every block, the #1001 behavior; 2 = every 2nd block). The other blocks keep
+        # their activations as in plain autograd. Plain attribute: no state_dict / config
+        # change, and the math is identical whichever blocks are recomputed.
+        self.grad_checkpointing_every=1
         self.token=nn.Embedding(config.vocab_size,config.d_model)
         self.state_init=nn.Linear(config.d_model,12)
         self.blocks=nn.ModuleList(Block(config,final=i==config.n_layers-1) for i in range(config.n_layers))
@@ -296,7 +302,8 @@ class RawrphosLM(nn.Module):
         caches=[]; telemetry=[]
         for i,block in enumerate(self.blocks):
             if self.grad_checkpointing and self.training and torch.is_grad_enabled() \
-               and past_key_values is None and not use_cache and not return_attention:
+               and past_key_values is None and not use_cache and not return_attention \
+               and i % max(1,int(self.grad_checkpointing_every)) == 0:
                 x,state,cache,tel=torch.utils.checkpoint.checkpoint(
                     block,x,state,attention_mask,None,False,use_reentrant=False)
             else:
