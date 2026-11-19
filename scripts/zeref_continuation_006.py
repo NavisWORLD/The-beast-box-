@@ -275,6 +275,40 @@ def cond54_ab(model,rows):
  model.train();return res
 EMA_DECAY=float(os.environ.get("ZEREF_006_EMA_DECAY","0.98"))  # 008 steadier training (0 = off)
 GRAD_CKPT=os.environ.get("ZEREF_006_GRAD_CKPT","1") not in ("0","false","False","")  # 2026-11-18 memory fix: rounds died of trainer RAM (14.8 GB on a 16 GB runner); checkpointing keeps the math, drops the retained t x t attention
+# 2026-11-18 late clock fix (Cory: "the clock is the killer now"). Same math, less wall time:
+# (a) selective checkpointing: only every Nth block is recomputed in backward (1 = every block, #1001);
+# (b) length-grouped micro-batches: each attempt's SAME 18 rows (same draw, same order, same RNG streams)
+#     are sorted by length and collated in a few groups, so short rows are no longer padded to the longest
+#     row in the batch. Every group's loss is weighted by the WHOLE batch's token / game-row counts and the
+#     gradients are summed before the one clip + one optimizer step, so the update is the same objective
+#     (equal up to float summation order). 0 = the exact old single padded collate.
+GRAD_CKPT_EVERY=max(1,int(os.environ.get("ZEREF_006_GRAD_CKPT_EVERY","2")))
+LENGTH_GROUPING=os.environ.get("ZEREF_006_LENGTH_GROUPING","1") not in ("0","false","False","")
+GROUP_MAX_TOKENS=int(os.environ.get("ZEREF_006_GROUP_MAX_TOKENS","3072"))  # padded tokens per micro-batch (a lone row may exceed)
+# Cost model (fitted on CPU timings of this model, tri+cond54+Hebbian): one group of `rows` rows padded to L
+# costs ~ rows*L*(L+K) + Q*L + P  (attention ~L^2 and linear ~L per row; the Hebbian scan and per-position
+# work ~L per group; P = one more forward/backward call). Only decides HOW the same rows are grouped.
+GROUP_COST_K=340;GROUP_COST_Q=570;GROUP_COST_P=143000
+def length_groups(lens,max_tokens=None):
+ """Deterministic partition of row positions into length groups. Positions are sorted by
+ (length, position); groups are contiguous runs of that order chosen by an exact DP that minimises
+ sum(rows*L*(L+K)+Q*L+P) over groups, subject to rows*L<=max_tokens (a single row is always allowed).
+ Returns a list of position lists. Every position appears exactly once (asserted)."""
+ max_tokens=GROUP_MAX_TOKENS if max_tokens is None else max_tokens
+ order=sorted(range(len(lens)),key=lambda j:(lens[j],j));L=[lens[j] for j in order];n=len(L)
+ best=[0.]+[math.inf]*n;cut=[0]*(n+1)
+ for b in range(1,n+1):
+  for a in range(b):
+   rows=b-a;Lb=L[b-1]
+   if rows>1 and max_tokens and rows*Lb>max_tokens:continue
+   c=best[a]+rows*Lb*(Lb+GROUP_COST_K)+GROUP_COST_Q*Lb+GROUP_COST_P
+   if c<best[b]:best[b]=c;cut[b]=a
+ groups=[];b=n
+ while b>0:a=cut[b];groups.append(order[a:b]);b=a
+ groups.reverse()
+ flat=sorted(j for g in groups for j in g)
+ if flat!=list(range(n)):raise AssertionError("length grouping lost or duplicated a row")
+ return groups
 GROW_LAYERS=int(os.environ.get("ZEREF_GROW_LAYERS","0"))  # set by scripts/zeref_growth_trigger.py on plateau
 # 009 unbounded growth: the only limits are physical. Time budget is detected at runtime; when hit,
 # training stops early, the best-so-far still faces the SAME gate, and the grown weights are saved
@@ -369,6 +403,30 @@ def identity_probe(path):
  for kind in("identity","controls"):out[kind+"_hits"]=sum(x["hit"] for x in out[kind])
  out["hebbian"]=bool(e.model.config.hebbian);del e
  return out
+def grouped_backward(model,batch,y,m,game_n,cond):
+ """Backward of the 006 batch loss (token-mean CE over ALL rows + DECISION_WEIGHT x mean decision-token CE
+ over the game rows) computed in length groups. y/m are the full padded batch tensors (used only for the
+ whole-batch counts and to check each group's targets). Returns the batch loss value as a tensor (logging)."""
+ F_=torch.nn.functional;V=model.config.vocab_size
+ n_sup=int((y!=-100).sum())
+ if n_sup<1:raise ValueError("no supervised tokens")
+ lens=[int(m[k].sum()) for k in range(len(batch))]
+ total=0.
+ for gidx in length_groups(lens):
+  xg,yg,mg=collate([batch[j] for j in gidx])
+  if not torch.equal(yg,y[gidx,:yg.shape[1]]):raise AssertionError("length group changed a row's targets")
+  kw={} if cond is None else {"condition54":cond[gidx]}
+  logits=model(xg,attention_mask=mg,**kw)["logits"]
+  part=F_.cross_entropy(logits.float().reshape(-1,V),yg.reshape(-1),ignore_index=-100,reduction="sum")/n_sup
+  dl=[];dt=[]
+  for kk,j in enumerate(gidx):
+   if j<game_n:  # decision-token loss on GAME rows only (same token as the old path)
+    pos=(yg[kk]!=-100).nonzero().flatten();p_=int(pos[DECISION_INDEX])
+    dl.append(logits[kk,p_]);dt.append(int(yg[kk,p_]))
+  if dl:part=part+DECISION_WEIGHT*F_.cross_entropy(torch.stack(dl),torch.tensor(dt),reduction="sum")/game_n
+  if not bool(torch.isfinite(part)):raise FloatingPointError("Nonfinite Zeref CPU training loss")
+  part.backward();total+=float(part.detach())
+ return torch.tensor(total)
 def train_variant(parent_path,tokenizer,pool,seed,chat_pool=(),chat_eval=None,lr=None,min_frac=None,recovery_candidate=None):
  """Configured bounded AdamW attempts with action-balanced sampling and parent anchor."""
  from collections import defaultdict
@@ -405,8 +463,10 @@ def train_variant(parent_path,tokenizer,pool,seed,chat_pool=(),chat_eval=None,lr
   if w.get("parent_checkpoint_sha256")==parent["metadata"]["checkpoint_sha256"] and w.get("n_layers")==model.config.n_layers:
    model.load_state_dict(w["model"]);print("ZEREF_GROWTH_WIP_RESUMED="+json.dumps({"n_layers":w["n_layers"],"steps_done":w.get("steps_done")}),flush=True)
   else:print("ZEREF_GROWTH_WIP_IGNORED (different parent or shape)",flush=True)
- model.grad_checkpointing=GRAD_CKPT
- print("ZEREF_006_GRAD_CKPT="+json.dumps({"enabled":GRAD_CKPT}),flush=True)
+ model.grad_checkpointing=GRAD_CKPT;model.grad_checkpointing_every=GRAD_CKPT_EVERY
+ print("ZEREF_006_GRAD_CKPT="+json.dumps({"enabled":GRAD_CKPT,"every":GRAD_CKPT_EVERY}),flush=True)
+ print("ZEREF_006_LENGTH_GROUPING="+json.dumps({"enabled":LENGTH_GROUPING,"max_tokens_per_group":GROUP_MAX_TOKENS,
+  "rows_per_attempt_unchanged":True,"attempts_unchanged":UPDATES}),flush=True)
  print("ZEREF_006_VARIANT_WORKLOAD="+json.dumps({"candidate":recovery_candidate,"role":"report_only_control" if recovery_candidate is None else "candidate",
   "parameters":model.parameter_count(),"layers":model.config.n_layers,"model_max_seq_len":model.config.max_seq_len,
   "planned_batch_attempts":UPDATES,"batch":BATCH,"chat_per_batch":CHAT_PER_BATCH if chat_pool else 0,
@@ -482,21 +542,28 @@ def train_variant(parent_path,tokenizer,pool,seed,chat_pool=(),chat_eval=None,lr
    cond=torch.tensor(rowsc,dtype=torch.float32)
   elif m12_on and any(r.get("state12") is not None for r in batch):
    cond=torch.tensor(M12.condition_rows(batch,lambda j:[0.]*54),dtype=torch.float32)
-  out=model(x,targets=y,attention_mask=m,**({} if cond is None else {"condition54":cond}));loss=out["loss"]
-  # Decision-token loss: the shared "ACTION: " prefix dominated the mean
-  # token loss, so the one token that names the key barely trained.
-  dec=[]
-  for k in range(game_n):  # decision-token loss on GAME rows only
-   pos=(y[k]!=-100).nonzero().flatten()
-   dec.append((k,int(pos[DECISION_INDEX]),int(y[k,pos[DECISION_INDEX]])))
-  logits=out["logits"]
-  dec_loss=torch.nn.functional.cross_entropy(torch.stack([logits[k,j] for k,j,_ in dec]),
-     torch.tensor([t for _,_,t in dec]))
-  loss=loss+DECISION_WEIGHT*dec_loss
-  drift=sum(((p-a)**2).sum() for p,a in zip(base,anchor))
-  total=loss+ANCHOR*drift
-  if not bool(torch.isfinite(total)):raise FloatingPointError("Nonfinite Zeref CPU training loss")
-  total.backward()
+  if not LENGTH_GROUPING:  # exact old path: one batch padded to its longest row
+   out=model(x,targets=y,attention_mask=m,**({} if cond is None else {"condition54":cond}));loss=out["loss"]
+   # Decision-token loss: the shared "ACTION: " prefix dominated the mean
+   # token loss, so the one token that names the key barely trained.
+   dec=[]
+   for k in range(game_n):  # decision-token loss on GAME rows only
+    pos=(y[k]!=-100).nonzero().flatten()
+    dec.append((k,int(pos[DECISION_INDEX]),int(y[k,pos[DECISION_INDEX]])))
+   logits=out["logits"]
+   dec_loss=torch.nn.functional.cross_entropy(torch.stack([logits[k,j] for k,j,_ in dec]),
+      torch.tensor([t for _,_,t in dec]))
+   loss=loss+DECISION_WEIGHT*dec_loss
+   drift=sum(((p-a)**2).sum() for p,a in zip(base,anchor))
+   total=loss+ANCHOR*drift
+   if not bool(torch.isfinite(total)):raise FloatingPointError("Nonfinite Zeref CPU training loss")
+   total.backward()
+  else:  # length-grouped micro-batches of the SAME rows; same objective, gradients summed
+   loss=grouped_backward(model,batch,y,m,game_n,cond)
+   drift=sum(((p-a)**2).sum() for p,a in zip(base,anchor))
+   dpart=ANCHOR*drift
+   if not bool(torch.isfinite(dpart)):raise FloatingPointError("Nonfinite Zeref CPU training loss")
+   dpart.backward()
   grad=torch.nn.utils.clip_grad_norm_(model.parameters(),1.,error_if_nonfinite=True)
   gn=float(grad);med=statistics.median(gnorms) if len(gnorms)>=8 else None
   # Gate v2 spike guard: a batch whose PRE-clip norm is >SPIKE_X x the running median is
@@ -604,6 +671,94 @@ def parent_proof():
 CAND_SPECS=[(1.0,.1),(.6,.1),(1.6,.3),(1.0,.5),(2.0,.5),(.8,.4)]
 N_CANDIDATES=max(1,min(len(CAND_SPECS),int(os.environ.get("ZEREF_006_CANDIDATES","1"))))
 CAND_BUDGET_S=float(os.environ.get("ZEREF_006_CANDIDATE_BUDGET_S","0"))  # 0 = no extra cap; else stop starting new candidates after this
+# 2026-11-18 clock fix (split round). One slow variant must never kill a round again, so the workflow runs
+# each workload in its OWN step with its own timeout: ZEREF_006_PHASE=control, then candidate (with
+# ZEREF_006_PHASE_CANDIDATE=0..3), then final. Every step resumes the same accepted training parent from disk
+# (BEAST_006_PARENT_PATH), writes its ZEREF_006_CANDIDATE receipt and recovery snapshots exactly as before,
+# and the cycle state (receipts, best-in-cycle weights + AdamW state + data RNG) lives in build/zeref-006/cycle/
+# between steps. "all" (default) = the old single process, unchanged. Selection rule, gates and recipe unchanged.
+PHASE=os.environ.get("ZEREF_006_PHASE","all")
+if PHASE not in ("all","control","candidate","final"):raise ValueError("ZEREF_006_PHASE must be all, control, candidate or final")
+CYCLE_DIR=ROOT/"cycle"
+# Job clock guard (split round only): a candidate step does not START unless a full variant (time budget +
+# load/eval slack) plus the final scoring reserve still fits before the job deadline. Unset = no guard.
+JOB_T0=float(os.environ.get("ZEREF_006_JOB_T0_UNIX","0") or 0)
+JOB_DEADLINE_S=float(os.environ.get("ZEREF_006_JOB_DEADLINE_S","0") or 0)
+FINAL_RESERVE_S=float(os.environ.get("ZEREF_006_FINAL_RESERVE_S","2700"))
+VARIANT_SLACK_S=float(os.environ.get("ZEREF_006_VARIANT_SLACK_S","600"))
+def _merge_mouth12(infos):
+ """Report-only: the single process reset the 12D info (and its tally) at each variant start, so the report
+ carried the LAST variant's info. Same here: the last step (in index order) that recorded one."""
+ last=[i for i in infos if i]
+ return dict(last[-1]) if last else {}
+def split_candidate_step(ci,parent,tokenizer,pool,chat_pool,chat_t,ce,order_seed):
+ """Train ONE candidate in its own process/step and fold it into the persisted best-in-cycle."""
+ CYCLE_DIR.mkdir(parents=True,exist_ok=True)
+ clock_p=CYCLE_DIR/"clock.json"
+ if not clock_p.is_file():save_json(clock_p,{"candidates_t0_unix":time.time(),"source":"first candidate step (control step left no clock)"})
+ clock=json.loads(clock_p.read_text())
+ skip=None
+ if ci>0 and CAND_BUDGET_S and time.time()-clock["candidates_t0_unix"]>CAND_BUDGET_S:
+  skip={"index":ci,"reason":"candidate time budget","budget_s":CAND_BUDGET_S}
+ elif JOB_T0 and JOB_DEADLINE_S and time.time()-JOB_T0+TIME_BUDGET_S+VARIANT_SLACK_S+FINAL_RESERVE_S>JOB_DEADLINE_S:
+  skip={"index":ci,"reason":"job clock: a full variant plus the final scoring reserve no longer fits","job_elapsed_s":round(time.time()-JOB_T0,1),
+   "job_deadline_s":JOB_DEADLINE_S,"variant_budget_s":TIME_BUDGET_S,"final_reserve_s":FINAL_RESERVE_S}
+ if skip:
+  print("ZEREF_006_CANDIDATE_SKIPPED="+json.dumps(skip),flush=True)
+  save_json(CYCLE_DIR/f"candidate-{ci}.json",{"skipped":skip});return
+ mult,floor=CAND_SPECS[ci]
+ cseed=order_seed if ci==0 else int(sha(f"{order_seed}:cand:{ci}".encode())[:12],16)%(2**62)
+ t_c=time.perf_counter()
+ m_c,o_c,g_c,l_c=train_variant(PARENT,tokenizer,pool,cseed,chat_pool,ce,lr=LR*mult,min_frac=floor,recovery_candidate=ci)
+ a_c=pair_nll(m_c,chat_t)
+ rec={"index":ci,"seed":cseed,"lr":LR*mult,"lr_min_fraction":floor,"chat_a_nll":a_c,"best_in_cycle":next((x for x in l_c if "best_in_cycle_step" in x),None),
+  "skipped_batches":len(SKIPPED),"elapsed_s":round(time.perf_counter()-t_c,1)}
+ print("ZEREF_006_CANDIDATE="+json.dumps(rec,sort_keys=True),flush=True)
+ save_json(CYCLE_DIR/f"candidate-{ci}.json",{"rec":rec,"limits_hit":list(LIMITS_HIT),"mouth12":MOUTH12_INFO,
+  "parent_checkpoint_sha256":parent["metadata"]["checkpoint_sha256"]})
+ best_p=CYCLE_DIR/"best.json"
+ best=json.loads(best_p.read_text()) if best_p.is_file() else None
+ if best is None or a_c<best["chat_a_nll"]:  # same rule as the single process: strictly lower set-A NLL wins, ties keep the earlier
+  from dataclasses import asdict
+  names={id(p):k for k,p in m_c.named_parameters()}
+  tmp=CYCLE_DIR/"best-state.pt.tmp"
+  torch.save({"config":asdict(m_c.config),"model":{k:v.detach().clone() for k,v in m_c.state_dict().items()},
+   "optimizer":o_c.state_dict(),"optimizer_group_param_names":[[names[id(q)] for q in g["params"]] for g in o_c.param_groups],
+   "data_rng":g_c.get_state(),"logs":l_c,"skipped":list(SKIPPED),"opt_resume":OPT_RESUME[-1] if OPT_RESUME else None,
+   "parent_checkpoint_sha256":parent["metadata"]["checkpoint_sha256"],"index":ci},tmp)
+  tmp.replace(CYCLE_DIR/"best-state.pt")  # atomic: a killed step never leaves a half-written best
+  best={"index":ci,"chat_a_nll":a_c,"parent_checkpoint_sha256":parent["metadata"]["checkpoint_sha256"]}
+  save_json(best_p,best)
+ print("ZEREF_006_BEST_IN_CYCLE="+json.dumps(best,sort_keys=True),flush=True)
+def split_final_state(parent):
+ """Load the persisted cycle: control result, every finished candidate receipt (index order), best-in-cycle."""
+ from rawrphos.architecture.model import RawrphosConfig,RawrphosLM
+ cp=CYCLE_DIR/"control.json"
+ cstate=json.loads(cp.read_text()) if cp.is_file() else None
+ control=cstate["control"] if cstate else {"unavailable_in_split_round":True,"not_fabricated":True}
+ cands=[];infos=[cstate.get("mouth12") if cstate else None];LIMITS_HIT[:]=list(cstate.get("limits_hit",[])) if cstate else []
+ for ci in range(N_CANDIDATES):
+  f=CYCLE_DIR/f"candidate-{ci}.json"
+  if not f.is_file():
+   print("ZEREF_006_CANDIDATE_MISSING="+json.dumps({"index":ci,"reason":"its step did not finish (timeout or failure); no receipt"}),flush=True);continue
+  d=json.loads(f.read_text())
+  if "rec" not in d:continue  # skipped by the budget/job clock (its own receipt was printed in its step)
+  if d.get("parent_checkpoint_sha256")!=parent["metadata"]["checkpoint_sha256"]:raise ValueError("cycle receipt from a different training parent")
+  cands.append(d["rec"]);infos.append(d.get("mouth12"));LIMITS_HIT.extend(d.get("limits_hit",[]))
+ if not cands:raise RuntimeError("No candidate finished in this split round; nothing to score")
+ st=torch.load(CYCLE_DIR/"best-state.pt",map_location="cpu",weights_only=False)
+ best=json.loads((CYCLE_DIR/"best.json").read_text())
+ if st["parent_checkpoint_sha256"]!=parent["metadata"]["checkpoint_sha256"] or st["index"]!=best["index"]:raise ValueError("best-in-cycle state mismatch")
+ if best["chat_a_nll"]!=min(c["chat_a_nll"] for c in cands):raise ValueError("best-in-cycle is not the lowest set-A candidate")
+ model=RawrphosLM(RawrphosConfig(**st["config"]));model.load_state_dict(st["model"]);model.train()
+ named=dict(model.named_parameters())
+ opt=torch.optim.AdamW([{"params":[named[k] for k in g]} for g in st["optimizer_group_param_names"]],lr=LR,weight_decay=.01)
+ opt.load_state_dict(st["optimizer"])
+ gen=torch.Generator();gen.set_state(st["data_rng"])
+ MOUTH12_INFO.clear();MOUTH12_INFO.update(_merge_mouth12(infos))
+ print("ZEREF_006_SPLIT_ROUND="+json.dumps({"control":"finished" if cstate else "missing","candidates_finished":[c["index"] for c in cands],
+  "best_in_cycle":best},sort_keys=True),flush=True)
+ return control,cands,(best["chat_a_nll"],best["index"],model,opt,gen,st["logs"],st["skipped"],st["opt_resume"])
 def main(recovery=False):
  global UPDATES
  now=time.perf_counter()
@@ -629,7 +784,10 @@ def main(recovery=False):
  gate_bar_sha=parent["metadata"].get("checkpoint_sha256")
  pin_ck=None
  pin_dir=Path(os.environ["ZEREF_006_PIN_DIR"]) if os.environ.get("ZEREF_006_PIN_DIR") else None
- if pin_dir is not None and (pin_dir/"model.safetensors").is_file():
+ # Split round (2026-11-18 clock fix): the control/candidate steps only train; the gate bars are measured
+ # once, in the final scoring step (ZEREF_006_PHASE=final) or in the legacy single process (all).
+ SCORING=PHASE in ("all","final")
+ if SCORING and pin_dir is not None and (pin_dir/"model.safetensors").is_file():
   pin_meta=json.loads((pin_dir/"metadata.json").read_text())
   gate_bar="public_pin"
   gate_bar_sha=pin_meta.get("checkpoint_sha256")
@@ -642,10 +800,10 @@ def main(recovery=False):
  held_t=[tokens(tokenizer,prompt(r),"ACTION: "+r["action"]) for r in heldout]
  retention=[tokens(tokenizer,"User: Say hello.\nAssistant: ","Hello."),
             tokens(tokenizer,"User: What is two plus two?\nAssistant: ","Four.")]
- original_held=nll(bar_model,held_t)
- original_ret=nll(bar_model,retention)
- parent_out=exact_model_replies(bar_path,heldout)
- baseline=counts(parent_out)
+ original_held=nll(bar_model,held_t) if SCORING else None
+ original_ret=nll(bar_model,retention) if SCORING else None
+ parent_out=exact_model_replies(bar_path,heldout) if SCORING else None
+ baseline=counts(parent_out) if SCORING else None
  replay,replay_digests=replay_rows(source_digest)
  pool=[(r["action"],tokens(tokenizer,prompt(r),"ACTION: "+r["action"])) for r in train+replay]
  chat_pool=[];chat_digest=None
@@ -673,7 +831,7 @@ def main(recovery=False):
  for q,a in CHAT_PAIRS:
   front=tokenizer.encode(f"user: {q}\nassistant:",add_bos=True);tail=tokenizer.encode(" "+a,add_eos=True)
   chat_t.append({"input":(front+tail)[:-1],"target":[-100]*(len(front)-1)+tail})
- original_chat=pair_nll(bar_model,chat_t)  # pin re-measured on the same held chat set, same formula as the public pin
+ original_chat=pair_nll(bar_model,chat_t) if SCORING else None  # pin re-measured on the same held chat set, same formula as the public pin
  # 2026-10-22 fairness fix: second FRESH held-out set B (never trained on, never used for
  # best-in-cycle selection). The pin is re-scored on B every run, so B's bar cannot ratchet.
  from zeref_heldout_b import PAIRS_B
@@ -681,7 +839,7 @@ def main(recovery=False):
  for q,a in PAIRS_B:
   front=tokenizer.encode(f"user: {q}\nassistant:",add_bos=True);tail=tokenizer.encode(" "+a,add_eos=True)
   chat_b.append({"input":(front+tail)[:-1],"target":[-100]*(len(front)-1)+tail})
- original_chat_b=pair_nll(bar_model,chat_b)
+ original_chat_b=pair_nll(bar_model,chat_b) if SCORING else None
  if bar_model is not model:
   del bar_model, pin_ck  # pin bar is scored; the training parent stays loaded
  model.train()
@@ -693,7 +851,7 @@ def main(recovery=False):
  # Public promotion is still decided ONLY by scripts/rawrphos_chat_eval.py
  # (candidate not worse than 14000 on every metric).
  public_ref_chat=None
- if (PUBLIC_REF/"model.safetensors").is_file():
+ if SCORING and (PUBLIC_REF/"model.safetensors").is_file():
   _ref=load_checkpoint(PUBLIC_REF,load_training_state=False)
   _tk=_ref["tokenizer"];_rows=[]
   for q,a in CHAT_PAIRS:
@@ -704,11 +862,11 @@ def main(recovery=False):
  # Fix 002: ABSOLUTE bar. bar_model is the public pin when ZEREF_006_PIN_DIR is set,
  # so a candidate must not be worse than the pin on the held chat pairs
  # (no 5% compounding allowance, no 14000 floor ratchet).
- chat_bar=max(.01,original_chat)
+ chat_bar=max(.01,original_chat) if SCORING else None
  # Set A is also the best-in-cycle selection set, so a strict "below the pin" bar there turns
  # seed noise (~0.03) into a ratchet. A gets a 0.5% tolerance; the honest check is set B (strict).
  CHAT_A_TOLERANCE=0.005
- chat_bar_a=chat_bar*(1+CHAT_A_TOLERANCE)
+ chat_bar_a=chat_bar*(1+CHAT_A_TOLERANCE) if SCORING else None
  # 2026-11-01 Emeth fix (owner: "lighten the guard rails", the call delegated to Emeth): set B was
  # the only comparison with ZERO tolerance, while the note above already documents seed noise ~0.03.
  # Every cycle-55 candidate failed B by 0.010 to 0.023, inside that band, so B was measuring noise,
@@ -716,7 +874,7 @@ def main(recovery=False):
  # select, and the pin is still re-scored on B every run. The standard is unchanged: not worse than
  # the pin, beyond the seed-noise band the file already acknowledges.
  CHAT_B_TOLERANCE=0.005
- chat_bar_b=max(.01,original_chat_b)*(1+CHAT_B_TOLERANCE)
+ chat_bar_b=max(.01,original_chat_b)*(1+CHAT_B_TOLERANCE) if SCORING else None
  # On/off comparison: identical recipe, only the batch-order seed differs.
  # The Rigetti-ordered model is ALWAYS the candidate (no cherry-picking).
  ce=lambda m:pair_nll(m,chat_t)  # best-in-cycle picked on the SAME yardstick as the gate
@@ -740,17 +898,27 @@ def main(recovery=False):
   cands=[];control={"unavailable_in_recovery":True,"not_fabricated":True}
   print("ZEREF_ROUND_RECOVERY="+json.dumps(recovery_progress,sort_keys=True),flush=True)
  else:
-  # Before the report-only control starts, preserve an honest zero-candidate-update baseline.
-  save_snapshot(ROOT,model,tokenizer,parent["metadata"],None,None,candidate=None,attempted=0,applied=0,state=parent["state"])
-  ctrl,_,_,_=train_variant(PARENT,tokenizer,pool,control_seed,chat_pool,ce)
-  ctrl_dir=ROOT/"control-off";meta_c={"schema":"control-not-a-candidate","production_promoted":False,"training_steps":1}
-  save_checkpoint(ctrl_dir,ctrl,tokenizer,meta_c,{})
-  control_out=exact_model_replies(ctrl_dir,heldout)
-  control={"heldout_nll":nll(ctrl,held_t),"chat_nll":pair_nll(ctrl,chat_t),"retention_nll":nll(ctrl,retention),**counts(control_out),
-    "unique_actions":len({r["legal_action"] for r in control_out if r["legal_action"]})}
-  import shutil;shutil.rmtree(ctrl_dir);del ctrl
-  cands=[];best_c=None;c_t0=time.perf_counter()
-  for ci in range(N_CANDIDATES):
+  if PHASE in ("all","control"):
+   # Before the report-only control starts, preserve an honest zero-candidate-update baseline.
+   save_snapshot(ROOT,model,tokenizer,parent["metadata"],None,None,candidate=None,attempted=0,applied=0,state=parent["state"])
+   ctrl,_,_,_=train_variant(PARENT,tokenizer,pool,control_seed,chat_pool,ce)
+   ctrl_dir=ROOT/"control-off";meta_c={"schema":"control-not-a-candidate","production_promoted":False,"training_steps":1}
+   save_checkpoint(ctrl_dir,ctrl,tokenizer,meta_c,{})
+   control_out=exact_model_replies(ctrl_dir,heldout)
+   control={"heldout_nll":nll(ctrl,held_t),"chat_nll":pair_nll(ctrl,chat_t),"retention_nll":nll(ctrl,retention),**counts(control_out),
+     "unique_actions":len({r["legal_action"] for r in control_out if r["legal_action"]})}
+   import shutil;shutil.rmtree(ctrl_dir);del ctrl
+   if PHASE=="control":
+    save_json(CYCLE_DIR/"control.json",{"control":control,"limits_hit":list(LIMITS_HIT),"mouth12":MOUTH12_INFO,
+     "parent_checkpoint_sha256":parent["metadata"]["checkpoint_sha256"]})
+    save_json(CYCLE_DIR/"clock.json",{"candidates_t0_unix":time.time(),"source":"control step finished"})
+    print("ZEREF_006_CONTROL="+json.dumps(control,sort_keys=True),flush=True);return
+  if PHASE=="candidate":
+   split_candidate_step(int(os.environ["ZEREF_006_PHASE_CANDIDATE"]),parent,tokenizer,pool,chat_pool,chat_t,ce,order_seed);return
+  if PHASE=="final":control,cands,best_c=split_final_state(parent)
+  else:
+   cands=[];best_c=None;c_t0=time.perf_counter()
+  for ci in (range(N_CANDIDATES) if PHASE=="all" else ()):
    if ci>0 and CAND_BUDGET_S and time.perf_counter()-c_t0>CAND_BUDGET_S:
     print("ZEREF_006_CANDIDATE_SKIPPED="+json.dumps({"index":ci,"reason":"candidate time budget","budget_s":CAND_BUDGET_S}),flush=True);break
    mult,floor=CAND_SPECS[ci]
@@ -767,7 +935,7 @@ def main(recovery=False):
   _,sel_i,model,opt,torch_generator,logs,_sk,_ol=best_c
   SKIPPED[:]=_sk
   if _ol is not None:OPT_RESUME.append(_ol)
-  SEL=cands[sel_i];SEL_LR=SEL["lr"]
+  SEL=next(c for c in cands if c["index"]==sel_i);SEL_LR=SEL["lr"]  # == cands[sel_i] in the single process
   print("ZEREF_006_CANDIDATE_SELECTED="+json.dumps({"index":sel_i,"chat_a_nll":SEL["chat_a_nll"],"of":len(cands),"rule":"lowest set A NLL; set B never used to select; unchanged Gate v2 applies to the selected candidate only"}),flush=True)
  if not recovery and parameter_hash(model)==before_hash:raise AssertionError("Zeref weights never changed")
  new_held=nll(model,held_t)
