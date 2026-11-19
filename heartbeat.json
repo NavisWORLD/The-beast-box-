@@ -1,5 +1,5 @@
 {
- "disk_free_mb": 73576,
+ "disk_free_mb": 73577,
  "last_batch": {
   "grad_norm": 3.1608285903930664,
   "sources": {
@@ -15,14 +15,14 @@
   "step": 269
  },
  "last_lines": [
-  "ZEREF_12D_MOUTH={\"enabled\": true, \"gain_floor\": 0.25, \"gain_slots0_11_after_floor\": [-0.316776, -0.276891, 0.259422, -0.263133, 0.314215, -0.312332, 0.252297, 0.307801, 0.29281, -0.294171, -0.297893, 0.356878], \"gain_slots0_11_kept\": [-0.326456, -0.282805, 0.250909, -0.266533, 0.338872, -0.333045, 0",
-  "ZEREF_006_CANDIDATE={\"best_in_cycle\": {\"best_in_cycle_chat_nll\": 3.541396069526672, \"best_in_cycle_step\": 192}, \"chat_a_nll\": 3.541396069526672, \"elapsed_s\": 3621.5, \"index\": 2, \"lr\": 8e-05, \"lr_min_fraction\": 0.3, \"seed\": 154729005410380, \"skipped_batches\": 55}",
-  "ZEREF_006_BEST_IN_CYCLE={\"chat_a_nll\": 3.541396069526672, \"index\": 2, \"parent_checkpoint_sha256\": \"70aa787823f751ccc40d1ca426bad1743fb047a3d5f770e4cecc3f9128e3c105\"}"
+  "ZEREF_006_GATE_BAR={\"source\": \"training_parent\", \"sha256\": \"70aa787823f751ccc40d1ca426bad1743fb047a3d5f770e4cecc3f9128e3c105\", \"training_parent_sha256\": \"70aa787823f751ccc40d1ca426bad1743fb047a3d5f770e4cecc3f9128e3c105\", \"training_parent_layers\": 44, \"threads\": 4}",
+  "ZEREF_PRETRAIN_SLICE={\"rows\": 3000, \"tokens\": 617423, \"sha256\": \"430407364dbbada95b57d419ea19029db6be62eaf35c274f690043b10edac03c\", \"per_batch\": 2}",
+  "ZEREF_006_CANDIDATE_SKIPPED={\"index\": 3, \"reason\": \"job clock: a full variant plus the final scoring reserve no longer fits\", \"job_elapsed_s\": 14936.4, \"job_deadline_s\": 20400.0, \"variant_budget_s\": 3600.0, \"final_reserve_s\": 2700.0}"
  ],
- "log_bytes": 387305,
- "mem_available_mb": 14831,
+ "log_bytes": 388065,
+ "mem_available_mb": 14761,
  "run_id": "44526017452",
  "schema": "zeref-round-heartbeat-v1",
  "trainer_rss_mb": null,
- "ts": 1795106938.846886
+ "ts": 1795106952.825124
 }
