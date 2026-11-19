@@ -64,6 +64,8 @@ jobs:
       - name: Record training scope and non-promotional experiment boundaries
         run: |
           echo 'ZEREF_TRAINING_SCOPE=CPU_ONLY_NATIVE_GAME_OBSERVATION_IMITATION'
+          # Job clock origin for the split-round guard (2026-11-18 clock fix); the first step, before checkout.
+          echo "ZEREF_006_JOB_T0_UNIX=$(date +%s)" >> "$GITHUB_ENV"
           echo 'ZEREF_PRIVATE_CAMERA_MICROPHONE_CHAT=NOT_INCLUDED'
           echo 'ZEREF_QUANTUM_PROVIDER_JOBS_SUBMITTED=0'
           echo 'ZEREF_011_REJECTED_CANDIDATE=NOT_PARENT_OR_PROMOTED'
@@ -375,11 +377,16 @@ jobs:
           curl -fsSL --max-time 60 https://raw.githubusercontent.com/${{ github.repository }}/zeref-spark/zeref/ticks.jsonl -o build/zeref-006/spark-ticks.jsonl \
             && echo "ZEREF_SPARK_TICKS=$(wc -l < build/zeref-006/spark-ticks.jsonl) lines (SIMULATED, bb-deada969)" \
             || { echo 'ZEREF_SPARK_TICKS_UNAVAILABLE (training continues unconditioned)'; : > build/zeref-006/spark-ticks.jsonl; }
-      - name: Resume exact AdamW state, train 320-attempt variants and score unchanged gates
-        id: continuation
-        # 340-minute job leaves upload reserve outside this step. An independent
-        # 30-minute scoring job still handles a saved partial candidate if this expires.
-        timeout-minutes: 300
+      # 2026-11-18 late, round-clock fix (Cory: "the memory killer is dead, the clock is the killer now").
+      # Run 44401951155 died at its step clock: one 300-minute step held all five 320-attempt workloads,
+      # each burned its 3600s cap at ~21.8 s/attempt (164-166 of 320 attempts) and candidate 3 was killed
+      # with no receipt. Now each workload is its OWN step with its own 150-minute clock, resumes the same
+      # accepted training parent from disk, and writes its ZEREF_006_CANDIDATE receipt + recovery snapshots
+      # exactly as before; best-in-cycle is persisted in build/zeref-006/cycle/ across the steps. A candidate
+      # step that fails or times out is recorded and the round still scores the candidates that finished.
+      # The trainer itself is faster with the same math (selective checkpointing + length-grouped batches);
+      # measured numbers are in docs/zeref-gate-owner-decisions.md (2026-11-18 round-clock entry).
+      - name: Split-round clock, training env and phase runner (one slow variant can never kill a round)
         env:
           ZEREF_COND54: '1'  # routed 54D conditioning with learnable zero-init gain; gate scoring stays unconditioned
           ZEREF_SPARK_TICKS: build/zeref-006/spark-ticks.jsonl
@@ -402,25 +409,51 @@ jobs:
           # 2026-10-25 multi-candidate rounds: 4 candidates (seed/lr/lr-floor variants) resume the accepted training parent;
           # the best on set A goes to the UNCHANGED Gate v2 (set B within 0.5%, pin re-scored). Rounds are 320 updates from cycle 45.
           ZEREF_006_CANDIDATES: '4'
-          # Start budget must clear three finished variants or candidates 2 and 3 never run.
-          # 3 x 3600s = 10800s, so 15000s still starts the fourth. Per-variant cap raised
-          # 2700s -> 3600s on 2026-11-18: after PR #997 (512-token cap, 60% lessons share)
-          # a 320-update variant outgrew 2700s (slowest scored pre-fix variant was 2228s,
-          # run 42431049446) and three straight rounds died at the budget boundary.
+          # Stop STARTING new candidates once this many seconds have passed since the control finished
+          # (persisted across the split steps in build/zeref-006/cycle/clock.json). Unchanged value.
           ZEREF_006_CANDIDATE_BUDGET_S: '15000'
+          # Per-variant training cap (unchanged 3600s). True numbers after the 2026-11-18 clock fix: a full
+          # 320-attempt variant measured at the real shape on this runner type is in the decisions log; before
+          # the fix every variant burned the whole 3600s at ~21.8 s/attempt and stopped at 164-166 of 320.
           ZEREF_006_TIME_BUDGET_S: '3600'
+          # Same-math speedups (2026-11-18 clock fix). One-line reverts: GRAD_CKPT_EVERY '1' (#1001: every
+          # block recomputed) and LENGTH_GROUPING '0' (one batch padded to its longest row).
+          ZEREF_006_GRAD_CKPT_EVERY: '2'
+          ZEREF_006_LENGTH_GROUPING: '1'
+          ZEREF_006_GROUP_MAX_TOKENS: '3072'
+          # Job clock guard: a candidate step only starts if a full variant + the final scoring reserve
+          # still fits inside the 340-minute job (20400s).
+          ZEREF_006_JOB_DEADLINE_S: '20400'
+          ZEREF_006_FINAL_RESERVE_S: '2700'
+          ZEREF_006_VARIANT_SLACK_S: '600'
+          # Hard per-step backstop below the step's own 150-minute clock, so a stuck trainer is stopped cleanly.
+          ZEREF_006_PHASE_TIMEOUT_S: '8700'
         run: |
           set -Eeuo pipefail
           mkdir -p build/zeref-006
-          # 2026-11-18 diagnostic (Emeth): rounds die with the runner vanishing
-          # ~45 min into this step and no log is ever uploaded. The trainer runs
-          # in the background under a one-minute heartbeat
-          # (scripts/zeref_round_heartbeat.py) that pushes RSS/memory/disk plus
-          # the trainer's own progress tail to the zeref-round-heartbeat branch,
-          # which survives the runner. Report-only; exit code is the trainer's.
-          python -u scripts/zeref_continuation_006.py > build/zeref-006/trainer.log 2>&1 &
+          : > build/zeref-006/trainer.log
+          {
+            printf 'export ZEREF_006_JOB_T0_UNIX=%q\n' "${ZEREF_006_JOB_T0_UNIX:-0}"
+            for k in ZEREF_COND54 ZEREF_SPARK_TICKS ZEREF_006_PUBLIC_REF_DIR ZEREF_HEBBIAN ZEREF_TRINITY ZEREF_006_LR ZEREF_GEAR_LR_MULT \
+                     ZEREF_12D_MOUTH ZEREF_GROW_LAYERS ZEREF_GROWTH_WIP_IN ZEREF_GROWTH_WIP_OUT ZEREF_006_CANDIDATES ZEREF_006_CANDIDATE_BUDGET_S \
+                     ZEREF_006_TIME_BUDGET_S ZEREF_006_GRAD_CKPT_EVERY ZEREF_006_LENGTH_GROUPING ZEREF_006_GROUP_MAX_TOKENS \
+                     ZEREF_006_JOB_DEADLINE_S ZEREF_006_FINAL_RESERVE_S ZEREF_006_VARIANT_SLACK_S ZEREF_006_PHASE_TIMEOUT_S; do
+              printf 'export %s=%q\n' "$k" "${!k}"
+            done
+          } > build/zeref-006/train-env.sh
+          # ZEREF_006_JOB_T0_UNIX is stamped by the job's first step, so the guard measures the whole job clock.
+          # Each phase runs the trainer in the background under the one-minute heartbeat
+          # (scripts/zeref_round_heartbeat.py, 2026-11-18 diagnostic; report-only, exit code is the trainer's).
+          cat > build/zeref-006/run-phase.sh <<'SH'
+          #!/usr/bin/env bash
+          set -Eeuo pipefail
+          source build/zeref-006/train-env.sh
+          export ZEREF_006_PHASE="$1"
+          if [ -n "${2:-}" ]; then export ZEREF_006_PHASE_CANDIDATE="$2"; fi
+          echo "ZEREF_006_PHASE_START=$1${2:+ $2} $(date -u +%FT%TZ)" >> build/zeref-006/trainer.log
+          timeout -k 60 "$ZEREF_006_PHASE_TIMEOUT_S" python -u scripts/zeref_continuation_006.py >> build/zeref-006/trainer.log 2>&1 &
           TRAIN_PID=$!
-          tail -f build/zeref-006/trainer.log &
+          tail -n 0 -f build/zeref-006/trainer.log &
           TAIL_PID=$!
           ( while kill -0 "$TRAIN_PID" 2>/dev/null; do sleep 60; python3 scripts/zeref_round_heartbeat.py || true; done ) &
           WATCH_PID=$!
@@ -430,7 +463,40 @@ jobs:
           set -e
           kill "$TAIL_PID" "$WATCH_PID" 2>/dev/null || true
           python3 scripts/zeref_round_heartbeat.py || true
-          if [ "$TRAIN_RC" -ne 0 ]; then exit "$TRAIN_RC"; fi
+          echo "ZEREF_006_PHASE_END=$1${2:+ $2} rc=$TRAIN_RC $(date -u +%FT%TZ)" | tee -a build/zeref-006/trainer.log
+          exit "$TRAIN_RC"
+          SH
+          chmod +x build/zeref-006/run-phase.sh
+          echo "ZEREF_006_SPLIT_ROUND_READY=control,candidate-0..3,final (150-minute clock per step)"
+      - name: Train the report-only control (own 150-minute clock)
+        continue-on-error: true
+        timeout-minutes: 150
+        run: build/zeref-006/run-phase.sh control
+      - name: Train candidate 0, 320 attempts (own 150-minute clock)
+        continue-on-error: true
+        timeout-minutes: 150
+        run: build/zeref-006/run-phase.sh candidate 0
+      - name: Train candidate 1, 320 attempts (own 150-minute clock)
+        continue-on-error: true
+        timeout-minutes: 150
+        run: build/zeref-006/run-phase.sh candidate 1
+      - name: Train candidate 2, 320 attempts (own 150-minute clock)
+        continue-on-error: true
+        timeout-minutes: 150
+        run: build/zeref-006/run-phase.sh candidate 2
+      - name: Train candidate 3, 320 attempts (own 150-minute clock)
+        continue-on-error: true
+        timeout-minutes: 150
+        run: build/zeref-006/run-phase.sh candidate 3
+      - name: Select best-in-cycle across the steps and score it against the unchanged gates
+        id: continuation
+        # Was one 300-minute step for all five workloads (see the comment above the split-round step).
+        # Scoring only: no training here. The independent 30-minute scoring job still handles a saved
+        # partial candidate if the round is interrupted.
+        timeout-minutes: 60
+        run: |
+          set -Eeuo pipefail
+          build/zeref-006/run-phase.sh final
           test -s build/zeref-006/report.json
       - name: Prepare latest complete checkpoint for independent interruption scoring
         id: prepare-recovery
