@@ -155,3 +155,31 @@ This is recorded with the door PR. The door serves the bridge's own Zeref reply 
 - **Fix (package deal; raising the budget alone does not work):** `ZEREF_006_TIME_BUDGET_S` 3600 -> 4400 (a full EPYC variant needs ~4,320s: 320 x 13.4 + ~30s load/eval) and `ZEREF_006_FINAL_RESERVE_S` 2700 -> 900 (final scoring took 163s in this round; 900s is 5.5x that). With the old reserve the guard would have skipped candidate 2 (13,340 + 4,400 + 600 + 2,700 = 21,040 > 20,400). Guard arithmetic after the change at EPYC pace: c0 admitted ~4,700s, c1 ~9,020s, c2 ~13,340s (19,240 <= 20,400, 1,160s margin, tolerates ~+8% host slowness), c3 skipped ~17,660s, final scoring ends ~17,800s with ~2,570s spare. Job deadline 20400, slack 600, candidate budget 15000, job 340 min, 150-min step clocks all unchanged. Contract pin moved openly (`ZEREF_006_TIME_BUDGET_S: '4400'`, plus a new `ZEREF_006_FINAL_RESERVE_S: '900'` pin); workflow comments corrected to state the EPYC numbers.
 - **Not changed:** 320 attempts per variant, mix, data, seeds, learning rates, lr floors, Gate v2, promotion rule loose-2026-11-12, model math, inference and eval behavior, 12D mouth, Hebbian and cond54 wiring. Rejected: every-3rd-block checkpointing (only ~4% faster on Intel, raises RSS, still over the cap on EPYC); splitting candidates across rounds (unnecessary while four ~4,320s variants fit one job); pinning to Intel runners (not available on free hosted runners).
 - **Heartbeat:** stays in until a round survives on this fix AND promotes; then it comes out per the 2026-11-18 13:20 entry's removal condition.
+
+## 2026-11-19 16:15 CT (22:15 UTC): H1 probe on pin 43,504 — the 12D tensor path is effectively closed; where it closes; fix (default OFF)
+
+- **Who / words:** Cory, 2026-11-19 3:22 PM CT brief, task 1: "Run the H1 probe … prove, with numbers, whether the 12D path is open. If it is closed, find where it closes and fix it."
+- **Probe (report-only, CPU, box, torch 2.14.1; pin step 43504, sha256 `4457415d…`, release asset sha256 `7e221e91…` verified):** `scripts/zeref_h1_probe.py`, 12 H1 prompts, greedy, teacher-forced KL nats/token. The committed probe rounds to 6 decimals and printed the tensor rows as `0.0`; unrounded (`--unrounded`, new):
+
+  | ablation | KL nats/token |
+  |---|---|
+  | tensor + text (c54 true vs zero) | 3.90e-07 |
+  | tensor only (c54 true vs zero) | 1.83e-07 |
+  | tensor shuffled (true vs permuted dims) | 3.53e-07 |
+  | text, zero state (descriptor true vs zeros) | 0.0427 |
+
+  The text path carries the state (~0.043); the tensor path is ~230,000x weaker. It is not bitwise closed (max |logit diff| true-vs-zero on one prompt 0.0052), but it is closed for any practical purpose, and it did not open between 40,304 and 43,504 even with the 12D-mouth recipe on since 2026-11-12 (the rounds' `cond_gain[0:12]` moved only ~0.31 → ~0.33).
+- **Where it closes (measured):** `condition54` only enters as a per-sequence constant on the state logits (`state=tanh(state_logits+cond_gain*c)` before block 0). The state stream reaches the tokens only through `StateAttention`'s affinity, `softmax(-||s_q-s_k||²/2σ²)`, a pairwise DISTANCE, mixed in at gate ≈0.10. A constant added to every position's state cancels inside a distance (only tanh curvature and the Trinity coupling leave a second-order trace). Per layer on one prompt: state difference true-vs-zero 0.074 at block 0 → 0.021 at block 43, token-stream difference ≤ 0.0034, gradient on `cond_gain[0:12]` 4.7e-4. Not the gain floor: forcing |gain| to 1 / 3 / 10 gives tensor-only KL 4.7e-6 / 1.1e-4 / 9.1e-4 (text 0.036), i.e. it grows like a higher power of the gain and stays far below the text path even with saturated tanh. Not the serve path or projection init: the closure is in the model's own math.
+- **Fix (additive, DEFAULT OFF):** `cond54_direct` — a zero-initialised `Linear(54, d_model)` (`cond_in`, 13,824 params) adds the same routed 54D vector to every position's token stream. Identical logits at upgrade (tested on the real pin: the probe row after `upgrade_to_cond54_direct` equals the row before, to the last digit). `cond_in(0)=0`, so unconditioned gate scoring is unchanged by construction. Registered last (older optimizer indices unchanged), in the fresh un-anchored group with `cond_gain`. Training switch `ZEREF_12D_DIRECT` (default `0`; the workflow is NOT changed in this PR). Serving needs no change: `load_checkpoint` builds the model from `config.json`, and `cond54_direct` is only written when true.
+- **Before / after (same pin, same 3,116 served-shape lesson rows, same seeds, 48 CPU steps of the ZEREF_12D_MOUTH micro-train recipe, nothing saved):**
+
+  | ablation | recipe only, after 48 | recipe + `cond54_direct`, after 48 |
+  |---|---|---|
+  | tensor + text | 3.26e-07 | 0.0263 |
+  | tensor only | 1.65e-07 | 0.0104 |
+  | tensor shuffled | 3.42e-07 | 0.0168 |
+  | text, zero state | 0.0368 | 0.0472 |
+
+  With the direct path the mouth hears the tensor (tensor-only ~63,000x the recipe alone) and tells true dims from permuted dims (shuffled KL 0.017); the text path stays open. This is evidence that the path opens, not a candidate and not proof of better talk. Evidence JSON: `evidence/zeref-h1-probe-43504/`.
+- **Switch-on:** a separate one-line workflow PR (`ZEREF_12D_DIRECT: '1'` plus the env pass-through), under Cory's "Yes, wire his 12D state into his mouth for real" if Emeth accepts this evidence; the probe re-runs on the first candidate that carries `cond_in`.
+- **Not changed:** gate, pin, eval, G1–G10, promotion rule, mix, LRs, serving flags, guest isolation (guests never receive owner state12).

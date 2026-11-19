@@ -1,0 +1,32 @@
+{
+ "schema": "zeref-h1-probe-v2",
+ "report_only": true,
+ "serving_changed": false,
+ "gate_input": false,
+ "checkpoint_sha256": "4457415db509b3c0f0769fff80aa382eeb162d47050578b277370fe2351e3cc9",
+ "training_steps": 43504,
+ "prompts": 12,
+ "reply_mode": "greedy",
+ "before": {
+  "kl_mean_nats": {
+   "tensor_with_text": 0.0,
+   "tensor_only": 0.0,
+   "tensor_shuffled": 0.0,
+   "text_zero_state": 0.042675
+  },
+  "cond_gain_slots0_11": [
+   -0.316691,
+   -0.276086,
+   0.259697,
+   -0.262795,
+   0.313368,
+   -0.31183,
+   0.252344,
+   0.306413,
+   0.291284,
+   -0.293731,
+   -0.297731,
+   0.356569
+  ]
+ }
+}
