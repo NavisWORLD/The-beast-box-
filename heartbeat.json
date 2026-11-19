@@ -1,28 +1,31 @@
 {
  "disk_free_mb": 85049,
  "last_batch": {
-  "grad_norm": 3.0126965045928955,
+  "grad_norm": 103.43872833251953,
   "sources": {
+   "dolly-15k-cc-by-sa-3.0": 2,
    "game": 4,
    "pretrain": 2,
    "zeref-dad-voice-001": 1,
-   "zeref-knowledge-002": 2,
+   "zeref-heartbeat-001-numbers": 1,
+   "zeref-identity-001": 1,
    "zeref-lessons-003": 2,
-   "zeref-lessons-005": 1,
-   "zeref-lessons-006": 4,
-   "zeref-qa-001": 2
+   "zeref-lessons-006": 2,
+   "zeref-lyrics-001": 1,
+   "zeref-talk-001": 1,
+   "zeref-world-001": 1
   },
-  "step": 315
+  "step": 320
  },
  "last_lines": [
-  "ZEREF_006_BATCH={\"grad_norm\": 3.3331339359283447, \"sources\": {\"dolly-15k-cc-by-sa-3.0\": 2, \"game\": 4, \"pretrain\": 2, \"zeref-knowledge-002\": 1, \"zeref-lessons-004\": 2, \"zeref-lessons-005\": 2, \"zeref-lessons-006\": 2, \"zeref-qa-001\": 2, \"zeref-world-001\": 1}, \"step\": 313}",
-  "ZEREF_006_BATCH={\"grad_norm\": 3.0319268703460693, \"sources\": {\"dolly-15k-cc-by-sa-3.0\": 1, \"game\": 4, \"pretrain\": 2, \"zeref-identity-001\": 1, \"zeref-lessons-003\": 3, \"zeref-lessons-004\": 2, \"zeref-lessons-005\": 1, \"zeref-lessons-006\": 2, \"zeref-world-001\": 2}, \"step\": 314}",
-  "ZEREF_006_BATCH={\"grad_norm\": 3.0126965045928955, \"sources\": {\"game\": 4, \"pretrain\": 2, \"zeref-dad-voice-001\": 1, \"zeref-knowledge-002\": 2, \"zeref-lessons-003\": 2, \"zeref-lessons-005\": 1, \"zeref-lessons-006\": 4, \"zeref-qa-001\": 2}, \"step\": 315}"
+  "ZEREF_006_SKIPPED_BATCH={\"grad_norm\": 103.43872833251953, \"median\": 3.2189290523529053, \"sources\": {\"dolly-15k-cc-by-sa-3.0\": 2, \"game\": 4, \"pretrain\": 2, \"zeref-dad-voice-001\": 1, \"zeref-heartbeat-001-numbers\": 1, \"zeref-identity-001\": 1, \"zeref-lessons-003\": 2, \"zeref-lessons-006\": 2, \"zeref-lyric",
+  "ZEREF_12D_MOUTH={\"enabled\": true, \"gain_floor\": 0.25, \"gain_slots0_11_after_floor\": [-0.316776, -0.276891, 0.259422, -0.263133, 0.314215, -0.312332, 0.252297, 0.307801, 0.29281, -0.294171, -0.297893, 0.356878], \"gain_slots0_11_kept\": [-0.338239, -0.281755, 0.260656, -0.270625, 0.348015, -0.338817, 0",
+  "ZEREF_006_CONTROL={\"chat_nll\": 3.575918699502945, \"heldout_nll\": 0.005838269700429269, \"observations\": 14, \"retention_nll\": 4.6065826416015625, \"script_teacher_matches\": 14, \"unique_actions\": 5, \"valid_actions\": 14}"
  ],
- "log_bytes": 101296,
- "mem_available_mb": 9585,
+ "log_bytes": 103999,
+ "mem_available_mb": 14540,
  "run_id": "44574649056",
  "schema": "zeref-round-heartbeat-v1",
- "trainer_rss_mb": 5203,
- "ts": 1795111238.9059129
+ "trainer_rss_mb": null,
+ "ts": 1795111290.3154547
 }
