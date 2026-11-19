@@ -48,7 +48,7 @@ SYSTEM = (
 
 
 def enabled() -> bool:
-    return os.environ.get(FLAG, "off") == "on"
+    return os.environ.get("BEASTBOX_HYBRID_REVISER", "off") == "on"
 
 
 def _content(text: str) -> set[str]:
@@ -70,7 +70,7 @@ def check(draft: str, revision: str) -> str | None:
 
 
 def _call(user_line: str, draft: str, timeout: float) -> str:
-    key = os.environ.get(KEY_ENV, "")
+    key = os.environ.get("OLLAMA_API_KEY", "")
     if not key or any(c in key for c in "\r\n"):
         raise ValueError("reviser key unavailable")
     payload = {"model": MODEL, "stream": False, "temperature": 0, "max_tokens": 256, "reasoning_effort": "low",
