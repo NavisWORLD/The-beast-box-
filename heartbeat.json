@@ -1,28 +1,29 @@
 {
  "disk_free_mb": 77245,
  "last_batch": {
-  "grad_norm": 3.1770780086517334,
+  "grad_norm": 3.3030970096588135,
   "sources": {
-   "dolly-15k-cc-by-sa-3.0": 4,
    "game": 4,
    "pretrain": 2,
-   "zeref-knowledge-002": 2,
-   "zeref-lessons-004": 1,
-   "zeref-lessons-006": 1,
-   "zeref-qa-001": 1,
-   "zeref-world-001": 3
+   "zeref-dad-voice-001": 1,
+   "zeref-lessons-003": 2,
+   "zeref-lessons-005": 1,
+   "zeref-lessons-006": 4,
+   "zeref-talk-001": 1,
+   "zeref-warm-002": 2,
+   "zeref-world-001": 1
   },
-  "step": 201
+  "step": 210
  },
  "last_lines": [
-  "ZEREF_006_BATCH={\"grad_norm\": 3.1995816230773926, \"sources\": {\"dolly-15k-cc-by-sa-3.0\": 1, \"game\": 4, \"pretrain\": 2, \"zeref-knowledge-002\": 2, \"zeref-lessons-003\": 1, \"zeref-lessons-004\": 1, \"zeref-lessons-005\": 1, \"zeref-lessons-006\": 3, \"zeref-lyrics-001\": 1, \"zeref-world-001\": 2}, \"step\": 199}",
-  "ZEREF_006_BATCH={\"grad_norm\": 5.608520984649658, \"sources\": {\"game\": 4, \"pretrain\": 2, \"zeref-identity-001\": 1, \"zeref-knowledge-002\": 1, \"zeref-lessons-004\": 1, \"zeref-lessons-006\": 6, \"zeref-music-001\": 1, \"zeref-qa-001\": 1, \"zeref-world-001\": 1}, \"step\": 200}",
-  "ZEREF_006_BATCH={\"grad_norm\": 3.1770780086517334, \"sources\": {\"dolly-15k-cc-by-sa-3.0\": 4, \"game\": 4, \"pretrain\": 2, \"zeref-knowledge-002\": 2, \"zeref-lessons-004\": 1, \"zeref-lessons-006\": 1, \"zeref-qa-001\": 1, \"zeref-world-001\": 3}, \"step\": 201}"
+  "ZEREF_006_REAL_CPU_UPDATE={\"step\": 208, \"train_loss\": 3.5725250244140625, \"anchor_drift\": 0.13166746497154236, \"grad_norm\": 2.903303384780884}",
+  "ZEREF_006_BATCH={\"grad_norm\": 2.966214418411255, \"sources\": {\"dolly-15k-cc-by-sa-3.0\": 1, \"game\": 4, \"pretrain\": 2, \"zeref-dad-voice-001\": 2, \"zeref-lessons-006\": 1, \"zeref-lyrics-001\": 1, \"zeref-qa-001\": 1, \"zeref-reviewed-dialogue\": 1, \"zeref-world-001\": 5}, \"step\": 209}",
+  "ZEREF_006_BATCH={\"grad_norm\": 3.3030970096588135, \"sources\": {\"game\": 4, \"pretrain\": 2, \"zeref-dad-voice-001\": 1, \"zeref-lessons-003\": 2, \"zeref-lessons-005\": 1, \"zeref-lessons-006\": 4, \"zeref-talk-001\": 1, \"zeref-warm-002\": 2, \"zeref-world-001\": 1}, \"step\": 210}"
  ],
- "log_bytes": 406321,
- "mem_available_mb": 9500,
+ "log_bytes": 409259,
+ "mem_available_mb": 9506,
  "run_id": "44612027580",
  "schema": "zeref-round-heartbeat-v1",
  "trainer_rss_mb": 5271,
- "ts": 1795131871.096068
+ "ts": 1795131932.6527448
 }
