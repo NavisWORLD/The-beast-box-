@@ -331,6 +331,11 @@ GEAR_LR_MULT=float(os.environ.get("ZEREF_GEAR_LR_MULT","0"))
 # hidden on ZEREF_12D_TEXT_DROP of them, and cond_gain[0:12] is floored. See scripts/zeref_mouth12_train.py.
 import zeref_mouth12_train as M12
 MOUTH12=M12.enabled();MOUTH12_INFO={}
+# 2026-11-19 H1 fix (default OFF): the H1 probe on pin 43504 measured the condition54 path at ~2e-7 nats/token,
+# because a uniform offset on the state logits cancels inside StateAttention's pairwise-distance kernel.
+# ZEREF_12D_DIRECT=1 upgrades a cond54 parent to cond54_direct (zero-init cond_in: identical logits at upgrade;
+# unconditioned gate scoring is unaffected because cond_in(0)=0). cond_in joins the fresh, un-anchored group.
+DIRECT12=os.environ.get("ZEREF_12D_DIRECT","0")=="1"
 GEAR_PARAM_RE=re.compile(r"blocks\.\d+\.(attn\.(gate_logit|log_sigma)|transition\.(k|g12|gamma))")
 OPT_RESUME=[]
 def map_optimizer_state(sd,model,groups_now,meta,parent_model=None):
@@ -449,6 +454,10 @@ def train_variant(parent_path,tokenizer,pool,seed,chat_pool=(),chat_eval=None,lr
  if COND54 and model.config.state_mode=="tri" and not model.config.cond54 and cond54_bank():
   from rawrphos.architecture.model import upgrade_to_cond54
   model=upgrade_to_cond54(model)  # zero gain: identical logits at upgrade; gain joins the fresh optimizer group
+ if DIRECT12 and model.config.cond54 and not model.config.cond54_direct:
+  from rawrphos.architecture.model import upgrade_to_cond54_direct
+  model=upgrade_to_cond54_direct(model)  # zero cond_in: identical logits at upgrade
+  print("ZEREF_12D_DIRECT="+json.dumps({"enabled":True,"upgraded":True,"cond_in_params":model.cond_in.weight.numel()}),flush=True)
  if MOUTH12 and model.config.cond54:
   MOUTH12_INFO.update({"enabled":True,"text_drop":M12.text_drop(),"gain_floor":M12.gain_floor(),
    "gain_slots0_11_parent":[round(float(x),6) for x in model.cond_gain.detach()[:12]],

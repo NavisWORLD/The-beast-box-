@@ -36,6 +36,11 @@ class RawrphosConfig:
     # 2026-10-23 additive: optional routed 54D conditioning (12D + 42D slots) with a learnable
     # per-slot gain that starts at ZERO (identical logits at upgrade). Off = exact old model.
     cond54: bool = False
+    # 2026-11-19 additive (H1 probe on pin 43504): a uniform offset on the state logits mostly
+    # cancels inside StateAttention's pairwise-distance kernel, so condition54 reached the logits
+    # at ~1e-7 nats/token. cond54_direct adds a ZERO-initialised linear path from condition54
+    # into the token stream (identical logits at upgrade). Off = exact old model.
+    cond54_direct: bool = False
 
     def __post_init__(self):
         if type(self.hebbian) is not bool or type(self.hebbian_dim) is not int or self.hebbian_dim<1:
@@ -49,6 +54,7 @@ class RawrphosConfig:
             raise ValueError('heads must divide width and have an even rotary dimension')
         if self.state_mode not in {'dyn12','tri'}: raise ValueError('state_mode must be dyn12 or tri')
         if type(self.cond54) is not bool or (self.cond54 and self.state_mode!='tri'): raise ValueError('cond54 needs state_mode tri')
+        if type(self.cond54_direct) is not bool or (self.cond54_direct and not self.cond54): raise ValueError('cond54_direct needs cond54')
         if self.state_dim != 12: raise ValueError('this architecture implements dyn12 only')
         if self.attention_mode not in {'dyn12','standard','zero_gate','frozen_state','shuffled_state'}:
             raise ValueError('unsupported attention mode')
@@ -63,6 +69,7 @@ class RawrphosConfig:
             for k in ('hebbian','hebbian_dim','hebbian_decay','hebbian_rate'): d.pop(k)
         if self.state_mode=='dyn12': d.pop('state_mode')
         if not self.cond54: d.pop('cond54')  # byte-identical config.json for non-conditioned checkpoints
+        if not self.cond54_direct: d.pop('cond54_direct')  # byte-identical config.json without the direct path
         return d
     @classmethod
     def from_dict(cls, value): return cls(**value)
@@ -240,6 +247,9 @@ class RawrphosLM(nn.Module):
             self.state_init42=nn.Linear(config.d_model,42)
         if config.cond54:
             self.cond_gain=nn.Parameter(torch.zeros(54))  # registered last: older optimizer indices unchanged
+        if config.cond54_direct:
+            self.cond_in=nn.Linear(54,config.d_model,bias=False)  # registered after cond_gain: older indices unchanged
+            nn.init.zeros_(self.cond_in.weight)  # zero output at upgrade: identical logits
     @staticmethod
     def _init(m):
         if isinstance(m,(nn.Linear,nn.Embedding)):
@@ -254,6 +264,7 @@ class RawrphosLM(nn.Module):
             out+=list(self.state_init42.parameters())+[p for b in self.blocks if isinstance(b.transition,Trinity)
                 for n,p in b.transition.named_parameters() if n not in ('k','g12')]
         if self.config.cond54: out+=[self.cond_gain]
+        if self.config.cond54_direct: out+=[self.cond_in.weight]
         return out
     def base_parameters(self):
         ids={id(p) for p in self.hebbian_parameters()}
@@ -298,6 +309,9 @@ class RawrphosLM(nn.Module):
             # routed slots (masked slots are exactly 0.0 upstream) scaled by the learned per-slot gain
             ext=control_vector.to(state)[:,None,:] if control_vector is not None else 0.
             state=torch.tanh(state_logits+ext+(self.cond_gain.to(state)*condition54.to(state))[:,None,:])
+            # direct path (cond54_direct): the same routed 54D vector into every position's token stream,
+            # so the 12D reaches the mouth without passing the distance kernel (masked slots are 0.0).
+            if c.cond54_direct: x=x+self.cond_in(condition54.to(x))[:,None,:]
         if c.attention_mode=='frozen_state': state=state.detach()
         caches=[]; telemetry=[]
         for i,block in enumerate(self.blocks):
@@ -361,6 +375,17 @@ def upgrade_to_cond54(model):
     new=RawrphosLM(RawrphosConfig.from_dict(dict(asdict(model.config),cond54=True)))
     missing,unexpected=new.load_state_dict(model.state_dict(),strict=False)
     if unexpected or missing!=['cond_gain']: raise ValueError('cond54 upgrade may only add cond_gain')
+    return new
+
+
+def upgrade_to_cond54_direct(model):
+    """Return a cond54_direct copy of a cond54 model with IDENTICAL outputs at upgrade: only
+    cond_in is new and its weight starts at zero."""
+    if model.config.cond54_direct: return model
+    if not model.config.cond54: raise ValueError('cond54_direct upgrade needs a cond54 model')
+    new=RawrphosLM(RawrphosConfig.from_dict(dict(asdict(model.config),cond54_direct=True)))
+    missing,unexpected=new.load_state_dict(model.state_dict(),strict=False)
+    if unexpected or missing!=['cond_in.weight']: raise ValueError('cond54_direct upgrade may only add cond_in')
     return new
 
 
