@@ -420,9 +420,10 @@ jobs:
           # Stop STARTING new candidates once this many seconds have passed since the control finished
           # (persisted across the split steps in build/zeref-006/cycle/clock.json). Unchanged value.
           ZEREF_006_CANDIDATE_BUDGET_S: '15000'
-          # Per-variant training cap (unchanged 3600s). True numbers after the 2026-11-18 clock fix: a full
-          # 320-attempt variant measured at the real shape on this runner type is in the decisions log; before
-          # the fix every variant burned the whole 3600s at ~21.8 s/attempt and stopped at 164-166 of 320.
+          # Per-variant training cap (unchanged 3600s). Before the 2026-11-18 clock fix every variant burned the
+          # whole 3600s at ~21.8 s/attempt and stopped at 164-166 of 320 (run 44401951155). Measured after it on
+          # ubuntu-24.04, real parent 70aa7878, real data: full 320/320 attempts in 2,487s and 2,491s including
+          # in-cycle evals (7.77-7.79 s/attempt), ~1,110s of margin. The cap is a backstop, not the pace.
           ZEREF_006_TIME_BUDGET_S: '3600'
           # Same-math speedups (2026-11-18 clock fix). One-line reverts: GRAD_CKPT_EVERY '1' (#1001: every
           # block recomputed) and LENGTH_GROUPING '0' (one batch padded to its longest row).
