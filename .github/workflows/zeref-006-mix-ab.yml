@@ -1,0 +1,96 @@
+name: TEMP Zeref 006 no-promotion A/B (removed before review)
+# Temporary, report-only measurement for the 2026-11-19 training fix. Free hosted runners (public repo),
+# the same ubuntu-24.04 / 4-vCPU runner type and torch 2.6.0 CPU wheel as the 006 round.
+# Never trains a pin, never writes approval, never publishes, holds no lineage lock.
+on:
+  push:
+    branches: [zeref/train-mix-ab]
+    paths:
+      - '.github/workflows/zeref-006-mix-ab.yml'
+      - 'scripts/zeref_006_mix_ab.py'
+permissions:
+  contents: read
+  actions: read
+env:
+  OMP_NUM_THREADS: '4'
+  MKL_NUM_THREADS: '4'
+  TOKENIZERS_PARALLELISM: 'false'
+  ZEREF_COND54: '1'
+  ZEREF_SPARK_TICKS: build/zeref-006/spark-ticks.jsonl
+  ZEREF_HEBBIAN: '1'
+  ZEREF_TRINITY: '1'
+  ZEREF_006_LR: '0.00005'
+  ZEREF_GEAR_LR_MULT: '10'
+  ZEREF_12D_MOUTH: '1'
+  ZEREF_006_UPDATES: '320'
+  ZEREF_006_GRAD_CKPT_EVERY: '2'
+  ZEREF_006_LENGTH_GROUPING: '1'
+  ZEREF_006_GROUP_MAX_TOKENS: '3072'
+  GH_TOKEN: ${{ github.token }}
+jobs:
+  ab:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 170
+    strategy:
+      fail-fast: false
+      matrix:
+        arm: [main, pre997, served_reverted, lessons_reverted, warmup32]
+        seed: ['154729005410380', '239216221093753']
+    steps:
+      - uses: actions/checkout@v4
+        with: {persist-credentials: false}
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11'}
+      - name: Runner
+        run: grep -m1 'model name' /proc/cpuinfo; nproc; free -m
+      - name: Same CPU runtime as the round
+        run: |
+          python -m pip install --index-url https://download.pytorch.org/whl/cpu torch==2.6.0
+          python -m pip install -e . -e ./models/rawrphos
+      - name: Arm (experiment-only edits on this runner's checkout; nothing is committed)
+        run: |
+          set -Eeuo pipefail
+          case "${{ matrix.arm }}" in
+            main) ;;
+            pre997)
+              sed -i 's/^FRACTION = 0.50$/FRACTION = 0.15/; s/^TOKEN_CAP = 512$/TOKEN_CAP = 256/; s/^GUEST_DESCRIPTOR_FRACTION = 0.5$/GUEST_DESCRIPTOR_FRACTION = 0.0/' scripts/zeref_served_shape.py
+              sed -i 's#("evidence/zeref-lessons-006/dialogue.jsonl",0.60,1)#("evidence/zeref-lessons-006/dialogue.jsonl",0.18,1)#' scripts/zeref_chat_corpus.py ;;
+            served_reverted)
+              sed -i 's/^FRACTION = 0.50$/FRACTION = 0.15/; s/^TOKEN_CAP = 512$/TOKEN_CAP = 256/; s/^GUEST_DESCRIPTOR_FRACTION = 0.5$/GUEST_DESCRIPTOR_FRACTION = 0.0/' scripts/zeref_served_shape.py ;;
+            lessons_reverted)
+              sed -i 's#("evidence/zeref-lessons-006/dialogue.jsonl",0.60,1)#("evidence/zeref-lessons-006/dialogue.jsonl",0.18,1)#' scripts/zeref_chat_corpus.py ;;
+            warmup32)
+              python - <<'PY'
+          from pathlib import Path
+          p=Path("scripts/zeref_continuation_006.py");s=p.read_text()
+          a='group["lr"]=group_lrs[gi]*(min_frac+(1-min_frac)*.5*(1+math.cos(math.pi*n/UPDATES)))'
+          assert s.count(a)==1
+          p.write_text(s.replace(a,'group["lr"]=group_lrs[gi]*min(1.0,(n+1)/32.0)*(min_frac+(1-min_frac)*.5*(1+math.cos(math.pi*n/UPDATES)))'))
+          PY
+              echo "ZEREF_006_WARMUP=32" >> "$GITHUB_ENV" ;;
+          esac
+          git diff --stat
+      - name: Real training parent (the pin, cycle 79, 4457415d...) and real inputs of run 44574649056
+        run: |
+          set -Eeuo pipefail
+          mkdir -p build/zeref-006/rel build/zeref-006/previous build/zeref-006/inputs
+          gh release download zeref-006-cycle-79-4457415db509 --repo "${{ github.repository }}" -D build/zeref-006/rel
+          (cd build/zeref-006/rel && sha256sum -c ./*.sha256)
+          tar -C build/zeref-006/previous -xzf build/zeref-006/rel/*.tar.gz && rm -f build/zeref-006/rel/*.tar.gz
+          P="$(find build/zeref-006/previous -type d -name accepted-checkpoint -print -quit)"
+          echo "BEAST_006_PARENT_PATH=$P" >> "$GITHUB_ENV"
+          gh run download 44574649056 --repo "${{ github.repository }}" -n zeref-006-observed-training-report-44574649056 -D build/zeref-006/r
+          cp build/zeref-006/r/inputs/* build/zeref-006/inputs/
+          curl -fsSL --retry 3 -o build/zeref-006/dolly.jsonl "https://huggingface.co/datasets/databricks/databricks-dolly-15k/resolve/bdd27f4d94b9c1f951818a7da7fd7aeea5dbff1a/databricks-dolly-15k.jsonl"
+          ZEREF_CHAT_ROTATE_SEED="zeref-gate-v2-20261023-cycle-80" python scripts/zeref_chat_corpus.py build/zeref-006/dolly.jsonl build/zeref-006/chat-mix.jsonl | cut -c1-300
+          off=$(( 50000000 + (44574649056 % 900) * 2000000 ))
+          curl -fsSL --retry 3 -r "${off}-$((off+1999999))" -o build/zeref-006/tinystories-range.txt "https://huggingface.co/datasets/roneneldan/TinyStories/resolve/f54c09fd23315a6f9c86f9dc80f725de7d8f9c64/TinyStories-train.txt"
+          python scripts/zeref_pretrain_slice.py build/zeref-006/tinystories-range.txt build/zeref-006/pretrain-slice.jsonl "$off"
+          m=evidence/zeref-english-001/manifest.json
+          commit="$(python -c "import json;print(json.load(open('$m'))['data_branch']['commit'])")"
+          curl -fsSL --retry 3 --max-time 180 -o build/zeref-006/english-train.jsonl.gz "https://raw.githubusercontent.com/${{ github.repository }}/${commit}/zeref-english-001/train.jsonl.gz"
+          ZEREF_ENGLISH_SHARE=0.5 python scripts/zeref_english_mix.py build/zeref-006/english-train.jsonl.gz "$m" build/zeref-006/pretrain-slice.jsonl "zeref-english-001-cycle-80" build/zeref-006/english-mix.json | cut -c1-200
+          curl -fsSL --max-time 60 "https://raw.githubusercontent.com/${{ github.repository }}/zeref-spark/zeref/ticks.jsonl" -o build/zeref-006/spark-ticks.jsonl || : > build/zeref-006/spark-ticks.jsonl
+          wc -l build/zeref-006/chat-mix.jsonl build/zeref-006/pretrain-slice.jsonl build/zeref-006/spark-ticks.jsonl
+      - name: Full 320-attempt variant (candidate-2 spec x1.6 / floor 0.3), scored on set A and set B
+        run: python -u scripts/zeref_006_mix_ab.py "${{ matrix.arm }}" "${{ matrix.seed }}" 1.6 0.3 2>&1 | grep -E 'ZEREF_006_AB|INCYCLE_CHAT|SKIPPED_BATCH|Error|Traceback'
