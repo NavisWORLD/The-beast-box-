@@ -176,5 +176,9 @@ test('resume parent must chain to the pin; the gate bar stays the pin re-score',
  // 2026-11-19 EPYC budget (deliberate, owner-delegated): per-variant cap 3600 -> 4400, final reserve 2700 -> 900.
  assert.match(w,/ZEREF_006_TIME_BUDGET_S: '4400'/);
  assert.match(w,/ZEREF_006_FINAL_RESERVE_S: '900'/);
+ // 2026-11-19 no-promotion fix (deliberate, PR #1005): row-weighted loss ON in the round, carried into train-env.sh; default in code stays token.
+ assert.match(w,/ZEREF_006_LOSS_WEIGHTING: 'row'/);
+ assert.match(w,/ZEREF_006_GROUP_MAX_TOKENS ZEREF_006_LOSS_WEIGHTING/);
+ assert.ok(t.includes('LOSS_WEIGHTING=os.environ.get("ZEREF_006_LOSS_WEIGHTING","token")'));
  assert.doesNotMatch(w, />\s*apps\/beastbox-cloud\/lib\/rawrphos-public-pin\.json/);
 });

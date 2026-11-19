@@ -166,3 +166,17 @@ This is recorded with the door PR. The door serves the bridge's own Zeref reply 
 - **Also added, default OFF:** `ZEREF_006_LOSS_WEIGHTING=row` (each row weighs the same instead of each token; long served/pretrain rows stop outvoting short chat replies). Not switched on until an A/B shows it beats the unchanged gate.
 - **Contract moved openly:** `tests/zeref_continuation_006_contract.test.cjs` now also pins `def not_worse_than_pin`, `chat_b_after_nll` and the workflow's `--pin-report` line.
 - **Not changed:** Gate v2, set A/B tolerances, the strict below-pin promotion rule, the pin, eval sets, mix, learning rates, 320 attempts, budgets, bridge flags. Round 44612027580 was not touched.
+
+## 2026-11-19 17:55 CT (23:55 UTC): row-weighted loss switched on for the round — it clears the unchanged gate from the pin
+
+- **Who / words:** same task-2 brief (Cory 3:22 PM CT); Emeth verifies and merges on gate evidence.
+- **Root cause 3 (measured, "what the loss covers"):** the 006 loss was a token-mean over the whole batch, so long rows (served-shape rows up to 512 tokens since #997, pretrain rows up to 256) outweigh the 12 short chat replies (p50 ~39 tokens), which are what set A and set B measure. From the pin, with the same spec (lr 8e-5 x1.6 spec, floor 0.3), the token-weighted EMA drifts set A upward: 3.533 -> 3.585 and 3.528 -> 3.560 (main lr x2.0 arm, run 44624804332). The row-weighted EMA stays flat at 3.505–3.522.
+- **A/B, hosted ubuntu-24.04, torch 2.6.0, real inputs of run 44574649056, parent = pin, 320 attempts, the gate's own pair_nll (pin A 3.5074 strict, B tolerance 3.6440):**
+  - token (today's code) x1.6: A 3.5325 / 3.5260, B 3.6613 / 3.6566 — fails.
+  - token x2.0: A 3.5327 / 3.5281, B 3.6607 / 3.6603 — fails.
+  - **row x1.6: A 3.4989 / 3.5050, B 3.6169 / 3.6394 — both seeds clear (A strictly below the pin, B inside tolerance).**
+  - **row x2.0: A 3.4958, B 3.6189 (1 skipped batch) — clears.**
+  - Spike skips from the pin: 0–1 (rounds from cycle 80: 8–55).
+- **Change:** workflow sets `ZEREF_006_LOSS_WEIGHTING: 'row'` and carries it into `train-env.sh`; the report recipe records `loss_weighting`. The code default stays `token`. One-line revert: `'token'`.
+- **Contract moved openly:** `tests/zeref_continuation_006_contract.test.cjs` pins `ZEREF_006_LOSS_WEIGHTING: 'row'`, its train-env propagation, and the code default.
+- **Caveat:** two seeds per arm; teacher-distill and experience rows were absent from the A/B (they need secrets). The real round is still the judge. Gate v2, tolerances, the strict below-pin rule, G1–G10, the pin and the eval sets are unchanged.
