@@ -15,7 +15,9 @@ test('bounded multi-variant work has independent interruption scoring and CI hea
  assert.match(w,/scripts\/zeref_round_heartbeat\.py/);
  assert.match(w,/ZEREF_006_CANDIDATES: '4'/);
  assert.match(w,/ZEREF_006_CANDIDATE_BUDGET_S: '15000'/);
- assert.match(w,/ZEREF_006_TIME_BUDGET_S: '3600'/);
+ // 2026-11-19 EPYC budget (deliberate, owner-delegated): per-variant cap 3600 -> 4400, final reserve 2700 -> 900.
+ assert.match(w,/ZEREF_006_TIME_BUDGET_S: '4400'/);
+ assert.match(w,/ZEREF_006_FINAL_RESERVE_S: '900'/);
  assert.match(w,/score-interrupted:/);
  assert.match(w,/needs: train-zeref/);
  assert.match(w,/always\(\).*needs.train-zeref.result/);
