@@ -687,15 +687,10 @@ JOB_DEADLINE_S=float(os.environ.get("ZEREF_006_JOB_DEADLINE_S","0") or 0)
 FINAL_RESERVE_S=float(os.environ.get("ZEREF_006_FINAL_RESERVE_S","2700"))
 VARIANT_SLACK_S=float(os.environ.get("ZEREF_006_VARIANT_SLACK_S","600"))
 def _merge_mouth12(infos):
- """Report-only: the single-process run accumulated the 12D tally across variants; do the same across steps."""
- out={};tally={}
- for i in infos:
-  if not i:continue
-  out.update({k:v for k,v in i.items() if k!="tally"})
-  for k,v in (i.get("tally") or {}).items():
-   if isinstance(v,(int,float)):tally[k]=tally.get(k,0)+v
- if out or tally:out["tally"]=tally
- return out
+ """Report-only: the single process reset the 12D info (and its tally) at each variant start, so the report
+ carried the LAST variant's info. Same here: the last step (in index order) that recorded one."""
+ last=[i for i in infos if i]
+ return dict(last[-1]) if last else {}
 def split_candidate_step(ci,parent,tokenizer,pool,chat_pool,chat_t,ce,order_seed):
  """Train ONE candidate in its own process/step and fold it into the persisted best-in-cycle."""
  CYCLE_DIR.mkdir(parents=True,exist_ok=True)
