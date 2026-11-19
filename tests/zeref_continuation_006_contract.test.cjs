@@ -170,6 +170,8 @@ test('resume parent must chain to the pin; the gate bar stays the pin re-score',
  assert.ok(t.includes('CHAT_A_TOLERANCE=0.005')&&t.includes('CHAT_B_TOLERANCE=0.005'));
  assert.match(w,/ZEREF_006_CANDIDATES: '4'/);
  assert.match(w,/ZEREF_006_CANDIDATE_BUDGET_S: '15000'/);
- assert.match(w,/ZEREF_006_TIME_BUDGET_S: '3600'/);
+ // 2026-11-19 EPYC budget (deliberate, owner-delegated): per-variant cap 3600 -> 4400, final reserve 2700 -> 900.
+ assert.match(w,/ZEREF_006_TIME_BUDGET_S: '4400'/);
+ assert.match(w,/ZEREF_006_FINAL_RESERVE_S: '900'/);
  assert.doesNotMatch(w, />\s*apps\/beastbox-cloud\/lib\/rawrphos-public-pin\.json/);
 });
