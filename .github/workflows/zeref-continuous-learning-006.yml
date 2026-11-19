@@ -45,8 +45,16 @@ jobs:
     # 44352488666 then died ~2,746s into the step under the new 3600s cap, so
     # the budget boundary was NOT the trigger; the runner vanishes ~45 min in
     # and uploads no log. The heartbeat diagnostic in the train step exists to
-    # catch that death with evidence. 340 minutes covers five variants at the
-    # 3600s cap inside the step, plus the final unchanged gate.
+    # catch that death with evidence.
+    # 2026-11-18 late correction (round-clock fix): "340 minutes covers five variants at
+    # the 3600s cap" was false in practice. Run 44401951155 measured ~21.8 s/attempt after
+    # #1001, so every variant burned its full 3600s at 164-166 of 320 attempts and the one
+    # 300-minute step died at its clock. True numbers now (measured on this runner type, real
+    # parent, real data; see docs/zeref-gate-owner-decisions.md): 7.77 s/attempt, so a full
+    # 320-attempt variant trains in ~2,490s inside the unchanged 3600s cap. Each of the five
+    # workloads runs in its own step with a 150-minute clock (~45 min each in practice):
+    # ~15 min setup + 5 x ~45 min + final scoring fits the 340-minute job with ~90 min spare,
+    # and the job-clock guard never starts a candidate that could not finish before scoring.
     timeout-minutes: 340
     env:
       GH_TOKEN: ${{ github.token }}
