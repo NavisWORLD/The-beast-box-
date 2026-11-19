@@ -164,6 +164,9 @@ test('resume parent must chain to the pin; the gate bar stays the pin re-score',
  assert.ok(pick.includes('def select_training_parent'));
  assert.ok(pick.includes('def chain_reaches_pin'));
  assert.ok(pick.includes('accepted_as_next_training_parent'));
+ // 2026-11-19 no-promotion fix: resume only a descendant not worse than the pin on its own recorded A and B.
+ assert.ok(pick.includes('def not_worse_than_pin')&&pick.includes('chat_b_after_nll'));
+ assert.ok(w.includes('--pin-report "$(dirname "$PIN")/report.json"'));
  assert.ok(t.includes('original_chat=pair_nll(bar_model,chat_t)'));
  assert.ok(t.includes('original_held=nll(bar_model,held_t)'));
  assert.ok(t.includes('chat_bar=max(.01,original_chat)'));

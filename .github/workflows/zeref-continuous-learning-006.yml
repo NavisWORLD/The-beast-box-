@@ -135,12 +135,15 @@ jobs:
             # Lineage check, not "newest tag at this cycle". A same-cycle sibling
             # whose parent sha does not lead back to the pin is rejected. An empty
             # result falls back to the pin below.
+            # 2026-11-19: --pin-report also skips a descendant whose own recorded set A / set B
+            # chat NLL is worse than the pin's (it would start every round behind the bar).
             python scripts/zeref_resume_parent.py \
               --repo "${{ github.repository }}" \
               --pin-sha "$pin_sha" \
               --pin-cycle "$pin_cycle" \
               --pin-tag "$pin_tag" \
               --work build/zeref-006/resume-candidates \
+              --pin-report "$(dirname "$PIN")/report.json" \
               > build/zeref-006/train-parent-tag.txt
             train_tag="$(tr -d '[:space:]' < build/zeref-006/train-parent-tag.txt)"
             if [ -z "$train_tag" ]; then train_tag="$pin_tag"; fi
