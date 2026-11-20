@@ -1,29 +1,28 @@
 {
  "disk_free_mb": 81719,
  "last_batch": {
-  "grad_norm": 3.079514503479004,
+  "grad_norm": 3.1009562015533447,
   "sources": {
-   "dolly-15k-cc-by-sa-3.0": 2,
+   "dolly-15k-cc-by-sa-3.0": 5,
    "game": 4,
    "pretrain": 2,
-   "zeref-knowledge-002": 1,
-   "zeref-lessons-005": 2,
-   "zeref-lessons-006": 2,
-   "zeref-talk-001": 1,
-   "zeref-warm-002": 1,
+   "talk006-alien-authored": 1,
+   "zeref-identity-001": 1,
+   "zeref-lessons-004": 1,
+   "zeref-lessons-006": 1,
    "zeref-world-001": 3
   },
-  "step": 224
+  "step": 230
  },
  "last_lines": [
-  "ZEREF_006_REAL_CPU_UPDATE={\"step\": 224, \"train_loss\": 3.595630168914795, \"anchor_drift\": 0.06840667128562927, \"grad_norm\": 3.079514503479004}",
-  "ZEREF_006_INCYCLE_EMA_CHAT={\"step\": 224, \"chat_nll\": 3.6006094861030578}",
-  "ZEREF_006_INCYCLE_CHAT={\"step\": 224, \"chat_nll\": 3.6123400783538817, \"lr\": 1.4454172667153446e-05}"
+  "ZEREF_006_SKIPPED_BATCH={\"grad_norm\": 113.60995483398438, \"median\": 3.2409366369247437, \"sources\": {\"game\": 4, \"pretrain\": 2, \"zeref-identity-001\": 3, \"zeref-knowledge-002\": 1, \"zeref-lessons-004\": 1, \"zeref-lessons-006\": 4, \"zeref-world-001\": 3}, \"step\": 228}",
+  "ZEREF_006_BATCH={\"grad_norm\": 3.4092626571655273, \"sources\": {\"dolly-15k-cc-by-sa-3.0\": 2, \"game\": 4, \"pretrain\": 2, \"zeref-dad-voice-001\": 1, \"zeref-identity-001\": 1, \"zeref-knowledge-002\": 3, \"zeref-lessons-003\": 1, \"zeref-lessons-006\": 1, \"zeref-qa-001\": 2, \"zeref-world-001\": 1}, \"step\": 229}",
+  "ZEREF_006_BATCH={\"grad_norm\": 3.1009562015533447, \"sources\": {\"dolly-15k-cc-by-sa-3.0\": 5, \"game\": 4, \"pretrain\": 2, \"talk006-alien-authored\": 1, \"zeref-identity-001\": 1, \"zeref-lessons-004\": 1, \"zeref-lessons-006\": 1, \"zeref-world-001\": 3}, \"step\": 230}"
  ],
- "log_bytes": 79343,
- "mem_available_mb": 10367,
+ "log_bytes": 81229,
+ "mem_available_mb": 10375,
  "run_id": "44653997315",
  "schema": "zeref-round-heartbeat-v1",
  "trainer_rss_mb": 4677,
- "ts": 1795140900.0683692
+ "ts": 1795140961.6113625
 }
