@@ -135,12 +135,15 @@ jobs:
             # Lineage check, not "newest tag at this cycle". A same-cycle sibling
             # whose parent sha does not lead back to the pin is rejected. An empty
             # result falls back to the pin below.
+            # 2026-11-19: --pin-report also skips a descendant whose own recorded set A / set B
+            # chat NLL is worse than the pin's (it would start every round behind the bar).
             python scripts/zeref_resume_parent.py \
               --repo "${{ github.repository }}" \
               --pin-sha "$pin_sha" \
               --pin-cycle "$pin_cycle" \
               --pin-tag "$pin_tag" \
               --work build/zeref-006/resume-candidates \
+              --pin-report "$(dirname "$PIN")/report.json" \
               > build/zeref-006/train-parent-tag.txt
             train_tag="$(tr -d '[:space:]' < build/zeref-006/train-parent-tag.txt)"
             if [ -z "$train_tag" ]; then train_tag="$pin_tag"; fi
@@ -433,6 +436,10 @@ jobs:
           ZEREF_006_GRAD_CKPT_EVERY: '2'
           ZEREF_006_LENGTH_GROUPING: '1'
           ZEREF_006_GROUP_MAX_TOKENS: '3072'
+          # 2026-11-19 no-promotion fix (PR #1005, task 2): every row weighs the same in the loss, so long served/pretrain
+          # rows stop outvoting short chat replies. Hosted A/B from the pin: token-weighted EMA drifts set A 3.53 -> 3.58;
+          # row-weighted EMA stays 3.505-3.522. One-line revert: 'token' (the exact old token-mean).
+          ZEREF_006_LOSS_WEIGHTING: 'row'
           # Job clock guard: a candidate step only starts if a full variant + the final scoring reserve
           # still fits inside the 340-minute job (20400s). The reserve was 2700s; final scoring took
           # 163s in run 44526017452, so 900s is still 5.5x the measured cost and frees 1,800s of
@@ -451,7 +458,7 @@ jobs:
             printf 'export ZEREF_006_JOB_T0_UNIX=%q\n' "${ZEREF_006_JOB_T0_UNIX:-0}"
             for k in ZEREF_COND54 ZEREF_SPARK_TICKS ZEREF_006_PUBLIC_REF_DIR ZEREF_HEBBIAN ZEREF_TRINITY ZEREF_006_LR ZEREF_GEAR_LR_MULT \
                      ZEREF_12D_MOUTH ZEREF_GROW_LAYERS ZEREF_GROWTH_WIP_IN ZEREF_GROWTH_WIP_OUT ZEREF_006_CANDIDATES ZEREF_006_CANDIDATE_BUDGET_S \
-                     ZEREF_006_TIME_BUDGET_S ZEREF_006_GRAD_CKPT_EVERY ZEREF_006_LENGTH_GROUPING ZEREF_006_GROUP_MAX_TOKENS \
+                     ZEREF_006_TIME_BUDGET_S ZEREF_006_GRAD_CKPT_EVERY ZEREF_006_LENGTH_GROUPING ZEREF_006_GROUP_MAX_TOKENS ZEREF_006_LOSS_WEIGHTING \
                      ZEREF_006_JOB_DEADLINE_S ZEREF_006_FINAL_RESERVE_S ZEREF_006_VARIANT_SLACK_S ZEREF_006_PHASE_TIMEOUT_S; do
               printf 'export %s=%q\n' "$k" "${!k}"
             done
