@@ -1,29 +1,29 @@
 {
  "disk_free_mb": 84634,
  "last_batch": {
-  "grad_norm": 5.818239688873291,
+  "grad_norm": 4.50474214553833,
   "sources": {
-   "dolly-15k-cc-by-sa-3.0": 5,
+   "dolly-15k-cc-by-sa-3.0": 2,
    "game": 4,
    "pretrain": 2,
    "zeref-dad-voice-001": 1,
-   "zeref-ibm-play-001": 1,
-   "zeref-lessons-004": 2,
-   "zeref-lyrics-001": 1,
-   "zeref-qa-001": 1,
+   "zeref-knowledge-002": 2,
+   "zeref-lessons-004": 3,
+   "zeref-lessons-005": 1,
+   "zeref-lessons-006": 2,
    "zeref-world-001": 1
   },
-  "step": 316
+  "step": 320
  },
  "last_lines": [
-  "ZEREF_006_BATCH={\"grad_norm\": 215.83383178710938, \"sources\": {\"dolly-15k-cc-by-sa-3.0\": 2, \"game\": 4, \"pretrain\": 2, \"zeref-dad-voice-001\": 2, \"zeref-knowledge-002\": 1, \"zeref-lessons-004\": 1, \"zeref-lessons-006\": 4, \"zeref-qa-001\": 1, \"zeref-warm-002\": 1}, \"step\": 315}",
-  "ZEREF_006_SKIPPED_BATCH={\"grad_norm\": 215.83383178710938, \"median\": 4.740507125854492, \"sources\": {\"dolly-15k-cc-by-sa-3.0\": 2, \"game\": 4, \"pretrain\": 2, \"zeref-dad-voice-001\": 2, \"zeref-knowledge-002\": 1, \"zeref-lessons-004\": 1, \"zeref-lessons-006\": 4, \"zeref-qa-001\": 1, \"zeref-warm-002\": 1}, \"step",
-  "ZEREF_006_BATCH={\"grad_norm\": 5.818239688873291, \"sources\": {\"dolly-15k-cc-by-sa-3.0\": 5, \"game\": 4, \"pretrain\": 2, \"zeref-dad-voice-001\": 1, \"zeref-ibm-play-001\": 1, \"zeref-lessons-004\": 2, \"zeref-lyrics-001\": 1, \"zeref-qa-001\": 1, \"zeref-world-001\": 1}, \"step\": 316}"
+  "ZEREF_006_INCYCLE_CHAT={\"step\": 320, \"chat_nll\": 3.486490169763565, \"lr\": 5.0010842984151205e-06}",
+  "ZEREF_12D_MOUTH={\"enabled\": true, \"gain_floor\": 0.25, \"gain_slots0_11_after_floor\": [-0.321185, -0.267929, 0.257113, -0.263985, 0.319477, -0.313448, 0.250251, 0.315902, 0.286812, -0.301362, -0.30299, 0.366114], \"gain_slots0_11_kept\": [-0.323252, -0.264916, 0.257068, -0.262402, 0.320527, -0.31254, 0.",
+  "ZEREF_006_CONTROL={\"chat_nll\": 3.4597817921638487, \"heldout_nll\": 0.005807210957365376, \"observations\": 14, \"retention_nll\": 4.118155479431152, \"script_teacher_matches\": 14, \"unique_actions\": 5, \"valid_actions\": 14}"
  ],
- "log_bytes": 102006,
- "mem_available_mb": 9809,
+ "log_bytes": 104264,
+ "mem_available_mb": 14564,
  "run_id": "44796502659",
  "schema": "zeref-round-heartbeat-v1",
- "trainer_rss_mb": 4964,
- "ts": 1795203504.4831216
+ "trainer_rss_mb": null,
+ "ts": 1795203563.0782917
 }
