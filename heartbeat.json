@@ -1,30 +1,29 @@
 {
  "disk_free_mb": 84635,
  "last_batch": {
-  "grad_norm": 4.193614959716797,
+  "grad_norm": 4.842401504516602,
   "sources": {
-   "dolly-15k-cc-by-sa-3.0": 1,
+   "dolly-15k-cc-by-sa-3.0": 4,
    "game": 4,
    "pretrain": 2,
-   "zeref-knowledge-002": 1,
-   "zeref-lessons-003": 2,
+   "zeref-dad-voice-001": 1,
+   "zeref-lessons-003": 1,
    "zeref-lessons-004": 2,
-   "zeref-lessons-005": 1,
-   "zeref-lessons-006": 1,
-   "zeref-lyrics-001": 2,
-   "zeref-world-001": 2
+   "zeref-lessons-006": 2,
+   "zeref-music-001": 1,
+   "zeref-world-001": 1
   },
-  "step": 218
+  "step": 224
  },
  "last_lines": [
-  "ZEREF_006_BATCH={\"grad_norm\": 6.3638153076171875, \"sources\": {\"dolly-15k-cc-by-sa-3.0\": 5, \"game\": 4, \"pretrain\": 2, \"zeref-identity-001\": 1, \"zeref-lessons-004\": 2, \"zeref-lessons-006\": 3, \"zeref-qa-001\": 1}, \"step\": 216}",
-  "ZEREF_006_BATCH={\"grad_norm\": 4.887589454650879, \"sources\": {\"game\": 4, \"pretrain\": 2, \"zeref-dad-voice-001\": 1, \"zeref-identity-001\": 1, \"zeref-knowledge-002\": 2, \"zeref-lessons-004\": 3, \"zeref-lessons-005\": 1, \"zeref-lessons-006\": 3, \"zeref-qa-001\": 1}, \"step\": 217}",
-  "ZEREF_006_BATCH={\"grad_norm\": 4.193614959716797, \"sources\": {\"dolly-15k-cc-by-sa-3.0\": 1, \"game\": 4, \"pretrain\": 2, \"zeref-knowledge-002\": 1, \"zeref-lessons-003\": 2, \"zeref-lessons-004\": 2, \"zeref-lessons-005\": 1, \"zeref-lessons-006\": 1, \"zeref-lyrics-001\": 2, \"zeref-world-001\": 2}, \"step\": 218}"
+  "ZEREF_006_REAL_CPU_UPDATE={\"step\": 224, \"train_loss\": 2.7381231784820557, \"anchor_drift\": 0.10141962021589279, \"grad_norm\": 4.842401504516602}",
+  "ZEREF_006_INCYCLE_EMA_CHAT={\"step\": 224, \"chat_nll\": 3.4901259183883666}",
+  "ZEREF_006_INCYCLE_CHAT={\"step\": 224, \"chat_nll\": 3.5295389533042907, \"lr\": 1.4454172667153446e-05}"
  ],
- "log_bytes": 69939,
- "mem_available_mb": 9763,
+ "log_bytes": 71966,
+ "mem_available_mb": 9759,
  "run_id": "44796502659",
  "schema": "zeref-round-heartbeat-v1",
  "trainer_rss_mb": 5020,
- "ts": 1795202705.452741
+ "ts": 1795202766.87126
 }
