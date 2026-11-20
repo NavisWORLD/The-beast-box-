@@ -16,14 +16,14 @@
   "step": 320
  },
  "last_lines": [
-  "ZEREF_006_SPLIT_ROUND={\"best_in_cycle\": {\"chat_a_nll\": 3.554259091615677, \"index\": 3, \"parent_checkpoint_sha256\": \"70aa787823f751ccc40d1ca426bad1743fb047a3d5f770e4cecc3f9128e3c105\"}, \"candidates_finished\": [0, 1, 2, 3], \"control\": \"finished\"}",
-  "ZEREF_006_CANDIDATE_SELECTED={\"index\": 3, \"chat_a_nll\": 3.554259091615677, \"of\": 4, \"rule\": \"lowest set A NLL; set B never used to select; unchanged Gate v2 applies to the selected candidate only\"}",
-  "ZEREF_COND54_BANK={\"bank_sha256\": \"4cb3906ac11526a9deedd8f50edac2715d5c03dae17dee88bb98ba7e82de8333\", \"drop\": 0.5, \"first_tick\": 23703, \"label\": \"Rigetti SIMULATED spark ticks (bb-deada969); other bands masked 0.0\", \"last_tick\": 24303, \"pairing\": \"by training-step time, not by meaning (no owner sens"
+  "ZEREF_006_REAL_TRAINING_GATE={\"approved\": false, \"cycle\": 81, \"canonical_root\": \"37ca3f8fc9cdc0e78175508fc816ed02d5a12da1f3b106505715b7366fde5a48\", \"parent\": \"70aa787823f751ccc40d1ca426bad1743fb047a3d5f770e4cecc3f9128e3c105\", \"candidate\": \"30b37814d32ad31b45d0801c9d241b5de856513698b66281248330b82547",
+  "ZEREF_006_OBSERVATION_DIAGNOSTICS={\"source\": \"original_native_rom_emulator_screen_summaries\", \"scripted_teacher_action_histogram\": {\"A\": 6, \"B\": 22, \"DOWN\": 13, \"LEFT\": 5, \"RIGHT\": 6, \"UP\": 4}, \"unique_before_frame_summaries\": 24, \"unique_after_frame_summaries\": 23, \"different_before_after_summaries",
+  "ZEREF_006_NEXT_PARENT={\"accepted\": false, \"optimizer_steps_completed\": 320, \"checkpoint_preserved\": false}"
  ],
- "log_bytes": 606700,
- "mem_available_mb": 13569,
+ "log_bytes": 609212,
+ "mem_available_mb": 14541,
  "run_id": "44689887531",
  "schema": "zeref-round-heartbeat-v1",
- "trainer_rss_mb": 1167,
- "ts": 1795170072.2442222
+ "trainer_rss_mb": null,
+ "ts": 1795170103.8376226
 }
