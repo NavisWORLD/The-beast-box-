@@ -34,7 +34,7 @@ MIN_KEEP = 0.5  # share of the draft's content words the revision must keep
 
 _FORBIDDEN = re.compile(
     r"(?i)\b(?:as an ai|an ai\b|a?n? ?artificial intelligence|language model|llm|chatbot|"
-    r"i am conscious|i'?m conscious|sentient|self-aware|live quantum|quantum computer (?:is )?running me)")
+    r"consciousness|i am conscious|i'?m conscious|sentient|self-aware|live quantum|quantum computer (?:is )?running me)")
 _WORD = re.compile(r"[a-z']+")
 _STOP = frozenset("a an the and or but so to of in on at for with is are was were be been am i you he she it we they "
                   "my your his her its our their me him them this that these those do does did not no yes".split())
@@ -82,7 +82,10 @@ def _call(user_line: str, draft: str, timeout: float) -> str:
         raw = resp.read(65537)
     if len(raw) > 65536:
         raise ValueError("oversize")
-    return json.loads(raw)["choices"][0]["message"]["content"].strip()
+    content = json.loads(raw)["choices"][0]["message"]["content"]
+    if not isinstance(content, str):
+        raise ValueError("non-text content")
+    return content.strip()
 
 
 def revise(user_line: str, draft: str, *, call=None, timeout: float = 20.0) -> tuple[str, dict]:
