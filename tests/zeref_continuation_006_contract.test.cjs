@@ -167,6 +167,8 @@ test('resume parent must chain to the pin; the gate bar stays the pin re-score',
  // 2026-11-19 no-promotion fix: resume only a descendant not worse than the pin on its own recorded A and B.
  assert.ok(pick.includes('def not_worse_than_pin')&&pick.includes('chat_b_after_nll'));
  assert.ok(w.includes('--pin-report "$(dirname "$PIN")/report.json"'));
+ // 2026-11-20 (deliberate, restores #1005 lost in the #1004 merge): an unreadable pin report fails closed to the pin.
+ assert.ok(pick.includes('pin report has no set A/B scores'));
  assert.ok(t.includes('original_chat=pair_nll(bar_model,chat_t)'));
  assert.ok(t.includes('original_held=nll(bar_model,held_t)'));
  assert.ok(t.includes('chat_bar=max(.01,original_chat)'));
