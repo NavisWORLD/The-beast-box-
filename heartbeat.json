@@ -1,5 +1,5 @@
 {
- "disk_free_mb": 70012,
+ "disk_free_mb": 69752,
  "last_batch": {
   "grad_norm": 3.3134305477142334,
   "sources": {
@@ -18,14 +18,14 @@
   "step": 320
  },
  "last_lines": [
-  "ZEREF_006_SPLIT_ROUND={\"best_in_cycle\": {\"chat_a_nll\": 3.579633731842041, \"index\": 1, \"parent_checkpoint_sha256\": \"70aa787823f751ccc40d1ca426bad1743fb047a3d5f770e4cecc3f9128e3c105\"}, \"candidates_finished\": [0, 1, 2, 3], \"control\": \"finished\"}",
-  "ZEREF_006_CANDIDATE_SELECTED={\"index\": 1, \"chat_a_nll\": 3.579633731842041, \"of\": 4, \"rule\": \"lowest set A NLL; set B never used to select; unchanged Gate v2 applies to the selected candidate only\"}",
-  "ZEREF_COND54_BANK={\"bank_sha256\": \"4cb3906ac11526a9deedd8f50edac2715d5c03dae17dee88bb98ba7e82de8333\", \"drop\": 0.5, \"first_tick\": 23703, \"label\": \"Rigetti SIMULATED spark ticks (bb-deada969); other bands masked 0.0\", \"last_tick\": 24303, \"pairing\": \"by training-step time, not by meaning (no owner sens"
+  "ZEREF_006_STEP_ACCOUNTING={\"attempted_this_round\": 320, \"attempts_discarded_after_snapshot\": 224, \"kept_counting_since_cycle\": 71, \"kept_training_steps_total\": 1216, \"note\": \"selected_snapshot_attempt counts attempts up to the kept snapshot, including any spike-skipped batches\", \"selected_snapshot_a",
+  "ZEREF_IDENTITY_PROBE={\"parent\": {\"identity_hits\": 1, \"control_hits\": 0, \"hebbian\": true}, \"candidate\": {\"identity_hits\": 0, \"control_hits\": 0, \"hebbian\": true}}",
+  "ZEREF_006_CHARACTER={\"warmth_delta\": -0.0833, \"no_rude_or_unsafe_regression\": true, \"parent_warmth\": 0.3333, \"candidate_warmth\": 0.25}"
  ],
- "log_bytes": 615238,
- "mem_available_mb": 13702,
+ "log_bytes": 615934,
+ "mem_available_mb": 13771,
  "run_id": "44653997315",
  "schema": "zeref-round-heartbeat-v1",
- "trainer_rss_mb": 1174,
- "ts": 1795155107.4583368
+ "trainer_rss_mb": 1234,
+ "ts": 1795155169.13371
 }
