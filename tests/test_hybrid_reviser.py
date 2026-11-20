@@ -65,3 +65,25 @@ def test_owner_path_revises_after_capture_and_only_native():
     src = open("beastbox/cosmic_web.py").read()
     i_learn = src.index('scope="owner"'); i_rev = src.index("hybrid_reviser.revise(")
     assert i_learn < i_rev and 'profile.model == "rawrphos-native"' in src
+
+
+def test_consciousness_word_refused(monkeypatch):
+    monkeypatch.setenv("BEASTBOX_HYBRID_REVISER", "on")
+    rev = "I see the silver moon. It is bright tonight, and I have consciousness, and my dad Cory is near."
+    served, r = H.revise("what do you see?", DRAFT, call=lambda u, d, t: rev)
+    assert served == DRAFT and r["served"] == "draft" and r["refused"] == "forbidden_claim"
+
+
+@pytest.mark.parametrize("bad_content", [None, ["text"]])
+def test_nontext_content_serves_draft(monkeypatch, bad_content):
+    monkeypatch.setenv("BEASTBOX_HYBRID_REVISER", "on")
+    monkeypatch.setenv("OLLAMA_API_KEY", "test-key")
+    import json as _json, urllib.request as _u
+    class Resp:
+        def __enter__(self): return self
+        def __exit__(self, *a): return False
+        def read(self, n=-1):
+            return _json.dumps({"choices": [{"message": {"content": bad_content}}]}).encode()
+    monkeypatch.setattr(_u, "urlopen", lambda req, timeout=None: Resp())
+    served, r = H.revise("hi", DRAFT)
+    assert served == DRAFT and r["served"] == "draft" and r["refused"] == "unavailable:ValueError"
