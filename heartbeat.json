@@ -1,5 +1,5 @@
 {
- "disk_free_mb": 73340,
+ "disk_free_mb": 73341,
  "last_batch": {
   "grad_norm": 2.914661169052124,
   "sources": {
@@ -16,14 +16,14 @@
   "step": 320
  },
  "last_lines": [
-  "ZEREF_12D_MOUTH={\"enabled\": true, \"gain_floor\": 0.25, \"gain_slots0_11_after_floor\": [-0.316776, -0.276891, 0.259422, -0.263133, 0.314215, -0.312332, 0.252297, 0.307801, 0.29281, -0.294171, -0.297893, 0.356878], \"gain_slots0_11_kept\": [-0.342078, -0.288576, 0.259321, -0.272608, 0.347236, -0.341001, 0",
-  "ZEREF_006_CANDIDATE={\"best_in_cycle\": {\"best_in_cycle_chat_nll\": 3.5784553050994874, \"best_in_cycle_step\": 192}, \"chat_a_nll\": 3.5784553050994874, \"elapsed_s\": 2620.2, \"index\": 3, \"lr\": 5e-05, \"lr_min_fraction\": 0.5, \"seed\": 272485715423229, \"skipped_batches\": 50}",
-  "ZEREF_006_BEST_IN_CYCLE={\"chat_a_nll\": 3.5704756355285645, \"index\": 2, \"parent_checkpoint_sha256\": \"70aa787823f751ccc40d1ca426bad1743fb047a3d5f770e4cecc3f9128e3c105\"}"
+  "ZEREF_006_SPLIT_ROUND={\"best_in_cycle\": {\"chat_a_nll\": 3.5704756355285645, \"index\": 2, \"parent_checkpoint_sha256\": \"70aa787823f751ccc40d1ca426bad1743fb047a3d5f770e4cecc3f9128e3c105\"}, \"candidates_finished\": [0, 1, 2, 3], \"control\": \"finished\"}",
+  "ZEREF_006_CANDIDATE_SELECTED={\"index\": 2, \"chat_a_nll\": 3.5704756355285645, \"of\": 4, \"rule\": \"lowest set A NLL; set B never used to select; unchanged Gate v2 applies to the selected candidate only\"}",
+  "ZEREF_COND54_BANK={\"bank_sha256\": \"4cb3906ac11526a9deedd8f50edac2715d5c03dae17dee88bb98ba7e82de8333\", \"drop\": 0.5, \"first_tick\": 23703, \"label\": \"Rigetti SIMULATED spark ticks (bb-deada969); other bands masked 0.0\", \"last_tick\": 24303, \"pairing\": \"by training-step time, not by meaning (no owner sens"
  ],
- "log_bytes": 595197,
- "mem_available_mb": 14536,
+ "log_bytes": 596496,
+ "mem_available_mb": 13542,
  "run_id": "44695185195",
  "schema": "zeref-round-heartbeat-v1",
- "trainer_rss_mb": null,
- "ts": 1795183582.0807528
+ "trainer_rss_mb": 1176,
+ "ts": 1795183648.2579286
 }
