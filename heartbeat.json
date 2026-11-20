@@ -1,5 +1,5 @@
 {
- "disk_free_mb": 82185,
+ "disk_free_mb": 81925,
  "last_batch": {
   "grad_norm": 3.130680561065674,
   "sources": {
@@ -18,14 +18,14 @@
   "step": 320
  },
  "last_lines": [
-  "ZEREF_006_INCYCLE_CHAT={\"step\": 320, \"chat_nll\": 3.6049877727031707, \"lr\": 5.0010842984151205e-06}",
-  "ZEREF_ROUND_SNAPSHOT={\"applied_optimizer_steps\": 277, \"attempted_updates\": 320, \"candidate\": 0, \"checkpoint\": \"recovery/candidate-0-000320\", \"checkpoint_sha256\": \"b57e77fb1448db48363f6f81d1e01299166d030824067492ed0f55391966a267\", \"parent_checkpoint_sha256\": \"70aa787823f751ccc40d1ca426bad1743fb047a3d",
-  "ZEREF_12D_MOUTH={\"enabled\": true, \"gain_floor\": 0.25, \"gain_slots0_11_after_floor\": [-0.316776, -0.276891, 0.259422, -0.263133, 0.314215, -0.312332, 0.252297, 0.307801, 0.29281, -0.294171, -0.297893, 0.356878], \"gain_slots0_11_kept\": [-0.330415, -0.282913, 0.253804, -0.267002, 0.342723, -0.336825, 0"
+  "ZEREF_12D_MOUTH={\"enabled\": true, \"gain_floor\": 0.25, \"gain_slots0_11_after_floor\": [-0.316776, -0.276891, 0.259422, -0.263133, 0.314215, -0.312332, 0.252297, 0.307801, 0.29281, -0.294171, -0.297893, 0.356878], \"gain_slots0_11_kept\": [-0.330415, -0.282913, 0.253804, -0.267002, 0.342723, -0.336825, 0",
+  "ZEREF_006_CANDIDATE={\"best_in_cycle\": {\"best_in_cycle_chat_nll\": 3.5942847716808317, \"best_in_cycle_step\": 64}, \"chat_a_nll\": 3.5942847716808317, \"elapsed_s\": 2455.4, \"index\": 0, \"lr\": 5e-05, \"lr_min_fraction\": 0.1, \"seed\": 882582625375580126, \"skipped_batches\": 43}",
+  "ZEREF_006_BEST_IN_CYCLE={\"chat_a_nll\": 3.5942847716808317, \"index\": 0, \"parent_checkpoint_sha256\": \"70aa787823f751ccc40d1ca426bad1743fb047a3d5f770e4cecc3f9128e3c105\"}"
  ],
- "log_bytes": 230397,
- "mem_available_mb": 9876,
+ "log_bytes": 230831,
+ "mem_available_mb": 14510,
  "run_id": "44689887531",
  "schema": "zeref-round-heartbeat-v1",
- "trainer_rss_mb": 4890,
- "ts": 1795162513.9900851
+ "trainer_rss_mb": null,
+ "ts": 1795162519.4829726
 }
