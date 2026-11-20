@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import unittest
 
-from scripts.zeref_resume_parent import select_training_parent
+from scripts.zeref_resume_parent import select_training_parent, pin_scores_from_report, not_worse_than_pin
 
 
 PIN = "ab" * 32
@@ -59,6 +59,83 @@ class ResumeParentLineageTest(unittest.TestCase):
         child = _release(61, "77" * 32, parent["checkpoint_sha256"], list_index=0)
         chosen = select_training_parent([child, parent], PIN)
         self.assertEqual(chosen["checkpoint_sha256"], child["checkpoint_sha256"])
+
+
+
+class ResumeParentNotBehindPinTest(unittest.TestCase):
+    """2026-11-19: a descendant whose own recorded A/B is worse than the pin's is not resumed."""
+    PIN_SCORES = {"chat_a": 3.5074142569303515, "chat_b": 3.625876979827881}  # pin cycle 79, 4457415d
+
+    def test_cycle_80_case_falls_back_to_the_pin(self):
+        # cycle 80 (70aa7878): A 3.5204 / B 3.6389, approved against the previous pin's bar in run 43818870885
+        c80 = _release(80, "70" * 32, PIN, list_index=0, chat_a_nll=3.5204297202825545, chat_b_nll=3.6388828480243682)
+        self.assertIsNone(select_training_parent([c80], PIN, self.PIN_SCORES))
+        self.assertEqual(select_training_parent([c80], PIN)["checkpoint_sha256"], c80["checkpoint_sha256"])  # no report: old rule
+
+    def test_descendant_not_worse_is_kept(self):
+        good = _release(80, "71" * 32, PIN, list_index=0, chat_a_nll=3.50, chat_b_nll=3.62)
+        self.assertEqual(select_training_parent([good], PIN, self.PIN_SCORES)["checkpoint_sha256"], good["checkpoint_sha256"])
+
+    def test_worse_on_b_only_or_missing_scores_is_skipped(self):
+        b_worse = _release(80, "72" * 32, PIN, list_index=0, chat_a_nll=3.50, chat_b_nll=3.70)
+        unknown = _release(80, "73" * 32, PIN, list_index=1)
+        self.assertIsNone(select_training_parent([b_worse, unknown], PIN, self.PIN_SCORES))
+
+    def test_better_child_of_a_worse_parent_is_kept(self):
+        worse = _release(80, "74" * 32, PIN, list_index=1, chat_a_nll=3.52, chat_b_nll=3.64)
+        child = _release(81, "75" * 32, worse["checkpoint_sha256"], list_index=0, chat_a_nll=3.49, chat_b_nll=3.60)
+        self.assertEqual(select_training_parent([child, worse], PIN, self.PIN_SCORES)["checkpoint_sha256"], child["checkpoint_sha256"])
+
+    def test_pin_scores_from_report(self):
+        self.assertEqual(pin_scores_from_report({"recipe": {"chat_after_nll": 3.5, "chat_b_after_nll": 3.6}}), {"chat_a": 3.5, "chat_b": 3.6})
+        self.assertIsNone(pin_scores_from_report({"recipe": {"chat_after_nll": None}}))
+        self.assertIsNone(pin_scores_from_report({}))
+        self.assertTrue(not_worse_than_pin({}, None))
+
+
+class ResumeParentRound44689887531Test(unittest.TestCase):
+    """2026-11-20 regression: run 44689887531 (head b97368ba) still resumed cycle 80.
+
+    The #1004 merge commit kept the pre-#1005 copies of zeref_resume_parent.py, its tests and the
+    workflow's --pin-report line, so the selector only checked lineage plus cycle 80's own gate record
+    (accepted against the OLD bar 3.5435, gate_bar_checkpoint 7160b2dd). Real shas and recorded scores below.
+    """
+    PIN_SHA = "4457415db509b3c0f0769fff80aa382eeb162d47050578b277370fe2351e3cc9"
+    C80_SHA = "70aa787823f751ccc40d1ca426bad1743fb047a3d5f770e4cecc3f9128e3c105"
+    PIN_REPORT = {"recipe": {"chat_after_nll": 3.5074142569303515, "chat_b_after_nll": 3.625876979827881}}
+
+    def _c80(self):
+        return _release(80, self.C80_SHA, self.PIN_SHA, list_index=0,
+                        chat_a_nll=3.5204297202825545, chat_b_nll=3.6388828480243682)
+
+    def test_lineage_only_rule_picks_cycle_80(self):
+        # What the run did: lineage ok, gate record ok, so cycle 80 was chosen.
+        self.assertEqual(select_training_parent([self._c80()], self.PIN_SHA)["checkpoint_sha256"], self.C80_SHA)
+
+    def test_pin_report_rule_falls_back_to_the_pin(self):
+        scores = pin_scores_from_report(self.PIN_REPORT)
+        self.assertIsNone(select_training_parent([self._c80()], self.PIN_SHA, scores))
+
+    def test_main_fails_closed_when_pin_report_is_unreadable(self):
+        import io, contextlib, tempfile, os
+        import scripts.zeref_resume_parent as rp
+        called = []
+        orig = rp.choose_tag
+        rp.choose_tag = lambda *a, **k: called.append(1) or self._c80()
+        try:
+            with tempfile.TemporaryDirectory() as d:
+                bad = os.path.join(d, "report.json")
+                with open(bad, "w") as fh:
+                    fh.write("{}")
+                out = io.StringIO()
+                with contextlib.redirect_stdout(out), contextlib.redirect_stderr(io.StringIO()):
+                    rc = rp.main(["--repo", "x/y", "--pin-sha", self.PIN_SHA, "--pin-cycle", "79",
+                                  "--pin-tag", "zeref-006-cycle-79-4457415db509", "--work", d, "--pin-report", bad])
+            self.assertEqual(rc, 0)
+            self.assertEqual(out.getvalue().strip(), "")  # empty tag = the workflow trains from the pin
+            self.assertEqual(called, [])
+        finally:
+            rp.choose_tag = orig
 
 
 if __name__ == "__main__":

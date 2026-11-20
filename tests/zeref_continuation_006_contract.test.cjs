@@ -164,6 +164,11 @@ test('resume parent must chain to the pin; the gate bar stays the pin re-score',
  assert.ok(pick.includes('def select_training_parent'));
  assert.ok(pick.includes('def chain_reaches_pin'));
  assert.ok(pick.includes('accepted_as_next_training_parent'));
+ // 2026-11-19 no-promotion fix: resume only a descendant not worse than the pin on its own recorded A and B.
+ assert.ok(pick.includes('def not_worse_than_pin')&&pick.includes('chat_b_after_nll'));
+ assert.ok(w.includes('--pin-report "$(dirname "$PIN")/report.json"'));
+ // 2026-11-20 (deliberate, restores #1005 lost in the #1004 merge): an unreadable pin report fails closed to the pin.
+ assert.ok(pick.includes('pin report has no set A/B scores'));
  assert.ok(t.includes('original_chat=pair_nll(bar_model,chat_t)'));
  assert.ok(t.includes('original_held=nll(bar_model,held_t)'));
  assert.ok(t.includes('chat_bar=max(.01,original_chat)'));
@@ -173,5 +178,9 @@ test('resume parent must chain to the pin; the gate bar stays the pin re-score',
  // 2026-11-19 EPYC budget (deliberate, owner-delegated): per-variant cap 3600 -> 4400, final reserve 2700 -> 900.
  assert.match(w,/ZEREF_006_TIME_BUDGET_S: '4400'/);
  assert.match(w,/ZEREF_006_FINAL_RESERVE_S: '900'/);
+ // 2026-11-19 no-promotion fix (deliberate, PR #1005): row-weighted loss ON in the round, carried into train-env.sh; default in code stays token.
+ assert.match(w,/ZEREF_006_LOSS_WEIGHTING: 'row'/);
+ assert.match(w,/ZEREF_006_GROUP_MAX_TOKENS ZEREF_006_LOSS_WEIGHTING/);
+ assert.ok(t.includes('LOSS_WEIGHTING=os.environ.get("ZEREF_006_LOSS_WEIGHTING","token")'));
  assert.doesNotMatch(w, />\s*apps\/beastbox-cloud\/lib\/rawrphos-public-pin\.json/);
 });
