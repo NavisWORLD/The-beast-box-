@@ -46,18 +46,36 @@ def _load_jsonl(path: Path) -> list[dict]:
     return rows
 
 
-def _fetch_url(url: str, token: str | None, timeout: int = 30) -> list[dict]:
+TRANSPORT: dict = {}  # per-source status for the receipt: counts and HTTP status only, never text or tokens
+
+
+def _fetch_url(url: str, token: str | None, timeout: int = 30, label: str = "") -> list[dict]:
     if not url:
+        if label:
+            TRANSPORT[label] = {"status": "not_configured", "rows": 0}
         return []
-    headers = {"Accept": "application/json, application/x-ndjson, text/plain"}
+    headers = {"Accept": "application/json, application/x-ndjson, text/plain", "User-Agent": "zeref-self-learn-join"}
     if token:
         headers["Authorization"] = "Bearer " + token
     req = urllib.request.Request(url, headers=headers, method="GET")
     try:
         with urllib.request.urlopen(req, timeout=timeout) as resp:
             raw = resp.read()
-    except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, ValueError, OSError):
+    except urllib.error.HTTPError as exc:
+        if label:
+            TRANSPORT[label] = {"status": "http_%d" % exc.code, "rows": 0, "token_sent": bool(token)}
         return []
+    except (urllib.error.URLError, TimeoutError, ValueError, OSError) as exc:
+        if label:
+            TRANSPORT[label] = {"status": "unreachable:" + type(exc).__name__, "rows": 0, "token_sent": bool(token)}
+        return []
+    rows = _parse(raw)
+    if label:
+        TRANSPORT[label] = {"status": "ok", "rows": len(rows), "token_sent": bool(token)}
+    return rows
+
+
+def _parse(raw: bytes) -> list[dict]:
     text = raw.decode("utf-8", errors="replace").strip()
     if not text:
         return []
@@ -94,9 +112,14 @@ def collect(candidates_path: Path | None, branch_url: str, export_url: str, toke
             rows.append(c)
 
     if candidates_path:
-        add(_load_jsonl(candidates_path))
-    add(_fetch_url(branch_url, None))
-    add(_fetch_url(export_url, token))
+        local = _load_jsonl(candidates_path)
+        TRANSPORT["local"] = {"status": "ok" if local else "empty", "rows": len(local)}
+        add(local)
+    add(_fetch_url(branch_url, None, label="branch"))
+    if export_url and not token:
+        TRANSPORT["export"] = {"status": "token_missing", "rows": 0}  # the export key is required; never call it bare
+    else:
+        add(_fetch_url(export_url, token, label="export"))
     return rows
 
 
@@ -145,7 +168,7 @@ def main(argv=None) -> int:
     mix = _load_jsonl(Path(args.mix))
     if not candidates:
         receipt = {"schema": "zeref-self-learn-join-v1", "fetched": 0, "picked": 0, "mix_rows": len(mix),
-                   "why": "none", "trains_only_through": "fair gate, loose promotion rule"}
+                   "why": "none", "transport": dict(TRANSPORT), "trains_only_through": "fair gate, loose promotion rule"}
         if args.receipt:
             Path(args.receipt).write_text(json.dumps(receipt, sort_keys=True) + "\n")
         print("ZEREF_SELF_LEARN_JOIN=" + json.dumps(receipt), flush=True)
@@ -156,10 +179,11 @@ def main(argv=None) -> int:
         rows, picked = join(mix, candidates, score_fn_from_checkpoint(Path(args.checkpoint) if args.checkpoint else None), k=args.k)
         write_jsonl(Path(args.out), rows)
         receipt = {"schema": "zeref-self-learn-join-v1", "fetched": len(candidates), "picked": len(picked),
-                   "mix_rows": len(rows), "why": None, "trains_only_through": "fair gate, loose promotion rule"}
+                   "mix_rows": len(rows), "why": None, "transport": dict(TRANSPORT),
+                   "trains_only_through": "fair gate, loose promotion rule"}
     except Exception as exc:
         receipt = {"schema": "zeref-self-learn-join-v1", "fetched": len(candidates), "picked": 0,
-                   "mix_rows": len(mix), "why": type(exc).__name__,
+                   "mix_rows": len(mix), "why": type(exc).__name__, "transport": dict(TRANSPORT),
                    "trains_only_through": "fair gate, loose promotion rule"}
         if Path(args.out).resolve() != Path(args.mix).resolve():
             write_jsonl(Path(args.out), mix)

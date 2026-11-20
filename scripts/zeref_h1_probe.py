@@ -13,12 +13,7 @@ distributions with the true state and with an ablated one, on the 12 H1 prompts 
 condition54, text dropout, gain floor) in memory on served-shape rows built from committed lesson dialogue, then
 re-measures. That is evidence that the recipe opens the path, not a candidate: nothing is saved as a checkpoint.
 
---direct (2026-11-19) upgrades the model in memory to cond54_direct (models/rawrphos/architecture/model.py:
-a zero-initialised linear path from condition54 into the token stream, identical logits at upgrade) before the
-micro-train, and trains cond_in with cond_gain. Same rows, seeds and steps, so the two runs compare directly.
---unrounded keeps full float precision in the KL table (round(.., 6) printed 2e-7 nats as 0.0).
-
-usage: python scripts/zeref_h1_probe.py CHECKPOINT_DIR [--sha SHA] [--out report.json] [--micro-train N] [--direct] [--unrounded]
+usage: python scripts/zeref_h1_probe.py CHECKPOINT_DIR [--sha SHA] [--out report.json] [--micro-train N]
 """
 from __future__ import annotations
 
@@ -89,7 +84,6 @@ def logprobs(model, tok, prompt, reply_ids, c54):
 def kl(a, b): return float((a.exp() * (a - b)).sum(-1).mean())
 
 
-UNROUNDED = False  # --unrounded
 REPLIES = {}  # --replies: teacher-force a fixed recorded reply per prompt instead of generating (CPU-cheap mode)
 
 
@@ -114,7 +108,7 @@ def measure(model, tok, items, prompt_for):
         res["tensor_shuffled"].append(kl(a, logprobs(model, tok, pn, rn, cperm)))
         res["text_zero_state"].append(kl(logprobs(model, tok, pt, r, None), logprobs(model, tok, pz, r, None)))
     g = model.cond_gain.detach()
-    return {"kl_mean_nats": {k: (sum(v) / len(v)) if UNROUNDED else round(sum(v) / len(v), 6) for k, v in res.items()},
+    return {"kl_mean_nats": {k: round(sum(v) / len(v), 6) for k, v in res.items()},
             "cond_gain_slots0_11": [round(float(x), 6) for x in g[:12]]}
 
 
@@ -133,7 +127,7 @@ def micro_train(model, tok, steps, rec, seed=20261112, bs=8):
             if ex is not None and ex.get("state12") is not None:
                 rows.append(M12.pool_entry(ex))
     from train_rawrphos_from_observed_native_play import collate
-    gain = [model.cond_gain] + ([model.cond_in.weight] if model.config.cond54_direct else []); gid = {id(p) for p in gain}
+    gain = [model.cond_gain]; gid = {id(model.cond_gain)}
     base = [p for p in model.parameters() if id(p) not in gid]
     anchor = [p.detach().clone() for p in base]
     opt = torch.optim.AdamW([{"params": base, "lr": 5e-5}, {"params": gain, "lr": 3e-4}], weight_decay=.01)
@@ -160,10 +154,7 @@ def main():
     ap.add_argument("--micro-train", type=int, default=0); ap.add_argument("--threads", type=int, default=8)
     ap.add_argument("--replies", help="H1 result JSON: teacher-force its recorded true_text greedy replies (no generation)")
     ap.add_argument("--prompts", type=int, default=12); ap.add_argument("--batch", type=int, default=8)
-    ap.add_argument("--direct", action="store_true", help="upgrade to cond54_direct in memory before the micro-train")
-    ap.add_argument("--unrounded", action="store_true", help="full float precision in the KL table")
     a = ap.parse_args(); torch.set_num_threads(a.threads); torch.manual_seed(0)
-    global UNROUNDED; UNROUNDED = a.unrounded
     if a.replies:
         for row in json.loads(Path(a.replies).read_text())["rows"]:
             REPLIES[row["prompt"]] = row["replies"]["true_text"]["greedy"].strip() or "..."
@@ -180,11 +171,6 @@ def main():
         M12.floor_gain(model, M12.gain_floor())
         report["after_gain_floor_only"] = measure(model, tok, items, prompt_for)
         print(json.dumps(report["after_gain_floor_only"]), flush=True)
-    if a.direct:
-        from rawrphos.architecture.model import upgrade_to_cond54_direct
-        model = upgrade_to_cond54_direct(model); report["direct"] = {"cond54_direct": True}
-        report["after_direct_upgrade"] = measure(model, tok, items, prompt_for)  # must equal the gain-floor row
-        print(json.dumps(report["after_direct_upgrade"]), flush=True)
     if a.micro_train > 0:
         report["micro_train"] = micro_train(model, tok, a.micro_train, rec, bs=a.batch)
         report["after_micro_train"] = measure(model, tok, items, prompt_for)

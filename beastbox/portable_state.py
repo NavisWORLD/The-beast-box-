@@ -26,6 +26,7 @@ SECRET_NAMES = (
     "BEASTBOX_SEAL_PASSPHRASE",
     "ZEREF_SELF_LEARN_PUBLISH_TOKEN",
     "BEASTBOX_GITHUB_DISPATCH_TOKEN",
+    "ZEREF_SELF_LEARN_EXPORT_KEY",
 )
 
 
@@ -48,6 +49,7 @@ def _configured_secret_values() -> dict[str, str]:
         "BEASTBOX_SEAL_PASSPHRASE": os.environ.get("BEASTBOX_SEAL_PASSPHRASE", ""),
         "ZEREF_SELF_LEARN_PUBLISH_TOKEN": os.environ.get("ZEREF_SELF_LEARN_PUBLISH_TOKEN", ""),
         "BEASTBOX_GITHUB_DISPATCH_TOKEN": os.environ.get("BEASTBOX_GITHUB_DISPATCH_TOKEN", ""),
+        "ZEREF_SELF_LEARN_EXPORT_KEY": os.environ.get("ZEREF_SELF_LEARN_EXPORT_KEY", ""),
     }
 
 
