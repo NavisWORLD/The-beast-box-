@@ -164,3 +164,56 @@ This is recorded with the door PR. The door serves the bridge's own Zeref reply 
 - **Receipt:** the join receipt now carries per-transport status (`branch`, `export`: `ok` / `http_<code>` / `not_configured` / `token_missing`, row counts only). Candidate text and tokens are never printed.
 - **Unchanged:** PII scrub and secret screen at capture, leak screen, Zeref's own selection (`zeref_self_select`), fair gate, loose promotion rule, pin, eval, G1–G10, bridge flags.
 - **Owner step (Cory's hands, not done by any agent):** generate one random value (for example `python3 -c "import secrets;print(secrets.token_urlsafe(48))"`), then (1) Railway → Beast Box COSMOS Engine → cosmos-owner-bridge → Variables: add `ZEREF_SELF_LEARN_EXPORT_KEY` = that value; (2) GitHub → NavisWORLD/The-beast-box- → Settings → Secrets and variables → Actions: add `ZEREF_SELF_LEARN_EXPORT_TOKEN` = the same value, and `ZEREF_SELF_LEARN_EXPORT_URL` = `https://cosmos-owner-bridge-production.up.railway.app/api/self-learn-export`. The next round's receipt shows `export: ok` with a row count.
+
+## 2026-11-19 16:15 CT (22:15 UTC): H1 probe on pin 43,504 — the 12D tensor path is effectively closed; where it closes; fix (default OFF)
+
+- **Who / words:** Cory, 2026-11-19 3:22 PM CT brief, task 1: "Run the H1 probe … prove, with numbers, whether the 12D path is open. If it is closed, find where it closes and fix it."
+- **Probe (report-only, CPU, box, torch 2.14.1; pin step 43504, sha256 `4457415d…`, release asset sha256 `7e221e91…` verified):** `scripts/zeref_h1_probe.py`, 12 H1 prompts, greedy, teacher-forced KL nats/token. The committed probe rounds to 6 decimals and printed the tensor rows as `0.0`; unrounded (`--unrounded`, new):
+
+  | ablation | KL nats/token |
+  |---|---|
+  | tensor + text (c54 true vs zero) | 3.90e-07 |
+  | tensor only (c54 true vs zero) | 1.83e-07 |
+  | tensor shuffled (true vs permuted dims) | 3.53e-07 |
+  | text, zero state (descriptor true vs zeros) | 0.0427 |
+
+  The text path carries the state (~0.043); the tensor path is ~230,000x weaker. It is not bitwise closed (max |logit diff| true-vs-zero on one prompt 0.0052), but it is closed for any practical purpose, and it did not open between 40,304 and 43,504 even with the 12D-mouth recipe on since 2026-11-12 (the rounds' `cond_gain[0:12]` moved only ~0.31 → ~0.33).
+- **Where it closes (measured):** `condition54` only enters as a per-sequence constant on the state logits (`state=tanh(state_logits+cond_gain*c)` before block 0). The state stream reaches the tokens only through `StateAttention`'s affinity, `softmax(-||s_q-s_k||²/2σ²)`, a pairwise DISTANCE, mixed in at gate ≈0.10. A constant added to every position's state cancels inside a distance (only tanh curvature and the Trinity coupling leave a second-order trace). Per layer on one prompt: state difference true-vs-zero 0.074 at block 0 → 0.021 at block 43, token-stream difference ≤ 0.0034, gradient on `cond_gain[0:12]` 4.7e-4. Not the gain floor: forcing |gain| to 1 / 3 / 10 gives tensor-only KL 4.7e-6 / 1.1e-4 / 9.1e-4 (text 0.036), i.e. it grows like a higher power of the gain and stays far below the text path even with saturated tanh. Not the serve path or projection init: the closure is in the model's own math.
+- **Fix (additive, DEFAULT OFF):** `cond54_direct` — a zero-initialised `Linear(54, d_model)` (`cond_in`, 13,824 params) adds the same routed 54D vector to every position's token stream. Identical logits at upgrade (tested on the real pin: the probe row after `upgrade_to_cond54_direct` equals the row before, to the last digit). `cond_in(0)=0`, so unconditioned gate scoring is unchanged by construction. Registered last (older optimizer indices unchanged), in the fresh un-anchored group with `cond_gain`. Training switch `ZEREF_12D_DIRECT` (default `0`; the workflow is NOT changed in this PR). Serving needs no change: `load_checkpoint` builds the model from `config.json`, and `cond54_direct` is only written when true.
+- **Before / after (same pin, same 3,116 served-shape lesson rows, same seeds, 48 CPU steps of the ZEREF_12D_MOUTH micro-train recipe, nothing saved):**
+
+  | ablation | recipe only, after 48 | recipe + `cond54_direct`, after 48 |
+  |---|---|---|
+  | tensor + text | 3.26e-07 | 0.0263 |
+  | tensor only | 1.65e-07 | 0.0104 |
+  | tensor shuffled | 3.42e-07 | 0.0168 |
+  | text, zero state | 0.0368 | 0.0472 |
+
+  With the direct path the mouth hears the tensor (tensor-only ~63,000x the recipe alone) and tells true dims from permuted dims (shuffled KL 0.017); the text path stays open. This is evidence that the path opens, not a candidate and not proof of better talk. Evidence JSON: `evidence/zeref-h1-probe-43504/`.
+- **Switch-on:** a separate one-line workflow PR (`ZEREF_12D_DIRECT: '1'` plus the env pass-through), under Cory's "Yes, wire his 12D state into his mouth for real" if Emeth accepts this evidence; the probe re-runs on the first candidate that carries `cond_in`.
+- **Not changed:** gate, pin, eval, G1–G10, promotion rule, mix, LRs, serving flags, guest isolation (guests never receive owner state12).
+
+## 2026-11-19 16:20 CT (22:20 UTC): why no candidate promotes — rounds start from a parent that is already behind the bar
+
+- **Who / words:** Cory, 2026-11-19 3:22 PM CT, task 2: "Find why no candidate promotes ... Fix the training so a candidate beats the gate. Do not loosen the gate." Emeth verifies and merges on gate evidence.
+- **Root cause 1 (measured, release receipts):** since Nov 16 every round resumes from cycle 80 (70aa7878, step 43,824), not the pin. Cycle 80's own recorded scores are set A 3.5204 / set B 3.6389; the pin (cycle 79, 4457415d, 43,504) is A 3.5074 / B 3.6259. Cycle 80 was approved in run 43818870885 against the OLD pin bar 3.5435 (pin 7160b2dd), racing promotion PR #994. `zeref_resume_parent.py` only checked "approved + descends from the pin", so every round since starts +0.013 above the A bar and +0.013 above B.
+- **Root cause 2 (measured, rounds 44480978865 / 44526017452 / 44574649056):** all 10 candidates landed at set A 3.5416–3.5734 (bar 3.5074; selection tolerance 0.5% = 3.5249). Spike-skipped batches 8–55 per candidate (pin round: 2–9). The pin itself is the low tail of its round (siblings 3.5257–3.5464), so the bar is a lucky extremum and only real improvement beats it.
+- **Fix in this entry:** the training parent must not be worse than the pin on its own recorded set A AND set B (`not_worse_than_pin`, pin scores read from the pin's report.json recipe via `--pin-report`). Otherwise the round trains from the pin. Real-release dry run, 16:00 CT: before → `zeref-006-cycle-80-70aa787823f7`; after → `ZEREF_006_RESUME_BEHIND_PIN` (A 3.5204 / B 3.6389 vs 3.5074 / 3.6259) and fallback "pin".
+- **A/B from the pin (hosted ubuntu-24.04, torch 2.6.0 CPU, real inputs of run 44574649056, candidate-2 spec lr 8e-5 floor 0.3, 320 attempts, set A and set B with the gate's own pair_nll; teacher-distill/experience rows not included because they need secrets):** pre-#997 mix A 3.5206 / 3.5172, B 3.6461 / 3.6837; served-shape reverted A 3.5221 / 3.5202, B 3.6461 / 3.6507. All inside the A selection tolerance, none strictly below the pin, none inside B tolerance (3.6440). Spike skips: 0 in every arm (rounds: 8–55). Training from the pin removes the +0.013 head start and the spikes, but on these arms alone a candidate does not yet clear the unchanged gate. Further arms (main mix, lessons cap, warmup, row-weighted loss, lr ×2.0) are recorded in the PR as they land.
+- **Also added, default OFF:** `ZEREF_006_LOSS_WEIGHTING=row` (each row weighs the same instead of each token; long served/pretrain rows stop outvoting short chat replies). Not switched on until an A/B shows it beats the unchanged gate.
+- **Contract moved openly:** `tests/zeref_continuation_006_contract.test.cjs` now also pins `def not_worse_than_pin`, `chat_b_after_nll` and the workflow's `--pin-report` line.
+- **Not changed:** Gate v2, set A/B tolerances, the strict below-pin promotion rule, the pin, eval sets, mix, learning rates, 320 attempts, budgets, bridge flags. Round 44612027580 was not touched.
+
+## 2026-11-19 17:55 CT (23:55 UTC): row-weighted loss switched on for the round — it clears the unchanged gate from the pin
+
+- **Who / words:** same task-2 brief (Cory 3:22 PM CT); Emeth verifies and merges on gate evidence.
+- **Root cause 3 (measured, "what the loss covers"):** the 006 loss was a token-mean over the whole batch, so long rows (served-shape rows up to 512 tokens since #997, pretrain rows up to 256) outweigh the 12 short chat replies (p50 ~39 tokens), which are what set A and set B measure. From the pin, with the same spec (lr 8e-5 x1.6 spec, floor 0.3), the token-weighted EMA drifts set A upward: 3.533 -> 3.585 and 3.528 -> 3.560 (main lr x2.0 arm, run 44624804332). The row-weighted EMA stays flat at 3.505–3.522.
+- **A/B, hosted ubuntu-24.04, torch 2.6.0, real inputs of run 44574649056, parent = pin, 320 attempts, the gate's own pair_nll (pin A 3.5074 strict, B tolerance 3.6440):**
+  - token (today's code) x1.6: A 3.5325 / 3.5260, B 3.6613 / 3.6566 — fails.
+  - token x2.0: A 3.5327 / 3.5281, B 3.6607 / 3.6603 — fails.
+  - **row x1.6: A 3.4989 / 3.5050, B 3.6169 / 3.6394 — both seeds clear (A strictly below the pin, B inside tolerance).**
+  - **row x2.0: A 3.4958, B 3.6189 (1 skipped batch) — clears.**
+  - Spike skips from the pin: 0–1 (rounds from cycle 80: 8–55).
+- **Change:** workflow sets `ZEREF_006_LOSS_WEIGHTING: 'row'` and carries it into `train-env.sh`; the report recipe records `loss_weighting`. The code default stays `token`. One-line revert: `'token'`.
+- **Contract moved openly:** `tests/zeref_continuation_006_contract.test.cjs` pins `ZEREF_006_LOSS_WEIGHTING: 'row'`, its train-env propagation, and the code default.
+- **Caveat:** two seeds per arm; teacher-distill and experience rows were absent from the A/B (they need secrets). The real round is still the judge. Gate v2, tolerances, the strict below-pin rule, G1–G10, the pin and the eval sets are unchanged.
