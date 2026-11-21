@@ -184,3 +184,11 @@ test('resume parent must chain to the pin; the gate bar stays the pin re-score',
  assert.ok(t.includes('LOSS_WEIGHTING=os.environ.get("ZEREF_006_LOSS_WEIGHTING","token")'));
  assert.doesNotMatch(w, />\s*apps\/beastbox-cloud\/lib\/rawrphos-public-pin\.json/);
 });
+
+test('2026-11-20 12D direct path ON in the 006 round (Cory yes 9:23 PM CT); code default stays off',()=>{
+ const w=read('.github/workflows/zeref-continuous-learning-006.yml');
+ const t=read('scripts/zeref_continuation_006.py');
+ assert.match(w,/ZEREF_12D_DIRECT: '1'/);
+ assert.match(w,/ZEREF_12D_MOUTH ZEREF_12D_DIRECT /);
+ assert.ok(t.includes('DIRECT12=os.environ.get("ZEREF_12D_DIRECT","0")=="1"'));
+});

@@ -1,0 +1,155 @@
+{
+ "schema": "zeref-h1-probe-v2",
+ "report_only": true,
+ "serving_changed": false,
+ "gate_input": false,
+ "checkpoint_sha256": "679ae933535d3f62bac9a9a92be7fd7dc12ed266eeb15ce6f7a02de8bae1a645",
+ "training_steps": 44144,
+ "prompts": 12,
+ "reply_mode": "greedy",
+ "before": {
+  "kl_mean_nats": {
+   "tensor_with_text": 2.493519684065859e-07,
+   "tensor_only": 1.6966187743605587e-07,
+   "tensor_shuffled": 3.6789336022025054e-07,
+   "text_zero_state": 0.029376981779932976
+  },
+  "cond_gain_slots0_11": [
+   -0.320272,
+   -0.265558,
+   0.258937,
+   -0.265553,
+   0.322745,
+   -0.316211,
+   0.25,
+   0.319415,
+   0.28913,
+   -0.302993,
+   -0.301728,
+   0.366451
+  ]
+ },
+ "after_gain_floor_only": {
+  "kl_mean_nats": {
+   "tensor_with_text": 2.493519684065859e-07,
+   "tensor_only": 1.6966187743605587e-07,
+   "tensor_shuffled": 3.6789336022025054e-07,
+   "text_zero_state": 0.029376981779932976
+  },
+  "cond_gain_slots0_11": [
+   -0.320272,
+   -0.265558,
+   0.258937,
+   -0.265553,
+   0.322745,
+   -0.316211,
+   0.25,
+   0.319415,
+   0.28913,
+   -0.302993,
+   -0.301728,
+   0.366451
+  ]
+ },
+ "micro_train": {
+  "steps": 48,
+  "rows": 3116,
+  "batch": 8,
+  "lr": {
+   "base": 5e-05,
+   "cond_gain": 0.0003
+  },
+  "anchor": 0.5,
+  "text_drop": 0.5,
+  "gain_floor": 0.25,
+  "tally": {
+   "state_rows": 384,
+   "tensor_only_rows": 185,
+   "text_and_tensor_rows": 199
+  },
+  "log": [
+   {
+    "step": 4,
+    "loss": 4.3235,
+    "s": 16.5
+   },
+   {
+    "step": 8,
+    "loss": 4.5557,
+    "s": 30.6
+   },
+   {
+    "step": 12,
+    "loss": 4.5013,
+    "s": 43.5
+   },
+   {
+    "step": 16,
+    "loss": 4.3293,
+    "s": 55.1
+   },
+   {
+    "step": 20,
+    "loss": 4.0627,
+    "s": 69.2
+   },
+   {
+    "step": 24,
+    "loss": 4.4371,
+    "s": 82.2
+   },
+   {
+    "step": 28,
+    "loss": 4.0548,
+    "s": 95.6
+   },
+   {
+    "step": 32,
+    "loss": 4.107,
+    "s": 108.2
+   },
+   {
+    "step": 36,
+    "loss": 3.9599,
+    "s": 121.0
+   },
+   {
+    "step": 40,
+    "loss": 3.9684,
+    "s": 134.1
+   },
+   {
+    "step": 44,
+    "loss": 4.0981,
+    "s": 148.3
+   },
+   {
+    "step": 48,
+    "loss": 3.834,
+    "s": 162.1
+   }
+  ]
+ },
+ "after_micro_train": {
+  "kl_mean_nats": {
+   "tensor_with_text": 2.7532611982887073e-07,
+   "tensor_only": 2.2937511949076375e-07,
+   "tensor_shuffled": 3.8142745613830204e-07,
+   "text_zero_state": 0.03844380720208088
+  },
+  "cond_gain_slots0_11": [
+   -0.318224,
+   -0.269495,
+   0.257164,
+   -0.268202,
+   0.324423,
+   -0.322045,
+   0.250805,
+   0.316031,
+   0.290427,
+   -0.30751,
+   -0.303184,
+   0.367391
+  ]
+ }
+}

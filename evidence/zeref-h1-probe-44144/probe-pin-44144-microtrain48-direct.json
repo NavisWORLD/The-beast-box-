@@ -1,0 +1,180 @@
+{
+ "schema": "zeref-h1-probe-v2",
+ "report_only": true,
+ "serving_changed": false,
+ "gate_input": false,
+ "checkpoint_sha256": "679ae933535d3f62bac9a9a92be7fd7dc12ed266eeb15ce6f7a02de8bae1a645",
+ "training_steps": 44144,
+ "prompts": 12,
+ "reply_mode": "greedy",
+ "before": {
+  "kl_mean_nats": {
+   "tensor_with_text": 2.493519684065859e-07,
+   "tensor_only": 1.6966187743605587e-07,
+   "tensor_shuffled": 3.6789336022025054e-07,
+   "text_zero_state": 0.029376981779932976
+  },
+  "cond_gain_slots0_11": [
+   -0.320272,
+   -0.265558,
+   0.258937,
+   -0.265553,
+   0.322745,
+   -0.316211,
+   0.25,
+   0.319415,
+   0.28913,
+   -0.302993,
+   -0.301728,
+   0.366451
+  ]
+ },
+ "after_gain_floor_only": {
+  "kl_mean_nats": {
+   "tensor_with_text": 2.493519684065859e-07,
+   "tensor_only": 1.6966187743605587e-07,
+   "tensor_shuffled": 3.6789336022025054e-07,
+   "text_zero_state": 0.029376981779932976
+  },
+  "cond_gain_slots0_11": [
+   -0.320272,
+   -0.265558,
+   0.258937,
+   -0.265553,
+   0.322745,
+   -0.316211,
+   0.25,
+   0.319415,
+   0.28913,
+   -0.302993,
+   -0.301728,
+   0.366451
+  ]
+ },
+ "direct": {
+  "cond54_direct": true
+ },
+ "after_direct_upgrade": {
+  "kl_mean_nats": {
+   "tensor_with_text": 2.493519684065859e-07,
+   "tensor_only": 1.6966187743605587e-07,
+   "tensor_shuffled": 3.6789336022025054e-07,
+   "text_zero_state": 0.029376981779932976
+  },
+  "cond_gain_slots0_11": [
+   -0.320272,
+   -0.265558,
+   0.258937,
+   -0.265553,
+   0.322745,
+   -0.316211,
+   0.25,
+   0.319415,
+   0.28913,
+   -0.302993,
+   -0.301728,
+   0.366451
+  ]
+ },
+ "micro_train": {
+  "steps": 48,
+  "rows": 3116,
+  "batch": 8,
+  "lr": {
+   "base": 5e-05,
+   "cond_gain": 0.0003
+  },
+  "anchor": 0.5,
+  "text_drop": 0.5,
+  "gain_floor": 0.25,
+  "tally": {
+   "state_rows": 384,
+   "tensor_only_rows": 185,
+   "text_and_tensor_rows": 199
+  },
+  "log": [
+   {
+    "step": 4,
+    "loss": 4.3277,
+    "s": 15.3
+   },
+   {
+    "step": 8,
+    "loss": 4.5566,
+    "s": 29.0
+   },
+   {
+    "step": 12,
+    "loss": 4.5052,
+    "s": 41.5
+   },
+   {
+    "step": 16,
+    "loss": 4.331,
+    "s": 52.7
+   },
+   {
+    "step": 20,
+    "loss": 4.0496,
+    "s": 66.3
+   },
+   {
+    "step": 24,
+    "loss": 4.4461,
+    "s": 79.7
+   },
+   {
+    "step": 28,
+    "loss": 4.0382,
+    "s": 92.7
+   },
+   {
+    "step": 32,
+    "loss": 4.136,
+    "s": 105.7
+   },
+   {
+    "step": 36,
+    "loss": 3.9759,
+    "s": 118.5
+   },
+   {
+    "step": 40,
+    "loss": 3.9737,
+    "s": 131.4
+   },
+   {
+    "step": 44,
+    "loss": 4.0977,
+    "s": 145.7
+   },
+   {
+    "step": 48,
+    "loss": 3.8503,
+    "s": 159.0
+   }
+  ]
+ },
+ "after_micro_train": {
+  "kl_mean_nats": {
+   "tensor_with_text": 0.017801328795030713,
+   "tensor_only": 0.010888394220576933,
+   "tensor_shuffled": 0.01990564024890773,
+   "text_zero_state": 0.04009970541422566
+  },
+  "cond_gain_slots0_11": [
+   -0.318462,
+   -0.269498,
+   0.257359,
+   -0.267497,
+   0.325117,
+   -0.321664,
+   0.250631,
+   0.315218,
+   0.290335,
+   -0.307497,
+   -0.302899,
+   0.367039
+  ]
+ }
+}
