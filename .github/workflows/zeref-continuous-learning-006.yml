@@ -415,6 +415,10 @@ jobs:
           # 6:23 PM CT "Just continue"). Serving is unchanged; gate scoring stays unconditioned; promotion only via the loose-rule gate.
           # One-line revert: set this to '0' (byte-identical training).
           ZEREF_12D_MOUTH: '1'
+          # H1 fix ON (Cory, 2026-11-19 3:22 PM CT "Bring him to life" task 1; 2026-11-12 "Yes, wire his 12D state into his mouth for real").
+          # Upgrades a cond54 parent to cond54_direct (zero-init cond_in: identical logits at upgrade; gate scoring unconditioned).
+          # One-line revert: set this to '0' (byte-identical training to before this PR).
+          ZEREF_12D_DIRECT: '1'
           ZEREF_GROW_LAYERS: ${{ steps.growth.outputs.add_layers || '0' }}
           ZEREF_GROWTH_WIP_IN: ${{ steps.growth.outputs.wip || '' }}
           ZEREF_GROWTH_WIP_OUT: build/zeref-006/growth/growth-wip-new.pt
@@ -457,7 +461,7 @@ jobs:
           {
             printf 'export ZEREF_006_JOB_T0_UNIX=%q\n' "${ZEREF_006_JOB_T0_UNIX:-0}"
             for k in ZEREF_COND54 ZEREF_SPARK_TICKS ZEREF_006_PUBLIC_REF_DIR ZEREF_HEBBIAN ZEREF_TRINITY ZEREF_006_LR ZEREF_GEAR_LR_MULT \
-                     ZEREF_12D_MOUTH ZEREF_GROW_LAYERS ZEREF_GROWTH_WIP_IN ZEREF_GROWTH_WIP_OUT ZEREF_006_CANDIDATES ZEREF_006_CANDIDATE_BUDGET_S \
+                     ZEREF_12D_MOUTH ZEREF_12D_DIRECT ZEREF_GROW_LAYERS ZEREF_GROWTH_WIP_IN ZEREF_GROWTH_WIP_OUT ZEREF_006_CANDIDATES ZEREF_006_CANDIDATE_BUDGET_S \
                      ZEREF_006_TIME_BUDGET_S ZEREF_006_GRAD_CKPT_EVERY ZEREF_006_LENGTH_GROUPING ZEREF_006_GROUP_MAX_TOKENS ZEREF_006_LOSS_WEIGHTING \
                      ZEREF_006_JOB_DEADLINE_S ZEREF_006_FINAL_RESERVE_S ZEREF_006_VARIANT_SLACK_S ZEREF_006_PHASE_TIMEOUT_S; do
               printf 'export %s=%q\n' "$k" "${!k}"
