@@ -72,15 +72,39 @@ def chain_reaches_pin(sha, pin_sha, by_sha, seen=None):
     return chain_reaches_pin(rec.get("parent_checkpoint_sha256"), pin_sha, by_sha, seen)
 
 
-def select_training_parent(releases, pin_sha):
+def pin_scores_from_report(report):
+    """The pin's own recorded set-A / set-B chat NLL (same pair_nll the gate uses), or None."""
+    recipe = (report or {}).get("recipe") or {}
+    a, b = recipe.get("chat_after_nll"), recipe.get("chat_b_after_nll")
+    if not all(isinstance(v, (int, float)) and v == v and v > 0 for v in (a, b)):
+        return None
+    return {"chat_a": float(a), "chat_b": float(b)}
+
+
+def not_worse_than_pin(rec, pin_scores):
+    """True when the release's own recorded A and B are both <= the pin's. Missing scores fail."""
+    if pin_scores is None:
+        return True
+    a, b = rec.get("chat_a_nll"), rec.get("chat_b_nll")
+    if not all(isinstance(v, (int, float)) and v == v for v in (a, b)):
+        return False
+    return a <= pin_scores["chat_a"] and b <= pin_scores["chat_b"]
+
+
+def select_training_parent(releases, pin_sha, pin_scores=None):
     """Highest qualifying cycle, then the newest. None means fall back to the pin."""
     by_sha = index_by_sha(releases, pin_sha)
     qualifiers = []
     for rec in by_sha.values():
         if not release_record_ok(rec):
             continue
-        if chain_reaches_pin(rec.get("parent_checkpoint_sha256"), pin_sha, by_sha):
-            qualifiers.append(rec)
+        if not chain_reaches_pin(rec.get("parent_checkpoint_sha256"), pin_sha, by_sha):
+            continue
+        if not not_worse_than_pin(rec, pin_scores):
+            print("ZEREF_006_RESUME_BEHIND_PIN=" + json.dumps({"tag": rec.get("tag"), "chat_a_nll": rec.get("chat_a_nll"),
+                  "chat_b_nll": rec.get("chat_b_nll"), "pin": pin_scores}), file=sys.stderr, flush=True)
+            continue
+        qualifiers.append(rec)
     if not qualifiers:
         return None
     qualifiers.sort(key=lambda rec: (-int(rec.get("cycle") or 0), int(rec.get("list_index") if rec.get("list_index") is not None else 10**9)))
@@ -107,7 +131,10 @@ def record_from_tree(tree, tarball, recorded_tarball_sha, tag, cycle, list_index
     model_sha = hashlib.sha256((checkpoint / "model.safetensors").read_bytes()).hexdigest()
     tarball_sha = hashlib.sha256(tarball.read_bytes()).hexdigest()
     parent = meta.get("parent_checkpoint_sha256")
+    recipe = report.get("recipe") or {}
     return {
+        "chat_a_nll": recipe.get("chat_after_nll"),
+        "chat_b_nll": recipe.get("chat_b_after_nll"),
         "tag": tag,
         "cycle": cycle,
         "list_index": list_index,
@@ -160,7 +187,7 @@ def _fetch_record(info, work, repo):
     return record_from_tree(tree, tarballs[0], recorded, info["tag"], info["cycle"], info["list_index"])
 
 
-def choose_tag(repo, pin_sha, pin_cycle, pin_tag, work):
+def choose_tag(repo, pin_sha, pin_cycle, pin_tag, work, pin_scores=None):
     tags = _list_tags(repo)
     by_prefix = {}
     for info in tags:
@@ -206,7 +233,7 @@ def choose_tag(repo, pin_sha, pin_cycle, pin_tag, work):
         local = release_record_ok(rec)
         reaches = bool(local and chain_reaches_pin(rec.get("parent_checkpoint_sha256"), pin_sha, by_sha))
         print("ZEREF_006_RESUME_LINEAGE=" + json.dumps({"tag": rec["tag"], "record_ok": local, "qualifies": reaches}), file=sys.stderr, flush=True)
-    return select_training_parent(records, pin_sha)
+    return select_training_parent(records, pin_sha, pin_scores)
 
 
 def main(argv):
@@ -216,10 +243,23 @@ def main(argv):
     parser.add_argument("--pin-cycle", required=True, type=int)
     parser.add_argument("--pin-tag", required=True)
     parser.add_argument("--work", required=True)
+    parser.add_argument("--pin-report", help="the pin release's report.json: resume only descendants not worse than the pin on A and B")
     args = parser.parse_args(argv)
     if re.fullmatch(r"[0-9a-f]{64}", args.pin_sha) is None:
         raise SystemExit("pin sha is not 64 hex")
-    chosen = choose_tag(args.repo, args.pin_sha, args.pin_cycle, args.pin_tag, Path(args.work))
+    pin_scores = None
+    if args.pin_report:
+        try:
+            pin_scores = pin_scores_from_report(json.loads(Path(args.pin_report).read_text()))
+        except (OSError, ValueError):
+            pin_scores = None
+        print("ZEREF_006_RESUME_PIN_SCORES=" + json.dumps(pin_scores), file=sys.stderr, flush=True)
+        if pin_scores is None:
+            # 2026-11-20: fail closed. A pin report that is missing or has no A/B scores means
+            # "not worse than the pin" cannot be checked, so train from the pin itself.
+            print("ZEREF_006_RESUME_SELECTED=" + json.dumps({"tag": None, "fallback": "pin", "reason": "pin report has no set A/B scores"}), file=sys.stderr, flush=True)
+            return 0
+    chosen = choose_tag(args.repo, args.pin_sha, args.pin_cycle, args.pin_tag, Path(args.work), pin_scores)
     if chosen is None:
         print("ZEREF_006_RESUME_SELECTED=" + json.dumps({"tag": None, "fallback": "pin"}), file=sys.stderr, flush=True)
         return 0
