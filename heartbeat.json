@@ -16,14 +16,14 @@
   "step": 320
  },
  "last_lines": [
-  "ZEREF_12D_MOUTH={\"enabled\": true, \"gain_floor\": 0.25, \"gain_slots0_11_after_floor\": [-0.321976, -0.267897, 0.257147, -0.264537, 0.319041, -0.313287, 0.250132, 0.316219, 0.28671, -0.300873, -0.302948, 0.367267], \"gain_slots0_11_kept\": [-0.320682, -0.267744, 0.254749, -0.264309, 0.31838, -0.30995, 0.2",
-  "ZEREF_006_CANDIDATE={\"best_in_cycle\": {\"best_in_cycle_chat_nll\": 3.4785710805654526, \"best_in_cycle_step\": 96}, \"chat_a_nll\": 3.4785710805654526, \"elapsed_s\": 3484.5, \"index\": 3, \"lr\": 5e-05, \"lr_min_fraction\": 0.5, \"seed\": 119024293257885, \"skipped_batches\": 10}",
-  "ZEREF_006_BEST_IN_CYCLE={\"chat_a_nll\": 3.474706733226776, \"index\": 2, \"parent_checkpoint_sha256\": \"cfc0f5fe4447ee1c734efc25372d82b5e86ef32b5694c7d37253de4c05878586\"}"
+  "ZEREF_006_SPLIT_ROUND={\"best_in_cycle\": {\"chat_a_nll\": 3.474706733226776, \"index\": 2, \"parent_checkpoint_sha256\": \"cfc0f5fe4447ee1c734efc25372d82b5e86ef32b5694c7d37253de4c05878586\"}, \"candidates_finished\": [0, 1, 2, 3], \"control\": \"finished\"}",
+  "ZEREF_006_CANDIDATE_SELECTED={\"index\": 2, \"chat_a_nll\": 3.474706733226776, \"of\": 4, \"rule\": \"lowest set A NLL; set B never used to select; unchanged Gate v2 applies to the selected candidate only\"}",
+  "ZEREF_COND54_BANK={\"bank_sha256\": \"4cb3906ac11526a9deedd8f50edac2715d5c03dae17dee88bb98ba7e82de8333\", \"drop\": 0.5, \"first_tick\": 23703, \"label\": \"Rigetti SIMULATED spark ticks (bb-deada969); other bands masked 0.0\", \"last_tick\": 24303, \"pairing\": \"by training-step time, not by meaning (no owner sens"
  ],
- "log_bytes": 555514,
- "mem_available_mb": 14884,
+ "log_bytes": 556811,
+ "mem_available_mb": 13861,
  "run_id": "44879956952",
  "schema": "zeref-round-heartbeat-v1",
- "trainer_rss_mb": null,
- "ts": 1795268619.3025532
+ "trainer_rss_mb": 1162,
+ "ts": 1795268685.7648616
 }
