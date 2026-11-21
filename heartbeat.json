@@ -1,27 +1,31 @@
 {
- "disk_free_mb": 76508,
+ "disk_free_mb": 76248,
  "last_batch": {
-  "grad_norm": 4.134601593017578,
+  "grad_norm": 4.330376148223877,
   "sources": {
    "dolly-15k-cc-by-sa-3.0": 2,
    "game": 4,
    "pretrain": 2,
-   "zeref-knowledge-002": 1,
-   "zeref-lessons-004": 2,
-   "zeref-lessons-006": 5,
-   "zeref-world-001": 2
+   "zeref-dad-voice-001": 1,
+   "zeref-ibm-play-001": 1,
+   "zeref-identity-001": 1,
+   "zeref-lessons-005": 1,
+   "zeref-lessons-006": 3,
+   "zeref-qa-001": 1,
+   "zeref-reviewed-dialogue": 1,
+   "zeref-world-001": 1
   },
-  "step": 283
+  "step": 288
  },
  "last_lines": [
-  "ZEREF_006_BATCH={\"grad_norm\": 4.438558578491211, \"sources\": {\"dolly-15k-cc-by-sa-3.0\": 1, \"game\": 4, \"pretrain\": 2, \"zeref-ibm-play-001\": 1, \"zeref-knowledge-002\": 1, \"zeref-lessons-004\": 2, \"zeref-lessons-005\": 1, \"zeref-lessons-006\": 4, \"zeref-lyrics-001\": 1, \"zeref-world-001\": 1}, \"step\": 281}",
-  "ZEREF_006_BATCH={\"grad_norm\": 4.291773319244385, \"sources\": {\"game\": 4, \"pretrain\": 2, \"zeref-dad-voice-001\": 2, \"zeref-identity-001\": 1, \"zeref-knowledge-002\": 1, \"zeref-lessons-003\": 2, \"zeref-lessons-006\": 2, \"zeref-qa-001\": 1, \"zeref-talk-001\": 1, \"zeref-warm-001\": 1, \"zeref-world-001\": 1}, \"ste",
-  "ZEREF_006_BATCH={\"grad_norm\": 4.134601593017578, \"sources\": {\"dolly-15k-cc-by-sa-3.0\": 2, \"game\": 4, \"pretrain\": 2, \"zeref-knowledge-002\": 1, \"zeref-lessons-004\": 2, \"zeref-lessons-006\": 5, \"zeref-world-001\": 2}, \"step\": 283}"
+  "ZEREF_006_INCYCLE_EMA_CHAT={\"step\": 288, \"chat_nll\": 3.5016303843259813}",
+  "ZEREF_006_INCYCLE_CHAT={\"step\": 288, \"chat_nll\": 3.498446904420853, \"lr\": 3.702310967403611e-06}",
+  "ZEREF_ROUND_SNAPSHOT={\"applied_optimizer_steps\": 273, \"attempted_updates\": 288, \"candidate\": 1, \"checkpoint\": \"recovery/candidate-1-000288\", \"checkpoint_sha256\": \"160463fdf9252fc208347bf872223552b6bbb9a397bc0e17f5dab5d175a3fbfa\", \"parent_checkpoint_sha256\": \"002c46d58912bc0e192dd4fd4a72025bb2e1396ec"
  ],
- "log_bytes": 316220,
- "mem_available_mb": 10117,
+ "log_bytes": 319034,
+ "mem_available_mb": 9953,
  "run_id": "44811874550",
  "schema": "zeref-round-heartbeat-v1",
- "trainer_rss_mb": 4900,
- "ts": 1795224164.9295013
+ "trainer_rss_mb": 5056,
+ "ts": 1795224226.5388231
 }
