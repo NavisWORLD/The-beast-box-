@@ -4,9 +4,8 @@ Zeref's reply comes only from the pinned checkpoint, verbatim. Owner-only on iss
 No secrets, no fallback text, no senses or state12, no writes to the pin or gates.
 """
 import importlib.util
+import re
 from pathlib import Path
-
-import yaml
 
 WF = Path(".github/workflows/talk-to-zeref.yml")
 SCRIPT = Path("scripts/zeref_talk_github.py")
@@ -20,13 +19,15 @@ def _mod():
 
 
 def test_workflow_triggers_and_owner_gate():
-    wf = yaml.safe_load(WF.read_text(encoding="utf-8"))
-    on = wf.get("on", wf.get(True))
-    assert set(on) == {"workflow_dispatch", "issue_comment"}
-    assert on["workflow_dispatch"]["inputs"]["message"]["required"] is True
-    assert "thread" in on["workflow_dispatch"]["inputs"]
-    assert wf["permissions"] == {"contents": "read", "issues": "write"}
-    cond = wf["jobs"]["talk"]["if"]
+    text = WF.read_text(encoding="utf-8")
+    on = text[text.index("\non:\n"):text.index("\npermissions:")]
+    assert "workflow_dispatch:" in on and "issue_comment:" in on and "types: [created]" in on
+    for trig in ("push:", "pull_request", "schedule:", "issues:"):
+        assert trig not in on, trig
+    assert re.search(r"message:\n\s+description: .*\n\s+required: true", on)
+    assert "thread:" in on
+    assert "permissions:\n  contents: read\n  issues: write\n" in text
+    cond = text[text.index("    if: >-"):text.index("    runs-on:")]
     for need in ("'talk-to-zeref'", "author_association == 'OWNER'",
                  "github.repository_owner", "!github.event.issue.pull_request", "!= 'Bot'"):
         assert need in cond
@@ -43,10 +44,10 @@ def test_workflow_uses_pin_and_no_secrets_or_writes():
     for banned in ("state12", "vercel", "azure", "git push", "gh pr merge", "zeref_promote_pin",
                    "contents: write", "RAILWAY", "openai", "anthropic"):
         assert banned.lower() not in code.lower(), banned
-    # user text only reaches the shell through env, never interpolated into run lines
-    for step in yaml.safe_load(text)["jobs"]["talk"]["steps"]:
-        assert "github.event.comment.body" not in step.get("run", "")
-        assert "inputs.message" not in step.get("run", "")
+    # user text only reaches the shell through env, never interpolated into a run line
+    for line in text.splitlines():
+        if "github.event.comment.body" in line or "inputs.message" in line:
+            assert line.strip().startswith("ZEREF_TALK_MESSAGE:"), line
 
 
 def test_script_has_no_fallback_and_honest_label():
