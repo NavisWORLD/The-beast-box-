@@ -233,3 +233,9 @@ This is recorded with the door PR. The door serves the bridge's own Zeref reply 
 - **Fix:** restore #1005's code, workflow lines, tests and contract exactly, keeping #1004's DIRECT12 switch (default OFF). One stricter addition: if the pin report is missing or has no A/B scores, the selector falls back to the pin instead of the old lineage-only rule.
 - **Before/after on the real releases:** before (main) → `zeref-006-cycle-80-70aa787823f7`; after → none, train from `zeref-006-cycle-79-4457415db509`.
 - **Not changed:** Gate v2, A/B tolerances, the strict below-pin promotion rule, the pin, eval sets, mix, learning rates, budgets, bridge flags. Run 44695185195 was not touched.
+
+## 2026-11-20 13:00 CT (19:00 UTC): auto-promote crash loop on an already-open PR — reuse it instead of crashing
+
+- **What happened:** run 44750896663 produced a double-clean candidate (002c46d58912); auto-promote opened PR #1009 at 11:57, then the process died (VM swap) before its merge wait. Every relaunch re-ran the promotion, hit the duplicate-PR 422, and crashed with `KeyError: 'number'` at the unguarded `p['number']` (autopromote.log 12:12 / 12:27 / 12:42 / 12:56, four tracebacks in auto_promote.err.log). The promotion was stuck with all four gating suites already green on the branch.
+- **Fix (~/workspace/night/auto_promote.py, watchdog box only, not the repo):** if the PR create returns no number, look up the existing open PR for the branch head and reuse it, then proceed to the merge wait as designed. The 13:00 relaunch logged "PR already open, reusing: 1009" and entered the gate wait.
+- **Not changed:** the double-clean rule, the four gating suites, the merge condition, the pin, the bridge flip. No gate loosened; the fix only removes a crash on a state the loop itself created.
