@@ -28,6 +28,7 @@ from .cypher.workspace import FULL_REPLACEMENT_DIFF_HEADER, Workspace
 from .durable import DurableRuntime
 from .lived_exchange import speak_owner
 from . import self_learn
+from . import hybrid_reviser
 from .semantic_retrieval import EmbeddingProvider
 from .optional_resources import ResourceUnavailable, quantum_event
 from .portable_state import import_snapshot, verify_snapshot
@@ -318,6 +319,13 @@ class CosmicApp:
                 Path(self.root), scope="owner", user=text.strip(),
                 reply=(result.get("reply") or "") if isinstance(result, dict) else "",
             )
+            # BEASTBOX_HYBRID_REVISER=on (default off; needs Cory's explicit yes): the RAWRPHOS reply above is
+            # the draft (already captured and remembered as his own words); the backend model may only revise
+            # its wording for display. Off = result unchanged.
+            if hybrid_reviser.enabled() and profile.model == "rawrphos-native" and isinstance(result, dict) \
+                    and isinstance(result.get("reply"), str) and result["reply"].strip():
+                served, reviser_receipt = hybrid_reviser.revise(text.strip(), result["reply"])
+                result = {**result, "reply": served, "hybrid_reviser": reviser_receipt}
             after = runtime.inspect()
         finally:
             runtime.close()

@@ -27,6 +27,7 @@ import urllib.error
 import urllib.request
 
 from . import heart_decoding, mouth12, self_learn
+from . import hybrid_reviser
 from .guest_hebbian import (MAX_TEXT_WITH_CONTEXT, GuestHebbianStore,
                             assemble_messages, guest_key, memory_in_prompt,
                             persist_enabled, validate_context)
@@ -333,6 +334,9 @@ def guest_local_infer(root: Path, payload: dict, *, owner_jobs_busy: bool = Fals
         if not isinstance(text, str) or not text.strip() or len(text) > 6000:
             return 502, {"error": "Native response was empty or invalid", "reason": "empty_reply"}
         used = result.get("condition54_used") is True
+        # BEASTBOX_HYBRID_REVISER=on (default off; needs Cory's explicit yes): RAWRPHOS drafted `text`; the
+        # backend model may only revise its wording. `text` (the draft) stays what is stored and learned from.
+        served, reviser_receipt = hybrid_reviser.revise(payload["text"].strip(), text)
         public_routing = None if routing is None else {
             "receipt_sha256": routing["summary"]["receipt_sha256"], "tally": routing["summary"]["tally"],
             "spark": {k: routing["summary"]["spark"].get(k) for k in ("state", "tick", "late")},
@@ -352,7 +356,8 @@ def guest_local_infer(root: Path, payload: dict, *, owner_jobs_busy: bool = Fals
         learn = self_learn.maybe_record(root, scope="guest", user=payload["text"].strip(), reply=text, step=STEP,
                                         heart=heart_receipt)
         return 200, {"schema": SCHEMA, "model": MODEL, "step": STEP,
-                     "checkpoint_sha256": SHA, "reply": text,
+                     "checkpoint_sha256": SHA, "reply": served,
+                     **({"hybrid_reviser": reviser_receipt} if reviser_receipt else {}),
                      # True only when a persisted thread actually fed this reply.
                      "memory_used": persisted and len(history) > 0 and not plain_turn,
                      **({"routing": public_routing} if public_routing else {}),

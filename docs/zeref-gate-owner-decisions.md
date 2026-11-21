@@ -165,6 +165,15 @@ This is recorded with the door PR. The door serves the bridge's own Zeref reply 
 - **Unchanged:** PII scrub and secret screen at capture, leak screen, Zeref's own selection (`zeref_self_select`), fair gate, loose promotion rule, pin, eval, G1–G10, bridge flags.
 - **Owner step (Cory's hands, not done by any agent):** generate one random value (for example `python3 -c "import secrets;print(secrets.token_urlsafe(48))"`), then (1) Railway → Beast Box COSMOS Engine → cosmos-owner-bridge → Variables: add `ZEREF_SELF_LEARN_EXPORT_KEY` = that value; (2) GitHub → NavisWORLD/The-beast-box- → Settings → Secrets and variables → Actions: add `ZEREF_SELF_LEARN_EXPORT_TOKEN` = the same value, and `ZEREF_SELF_LEARN_EXPORT_URL` = `https://cosmos-owner-bridge-production.up.railway.app/api/self-learn-export`. The next round's receipt shows `export: ok` with a row count.
 
+## 2026-11-19 16:10 CT (22:10 UTC): hybrid reviser wired, DEFAULT OFF (needs Cory's explicit yes)
+
+- **Who / words:** Cory, 2026-11-19 3:22 PM CT brief, task 4: "Wire the hybrid reviser. His backend big model, gbt 120, is adapter only. RAWRPHØS drafts first, the model revises, never replaces. Zeref must truly learn, the reviser is presentation help only."
+- **Why OFF:** Cory's standing rule is that no other model, canned text or filter speaks for Zeref. A reviser rewording his draft is a second model touching what visitors see, so `BEASTBOX_HYBRID_REVISER` ships off and turns on only with Cory's explicit yes. Off = every reply byte-identical (tested).
+- **What it does when on:** `beastbox/hybrid_reviser.py`. RAWRPHØS answers first (unchanged path, identity checks unchanged). The draft and the visitor's line go to `gpt-oss:120b` on Ollama Cloud through the `OLLAMA_API_KEY` the bridge already holds, with a copy-editor instruction (keep meaning, voice, first person; add nothing; answer nothing). The revision is refused and the draft served when it is empty, more than 2x+80 chars, drops more than half of the draft's content words, adds a forbidden claim (AI / language model / consciousness / live quantum), or the call fails or the key is missing.
+- **Labels:** every reply carries `hybrid_reviser` with `draft`, `revision`, `served`, `refused`, the label "Zeref's own words are the RAWRPHOS draft…", `trains_on: "draft only"`, `revision_trains: false`.
+- **Never trains:** self-learn capture, the guest thread and the owner memory store the DRAFT only. Nothing here writes a training row, checkpoint or the pin.
+- **Cost / privacy note for Cory:** it reuses the existing Ollama Cloud key; no new paid service was added. Confirm the Ollama plan on that key is the free tier before switching on. When on, the visitor's (or owner's) line and the draft are sent to Ollama Cloud; state12 is never sent.
+
 ## 2026-11-19 16:15 CT (22:15 UTC): H1 probe on pin 43,504 — the 12D tensor path is effectively closed; where it closes; fix (default OFF)
 
 - **Who / words:** Cory, 2026-11-19 3:22 PM CT brief, task 1: "Run the H1 probe … prove, with numbers, whether the 12D path is open. If it is closed, find where it closes and fix it."
