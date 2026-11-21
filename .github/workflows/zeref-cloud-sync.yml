@@ -11,7 +11,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with: {persist-credentials: false}
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with: {node-version: '24'}
       - name: Persist profile, live model pin, approved cycles and lessons to beasts/bb-deada969
         working-directory: apps/beastbox-cloud
