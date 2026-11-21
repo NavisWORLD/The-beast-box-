@@ -1,5 +1,5 @@
 {
- "disk_free_mb": 76751,
+ "disk_free_mb": 76491,
  "last_batch": {
   "grad_norm": 5.0095720291137695,
   "sources": {
@@ -17,14 +17,14 @@
   "step": 320
  },
  "last_lines": [
-  "ZEREF_006_BATCH={\"grad_norm\": 5.834366321563721, \"sources\": {\"dolly-15k-cc-by-sa-3.0\": 2, \"game\": 4, \"pretrain\": 2, \"talk006-alien-authored\": 1, \"zeref-dad-voice-001\": 1, \"zeref-identity-001\": 3, \"zeref-lessons-003\": 1, \"zeref-qa-001\": 1, \"zeref-world-001\": 3}, \"step\": 319}",
-  "ZEREF_006_BATCH={\"grad_norm\": 5.0095720291137695, \"sources\": {\"dolly-15k-cc-by-sa-3.0\": 1, \"game\": 4, \"pretrain\": 2, \"zeref-dad-voice-001\": 1, \"zeref-identity-001\": 1, \"zeref-lessons-004\": 1, \"zeref-lessons-005\": 1, \"zeref-lessons-006\": 5, \"zeref-talk-001\": 1, \"zeref-world-001\": 1}, \"step\": 320}",
-  "ZEREF_006_REAL_CPU_UPDATE={\"step\": 320, \"train_loss\": 2.900548219680786, \"anchor_drift\": 0.046910159289836884, \"grad_norm\": 5.0095720291137695}"
+  "ZEREF_12D_MOUTH={\"enabled\": true, \"gain_floor\": 0.25, \"gain_slots0_11_after_floor\": [-0.320594, -0.266053, 0.259206, -0.26586, 0.323301, -0.316525, 0.250415, 0.319682, 0.289616, -0.303412, -0.301868, 0.367655], \"gain_slots0_11_kept\": [-0.320591, -0.266057, 0.25874, -0.26597, 0.323516, -0.316103, 0.2",
+  "ZEREF_006_CANDIDATE={\"best_in_cycle\": {\"best_in_cycle_chat_nll\": 3.469586918950081, \"best_in_cycle_step\": 32}, \"chat_a_nll\": 3.469586918950081, \"elapsed_s\": 2468.5, \"index\": 1, \"lr\": 3e-05, \"lr_min_fraction\": 0.1, \"seed\": 187068992989548, \"skipped_batches\": 16}",
+  "ZEREF_006_BEST_IN_CYCLE={\"chat_a_nll\": 3.469586918950081, \"index\": 1, \"parent_checkpoint_sha256\": \"113b94c09e7a044cd542c2dfedbf7e25f5cb4bce2106dfbc2578901ff7a28f3b\"}"
  ],
- "log_bytes": 346697,
- "mem_available_mb": 10225,
+ "log_bytes": 348640,
+ "mem_available_mb": 14576,
  "run_id": "44940922155",
  "schema": "zeref-round-heartbeat-v1",
- "trainer_rss_mb": 4800,
- "ts": 1795305379.524851
+ "trainer_rss_mb": null,
+ "ts": 1795305393.3233562
 }
