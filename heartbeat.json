@@ -1,5 +1,5 @@
 {
- "disk_free_mb": 73888,
+ "disk_free_mb": 73628,
  "last_batch": {
   "grad_norm": 4.847053527832031,
   "sources": {
@@ -19,14 +19,14 @@
   "step": 320
  },
  "last_lines": [
-  "ZEREF_006_BATCH={\"grad_norm\": 5.074041366577148, \"sources\": {\"dolly-15k-cc-by-sa-3.0\": 2, \"game\": 4, \"pretrain\": 2, \"zeref-dad-voice-001\": 1, \"zeref-ibm-play-001\": 1, \"zeref-knowledge-002\": 2, \"zeref-lessons-004\": 1, \"zeref-lessons-005\": 1, \"zeref-lessons-006\": 2, \"zeref-qa-001\": 1, \"zeref-world-001",
-  "ZEREF_006_BATCH={\"grad_norm\": 4.847053527832031, \"sources\": {\"dolly-15k-cc-by-sa-3.0\": 2, \"game\": 4, \"pretrain\": 2, \"talk006-alien-authored\": 1, \"zeref-dad-voice-001\": 1, \"zeref-identity-001\": 1, \"zeref-knowledge-002\": 1, \"zeref-lessons-003\": 1, \"zeref-lessons-004\": 2, \"zeref-lessons-006\": 1, \"zeref",
-  "ZEREF_006_REAL_CPU_UPDATE={\"step\": 320, \"train_loss\": 2.771239995956421, \"anchor_drift\": 0.11670324951410294, \"grad_norm\": 4.847053527832031}"
+  "ZEREF_12D_MOUTH={\"enabled\": true, \"gain_floor\": 0.25, \"gain_slots0_11_after_floor\": [-0.320272, -0.265558, 0.258937, -0.265553, 0.322745, -0.316211, 0.25, 0.319415, 0.28913, -0.302993, -0.301728, 0.366451], \"gain_slots0_11_kept\": [-0.320712, -0.266075, 0.25832, -0.265449, 0.322632, -0.316407, 0.25, ",
+  "ZEREF_006_CANDIDATE={\"best_in_cycle\": {\"best_in_cycle_chat_nll\": 3.4862893146276472, \"best_in_cycle_step\": 32}, \"chat_a_nll\": 3.4862893146276472, \"elapsed_s\": 4152.5, \"index\": 2, \"lr\": 8e-05, \"lr_min_fraction\": 0.3, \"seed\": 249402524116281, \"skipped_batches\": 14}",
+  "ZEREF_006_BEST_IN_CYCLE={\"chat_a_nll\": 3.4584952956438064, \"index\": 0, \"parent_checkpoint_sha256\": \"679ae933535d3f62bac9a9a92be7fd7dc12ed266eeb15ce6f7a02de8bae1a645\"}"
  ],
- "log_bytes": 437378,
- "mem_available_mb": 10697,
+ "log_bytes": 439313,
+ "mem_available_mb": 14842,
  "run_id": "44862621734",
  "schema": "zeref-round-heartbeat-v1",
- "trainer_rss_mb": 4258,
- "ts": 1795250302.2316694
+ "trainer_rss_mb": null,
+ "ts": 1795250330.4751778
 }
