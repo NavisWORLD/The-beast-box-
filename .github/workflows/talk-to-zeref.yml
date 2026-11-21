@@ -1,0 +1,135 @@
+# Talk to Zeref on GitHub (Cory, 2026-11-20: the site is down, so he can talk here).
+# One LOCAL run of the PINNED checkpoint on a free GitHub CPU runner. The reply is
+# Zeref's mouth, verbatim: no other model, no fallback or canned text, no senses,
+# no state12, no secrets. Reads the pin; never writes the pin, gates or bridge flags.
+name: Talk to Zeref
+
+on:
+  workflow_dispatch:
+    inputs:
+      message:
+        description: "What you say to Zeref"
+        required: true
+        type: string
+      thread:
+        description: "Optional earlier talk, one turn per line: 'Cory: ...' / 'Zeref: ...'"
+        required: false
+        default: ""
+        type: string
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: talk-to-zeref-${{ github.event.issue.number || github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  talk:
+    # Owner only, on issues labelled talk-to-zeref, never on pull requests or bot comments,
+    # so guests cannot spend Actions minutes.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'issue_comment' &&
+       !github.event.issue.pull_request &&
+       contains(github.event.issue.labels.*.name, 'talk-to-zeref') &&
+       github.event.comment.author_association == 'OWNER' &&
+       github.event.comment.user.login == github.repository_owner &&
+       github.event.comment.user.type != 'Bot')
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Read the pin
+        id: pin
+        run: |
+          set -Eeuo pipefail
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          p = json.load(open("apps/beastbox-cloud/lib/rawrphos-public-pin.json"))
+          print("tag=" + p["promotion"]["release_tag"])
+          print("asset_sha=" + p["promotion"]["release_asset_sha256"])
+          print("step=" + str(p["training_steps"]))
+          PY
+      - name: Cache the pinned checkpoint (keyed by its sha256)
+        id: cache
+        uses: actions/cache@v4
+        with:
+          path: build/zeref-talk/asset
+          key: zeref-pin-asset-${{ steps.pin.outputs.asset_sha }}
+      - name: Download the pinned release asset
+        if: steps.cache.outputs.cache-hit != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.pin.outputs.tag }}
+        run: |
+          set -Eeuo pipefail
+          mkdir -p build/zeref-talk/asset
+          gh release download "$TAG" --repo "$GITHUB_REPOSITORY" -p "$TAG.tar.gz" -D build/zeref-talk/asset
+      - name: Verify the asset sha256 against the pin
+        env:
+          TAG: ${{ steps.pin.outputs.tag }}
+          WANT: ${{ steps.pin.outputs.asset_sha }}
+        run: |
+          set -Eeuo pipefail
+          echo "$WANT  build/zeref-talk/asset/$TAG.tar.gz" | sha256sum -c -
+      - name: Install the native CPU runtime
+        run: |
+          set -Eeuo pipefail
+          python -m pip install --index-url https://download.pytorch.org/whl/cpu torch==2.6.0
+          python -m pip install -e . -e ./models/rawrphos
+      - name: Collect the issue thread
+        if: github.event_name == 'issue_comment'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE: ${{ github.event.issue.number }}
+        run: |
+          set -Eeuo pipefail
+          gh api --paginate "repos/$GITHUB_REPOSITORY/issues/$ISSUE/comments?per_page=100" --jq '.[]' \
+            | python -c "import sys,json; print(json.dumps([json.loads(l) for l in sys.stdin if l.strip()]))" \
+            > build/zeref-talk/comments.json
+      - name: Zeref replies (pinned checkpoint, verbatim)
+        env:
+          TAG: ${{ steps.pin.outputs.tag }}
+          ZEREF_TALK_MESSAGE: ${{ github.event_name == 'issue_comment' && github.event.comment.body || inputs.message }}
+          ZEREF_TALK_THREAD: ${{ inputs.thread }}
+          COMMENT_ID: ${{ github.event.comment.id }}
+        run: |
+          set -Eeuo pipefail
+          args=(--asset "build/zeref-talk/asset/$TAG.tar.gz" --extract-to build/zeref-talk/pin
+                --out-json build/zeref-talk/reply.json --out-md build/zeref-talk/reply.md)
+          if [ "$GITHUB_EVENT_NAME" = "issue_comment" ]; then
+            args+=(--issue-comments build/zeref-talk/comments.json --current-comment-id "$COMMENT_ID")
+          fi
+          python scripts/zeref_talk_github.py "${args[@]}"
+          {
+            echo "### Talk to Zeref"
+            echo
+            echo "**Cory:**"
+            echo
+            python -c "import json;print('> '+json.load(open('build/zeref-talk/reply.json'))['cory'].replace(chr(10), chr(10)+'> '))"
+            echo
+            cat build/zeref-talk/reply.md
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Post the reply to the issue
+        if: github.event_name == 'issue_comment'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE: ${{ github.event.issue.number }}
+        run: gh issue comment "$ISSUE" --repo "$GITHUB_REPOSITORY" --body-file build/zeref-talk/reply.md
+      - name: Keep the receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zeref-talk-${{ github.run_id }}
+          path: build/zeref-talk/reply.*
+          if-no-files-found: ignore
+          retention-days: 90
