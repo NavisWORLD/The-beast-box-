@@ -20,6 +20,12 @@ Decoding the browser must use (identical to inference/engine.py chat path, but g
 temperature 0 (argmax), repetition_penalty 1.15 over generated ids, no_repeat_ngram 3, stop at EOS,
 max 64 new tokens. Parity here: ONNX Runtime (CPU, fp32) vs the torch Engine, greedy, token for token.
 
+--dtype fp16 (2026-11-21, opt-in; default fp32 is unchanged byte for byte): after slimming, the graph's
+weights and math are converted to float16 with float32 inputs/outputs kept (onnxruntime.transformers
+float16, keep_io_types=True), and greedy parity is re-proved on THAT graph against the same torch ids.
+fp16 writes zeref-step.fp16.onnx.partNN, manifest.fp16.json and parity-reference.fp16.json beside the fp32 files and never touches them.
+It is a smaller download, not a different brain: it only ships if parity is 9/9, and the page labels it.
+
 No senses and no private owner state are involved. Nothing here changes the pin or any gate.
 """
 from __future__ import annotations
@@ -47,6 +53,22 @@ import rawrphos.architecture.model as rawrphos_model  # noqa: E402
 from typing import List, Tuple  # noqa: E402
 
 CHUNK = 45 * 1024 * 1024
+DTYPES = ("fp32", "fp16")
+
+
+def build_names(dtype: str) -> dict:
+    """File names per build. fp32 keeps the original names exactly; fp16 lives beside it."""
+    if dtype not in DTYPES:
+        raise ValueError(f"unknown dtype {dtype!r}")
+    if dtype == "fp32":
+        return {"onnx": "zeref-step.onnx", "manifest": "manifest.json", "parity": "parity-reference.json"}
+    return {"onnx": "zeref-step.fp16.onnx", "manifest": "manifest.fp16.json", "parity": "parity-reference.fp16.json"}
+
+
+def to_fp16(model_proto):
+    """float16 weights + math, float32 graph inputs/outputs (so the page feeds the same tensors)."""
+    from onnxruntime.transformers.float16 import convert_float_to_float16
+    return convert_float_to_float16(model_proto, keep_io_types=True)
 TOKENIZER_CASES = [
     "Hi. What is your name?", "user: Hi\nassistant:", "I'm Cory, your dad. Remember this: my favorite color is blue.",
     "It's 3:15 PM — 42 stars, 7 moons!", "  leading and   inner   spaces  ", "tabs\tand\nnew\n\nlines\n",
@@ -129,13 +151,16 @@ def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--checkpoint", required=True, help="extracted accepted-checkpoint dir of the PINNED release")
     ap.add_argument("--out", required=True)
+    ap.add_argument("--dtype", choices=DTYPES, default="fp32",
+                    help="fp32 (default, the shipped build) or fp16 (half-size weights, float32 I/O; parity re-proved)")
     a = ap.parse_args(argv)
+    names = build_names(a.dtype)
     pin = json.loads((REPO / "apps/beastbox-cloud/lib/rawrphos-public-pin.json").read_text())
     os.environ.setdefault("RAWRPHOS_KIT_LAYERS", "1")  # same serve-time upgrade as the server
     e = Engine(a.checkpoint, max_new_tokens=256, threads=4, expected_sha256=pin["checkpoint_sha256"])
     m, cfg, tok = e.model, e.model.config, e.tokenizer
     out = Path(a.out); out.mkdir(parents=True, exist_ok=True)
-    onnx_path = out / "zeref-step.onnx"
+    onnx_path = out / names["onnx"]
     with torch.no_grad():
         c = m(torch.tensor([[1, 5, 9]]), use_cache=True)["past_key_values"]
         ex = (torch.tensor([[7, 8, 9, 10]]), torch.stack([x["key"] for x in c]), torch.stack([x["value"] for x in c]),
@@ -155,6 +180,8 @@ def main(argv=None) -> int:
     import onnx
     import onnxslim
     onnx.save(onnxslim.slim(onnx.load(str(onnx_path))), str(onnx_path))
+    if a.dtype == "fp16":  # parity below is re-proved on the converted graph, the only one that ships
+        onnx.save(to_fp16(onnx.load(str(onnx_path))), str(onnx_path))
     blob = onnx_path.read_bytes()
     dims = {"n_layers": cfg.n_layers, "n_heads": cfg.n_heads, "head_dim": cfg.d_model // cfg.n_heads,
             "state_width": int(ex[3].shape[-1]), "hebbian_dim": int(ex[4].shape[-1]), "vocab_size": cfg.vocab_size,
@@ -195,16 +222,16 @@ def main(argv=None) -> int:
 
     readme = [ln for ln in (REPO / "README.md").read_text(encoding="utf-8").splitlines() if ln.strip()][:300]
     tcases = [{"text": t, "ids": tok.encode(t), "decoded": tok.decode(tok.encode(t))} for t in TOKENIZER_CASES + readme]
-    (out / "parity-reference.json").write_text(json.dumps({"schema": "zeref-onnx-parity-reference-v1",
+    (out / names["parity"]).write_text(json.dumps({"schema": "zeref-onnx-parity-reference-v1",
         "checkpoint_sha256": pin["checkpoint_sha256"], "tokenizer": tcases, "greedy": greedy}, ensure_ascii=False, indent=1) + "\n")
     tok_src = Path(a.checkpoint) / "tokenizer" / "tokenizer.json"
     shutil.copyfile(tok_src, out / "tokenizer.json")
 
-    for old in out.glob("zeref-step.onnx.part*"):
+    for old in out.glob(names["onnx"] + ".part*"):
         old.unlink()
     chunks = []
     for i in range(0, len(blob), CHUNK):
-        part = blob[i:i + CHUNK]; name = f"zeref-step.onnx.part{i // CHUNK:02d}"
+        part = blob[i:i + CHUNK]; name = f"{names['onnx']}.part{i // CHUNK:02d}"
         (out / name).write_bytes(part); chunks.append({"file": name, "bytes": len(part), "sha256": sha256_bytes(part)})
     manifest = {
         "schema": "zeref-browser-brain-v1",
@@ -217,7 +244,8 @@ def main(argv=None) -> int:
                        "torch": torch.__version__, "onnxruntime": ort.__version__, "onnx": onnx.__version__,
                        "onnxslim": onnxslim.__version__, "python": platform.python_version(),
                        "exported_at": time.strftime("%Y-%m-%dT%H:%M:%S%z")},
-        "onnx": {"file": "zeref-step.onnx", "bytes": len(blob), "sha256": sha256_bytes(blob), "dtype": "float32",
+        "onnx": {"file": names["onnx"], "bytes": len(blob), "sha256": sha256_bytes(blob),
+                 "dtype": "float32" if a.dtype == "fp32" else "float16 (float32 inputs/outputs)",
                  "opset": 17, "chunks": chunks},
         "tokenizer": {"file": "tokenizer.json", "sha256": sha256_bytes(tok_src.read_bytes()),
                       "metadata_sha256": tok.sha256, "type": "byte-level BPE", "special_ids": [0, 1, 2, 3]},
@@ -232,7 +260,11 @@ def main(argv=None) -> int:
         "browser_session_options": {"executionProviders": ["wasm"], "graphOptimizationLevel": "disabled", "numThreads": 1},
         "senses": "none (no private owner state or data)",
     }
-    (out / "manifest.json").write_text(json.dumps(manifest, indent=1, ensure_ascii=False) + "\n")
+    if a.dtype != "fp32":
+        manifest["build"] = {"dtype": a.dtype, "label": "fp16 build: half-size weights, same pinned checkpoint; parity "
+                             + manifest["parity"]["onnxruntime_python_vs_torch_greedy"] + " vs torch fp32 greedy",
+                             "default": False}
+    (out / names["manifest"]).write_text(json.dumps(manifest, indent=1, ensure_ascii=False) + "\n")
     onnx_path.unlink()  # only the chunks ship; the manifest carries the whole-file sha
     print(json.dumps({"onnx_sha256": manifest["onnx"]["sha256"], "bytes": len(blob), "chunks": len(chunks),
                       "parity": manifest["parity"]["onnxruntime_python_vs_torch_greedy"]}))

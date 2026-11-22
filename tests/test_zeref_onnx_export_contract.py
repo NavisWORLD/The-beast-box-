@@ -35,3 +35,40 @@ def test_recorded_manifest_provenance():
     assert sum(c["bytes"] for c in MANIFEST["onnx"]["chunks"]) == MANIFEST["onnx"]["bytes"]
     assert MANIFEST["decoding"]["repetition_penalty"] == 1.15 and MANIFEST["decoding"]["no_repeat_ngram"] == 3
     assert MANIFEST["senses"].startswith("none")
+
+
+def _build_names():
+    """Exec only build_names() from the exporter source (CI has no torch/onnx)."""
+    import ast
+    tree = ast.parse(SRC)
+    ns = {}
+    for node in tree.body:
+        if isinstance(node, ast.Assign) and any(getattr(t, "id", None) == "DTYPES" for t in node.targets):
+            exec(compile(ast.Module([node], []), "dtypes", "exec"), ns)
+        if isinstance(node, ast.FunctionDef) and node.name == "build_names":
+            exec(compile(ast.Module([node], []), "build_names", "exec"), ns)
+    return ns["build_names"]
+
+
+def test_fp16_is_opt_in_and_fp32_names_unchanged():
+    names = _build_names()
+    assert names("fp32") == {"onnx": "zeref-step.onnx", "manifest": "manifest.json", "parity": "parity-reference.json"}
+    fp16 = names("fp16")
+    assert fp16["onnx"] == "zeref-step.fp16.onnx" and fp16["manifest"] == "manifest.fp16.json"
+    assert fp16["parity"] == "parity-reference.fp16.json"
+    assert not set(fp16.values()) & set(names("fp32").values())  # fp16 never overwrites the shipped fp32 files
+    try:
+        names("int8")
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("int8 must not be accepted (it changed his words: 3/9 parity)")
+    assert 'choices=DTYPES, default="fp32"' in SRC
+
+
+def test_fp16_parity_is_reproved_on_the_converted_graph():
+    i_conv = SRC.index('onnx.save(to_fp16(onnx.load(str(onnx_path))), str(onnx_path))')
+    i_sess = SRC.index('ort.InferenceSession(str(onnx_path)')
+    assert i_conv < i_sess  # the session that proves parity loads the fp16 graph
+    assert "keep_io_types=True" in SRC  # page feeds the same float32 tensors
+    assert '"default": False' in SRC and "fp16 build:" in SRC  # labelled, never the default
