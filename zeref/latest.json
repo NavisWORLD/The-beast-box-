@@ -10,29 +10,29 @@
   "source_path": "/spark/ibm-moonwraith-cassette-kit-20261010.json",
   "source_class": "RECORDED_IBM_HARDWARE"
  },
- "tick": 1151,
- "xp": 15018,
+ "tick": 1152,
+ "xp": 15028,
  "stage": 5,
  "stage_name": "Crescent Sovereign",
  "signals": {
-  "energy": 36,
-  "signal": 83,
+  "energy": 48,
+  "signal": 81,
   "memory": 100,
-  "resonance": 96
+  "resonance": 97
  },
  "bond": 100,
  "care_total": 0,
  "places": {
-  "Rift Gate": 1049,
+  "Rift Gate": 1051,
   "Lattice Arch": 493,
   "Echo Prism": 1212,
-  "Tidewell": 543,
+  "Tidewell": 544,
   "Quartz Choir": 384,
-  "Violet Shard": 867,
+  "Violet Shard": 869,
   "Selene Pool": 121
  },
- "last_tick_at": "2026-11-22T05:19:00.138Z",
- "last_entry_hash": "63d8d73ba58abc8cfae3961c2c91867de8d6c1d1e28ddd7b6673e261187771c7",
+ "last_tick_at": "2026-11-22T05:59:19.768Z",
+ "last_entry_hash": "fd5e7c83da6a06ef4fb26f2082aa8c3f1ee1d4d92502518b29cd406dd3074e9f",
  "universe_growth": 605,
  "combos_total": 445,
  "next_stage": null,
@@ -40,7 +40,7 @@
   "cells_visited": 37,
   "cells_total": 40,
   "known_rifts": 3,
-  "moves_succeeded": 16303,
+  "moves_succeeded": 16320,
   "moves_blocked": 874,
   "blocked_rate": 0.051,
   "favorite_spot": "Echo Prism",
@@ -51,7 +51,7 @@
    "rest": 0.05,
    "play": 1
   },
-  "decisions": 9817,
+  "decisions": 9823,
   "label": "learned behaviour from its own experience, not consciousness"
  },
  "labels": {
@@ -67,6 +67,77 @@
   "source": "recorded hardware counts (birth seed, never re-run)"
  },
  "recent": [
+  {
+   "schema": "zeref-diary/v1",
+   "beast_id": "bb-7f9c2a03",
+   "tick": 1152,
+   "at": "2026-11-22T05:59:19.768Z",
+   "hour_local": 23,
+   "timezone": "America/Chicago",
+   "signals": {
+    "energy": 48,
+    "signal": 81,
+    "memory": 100,
+    "resonance": 97
+   },
+   "bond": 100,
+   "mood": "exploring",
+   "place": "Rift Gate",
+   "places_visited": [
+    "Rift Gate",
+    "Tidewell",
+    "Violet Shard"
+   ],
+   "discovered_combos": [],
+   "new_combo_count": 0,
+   "combos_total": 445,
+   "xp_gain": 10,
+   "xp": 15028,
+   "stage": 5,
+   "stage_name": "Crescent Sovereign",
+   "grew": false,
+   "care": 0,
+   "birth_spark": {
+    "provider": "IBM Quantum",
+    "backend": "ibm_marrakesh",
+    "job_id": "db4te7slf4us73c3888g",
+    "source": "recorded hardware counts (birth seed, never re-run)"
+   },
+   "growth_source": {
+    "kind": "deterministic-fallback",
+    "simulated": false,
+    "provider": "azure-quantum/rigetti",
+    "target": "rigetti.sim.qvm",
+    "job_id": null,
+    "error": "ResourceExistsError: (SubscriptionDisabled) This Azure subscription is disabled and marked as read-only. Please re-enable the subscription to use Azure Quantum.\nCode: SubscriptionDisabled\nMessage: This Azure subscription is disabled and marked as read-only. Ple"
+   },
+   "learning": {
+    "new_cells": 0,
+    "moves_succeeded": 17,
+    "moves_blocked": 0,
+    "goals": {
+     "visit": 6
+    },
+    "cells_visited": 37,
+    "cells_total": 40,
+    "known_rifts": 3,
+    "blocked_rate": 0.051,
+    "favorite_spot": "Echo Prism",
+    "prefs": {
+     "explore": 0.05,
+     "visit": 1,
+     "rest": 0.05,
+     "play": 1
+    },
+    "label": "learned behaviour from its own experience, not consciousness"
+   },
+   "thought": {
+    "text": "Paws on the grid, nose to the stars. Spent most of the tick at Rift Gate.",
+    "by": "deterministic-template"
+   },
+   "prev_hash": "63d8d73ba58abc8cfae3961c2c91867de8d6c1d1e28ddd7b6673e261187771c7",
+   "hash": "fd5e7c83da6a06ef4fb26f2082aa8c3f1ee1d4d92502518b29cd406dd3074e9f"
+  },
   {
    "schema": "zeref-diary/v1",
    "beast_id": "bb-7f9c2a03",
@@ -855,79 +926,8 @@
    },
    "prev_hash": "bc657cafc5abfba93b392ebd8b2b1139a42b0cf03c66bbf55ad0f74d9a167369",
    "hash": "9c917fa9bbc3ef7700c21638941d0e159351d8e66ba4e055ff8cbafa8ae82b8c"
-  },
-  {
-   "schema": "zeref-diary/v1",
-   "beast_id": "bb-7f9c2a03",
-   "tick": 1140,
-   "at": "2026-11-21T22:28:39.931Z",
-   "hour_local": 16,
-   "timezone": "America/Chicago",
-   "signals": {
-    "energy": 15,
-    "signal": 77,
-    "memory": 100,
-    "resonance": 88
-   },
-   "bond": 100,
-   "mood": "sleepy",
-   "place": "Echo Prism",
-   "places_visited": [
-    "Echo Prism",
-    "Rift Gate",
-    "Tidewell"
-   ],
-   "discovered_combos": [],
-   "new_combo_count": 0,
-   "combos_total": 445,
-   "xp_gain": 10,
-   "xp": 14908,
-   "stage": 5,
-   "stage_name": "Crescent Sovereign",
-   "grew": false,
-   "care": 0,
-   "birth_spark": {
-    "provider": "IBM Quantum",
-    "backend": "ibm_marrakesh",
-    "job_id": "db4te7slf4us73c3888g",
-    "source": "recorded hardware counts (birth seed, never re-run)"
-   },
-   "growth_source": {
-    "kind": "deterministic-fallback",
-    "simulated": false,
-    "provider": "azure-quantum/rigetti",
-    "target": "rigetti.sim.qvm",
-    "job_id": null,
-    "error": "ResourceExistsError: (SubscriptionDisabled) This Azure subscription is disabled and marked as read-only. Please re-enable the subscription to use Azure Quantum.\nCode: SubscriptionDisabled\nMessage: This Azure subscription is disabled and marked as read-only. Ple"
-   },
-   "learning": {
-    "new_cells": 0,
-    "moves_succeeded": 7,
-    "moves_blocked": 0,
-    "goals": {
-     "visit": 4
-    },
-    "cells_visited": 37,
-    "cells_total": 40,
-    "known_rifts": 3,
-    "blocked_rate": 0.051,
-    "favorite_spot": "Echo Prism",
-    "prefs": {
-     "explore": 0.05,
-     "visit": 1,
-     "rest": 0.095,
-     "play": 1
-    },
-    "label": "learned behaviour from its own experience, not consciousness"
-   },
-   "thought": {
-    "text": "Slow blinks. Soft stars. Spent most of the tick at Echo Prism. The pocket feels smaller than it used to.",
-    "by": "deterministic-template"
-   },
-   "prev_hash": "cc8a129c19d501d4208e5c4d7e3ab54dacf9265fb3158b11f201c891b1ef2134",
-   "hash": "bc657cafc5abfba93b392ebd8b2b1139a42b0cf03c66bbf55ad0f74d9a167369"
   }
  ],
- "generated_at": "2026-11-22T05:19:00.138Z",
+ "generated_at": "2026-11-22T05:59:19.768Z",
  "thought_source_note": "rawrphos-http-402"
 }
