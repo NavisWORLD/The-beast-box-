@@ -18,14 +18,14 @@
   "step": 320
  },
  "last_lines": [
-  "ZEREF_006_REAL_CPU_UPDATE={\"step\": 320, \"train_loss\": 2.6258277893066406, \"anchor_drift\": 0.04746636748313904, \"grad_norm\": 4.898304462432861}",
-  "ZEREF_006_INCYCLE_EMA_CHAT={\"step\": 320, \"chat_nll\": 3.4797409784793856}",
-  "ZEREF_006_INCYCLE_CHAT={\"step\": 320, \"chat_nll\": 3.482603863477707, \"lr\": 3.0006505790490723e-06}"
+  "ZEREF_12D_MOUTH={\"enabled\": true, \"gain_floor\": 0.25, \"gain_slots0_11_after_floor\": [-0.329861, -0.275573, 0.260356, -0.266725, 0.330094, -0.322274, 0.252842, 0.323579, 0.29576, -0.313816, -0.3068, 0.382428], \"gain_slots0_11_kept\": [-0.331347, -0.276176, 0.260469, -0.266922, 0.330258, -0.321751, 0.2",
+  "ZEREF_006_CANDIDATE={\"best_in_cycle\": {\"best_in_cycle_chat_nll\": 3.4713851606845854, \"best_in_cycle_step\": 64}, \"chat_a_nll\": 3.4713851606845854, \"elapsed_s\": 3441.9, \"index\": 1, \"lr\": 3e-05, \"lr_min_fraction\": 0.1, \"seed\": 189136709411415, \"skipped_batches\": 7}",
+  "ZEREF_006_BEST_IN_CYCLE={\"chat_a_nll\": 3.464276323914528, \"index\": 0, \"parent_checkpoint_sha256\": \"1b56f034e14cf25aad4ffc94ddd2586f9299485bf2e8dc1a28fe27b66624460f\"}"
  ],
- "log_bytes": 318628,
- "mem_available_mb": 10303,
+ "log_bytes": 320399,
+ "mem_available_mb": 14860,
  "run_id": "45016465267",
  "schema": "zeref-round-heartbeat-v1",
- "trainer_rss_mb": 4771,
- "ts": 1795356790.6041257
+ "trainer_rss_mb": null,
+ "ts": 1795356799.4679093
 }
