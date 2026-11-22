@@ -1,31 +1,30 @@
 {
  "disk_free_mb": 85385,
  "last_batch": {
-  "grad_norm": 9.30439567565918,
+  "grad_norm": 5.9552435874938965,
   "sources": {
    "dolly-15k-cc-by-sa-3.0": 2,
    "game": 4,
    "pretrain": 2,
-   "zeref-knowledge-002": 1,
-   "zeref-lessons-003": 1,
-   "zeref-lessons-004": 2,
-   "zeref-lessons-005": 1,
-   "zeref-lessons-006": 1,
-   "zeref-lyrics-001": 2,
-   "zeref-qa-001": 1,
+   "zeref-dad-voice-001": 1,
+   "zeref-identity-001": 1,
+   "zeref-knowledge-002": 2,
+   "zeref-lessons-003": 2,
+   "zeref-lessons-004": 1,
+   "zeref-lessons-006": 2,
    "zeref-world-001": 1
   },
-  "step": 33
+  "step": 41
  },
  "last_lines": [
-  "ZEREF_006_INCYCLE_EMA_CHAT={\"step\": 32, \"chat_nll\": 3.4634840804338456}",
-  "ZEREF_006_INCYCLE_CHAT={\"step\": 32, \"chat_nll\": 3.461001443862915, \"lr\": 4.896599905414131e-05}",
-  "ZEREF_006_BATCH={\"grad_norm\": 9.30439567565918, \"sources\": {\"dolly-15k-cc-by-sa-3.0\": 2, \"game\": 4, \"pretrain\": 2, \"zeref-knowledge-002\": 1, \"zeref-lessons-003\": 1, \"zeref-lessons-004\": 2, \"zeref-lessons-005\": 1, \"zeref-lessons-006\": 1, \"zeref-lyrics-001\": 2, \"zeref-qa-001\": 1, \"zeref-world-001\": 1}"
+  "ZEREF_006_BATCH={\"grad_norm\": 10.713521957397461, \"sources\": {\"dolly-15k-cc-by-sa-3.0\": 2, \"game\": 4, \"pretrain\": 2, \"zeref-dad-voice-001\": 1, \"zeref-knowledge-002\": 2, \"zeref-lessons-004\": 2, \"zeref-lessons-006\": 4, \"zeref-world-001\": 1}, \"step\": 39}",
+  "ZEREF_006_BATCH={\"grad_norm\": 7.888307571411133, \"sources\": {\"dolly-15k-cc-by-sa-3.0\": 3, \"game\": 4, \"pretrain\": 2, \"zeref-knowledge-002\": 1, \"zeref-lessons-003\": 2, \"zeref-lessons-004\": 2, \"zeref-lessons-006\": 1, \"zeref-voice-guide-001\": 1, \"zeref-world-001\": 2}, \"step\": 40}",
+  "ZEREF_006_BATCH={\"grad_norm\": 5.9552435874938965, \"sources\": {\"dolly-15k-cc-by-sa-3.0\": 2, \"game\": 4, \"pretrain\": 2, \"zeref-dad-voice-001\": 1, \"zeref-identity-001\": 1, \"zeref-knowledge-002\": 2, \"zeref-lessons-003\": 2, \"zeref-lessons-004\": 1, \"zeref-lessons-006\": 2, \"zeref-world-001\": 1}, \"step\": 41}"
  ],
- "log_bytes": 12758,
- "mem_available_mb": 10200,
+ "log_bytes": 15082,
+ "mem_available_mb": 10807,
  "run_id": "45043837560",
  "schema": "zeref-round-heartbeat-v1",
- "trainer_rss_mb": 4513,
- "ts": 1795365418.6496718
+ "trainer_rss_mb": 3965,
+ "ts": 1795365480.107099
 }
