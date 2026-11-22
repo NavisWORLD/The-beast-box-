@@ -1,5 +1,5 @@
 {
- "disk_free_mb": 70764,
+ "disk_free_mb": 70504,
  "last_batch": {
   "grad_norm": 6.404452800750732,
   "sources": {
@@ -16,14 +16,14 @@
   "step": 320
  },
  "last_lines": [
-  "ZEREF_12D_MOUTH={\"enabled\": true, \"gain_floor\": 0.25, \"gain_slots0_11_after_floor\": [-0.320594, -0.266053, 0.259206, -0.26586, 0.323301, -0.316525, 0.250415, 0.319682, 0.289616, -0.303412, -0.301868, 0.367655], \"gain_slots0_11_kept\": [-0.32231, -0.26768, 0.259103, -0.2645, 0.324626, -0.316428, 0.251",
-  "ZEREF_006_CANDIDATE={\"best_in_cycle\": {\"best_in_cycle_chat_nll\": 3.4618858885765076, \"best_in_cycle_step\": 96}, \"chat_a_nll\": 3.4618858885765076, \"elapsed_s\": 2509.6, \"index\": 3, \"lr\": 5e-05, \"lr_min_fraction\": 0.5, \"seed\": 65909241962504, \"skipped_batches\": 34}",
-  "ZEREF_006_BEST_IN_CYCLE={\"chat_a_nll\": 3.4618858885765076, \"index\": 3, \"parent_checkpoint_sha256\": \"113b94c09e7a044cd542c2dfedbf7e25f5cb4bce2106dfbc2578901ff7a28f3b\"}"
+  "ZEREF_006_CANDIDATE_SELECTED={\"index\": 3, \"chat_a_nll\": 3.4618858885765076, \"of\": 4, \"rule\": \"lowest set A NLL; set B never used to select; unchanged Gate v2 applies to the selected candidate only\"}",
+  "ZEREF_COND54_BANK={\"bank_sha256\": \"4cb3906ac11526a9deedd8f50edac2715d5c03dae17dee88bb98ba7e82de8333\", \"drop\": 0.5, \"first_tick\": 23703, \"label\": \"Rigetti SIMULATED spark ticks (bb-deada969); other bands masked 0.0\", \"last_tick\": 24303, \"pairing\": \"by training-step time, not by meaning (no owner sens",
+  "ZEREF_006_STEP_ACCOUNTING={\"attempted_this_round\": 320, \"attempts_discarded_after_snapshot\": 224, \"kept_counting_since_cycle\": 71, \"kept_training_steps_total\": 1408, \"note\": \"selected_snapshot_attempt counts attempts up to the kept snapshot, including any spike-skipped batches\", \"selected_snapshot_a"
  ],
- "log_bytes": 600243,
- "mem_available_mb": 14871,
+ "log_bytes": 601942,
+ "mem_available_mb": 13751,
  "run_id": "44940922155",
  "schema": "zeref-round-heartbeat-v1",
- "trainer_rss_mb": null,
- "ts": 1795310380.2212188
+ "trainer_rss_mb": 1213,
+ "ts": 1795310446.8313453
 }
