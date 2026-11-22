@@ -293,6 +293,11 @@ jobs:
           python -m pip install --index-url https://download.pytorch.org/whl/cpu torch==2.6.0
           python -m pip install -e . -e ./models/rawrphos
       - name: Build bounded chat mix (reviewed Zeref dialogue + Dolly-15k CC BY-SA 3.0, pinned)
+        env:
+          # Zeref Funny 001 ON (Cory, 2026-11-22 "make everything live"): teacher-written dad-and-son
+          # humor pairs at a 0.05 share (146 rows; verified byte-identical OFF at 0).
+          # One-line revert: set this to '0' (byte-identical mix to before this PR).
+          ZEREF_FUNNY_SHARE: '0.05'
         run: |
           set -Eeuo pipefail
           curl -fsSL --retry 3 -o build/zeref-006/dolly.jsonl "https://huggingface.co/datasets/databricks/databricks-dolly-15k/resolve/bdd27f4d94b9c1f951818a7da7fd7aeea5dbff1a/databricks-dolly-15k.jsonl"
