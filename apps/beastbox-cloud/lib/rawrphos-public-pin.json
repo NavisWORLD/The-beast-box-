@@ -1,19 +1,19 @@
 {
  "schema": "rawrphos-public-pin-v1",
  "model_id": "rawrphos-native",
- "training_steps": 44784,
- "checkpoint_sha256": "113b94c09e7a044cd542c2dfedbf7e25f5cb4bce2106dfbc2578901ff7a28f3b",
+ "training_steps": 45104,
+ "checkpoint_sha256": "d6e45713017293ab6027ccc0eea4eac05c54a722f60bdb7acd86fdfa07a4773e",
  "promotion": {
-  "release_tag": "zeref-006-cycle-83-113b94c09e7a",
-  "release_asset_sha256": "10cec16923827a1b98ec94c3f7af327c3ab6c6e11a87c397b13e185a31ef7b5a",
-  "workflow_run": "https://github.com/NavisWORLD/The-beast-box-/actions/runs/44912642669",
+  "release_tag": "zeref-006-cycle-84-d6e457130172",
+  "release_asset_sha256": "523bbf65dfd3399151c39ae80e94c51402e8422693fa19c982dc089b1745e3dc",
+  "workflow_run": "https://github.com/NavisWORLD/The-beast-box-/actions/runs/44940922155",
   "chat_eval_schema": "rawrphos-chat-eval-v2",
-  "chat_eval_sha256": "d740ebbba288fd6dff89991407a2d2e4cfd30785a96f9455ca81f6e7d5bb366a",
+  "chat_eval_sha256": "65c186ab3d51888a4dba7fd33851f6de606b362a0dc8f4d97e3f9b52da458bfc",
   "chat_not_worse": true,
   "baseline_sha256": "4e45850bfe7b3e2be1d5b12e1956286e1f3f8cfde7b01b70212ad75fbc8610a5",
-  "candidate_sha256": "113b94c09e7a044cd542c2dfedbf7e25f5cb4bce2106dfbc2578901ff7a28f3b",
-  "baseline_ref_nll": 5.002573382854462,
-  "candidate_ref_nll": 3.4654877787828444,
+  "candidate_sha256": "d6e45713017293ab6027ccc0eea4eac05c54a722f60bdb7acd86fdfa07a4773e",
+  "baseline_ref_nll": 5.002573224306107,
+  "candidate_ref_nll": 3.4618858981132505,
   "baseline_ok": 47,
   "candidate_ok": 49,
   "candidate_leaks": 0,
@@ -22,7 +22,7 @@
    "repetition_penalty": 1.15,
    "same_for_baseline_and_candidate": true
   },
-  "rollback": "set promotion to the previous block and training_steps/checkpoint_sha256 back to 44464 / 4980e11682335e902500e662840c5937b263f704bfbacaadac9f1de3c222829e"
+  "rollback": "set promotion to the previous block and training_steps/checkpoint_sha256 back to 44784 / 113b94c09e7a044cd542c2dfedbf7e25f5cb4bce2106dfbc2578901ff7a28f3b"
  },
  "rule": "Changes ONLY through a reviewed PR whose promotion block cites an approved checkpoint release and a rawrphos-chat-eval-v1/v2 report with chat_not_worse=true versus 14000. Otherwise the 14000 pin stays.",
  "gate_v2": {
