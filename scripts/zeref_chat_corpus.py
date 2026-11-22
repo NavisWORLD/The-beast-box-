@@ -105,6 +105,15 @@ EXTRA=[("evidence/zeref-warm-002/dialogue.jsonl",0.05,2),("evidence/zeref-voice-
  ("evidence/zeref-lessons-005/dialogue.jsonl",0.18,1),  # 2026-10-25 grade 3-6 English/math/world lessons (authored; heldout.jsonl never loaded; deduped vs Gate v2 sets A and B)
  ("evidence/zeref-lessons-006/dialogue.jsonl",0.60,1)]  # 2026-10-27 world curriculum lessons authored by Emeth for Cory (landed PR #653; deduped vs Gate v2 sets A and B and all heldout files). 2026-11-16: cap 0.18 -> 0.60 so the whole landed conversational pack trains every round; at 0.18 the seeded shuffle truncated it below the exam-style sources and growth past the cap rotated instead of adding exposure, while the mouth speaks at the dominant mix register (median 3-5 word answers).
 #  # 008: short simple Q&A (local free teacher, behind the scenes; gate/held disjoint)  # 007: canon-only identity/home rows; held prompts excluded
+# Zeref Funny 001 (2026-11-21, Cory: "make him funnier"): ~320 TEACHER-WRITTEN playful dad-and-son pairs
+# (labelled "teacher-written, not Zeref output"; humor-probe-heldout.jsonl never loaded; deduped vs Gate v2 sets A/B and every
+# heldout file by scripts/build_zeref_funny_001.py). OFF unless ZEREF_FUNNY_SHARE > 0: with it unset or 0 the mix
+# and its manifest are byte-identical to before (no rows, no manifest key). Gates unchanged.
+FUNNY=Path("evidence/zeref-funny-001/dialogue.jsonl");FUNNY_REPEAT=2
+def funny_share():
+ v=float(os.environ.get("ZEREF_FUNNY_SHARE","0") or "0")
+ if not 0<=v<=0.10:raise ValueError("ZEREF_FUNNY_SHARE must be between 0 and 0.10")
+ return v
 def extra_slice(path,frac,repeat,base_rows,held):
  p=Path(path)
  if not p.is_file():return []
@@ -204,6 +213,10 @@ def main(dolly,out):
  for path,frac,rep in EXTRA:
   ex=extra_slice(path,frac,rep,base,held);rows+=ex
   for r in ex:extra_counts[r["source"]]=extra_counts.get(r["source"],0)+1
+ fshare=funny_share();funny=[]
+ if fshare>0:
+  fgate=world_gate_prompts()
+  funny=[r for r in extra_slice(str(FUNNY),fshare,FUNNY_REPEAT,base,held) if not world_overlaps(r["user"],fgate)];rows+=funny
  world=world_slice(len(rows));rows+=world
  # Served-shape share (Cory, fix 3). Same authored rows, about 15%, chosen by a
  # seeded hash that is not the rotation seed. Heldout, gate, and eval prompts
@@ -231,6 +244,9 @@ def main(dolly,out):
   "world_rows":len(world),"world_share":WORLD_SHARE,"world_source":"evidence/zeref-world-001/qa.jsonl (Simple English Wikipedia contributors, CC BY-SA 4.0; GSM8K Cobbe et al. 2021, MIT; per-row source+licence kept; gate/held-out overlaps removed)",
  "private_transcripts":False,"chat_test_prompts_excluded":True,
  "served_shape":served_shape}
+ if fshare>0:
+  man["funny"]={"rows":len(funny),"share":fshare,"repeat":FUNNY_REPEAT,"source":str(FUNNY),
+   "label":"teacher-written, not Zeref output (Grok Bot for Cory, 2026-11-21); humor-probe-heldout.jsonl never loaded"}
  Path(out).with_suffix(".manifest.json").write_text(json.dumps(man,indent=1,sort_keys=True)+"\n")
  print("ZEREF_CHAT_MIX="+json.dumps({k:man[k] for k in("rows","zeref_dialogue_rows","dad_voice_rows","jsonl_sha256","extra_sources")}))
 if __name__=="__main__":main(*sys.argv[1:3])
