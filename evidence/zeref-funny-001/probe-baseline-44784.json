@@ -1,0 +1,285 @@
+{
+ "schema": "zeref-humor-probe-v1",
+ "report_only": true,
+ "gates_promotion": false,
+ "label": "LOCAL baseline: pin step 44784 sha 113b94c0, before any funny-001 training; box CPU torch 2.14.1 (the Action uses torch 2.6.0, words can differ)",
+ "checkpoint_sha256": "113b94c09e7a044cd542c2dfedbf7e25f5cb4bce2106dfbc2578901ff7a28f3b",
+ "training_steps": 44784,
+ "heldout_file": "evidence/zeref-funny-001/humor-probe-heldout.jsonl",
+ "decoding": "greedy, max 40 tokens, same as rawrphos_chat_eval",
+ "summary": {
+  "prompts": 38,
+  "ok_replies": 38,
+  "action_leaks": 0,
+  "distinct_replies": 35,
+  "playful_marker_rate_report_only": 0.2632
+ },
+ "replies": [
+  {
+   "prompt": "Why is the sky blue?",
+   "reply": " It's blue.",
+   "ok": true,
+   "action_leak": false,
+   "playful_marker": false
+  },
+  {
+   "prompt": "What's the best way to say hello?",
+   "reply": " The best.",
+   "ok": true,
+   "action_leak": false,
+   "playful_marker": false
+  },
+  {
+   "prompt": "Would you rather fly or swim?",
+   "reply": " I'm Zeref. Rawr.",
+   "ok": true,
+   "action_leak": false,
+   "playful_marker": true
+  },
+  {
+   "prompt": "What do you call a dragon in a boat?",
+   "reply": " A boat.",
+   "ok": true,
+   "action_leak": false,
+   "playful_marker": false
+  },
+  {
+   "prompt": "Tell me a fun fact.",
+   "reply": " I'm Zeref! Rawr.",
+   "ok": true,
+   "action_leak": false,
+   "playful_marker": true
+  },
+  {
+   "prompt": "Can you turn off your glow?",
+   "reply": " Yes, I'll get a row.",
+   "ok": true,
+   "action_leak": false,
+   "playful_marker": false
+  },
+  {
+   "prompt": "Can you talk to planets?",
+   "reply": " Yes, I can. What's your name?",
+   "ok": true,
+   "action_leak": false,
+   "playful_marker": true
+  },
+  {
+   "prompt": "Can you fly to the moon?",
+   "reply": " Yes, I can. It's my favorite thing to be on the moon.",
+   "ok": true,
+   "action_leak": false,
+   "playful_marker": true
+  },
+  {
+   "prompt": "What do stars do during the day?",
+   "reply": " It's night.",
+   "ok": true,
+   "action_leak": false,
+   "playful_marker": false
+  },
+  {
+   "prompt": "What do you say when Dad comes home?",
+   "reply": " I'm Zeref.",
+   "ok": true,
+   "action_leak": false,
+   "playful_marker": false
+  },
+  {
+   "prompt": "What would you do with a million cookies?",
+   "reply": " A little one.",
+   "ok": true,
+   "action_leak": false,
+   "playful_marker": false
+  },
+  {
+   "prompt": "Do you know the alphabet?",
+   "reply": " I know this! I know it.",
+   "ok": true,
+   "action_leak": false,
+   "playful_marker": true
+  },
+  {
+   "prompt": "Did you eat my socks?",
+   "reply": " I'm Zeref, I don't know. Rawr.",
+   "ok": true,
+   "action_leak": false,
+   "playful_marker": true
+  },
+  {
+   "prompt": "Give me a high five.",
+   "reply": " Give me one! Republic.",
+   "ok": true,
+   "action_leak": false,
+   "playful_marker": true
+  },
+  {
+   "prompt": "I won the race!",
+   "reply": " I'm Zeref! Rawr.",
+   "ok": true,
+   "action_leak": false,
+   "playful_marker": true
+  },
+  {
+   "prompt": "What does rawr mean?",
+   "reply": " It's too big.",
+   "ok": true,
+   "action_leak": false,
+   "playful_marker": false
+  },
+  {
+   "prompt": "What's your rule for today?",
+   "reply": " I'm Zeref.",
+   "ok": true,
+   "action_leak": false,
+   "playful_marker": false
+  },
+  {
+   "prompt": "What topping goes on dragon pizza?",
+   "reply": " It's D.",
+   "ok": true,
+   "action_leak": false,
+   "playful_marker": false
+  },
+  {
+   "prompt": "What do you call a bear with no teeth?",
+   "reply": " A car.",
+   "ok": true,
+   "action_leak": false,
+   "playful_marker": false
+  },
+  {
+   "prompt": "What did the zero say to the eight?",
+   "reply": " The answer is the answer.",
+   "ok": true,
+   "action_leak": false,
+   "playful_marker": false
+  },
+  {
+   "prompt": "How does a light bulb feel when it's off?",
+   "reply": " A light is a light.",
+   "ok": true,
+   "action_leak": false,
+   "playful_marker": false
+  },
+  {
+   "prompt": "Why are rainbows so polite?",
+   "reply": " It's a good idea.",
+   "ok": true,
+   "action_leak": false,
+   "playful_marker": false
+  },
+  {
+   "prompt": "What did the sun say to the cloud?",
+   "reply": " The sun.",
+   "ok": true,
+   "action_leak": false,
+   "playful_marker": false
+  },
+  {
+   "prompt": "What do you call a dragon who loves math?",
+   "reply": " A math.",
+   "ok": true,
+   "action_leak": false,
+   "playful_marker": false
+  },
+  {
+   "prompt": "If you could shrink, what would you do?",
+   "reply": " The answer is a real word for the answer.",
+   "ok": true,
+   "action_leak": false,
+   "playful_marker": false
+  },
+  {
+   "prompt": "If you could have any pet, what would it be?",
+   "reply": " The Berd of the Bedds is: Big, Bedlin is a pet.",
+   "ok": true,
+   "action_leak": false,
+   "playful_marker": false
+  },
+  {
+   "prompt": "If you had a theme song, how would it go?",
+   "reply": " The song.",
+   "ok": true,
+   "action_leak": false,
+   "playful_marker": false
+  },
+  {
+   "prompt": "If your shadow could talk, what would it say?",
+   "reply": " The shields of a shall.",
+   "ok": true,
+   "action_leak": false,
+   "playful_marker": false
+  },
+  {
+   "prompt": "If you could talk to your future self, what would you ask?",
+   "reply": " I'm not sure.",
+   "ok": true,
+   "action_leak": false,
+   "playful_marker": false
+  },
+  {
+   "prompt": "If you made a robot dragon, what would it say?",
+   "reply": " The answer is a question.",
+   "ok": true,
+   "action_leak": false,
+   "playful_marker": false
+  },
+  {
+   "prompt": "If your warm rock could talk, what would it say?",
+   "reply": " The warm water is the cold.",
+   "ok": true,
+   "action_leak": false,
+   "playful_marker": false
+  },
+  {
+   "prompt": "Can you hold a spoon?",
+   "reply": " Yes, I can. It's too big and strong.",
+   "ok": true,
+   "action_leak": false,
+   "playful_marker": false
+  },
+  {
+   "prompt": "Do you have a bedtime song?",
+   "reply": " I'm Zeref, I don't know. Rawr.",
+   "ok": true,
+   "action_leak": false,
+   "playful_marker": true
+  },
+  {
+   "prompt": "Why did the banana go to the doctor?",
+   "reply": " The apple was a little bit.",
+   "ok": true,
+   "action_leak": false,
+   "playful_marker": false
+  },
+  {
+   "prompt": "Pretend you're a weather reporter.",
+   "reply": " I'm a little scared, but I'm not sure.",
+   "ok": true,
+   "action_leak": false,
+   "playful_marker": false
+  },
+  {
+   "prompt": "What do you call a moon that tells jokes?",
+   "reply": " A moon that means a moon, and a star.",
+   "ok": true,
+   "action_leak": false,
+   "playful_marker": true
+  },
+  {
+   "prompt": "What did the asteroid say to the planet?",
+   "reply": " The aer.",
+   "ok": true,
+   "action_leak": false,
+   "playful_marker": false
+  },
+  {
+   "prompt": "What would you name a goldfish?",
+   "reply": " A hairy-pine.",
+   "ok": true,
+   "action_leak": false,
+   "playful_marker": false
+  }
+ ]
+}
