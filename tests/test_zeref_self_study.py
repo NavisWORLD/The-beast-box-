@@ -1,0 +1,329 @@
+"""Zeref studies on his own: confusion signs, question scoring, narration,
+screening, pacing guard, fail-closed writes, hash-chained ledger.
+
+Stdlib only, no network, no model. The DuckDuckGo fetch is injected as a
+fake in every test that needs it.
+"""
+import hashlib
+import json
+import re
+import sys
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
+
+import pytest
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "scripts"))
+
+import zeref_self_study as S  # noqa: E402
+
+NOW = datetime(2026, 11, 22, 10, 0, tzinfo=timezone(timedelta(hours=-6)))
+APPLE_ABSTRACT = "The apple is a round fruit. It grows on trees in orchards and is eaten raw or cooked."
+APPLE_SOURCE = {"abstract": APPLE_ABSTRACT, "url": "https://en.wikipedia.org/wiki/Apple",
+                "source": "Wikipedia", "license": "CC-BY-SA-4.0"}
+
+
+def _h16(text):
+    return hashlib.sha256(S.norm(text).encode()).hexdigest()[:16]
+
+
+def _screen_file(tmp_path, prompts=("what is the moon",), answers=("the moon is bright",)):
+    rows = []
+    for p in prompts:
+        rows.append({"p": _h16(p), "a": None, "pb": sorted({_h16(w) for w in S.bigrams(p)})})
+    for a in answers:
+        rows.append({"p": _h16("unrelated prompt " + a), "a": _h16(a), "pb": []})
+    path = tmp_path / "heldout-screen.json"
+    path.write_text(json.dumps({"schema": "zeref-heldout-screen/v1", "items": len(rows), "rows": rows}))
+    return path
+
+
+def _lessons(tmp_path, rows=()):
+    path = tmp_path / "lessons.jsonl"
+    path.write_text("".join(json.dumps(r) + "\n" for r in rows))
+    return path
+
+
+def _talk(tmp_path, turns):
+    path = tmp_path / "talk.jsonl"
+    path.write_text("".join(json.dumps(t) + "\n" for t in turns))
+    return path
+
+
+def _run(tmp_path, turns, lessons=(), fetcher=None, now=NOW, screen=None, dry_run=False):
+    ledger = tmp_path / "ledger.jsonl"
+    rows = tmp_path / "rows.jsonl"
+    receipt = S.run(ledger, rows, [_talk(tmp_path, turns)], _lessons(tmp_path, lessons),
+                    screen or _screen_file(tmp_path), now=now, fetcher=fetcher, dry_run=dry_run)
+    return receipt, ledger, rows
+
+
+# ---------------------------------------------------------------- confusion
+
+
+def test_confusion_signals_each_type():
+    assert S.turn_confusion("What is your name?", "I don't know. Rawr.")[1] == ["dont_know"]
+    assert S.turn_confusion("How are you this morning?", "Rainbows.")[1] == ["fragment"]
+    assert S.turn_confusion("Pick one", "A: the moon B: the sun")[1] == ["quiz_scaffold"]
+    assert S.turn_confusion("Tell me", "moon moon moon moon")[1] == ["degenerate"]
+    conf, signals = S.turn_confusion("What color is the sky on a clear day?",
+                                     "I like the big red truck and the dog")
+    assert "off_topic" in signals and conf == 0.7
+    assert S.turn_confusion("Say hi", "")[1] == ["empty"]
+    assert S.turn_confusion("What is the moon?", "The moon is bright.") == (0.0, [])
+
+
+def test_confusion_window_is_the_mean():
+    turns = [{"user": "What is the moon?", "assistant": "I don't know"},
+             {"user": "What is the sun?", "assistant": "The sun is bright."}]
+    assert S.window_confusion(turns) == 0.5
+
+
+def test_question_scorer_is_confusion_times_gap_with_floor():
+    assert S.score_candidate(1.0, 1.0) == 1.5
+    assert S.score_candidate(1.0, 0.0) == 0.5
+    assert S.score_candidate(0.0, 1.0) == 0.0
+    doc = S.score_candidate.__doc__ or ""
+    assert "APPROXIMATION" in doc and "not computed" in doc
+
+
+def test_pick_question_prefers_confused_uncovered_topic():
+    lessons = [{"user": "The sun is hot.", "assistant": "Yes, the sun is hot."}] * 3
+    turns = [{"user": "What is the sun?", "assistant": "I don't know"},
+             {"user": "What is the moon?", "assistant": "I don't know"}]
+    picked = S.pick_question(turns, lessons)
+    assert picked is not None and picked["topic"] == "moon"
+    assert picked["question"] == "What does moon mean?"
+
+
+def test_pick_question_returns_none_when_nothing_confused():
+    turns = [{"user": "What is the moon?", "assistant": "The moon is bright."}]
+    assert S.pick_question(turns, []) is None
+
+
+# ---------------------------------------------------------------- narration
+
+
+def test_narration_never_passes_raw_text():
+    answer = S.narrate("moon", "The Moon is Earth's only natural satellite. It orbits the Earth once a month.")
+    assert answer is not None
+    assert S._verbatim_run(answer, "The Moon is Earth's only natural satellite. It orbits the Earth once a month.") is None
+    assert "http" not in answer and "\u2014" not in answer
+    assert len(answer.split()) <= 25
+
+
+def test_narration_cuts_long_definitions_at_the_clause():
+    abstract = ("The Moon is Earth's only natural satellite, a rocky body that circles our planet once every "
+                "month, lighting the night sky and pulling the tides with its gravity.")
+    answer = S.narrate("moon", abstract)
+    assert answer == "The moon is earth's only natural satellite."
+
+
+def test_narration_fails_closed_when_it_cannot_be_original():
+    abstract = ("The moon is the only natural satellite that orbits the Earth every month and lights "
+                "the night sky for all of us.")
+    assert S.narrate("moon", abstract) is None
+
+
+def test_narration_retries_with_a_shorter_predicate():
+    abstract = "A name is a term used for identification by an external observer."
+    assert S.narrate("name", abstract) == "The name is a term used."
+
+
+# ---------------------------------------------------------------- screening
+
+
+def test_screen_blocks_heldout_exact_and_near(tmp_path):
+    screen = S.Screen(ROOT, _screen_file(tmp_path))
+    assert screen.check("What is the moon?", "Something else.") == (False, "heldout_exact")
+    assert screen.check("What is the moon tonight?", "Something else.") == (False, "heldout_near")
+    assert screen.check("What is the sun?", "The sun is bright.") == (True, "ok")
+
+
+def test_screen_blocks_heldout_answer(tmp_path):
+    screen = S.Screen(ROOT, _screen_file(tmp_path))
+    assert screen.check("Tell me a fact.", "The moon is bright.") == (False, "heldout_answer")
+
+
+def test_screen_literal_fallback_reads_gate_sources(tmp_path):
+    root = tmp_path / "repo"
+    (root / "scripts").mkdir(parents=True)
+    (root / "scripts" / "rawrphos_chat_eval.py").write_text(
+        'PAIRS = [("What is the moon?", "The moon is bright.")]\nCHAT = []\n')
+    (root / "scripts" / "zeref_heldout_b.py").write_text("PAIRS_B = []\n")
+    screen = S.Screen(root, tmp_path / "no-such-screen.json")
+    assert screen.source == "literal-gate-sources"
+    assert screen.check("What is the moon?", "Anything.") == (False, "heldout_exact")
+
+
+def test_screen_row_blocks_duplicates_and_bad_lengths(tmp_path):
+    screen = S.Screen(ROOT, _screen_file(tmp_path))
+    lessons = [{"user": "What is the apple?", "assistant": "The apple is a round fruit."}]
+    assert S.screen_row("What is the apple?", "The apple is a round fruit.", screen, lessons, []) == (False, "duplicate_lesson")
+    assert S.screen_row("What is the pear?", "The pear is a fruit.", screen, [], ["What is the pear?"]) == (False, "duplicate_study")
+    assert S.screen_row("What is the pear?", "A pear.", screen, [], []) == (False, "answer_length")
+    assert S.screen_row("What is the pear?", "The pear is a fruit.", screen, [], []) == (True, "ok")
+
+
+# ---------------------------------------------------------------- pacing
+
+
+def test_pacing_cooldown_blocks_and_writes_nothing(tmp_path):
+    ledger = tmp_path / "ledger.jsonl"
+    rows = tmp_path / "rows.jsonl"
+    entry = S.build_entry([], NOW - timedelta(minutes=30),
+                          {"question": "What is the moon?", "search_query": "What is the moon?",
+                           "topic": "moon", "confusion": 1.0, "signals": ["dont_know"]},
+                          APPLE_SOURCE, None, "studied")
+    ledger.write_text(S._canonical(entry) + "\n")
+    before = ledger.read_text()
+    receipt, _, _ = _run(tmp_path, [{"user": "What is the apple?", "assistant": "I don't know"}],
+                         fetcher=lambda q: APPLE_SOURCE)
+    assert receipt["status"] == "skipped:cooldown"
+    assert ledger.read_text() == before and not rows.exists()
+
+
+def test_pacing_daily_budget_blocks(tmp_path):
+    ledger = tmp_path / "ledger.jsonl"
+    entries = []
+    for i in range(12):
+        entries.append(S.build_entry(entries, NOW - timedelta(hours=10) + timedelta(minutes=30 * i),
+                                     {"question": "What is topic %d?" % i, "search_query": "q",
+                                      "topic": "topic", "confusion": 1.0, "signals": ["dont_know"]},
+                                     APPLE_SOURCE, None, "studied"))
+    ledger.write_text("".join(S._canonical(e) + "\n" for e in entries))
+    receipt, _, _ = _run(tmp_path, [{"user": "What is the apple?", "assistant": "I don't know"}],
+                         fetcher=lambda q: APPLE_SOURCE)
+    assert receipt["status"] == "skipped:budget_exhausted"
+    assert receipt["studied_today"] == 12
+
+
+def test_one_event_per_run_even_with_many_confused_turns(tmp_path):
+    turns = [{"user": "What is the apple?", "assistant": "I don't know"},
+             {"user": "What is the moon?", "assistant": "I don't know"},
+             {"user": "What is the sun?", "assistant": "I don't know"}]
+    receipt, ledger, rows = _run(tmp_path, turns, fetcher=lambda q: APPLE_SOURCE)
+    assert receipt["status"] == "studied" and receipt["events"] == 1
+    assert len(S._load_jsonl(ledger)) == 1 and len(S._load_jsonl(rows)) == 1
+
+
+def test_no_confusion_writes_nothing(tmp_path):
+    receipt, ledger, rows = _run(tmp_path, [{"user": "What is the moon?", "assistant": "The moon is bright."}],
+                                 fetcher=lambda q: APPLE_SOURCE)
+    assert receipt["status"] == "no_confusion"
+    assert not ledger.exists() and not rows.exists()
+
+
+def test_confused_but_only_identity_words_is_no_studyable_topic(tmp_path):
+    receipt, ledger, rows = _run(tmp_path, [{"user": "Who am I to you?", "assistant": "I don't know"}],
+                                 fetcher=lambda q: APPLE_SOURCE)
+    assert receipt["status"] == "no_studyable_topic"
+    assert receipt["confusion_before"] == 1.0
+    assert not ledger.exists() and not rows.exists()
+
+
+# ---------------------------------------------------------------- fail closed
+
+
+def test_search_error_writes_a_complete_receipt_and_no_row(tmp_path):
+    def boom(q):
+        raise S.SearchError("duckduckgo_unreachable:URLError")
+    receipt, ledger, rows = _run(tmp_path, [{"user": "What is the apple?", "assistant": "I don't know"}],
+                                 fetcher=boom)
+    assert receipt["status"] == "search_failed"
+    assert not rows.exists()
+    entries = S._load_jsonl(ledger)
+    assert len(entries) == 1 and entries[0]["status"].startswith("search_failed")
+    assert entries[0]["taught_row"] is None and entries[0]["license"] == "none"
+    assert S.verify_ledger(entries)[0] is True
+
+
+def test_non_wikipedia_source_is_refused(tmp_path):
+    other = {"abstract": "The apple is a round fruit.", "url": "https://example.com/apple",
+             "source": "Example", "license": "unknown"}
+    receipt, _, rows = _run(tmp_path, [{"user": "What is the apple?", "assistant": "I don't know"}],
+                            fetcher=lambda q: other)
+    assert receipt["status"] == "search_failed" and receipt["why"] == "non_open_source"
+    assert not rows.exists()
+
+
+def test_narration_failure_writes_no_row(tmp_path):
+    long_abstract = {"abstract": ("The moon is the only natural satellite that orbits the Earth every month "
+                                  "and lights the night sky for all of us."),
+                     "url": "https://en.wikipedia.org/wiki/Moon", "source": "Wikipedia",
+                     "license": "CC-BY-SA-4.0"}
+    receipt, _, rows = _run(tmp_path, [{"user": "What is the moon?", "assistant": "I don't know"}],
+                            fetcher=lambda q: long_abstract)
+    assert receipt["status"] == "narration_failed"
+    assert not rows.exists()
+
+
+def test_dry_run_writes_nothing(tmp_path):
+    receipt, ledger, rows = _run(tmp_path, [{"user": "What is the apple?", "assistant": "I don't know"}],
+                                 fetcher=lambda q: APPLE_SOURCE, dry_run=True)
+    assert receipt["status"] == "studied"
+    assert not ledger.exists() and not rows.exists()
+
+
+def test_corrupt_ledger_fails_before_any_write(tmp_path):
+    ledger = tmp_path / "ledger.jsonl"
+    ledger.write_text('{"schema": "broken", "prev": "genesis", "hash": "00"}\n')
+    with pytest.raises(ValueError, match="ledger hash chain broken"):
+        S.run(ledger, tmp_path / "rows.jsonl", [], _lessons(tmp_path), _screen_file(tmp_path), now=NOW,
+              fetcher=lambda q: APPLE_SOURCE)
+
+
+# ---------------------------------------------------------------- ledger + row
+
+
+def test_ledger_hash_chain_links_and_tamper_breaks_it(tmp_path):
+    turns_a = [{"user": "What is the apple?", "assistant": "I don't know"}]
+    turns_b = [{"user": "What is the moon?", "assistant": "I don't know"}]
+    moon_source = {"abstract": "The Moon is Earth's only natural satellite. It shines at night.",
+                   "url": "https://en.wikipedia.org/wiki/Moon", "source": "Wikipedia",
+                   "license": "CC-BY-SA-4.0"}
+    ledger = tmp_path / "ledger.jsonl"
+    rows = tmp_path / "rows.jsonl"
+    talk_a = _talk(tmp_path, turns_a)
+    S.run(ledger, rows, [talk_a], _lessons(tmp_path), _screen_file(tmp_path), now=NOW,
+          fetcher=lambda q: APPLE_SOURCE)
+    talk_b = tmp_path / "talk-b.jsonl"
+    talk_b.write_text(json.dumps(turns_b[0]) + "\n")
+    S.run(ledger, rows, [talk_b], _lessons(tmp_path), _screen_file(tmp_path),
+          now=NOW + timedelta(hours=2), fetcher=lambda q: moon_source)
+    entries = S._load_jsonl(ledger)
+    assert len(entries) == 2
+    assert entries[1]["prev"] == entries[0]["hash"]
+    assert S.verify_ledger(entries) == (True, 2)
+    tampered = json.loads(json.dumps(entries))
+    tampered[0]["question"] = "What is the banana?"
+    assert S.verify_ledger(tampered)[0] is False
+    taught = S._load_jsonl(rows)
+    assert taught[0]["label"] == "TAUGHT" and taught[0]["source"] == "zeref-self-study-taught"
+    assert taught[0]["origin"].startswith("https://en.wikipedia.org/wiki/")
+    assert taught[0]["license"] == "CC-BY-SA-4.0"
+    assert entries[0]["confusion_after"] == "unmeasured"
+
+
+def test_talk_log_accepts_talk_to_zeref_reply_shape(tmp_path):
+    path = tmp_path / "talk.jsonl"
+    path.write_text(json.dumps({"cory": "What is the apple?", "zeref": "I don't know"}) + "\n")
+    turns = S._load_talk_logs([path])
+    assert turns == [{"user": "What is the apple?", "assistant": "I don't know"}]
+    single = tmp_path / "reply.json"
+    single.write_text(json.dumps({"cory": "What is the moon?", "zeref": "I don't know", "empty": False}))
+    assert S._load_talk_logs([single]) == [{"user": "What is the moon?", "assistant": "I don't know"}]
+    arr = tmp_path / "arr.json"
+    arr.write_text(json.dumps([{"user": "What is the sun?", "assistant": "I don't know"}]))
+    assert S._load_talk_logs([arr]) == [{"user": "What is the sun?", "assistant": "I don't know"}]
+
+
+def test_no_em_dashes_anywhere_the_module_emits(tmp_path):
+    receipt, ledger, rows = _run(tmp_path, [{"user": "What is the apple?", "assistant": "I don't know"}],
+                                 fetcher=lambda q: APPLE_SOURCE)
+    assert receipt["status"] == "studied"
+    for path in (ledger, rows):
+        assert "\u2014" not in path.read_text()
+    assert "\u2014" not in json.dumps(receipt)
+    assert "\u2014" not in (ROOT / "scripts" / "zeref_self_study.py").read_text()
