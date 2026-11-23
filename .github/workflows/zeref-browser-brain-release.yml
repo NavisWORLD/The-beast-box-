@@ -67,10 +67,10 @@ jobs:
           [ -n "$BRAIN_DIR" ] || { echo "part00 chunk not found in the artifact"; exit 1; }
           echo "brain dir: $BRAIN_DIR"
           echo "BRAIN_DIR=$BRAIN_DIR" >> "$GITHUB_ENV"
-          python - <<'PY'
-          import hashlib, json, os
+          python - "$BRAIN_DIR" <<'PY'
+          import hashlib, json, sys
           from pathlib import Path
-          brain = Path(os.environ["BRAIN_DIR"])
+          brain = Path(sys.argv[1])
           man = json.loads(Path("evidence/zeref-browser-brain-001/manifest.json").read_text())
           p, o = man["provenance"], man["onnx"]
           steps, ckpt = p["training_steps"], p["checkpoint_sha256"]
