@@ -1,32 +1,38 @@
 {
- "at": "2026-11-23T00:19:50Z",
- "at_epoch": 1795393190.6,
+ "at": "2026-11-23T00:20:48Z",
+ "at_epoch": 1795393248.2,
  "backend": "local-sim",
  "beast_id": "bb-deada969",
  "counts": {
-  "000": 236,
+  "000": 233,
   "001": 1,
-  "011": 19
+  "011": 18,
+  "100": 1,
+  "110": 1,
+  "111": 2
  },
- "counts_sha256": "65ac8c4d04143c0192fa9c3cd05ca3053ffdb67084068d1c62001ef179ec0ff0",
- "hash": "90bda9908abf81d3702323fb3ea230be076470bfe537ec4f212bffe238470bbf",
+ "counts_sha256": "152660de77a196365708b698ad47e9a8d039e314e2dce549adebd4c4005f6d13",
+ "hash": "77e1d8bd1c43559d88367abf294bed9d1537c2a5d845e58a646ec2debdcc08c0",
  "label": "LOCAL SIMULATED (runner statevector, not Rigetti, not a QPU)",
  "last_ok": {
-  "at_epoch": 1795393190.6,
+  "at_epoch": 1795393248.2,
   "counts": {
-   "000": 236,
+   "000": 233,
    "001": 1,
-   "011": 19
+   "011": 18,
+   "100": 1,
+   "110": 1,
+   "111": 2
   },
-  "counts_sha256": "65ac8c4d04143c0192fa9c3cd05ca3053ffdb67084068d1c62001ef179ec0ff0",
+  "counts_sha256": "152660de77a196365708b698ad47e9a8d039e314e2dce549adebd4c4005f6d13",
   "shots": 256,
-  "tick": 16574
+  "tick": 16575
  },
- "prior_chain_hash": "2b8fe53ea8e14721cc5039c6f282b562c00afd2819253c6277ff5dc51a01ba50",
- "rigetti_tick": 42767,
+ "prior_chain_hash": "d16b19d4d1444bf257dae0c70bfa834ae71baa63a1c7426cf857c8565f11974a",
+ "rigetti_tick": 42768,
  "schema": "zeref-spark-local-latest/v1",
  "shots": 256,
  "simulated": true,
  "status": "ok",
- "tick": 16574
+ "tick": 16575
 }
