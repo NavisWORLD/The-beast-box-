@@ -11,6 +11,7 @@
 #
 # Schedule (UTC): 00,14,16,18,20,22 = 18,08,10,12,14,16 CST and
 # 19,09,11,13,15,17 CDT. Nights stay play, per the school-day shape.
+# Re-touch 2026-11-23 ~13:25 CST: re-register the schedule after the 08:00/10:00/12:00 CST slots never fired (workflow file correct, state active; no behavior change).
 # Results land on the data-only branch zeref-self-study (no app code,
 # deploys disabled), never on main: taught rows join the mix only through
 # the normal landing path, never a shortcut. Nothing here touches the 006
