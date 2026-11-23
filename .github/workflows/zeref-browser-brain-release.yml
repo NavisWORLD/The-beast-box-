@@ -1,4 +1,4 @@
-# Zeref browser brain release (one-shot, manual dispatch only).
+# Zeref browser brain release (automated, after the refresh PR merges).
 #
 # Publishes the refreshed in-browser brain files as public release assets so
 # the NavisWORLD repo's place workflow can fetch them without any credential:
@@ -8,31 +8,41 @@
 # downloads the assets over plain HTTPS and verifies every sha against the
 # manifest before placing anything.
 #
+# The chain (NEW BRAIN ALWAYS): the refresh PR merges (the gate) -> the
+# manifest on main changes -> this workflow fires -> it finds the export run
+# that produced that manifest, verifies every file against it, and publishes
+# release zeref-browser-brain-<step>. The place workflow then picks it up.
+#
 # What it does, in order, failing closed at every step:
-#   1. Download the export run's receipt artifact (same repo, GITHUB_TOKEN).
-#   2. Verify every file's sha256 against the manifest on main (the source
+#   1. Find the latest successful run of the export workflow via the API
+#      (no hardcoded run id; the run that produced the manifest on main is
+#      the one that must match it).
+#   2. Download that run's receipt artifact (same repo, GITHUB_TOKEN).
+#   3. Verify every file's sha256 against the manifest on main (the source
 #      of truth): the 3 chunks and tokenizer.json by manifest sha, the
 #      manifest itself byte-identical to main's copy, parity-reference.json
 #      by valid JSON + schema + checkpoint field (the manifest lists no sha
 #      for it). Any mismatch stops the run before any release is touched.
-#   3. Create release zeref-browser-brain-<pin step> with the 6 files as
+#      A newer export run whose manifest has not merged yet fails here:
+#      its artifact manifest will not be byte-identical to main's.
+#   4. Create release zeref-browser-brain-<pin step> with the 6 files as
 #      assets (or --clobber upload if the release already exists).
 #
-# No schedule: dispatched by hand after an export refresh, and triggered
-# once by the push that lands this file on main. (workflow_dispatch alone
+# Triggers: push to main touching the manifest (the refresh PR merge) or
+# this file itself, or manual workflow_dispatch. (workflow_dispatch alone
 # cannot run a workflow that exists only on a feature branch: GitHub's
 # workflow index is built from the default branch, so dispatch by filename
-# 404s until this file reaches main. The push trigger is the runner-side
-# entry point now; dispatch works from main after it lands.
-# NOTE: do not put [skip ci] on the push that lands this file, or the push
-# trigger is skipped too and nothing runs.)
+# 404s until this file reaches main. NOTE: do not put [skip ci] on the push
+# that lands this file, or the push trigger is skipped too and nothing runs.)
 name: Zeref browser brain release
 
 on:
   workflow_dispatch:
   push:
     branches: [main]
-    paths: [.github/workflows/zeref-browser-brain-release.yml]
+    paths:
+      - evidence/zeref-browser-brain-001/manifest.json
+      - .github/workflows/zeref-browser-brain-release.yml
 
 permissions:
   contents: write
@@ -48,12 +58,22 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+      - name: Find the latest successful export run
+        id: export_run
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -Eeuo pipefail
+          RUN_ID=$(gh api "repos/${{ github.repository }}/actions/workflows/zeref-browser-brain-export.yml/runs?status=success&per_page=1" --jq '.workflow_runs[0].id')
+          [ -n "$RUN_ID" ] && [ "$RUN_ID" != "null" ] || { echo "no successful export run found"; exit 1; }
+          echo "run_id=$RUN_ID" >> "$GITHUB_OUTPUT"
+          echo "latest successful export run: $RUN_ID"
       - name: Download the export receipt artifact
         uses: actions/download-artifact@v4
         with:
-          name: zeref-browser-brain-export-45111728350
-          run-id: 45111728350
-          github-token: ${{ github.token }}
+          name: zeref-browser-brain-export-${{ steps.export_run.outputs.run_id }}
+          run-id: ${{ steps.export_run.outputs.run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
           path: build/brain
       - name: Verify every file against the manifest on main (fail closed)
         run: |
@@ -68,14 +88,15 @@ jobs:
           echo "brain dir: $BRAIN_DIR"
           echo "BRAIN_DIR=$BRAIN_DIR" >> "$GITHUB_ENV"
           python - "$BRAIN_DIR" <<'PY'
-          import hashlib, json, sys
+          import hashlib, json, re, sys
           from pathlib import Path
           brain = Path(sys.argv[1])
           man = json.loads(Path("evidence/zeref-browser-brain-001/manifest.json").read_text())
           p, o = man["provenance"], man["onnx"]
           steps, ckpt = p["training_steps"], p["checkpoint_sha256"]
           print(f"manifest on main: step {steps}, checkpoint {ckpt[:12]}, release {p['release_tag']}")
-          assert steps == 45744 and ckpt.startswith("0f29d5c33828"), "manifest is not the 45,744 refresh"
+          assert isinstance(steps, int) and steps > 14000, "manifest step is not a plausible pin step"
+          assert re.fullmatch(r"[0-9a-f]{64}", ckpt), "manifest checkpoint is not a 64-hex sha256"
           def sha(path):
               return hashlib.sha256(Path(path).read_bytes()).hexdigest()
           # manifest itself byte-identical to main's copy
@@ -99,24 +120,29 @@ jobs:
           # parity-reference.json: valid JSON + schema + checkpoint field (no manifest sha listed for it)
           pr = json.loads((brain / "parity-reference.json").read_text())
           assert pr.get("schema") == "zeref-onnx-parity-reference-v1", f"parity schema unexpected: {pr.get('schema')}"
-          assert str(pr.get("checkpoint_sha256", "")).startswith("0f29d5c33828"), "parity checkpoint field is not the 45,744 checkpoint"
+          assert str(pr.get("checkpoint_sha256", "")).startswith(ckpt[:12]), "parity checkpoint field does not match the manifest checkpoint"
           print("parity-reference.json OK: valid JSON, schema + checkpoint match")
           Path("build/brain/verified.txt").write_text(f"step={steps}\ncheckpoint={ckpt}\nonnx={o['sha256']}\n")
           PY
       - name: Publish the brain files as a public release
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -Eeuo pipefail
-          TAG="zeref-browser-brain-45744"
+          STEPS=$(python -c "import json; print(json.load(open('evidence/zeref-browser-brain-001/manifest.json'))['provenance']['training_steps'])")
+          CKPT12=$(python -c "import json; print(json.load(open('evidence/zeref-browser-brain-001/manifest.json'))['provenance']['checkpoint_sha256'][:12])")
+          TAG="zeref-browser-brain-$STEPS"
+          RELTAG=$(python -c "import json; print(json.load(open('evidence/zeref-browser-brain-001/manifest.json'))['provenance']['release_tag'])")
+          ONNXSHA=$(python -c "import json; print(json.load(open('evidence/zeref-browser-brain-001/manifest.json'))['onnx']['sha256'][:12])")
+          ONNXBYTES=$(python -c "import json; print(json.load(open('evidence/zeref-browser-brain-001/manifest.json'))['onnx']['bytes'])")
           FILES="$BRAIN_DIR/manifest.json $BRAIN_DIR/parity-reference.json $BRAIN_DIR/tokenizer.json $BRAIN_DIR/zeref-step.onnx.part00 $BRAIN_DIR/zeref-step.onnx.part01 $BRAIN_DIR/zeref-step.onnx.part02"
           if gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
             echo "release $TAG already exists; uploading with --clobber"
             gh release upload "$TAG" $FILES --clobber --repo "${{ github.repository }}"
           else
             gh release create "$TAG" $FILES --repo "${{ github.repository }}" \
-              --title "Zeref browser brain - pin step 45744" \
-              --notes "In-browser brain for pin step 45744 (checkpoint 0f29d5c33828, release zeref-006-cycle-86-0f29d5c33828). ONNX sha256 27e2a9178608, 96,773,022 bytes, 3 chunks, parity 9/9. Fetched by the NavisWORLD repo place workflow; files are verified against the manifest on main before placement."
+              --title "Zeref browser brain - pin step $STEPS" \
+              --notes "In-browser brain for pin step $STEPS (checkpoint $CKPT12, release $RELTAG). ONNX sha256 $ONNXSHA, $ONNXBYTES bytes, 3 chunks, parity 9/9. Fetched by the NavisWORLD repo place workflow; files are verified against the manifest on main before placement."
           fi
           gh release view "$TAG" --repo "${{ github.repository }}" --json assets --jq '.assets[] | "\(.name) \(.size)"'
       - name: Summary
@@ -125,6 +151,5 @@ jobs:
           {
             echo "### Zeref browser brain release"
             echo
-            echo "Release tag: zeref-browser-brain-45744"
-            python -c "import json; m=json.load(open('evidence/zeref-browser-brain-001/manifest.json')); p=m['provenance']; print(f\"pin step {p['training_steps']}, checkpoint {p['checkpoint_sha256'][:12]}, release {p['release_tag']}\"); print(f\"onnx {m['onnx']['sha256'][:12]}, {m['onnx']['bytes']} bytes, {len(m['onnx']['chunks'])} chunks\")" 2>/dev/null || echo "manifest read failed"
+            python -c "import json; m=json.load(open('evidence/zeref-browser-brain-001/manifest.json')); p=m['provenance']; print(f\"release tag: zeref-browser-brain-{p['training_steps']}\"); print(f\"pin step {p['training_steps']}, checkpoint {p['checkpoint_sha256'][:12]}, release {p['release_tag']}\"); print(f\"onnx {m['onnx']['sha256'][:12]}, {m['onnx']['bytes']} bytes, {len(m['onnx']['chunks'])} chunks\")" 2>/dev/null || echo "manifest read failed"
           } >> "$GITHUB_STEP_SUMMARY"
