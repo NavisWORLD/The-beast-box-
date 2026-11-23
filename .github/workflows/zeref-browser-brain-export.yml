@@ -7,9 +7,14 @@
 #
 # What it does, in order, failing closed at every step (a failure anywhere
 # leaves the branch untouched):
-#   1. Refresh the public pin from main into the worktree ONLY (the branch pin
-#      is stale; the exporter reads the pin file first and verifies the
-#      checkpoint sha at load). The pin file is restored before committing.
+#   1. Refresh the public pin AND the model code from main into the worktree
+#      ONLY (the branch pin is stale, and the branch model code predates the
+#      checkpoint's config: cycle-86 was trained with the 12D direct path on,
+#      so its config.json carries cond54_direct, which the branch's
+#      RawrphosConfig does not accept. The exporter reads the pin file first
+#      and verifies the checkpoint sha at load; the model code is a runtime
+#      dependency of the export, not part of this PR). The refreshed paths are
+#      restored before committing, so the branch keeps its own code.
 #   2. Download the pinned release tarball and verify its sha256 against the
 #      pin's release_asset_sha256. Extract accepted-checkpoint/.
 #   3. Run scripts/zeref_onnx_export.py (exits 1 unless ONNX-vs-torch greedy
@@ -59,6 +64,18 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+      - name: Refresh pin + model code from main (worktree only, never committed)
+        run: |
+          set -Eeuo pipefail
+          git fetch --depth 1 origin main
+          git show FETCH_HEAD:apps/beastbox-cloud/lib/rawrphos-public-pin.json > apps/beastbox-cloud/lib/rawrphos-public-pin.json
+          git archive FETCH_HEAD models beastbox | tar -x
+          python - <<'PY'
+          import json
+          pin = json.load(open("apps/beastbox-cloud/lib/rawrphos-public-pin.json"))
+          print("pin:", pin["training_steps"], pin["checkpoint_sha256"][:12], pin["promotion"]["release_tag"])
+          assert pin["training_steps"] > 44144, "pin did not move past the stale branch pin"
+          PY
       - name: Install runtime (CPU torch, repo, onnx stack)
         run: |
           set -Eeuo pipefail
@@ -66,17 +83,6 @@ jobs:
           pip install --index-url https://download.pytorch.org/whl/cpu torch==2.6.0
           pip install -e . -e ./models/rawrphos
           pip install onnx onnxruntime onnxslim pytest
-      - name: Refresh pin from main (worktree only, never committed)
-        run: |
-          set -Eeuo pipefail
-          git fetch --depth 1 origin main
-          git show FETCH_HEAD:apps/beastbox-cloud/lib/rawrphos-public-pin.json > apps/beastbox-cloud/lib/rawrphos-public-pin.json
-          python - <<'PY'
-          import json
-          pin = json.load(open("apps/beastbox-cloud/lib/rawrphos-public-pin.json"))
-          print("pin:", pin["training_steps"], pin["checkpoint_sha256"][:12], pin["promotion"]["release_tag"])
-          assert pin["training_steps"] > 44144, "pin did not move past the stale branch pin"
-          PY
       - name: Download pinned checkpoint release (sha-verified)
         env:
           GH_TOKEN: ${{ github.token }}
@@ -97,11 +103,14 @@ jobs:
           set -Eeuo pipefail
           python scripts/zeref_onnx_export.py --checkpoint build/export/accepted-checkpoint --out evidence/zeref-browser-brain-001 | tee build/export/export.log
           python -c "import json; m=json.load(open('evidence/zeref-browser-brain-001/manifest.json')); print('manifest:', m['provenance']['training_steps'], m['provenance']['checkpoint_sha256'][:12], m['provenance']['release_tag'], 'parity', m['parity']['onnxruntime_python_vs_torch_greedy'])"
-      - name: Restore branch pin file (export no longer needs it)
+      - name: Restore branch pin + model code (export no longer needs them)
         run: |
           set -Eeuo pipefail
-          git checkout -- apps/beastbox-cloud/lib/rawrphos-public-pin.json
-          [ -z "$(git status --porcelain -- apps/beastbox-cloud/lib/rawrphos-public-pin.json)" ] || { echo "pin file still dirty"; exit 1; }
+          git checkout -- apps/beastbox-cloud/lib/rawrphos-public-pin.json models beastbox
+          # Only tracked modifications matter here; untracked files left by the
+          # main archive are never added to the commit (explicit add list below).
+          DIRTY=$(git status --porcelain -- apps/beastbox-cloud/lib/rawrphos-public-pin.json models beastbox | grep -v '^??' || true)
+          [ -z "$DIRTY" ] || { echo "refreshed paths still dirty:"; echo "$DIRTY"; exit 1; }
       - name: Update test prefix + README to the exported pin
         run: |
           set -Eeuo pipefail
