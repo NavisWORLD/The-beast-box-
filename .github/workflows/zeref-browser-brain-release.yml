@@ -58,9 +58,19 @@ jobs:
       - name: Verify every file against the manifest on main (fail closed)
         run: |
           set -Eeuo pipefail
+          echo "extracted artifact tree:"
+          find build/brain -type f | sort
+          # The artifact was uploaded with multiple paths, so it preserves
+          # directory structure: resolve the brain dir from the part00 chunk
+          # instead of assuming a flat layout.
+          BRAIN_DIR="$(dirname "$(find build/brain -name 'zeref-step.onnx.part00' | head -1)")"
+          [ -n "$BRAIN_DIR" ] || { echo "part00 chunk not found in the artifact"; exit 1; }
+          echo "brain dir: $BRAIN_DIR"
+          echo "BRAIN_DIR=$BRAIN_DIR" >> "$GITHUB_ENV"
           python - <<'PY'
-          import hashlib, json
+          import hashlib, json, os
           from pathlib import Path
+          brain = Path(os.environ["BRAIN_DIR"])
           man = json.loads(Path("evidence/zeref-browser-brain-001/manifest.json").read_text())
           p, o = man["provenance"], man["onnx"]
           steps, ckpt = p["training_steps"], p["checkpoint_sha256"]
@@ -69,25 +79,25 @@ jobs:
           def sha(path):
               return hashlib.sha256(Path(path).read_bytes()).hexdigest()
           # manifest itself byte-identical to main's copy
-          assert sha("build/brain/manifest.json") == sha("evidence/zeref-browser-brain-001/manifest.json"), "artifact manifest differs from main"
+          assert sha(brain / "manifest.json") == sha("evidence/zeref-browser-brain-001/manifest.json"), "artifact manifest differs from main"
           # chunks: size + sha from the manifest
           total = 0
           for c in o["chunks"]:
-              f = Path("build/brain") / c["file"]
+              f = brain / c["file"]
               assert f.stat().st_size == c["bytes"], f"{c['file']}: size {f.stat().st_size} != {c['bytes']}"
               assert sha(f) == c["sha256"], f"{c['file']}: sha mismatch"
               total += c["bytes"]
               print(f"chunk OK: {c['file']} {c['bytes']} bytes sha {c['sha256'][:12]}")
           assert total == o["bytes"], f"chunk total {total} != {o['bytes']}"
-          joined = hashlib.sha256(b"".join((Path('build/brain') / c["file"]).read_bytes() for c in o["chunks"])).hexdigest()
+          joined = hashlib.sha256(b"".join((brain / c["file"]).read_bytes() for c in o["chunks"])).hexdigest()
           assert joined == o["sha256"], "concatenated chunks do not hash to the manifest ONNX sha256"
           print(f"onnx OK: {o['sha256'][:12]}, {o['bytes']} bytes, {len(o['chunks'])} chunks")
           # tokenizer.json by manifest sha
-          tok = Path("build/brain/tokenizer.json")
+          tok = brain / "tokenizer.json"
           assert sha(tok) == man["tokenizer"]["sha256"], "tokenizer.json sha mismatch"
           print(f"tokenizer.json OK: {tok.stat().st_size} bytes sha {sha(tok)[:12]}")
           # parity-reference.json: valid JSON + schema + checkpoint field (no manifest sha listed for it)
-          pr = json.loads(Path("build/brain/parity-reference.json").read_text())
+          pr = json.loads((brain / "parity-reference.json").read_text())
           assert pr.get("schema") == "zeref-onnx-parity-reference-v1", f"parity schema unexpected: {pr.get('schema')}"
           assert str(pr.get("checkpoint_sha256", "")).startswith("0f29d5c33828"), "parity checkpoint field is not the 45,744 checkpoint"
           print("parity-reference.json OK: valid JSON, schema + checkpoint match")
@@ -99,7 +109,7 @@ jobs:
         run: |
           set -Eeuo pipefail
           TAG="zeref-browser-brain-45744"
-          FILES="build/brain/manifest.json build/brain/parity-reference.json build/brain/tokenizer.json build/brain/zeref-step.onnx.part00 build/brain/zeref-step.onnx.part01 build/brain/zeref-step.onnx.part02"
+          FILES="$BRAIN_DIR/manifest.json $BRAIN_DIR/parity-reference.json $BRAIN_DIR/tokenizer.json $BRAIN_DIR/zeref-step.onnx.part00 $BRAIN_DIR/zeref-step.onnx.part01 $BRAIN_DIR/zeref-step.onnx.part02"
           if gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
             echo "release $TAG already exists; uploading with --clobber"
             gh release upload "$TAG" $FILES --clobber --repo "${{ github.repository }}"
