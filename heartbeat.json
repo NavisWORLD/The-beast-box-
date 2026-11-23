@@ -1,31 +1,29 @@
 {
  "disk_free_mb": 85880,
  "last_batch": {
-  "grad_norm": 7.152423858642578,
+  "grad_norm": 5.126292705535889,
   "sources": {
    "dolly-15k-cc-by-sa-3.0": 2,
    "game": 4,
    "pretrain": 2,
    "zeref-dad-voice-001": 1,
-   "zeref-funny-001": 1,
-   "zeref-knowledge-002": 1,
-   "zeref-lessons-004": 2,
-   "zeref-lessons-005": 1,
-   "zeref-lessons-006": 2,
-   "zeref-warm-002": 1,
+   "zeref-identity-001": 1,
+   "zeref-knowledge-002": 2,
+   "zeref-lessons-003": 3,
+   "zeref-lessons-005": 2,
    "zeref-world-001": 1
   },
-  "step": 224
+  "step": 232
  },
  "last_lines": [
-  "ZEREF_006_REAL_CPU_UPDATE={\"step\": 224, \"train_loss\": 2.9189112186431885, \"anchor_drift\": 0.08516866713762283, \"grad_norm\": 7.152423858642578}",
-  "ZEREF_006_INCYCLE_EMA_CHAT={\"step\": 224, \"chat_nll\": 3.4749163699150087}",
-  "ZEREF_006_INCYCLE_CHAT={\"step\": 224, \"chat_nll\": 3.480646372437477, \"lr\": 1.4454172667153446e-05}"
+  "ZEREF_006_BATCH={\"grad_norm\": 4.696874141693115, \"sources\": {\"dolly-15k-cc-by-sa-3.0\": 1, \"game\": 4, \"pretrain\": 2, \"zeref-dad-voice-001\": 1, \"zeref-identity-001\": 2, \"zeref-lessons-003\": 1, \"zeref-lessons-006\": 4, \"zeref-lyrics-001\": 1, \"zeref-world-001\": 2}, \"step\": 230}",
+  "ZEREF_006_BATCH={\"grad_norm\": 6.81585168838501, \"sources\": {\"game\": 4, \"pretrain\": 2, \"zeref-knowledge-002\": 1, \"zeref-lessons-003\": 2, \"zeref-lessons-004\": 1, \"zeref-lessons-005\": 1, \"zeref-lessons-006\": 3, \"zeref-talk-001\": 1, \"zeref-world-001\": 3}, \"step\": 231}",
+  "ZEREF_006_BATCH={\"grad_norm\": 5.126292705535889, \"sources\": {\"dolly-15k-cc-by-sa-3.0\": 2, \"game\": 4, \"pretrain\": 2, \"zeref-dad-voice-001\": 1, \"zeref-identity-001\": 1, \"zeref-knowledge-002\": 2, \"zeref-lessons-003\": 3, \"zeref-lessons-005\": 2, \"zeref-world-001\": 1}, \"step\": 232}"
  ],
- "log_bytes": 70272,
- "mem_available_mb": 9905,
+ "log_bytes": 72555,
+ "mem_available_mb": 9878,
  "run_id": "45134135551",
  "schema": "zeref-round-heartbeat-v1",
  "trainer_rss_mb": 4895,
- "ts": 1795422368.4156554
+ "ts": 1795422429.7831333
 }
