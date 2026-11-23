@@ -1,0 +1,164 @@
+# Zeref browser brain export refresh (one-shot, manual dispatch only).
+#
+# Re-exports the PINNED checkpoint to the ONNX step graph on a GitHub runner and
+# commits the refreshed evidence back to this branch (PR #1016). The export must
+# run on a runner, not on a local box: it loads the full checkpoint and the
+# repo's model code, which is heavy compute this repo already does on runners.
+#
+# What it does, in order, failing closed at every step (a failure anywhere
+# leaves the branch untouched):
+#   1. Refresh the public pin from main into the worktree ONLY (the branch pin
+#      is stale; the exporter reads the pin file first and verifies the
+#      checkpoint sha at load). The pin file is restored before committing.
+#   2. Download the pinned release tarball and verify its sha256 against the
+#      pin's release_asset_sha256. Extract accepted-checkpoint/.
+#   3. Run scripts/zeref_onnx_export.py (exits 1 unless ONNX-vs-torch greedy
+#      parity is 9/9 on the slimmed graph).
+#   4. Update the contract test's checkpoint prefix and the evidence README to
+#      the exported pin (each replacement asserted exactly once), then run the
+#      3 contract tests.
+#   5. Commit manifest.json + test + README back to this branch (bot identity,
+#      [skip ci]). The ONNX chunks, parity-reference.json and tokenizer.json
+#      are NOT committed here: PR #1016's file set is the manifest only, the
+#      chunks ship to the NavisWORLD repo's docs/zeref-brain/, and ~97 MB of
+#      binaries do not belong in this repo's permanent history. They are
+#      uploaded as run artifacts instead, with their shas in the manifest.
+#   6. Upload the full export receipt as an artifact (manifest, parity
+#      reference, tokenizer, chunks, export log).
+#
+# No schedule: dispatched by hand after the pin moves. Nothing here touches
+# the 006 workflow, the gate, pins on main, the bridge, or any lesson rows.
+name: Zeref browser brain export refresh
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: zeref-browser-brain-export
+  cancel-in-progress: false
+
+jobs:
+  export:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install runtime (CPU torch, repo, onnx stack)
+        run: |
+          set -Eeuo pipefail
+          python -m pip install --upgrade pip
+          pip install --index-url https://download.pytorch.org/whl/cpu torch==2.6.0
+          pip install -e . -e ./models/rawrphos
+          pip install onnx onnxruntime onnxslim pytest
+      - name: Refresh pin from main (worktree only, never committed)
+        run: |
+          set -Eeuo pipefail
+          git fetch --depth 1 origin main
+          git show FETCH_HEAD:apps/beastbox-cloud/lib/rawrphos-public-pin.json > apps/beastbox-cloud/lib/rawrphos-public-pin.json
+          python - <<'PY'
+          import json
+          pin = json.load(open("apps/beastbox-cloud/lib/rawrphos-public-pin.json"))
+          print("pin:", pin["training_steps"], pin["checkpoint_sha256"][:12], pin["promotion"]["release_tag"])
+          assert pin["training_steps"] > 44144, "pin did not move past the stale branch pin"
+          PY
+      - name: Download pinned checkpoint release (sha-verified)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -Eeuo pipefail
+          TAG=$(python -c "import json; print(json.load(open('apps/beastbox-cloud/lib/rawrphos-public-pin.json'))['promotion']['release_tag'])")
+          EXPECTED=$(python -c "import json; print(json.load(open('apps/beastbox-cloud/lib/rawrphos-public-pin.json'))['promotion']['release_asset_sha256'])")
+          echo "tag=$TAG expected=$EXPECTED"
+          gh release download "$TAG" --repo "${{ github.repository }}" --pattern '*.tar.gz' -D build/export
+          FILE=$(ls build/export/*.tar.gz)
+          ACTUAL=$(sha256sum "$FILE" | cut -d' ' -f1)
+          [ "$ACTUAL" = "$EXPECTED" ] || { echo "sha mismatch: $ACTUAL != $EXPECTED"; exit 1; }
+          echo "tarball sha OK: $ACTUAL"
+          tar -xzf "$FILE" -C build/export
+          [ -f build/export/accepted-checkpoint/tokenizer/tokenizer.json ] || { echo "checkpoint layout unexpected"; exit 1; }
+      - name: Export pinned checkpoint to ONNX (fails unless 9/9 parity)
+        run: |
+          set -Eeuo pipefail
+          python scripts/zeref_onnx_export.py --checkpoint build/export/accepted-checkpoint --out evidence/zeref-browser-brain-001 | tee build/export/export.log
+          python -c "import json; m=json.load(open('evidence/zeref-browser-brain-001/manifest.json')); print('manifest:', m['provenance']['training_steps'], m['provenance']['checkpoint_sha256'][:12], m['provenance']['release_tag'], 'parity', m['parity']['onnxruntime_python_vs_torch_greedy'])"
+      - name: Restore branch pin file (export no longer needs it)
+        run: |
+          set -Eeuo pipefail
+          git checkout -- apps/beastbox-cloud/lib/rawrphos-public-pin.json
+          [ -z "$(git status --porcelain -- apps/beastbox-cloud/lib/rawrphos-public-pin.json)" ] || { echo "pin file still dirty"; exit 1; }
+      - name: Update test prefix + README to the exported pin
+        run: |
+          set -Eeuo pipefail
+          python - <<'PY'
+          import json
+          from datetime import date
+          from pathlib import Path
+          man = json.load(open("evidence/zeref-browser-brain-001/manifest.json"))
+          p = man["provenance"]
+          steps, sha12, tag = p["training_steps"], p["checkpoint_sha256"][:12], p["release_tag"]
+          print("exported pin:", steps, sha12, tag)
+          def replace_once(path, old, new):
+              t = Path(path).read_text(encoding="utf-8")
+              n = t.count(old)
+              assert n == 1, f"{path}: expected {old!r} exactly once, found {n}"
+              Path(path).write_text(t.replace(old, new), encoding="utf-8")
+          test = Path("tests/test_zeref_onnx_export_contract.py")
+          replace_once(test, "== 44144", f"== {steps}")
+          replace_once(test, '"679ae933535d"', f'"{sha12}"')
+          replace_once(test, '"zeref-006-cycle-81-679ae933535d"', f'"{tag}"')
+          readme = Path("evidence/zeref-browser-brain-001/README.md")
+          import re
+          t = readme.read_text(encoding="utf-8")
+          t2, n = re.subn(r"export record \(\d{4}-\d{2}-\d{2}\)", f"export record ({date.today().isoformat()})", t)
+          assert n == 1, f"README date: found {n}"
+          readme.write_text(t2, encoding="utf-8")
+          replace_once(readme, "step 44144, sha256 679ae933535d\u2026, release zeref-006-cycle-81-679ae933535d",
+                       f"step {steps}, sha256 {sha12}\u2026, release {tag}")
+          print("test + README updated to the exported pin")
+          PY
+      - name: Contract tests (3)
+        run: |
+          set -Eeuo pipefail
+          python -m pytest tests/test_zeref_onnx_export_contract.py -q
+      - name: Commit refreshed evidence (manifest + test + README only)
+        run: |
+          set -Eeuo pipefail
+          git config user.name 'zeref-browser-brain-export[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add evidence/zeref-browser-brain-001/manifest.json tests/test_zeref_onnx_export_contract.py evidence/zeref-browser-brain-001/README.md
+          git status --porcelain | tee build/export/status.txt
+          [ -n "$(git status --porcelain)" ] || { echo "nothing changed; refusing empty commit"; exit 1; }
+          STEPS=$(python -c "import json; print(json.load(open('evidence/zeref-browser-brain-001/manifest.json'))['provenance']['training_steps'])")
+          TAG=$(python -c "import json; print(json.load(open('evidence/zeref-browser-brain-001/manifest.json'))['provenance']['release_tag'])")
+          git commit -q -m "zeref browser brain: re-export from pin step $STEPS ($TAG) [skip ci]"
+          for i in 1 2 3; do git push -q origin HEAD:zeref/browser-brain-export && exit 0; sleep 5; git pull -q --rebase origin zeref/browser-brain-export || true; done
+          exit 1
+      - name: Receipt artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zeref-browser-brain-export-${{ github.run_id }}
+          path: |
+            evidence/zeref-browser-brain-001/manifest.json
+            evidence/zeref-browser-brain-001/parity-reference.json
+            evidence/zeref-browser-brain-001/tokenizer.json
+            evidence/zeref-browser-brain-001/zeref-step.onnx.part*
+            build/export/export.log
+            build/export/status.txt
+          if-no-files-found: ignore
+          retention-days: 90
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "### Zeref browser brain export refresh"
+            echo
+            python -c "import json; m=json.load(open('evidence/zeref-browser-brain-001/manifest.json')); p=m['provenance']; print(f\"pin step {p['training_steps']}, checkpoint {p['checkpoint_sha256'][:12]}, release {p['release_tag']}\"); print(f\"onnx {m['onnx']['sha256'][:12]}, {m['onnx']['bytes']} bytes, {len(m['onnx']['chunks'])} chunks, parity {m['parity']['onnxruntime_python_vs_torch_greedy']}\")" 2>/dev/null || echo "export did not complete"
+          } >> "$GITHUB_STEP_SUMMARY"
