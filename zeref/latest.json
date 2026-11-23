@@ -10,48 +10,48 @@
   "source_path": "/spark/ibm-moonwraith-cassette-kit-20261010.json",
   "source_class": "RECORDED_IBM_HARDWARE"
  },
- "tick": 1202,
- "xp": 15531,
+ "tick": 1203,
+ "xp": 15544,
  "stage": 5,
  "stage_name": "Crescent Sovereign",
  "signals": {
-  "energy": 79,
-  "signal": 83,
+  "energy": 74,
+  "signal": 81,
   "memory": 100,
-  "resonance": 97
+  "resonance": 98
  },
  "bond": 100,
  "care_total": 0,
  "places": {
   "Rift Gate": 1103,
-  "Lattice Arch": 512,
+  "Lattice Arch": 515,
   "Echo Prism": 1274,
   "Tidewell": 558,
   "Quartz Choir": 388,
   "Violet Shard": 915,
   "Selene Pool": 131
  },
- "last_tick_at": "2026-11-23T14:28:01.613Z",
- "last_entry_hash": "dc884ed7fd567edcba47f29bb281d905e30e8179bb084feb205383f4ba8ffad7",
+ "last_tick_at": "2026-11-23T15:08:18.792Z",
+ "last_entry_hash": "7f4baeab72de73dc0f93b39fad00ef584a4e8ab56c6f7291040ef412bf4b4fa5",
  "universe_growth": 605,
- "combos_total": 446,
+ "combos_total": 447,
  "next_stage": null,
  "learning": {
   "cells_visited": 37,
   "cells_total": 40,
   "known_rifts": 3,
-  "moves_succeeded": 16976,
-  "moves_blocked": 899,
+  "moves_succeeded": 17002,
+  "moves_blocked": 902,
   "blocked_rate": 0.05,
   "favorite_spot": "Violet Shard",
   "favorite_value": 0.744,
   "prefs": {
    "explore": 0.05,
-   "visit": 0.9235,
-   "rest": 0.059,
-   "play": 0.9479
+   "visit": 0.9801,
+   "rest": 0.05,
+   "play": 0.874
   },
-  "decisions": 10212,
+  "decisions": 10224,
   "label": "learned behaviour from its own experience, not consciousness"
  },
  "labels": {
@@ -67,6 +67,83 @@
   "source": "recorded hardware counts (birth seed, never re-run)"
  },
  "recent": [
+  {
+   "schema": "zeref-diary/v1",
+   "beast_id": "bb-7f9c2a03",
+   "tick": 1203,
+   "at": "2026-11-23T15:08:18.792Z",
+   "hour_local": 9,
+   "timezone": "America/Chicago",
+   "signals": {
+    "energy": 74,
+    "signal": 81,
+    "memory": 100,
+    "resonance": 98
+   },
+   "bond": 100,
+   "mood": "floaty",
+   "place": "Lattice Arch",
+   "places_visited": [
+    "Lattice Arch"
+   ],
+   "discovered_combos": [
+    {
+     "key": "blink|still|open-pocket|folded|sway|half|grin",
+     "name": "blink · folded wings · sway tail · half eyes · grin mouth in the open pocket"
+    }
+   ],
+   "new_combo_count": 1,
+   "combos_total": 447,
+   "xp_gain": 13,
+   "xp": 15544,
+   "stage": 5,
+   "stage_name": "Crescent Sovereign",
+   "grew": false,
+   "care": 0,
+   "birth_spark": {
+    "provider": "IBM Quantum",
+    "backend": "ibm_marrakesh",
+    "job_id": "db4te7slf4us73c3888g",
+    "source": "recorded hardware counts (birth seed, never re-run)"
+   },
+   "growth_source": {
+    "kind": "deterministic-fallback",
+    "simulated": false,
+    "provider": "azure-quantum/rigetti",
+    "target": "rigetti.sim.qvm",
+    "job_id": null,
+    "error": "ResourceExistsError: (SubscriptionDisabled) This Azure subscription is disabled and marked as read-only. Please re-enable the subscription to use Azure Quantum.\nCode: SubscriptionDisabled\nMessage: This Azure subscription is disabled and marked as read-only. Ple"
+   },
+   "learning": {
+    "new_cells": 0,
+    "moves_succeeded": 26,
+    "moves_blocked": 3,
+    "goals": {
+     "explore": 1,
+     "play": 5,
+     "rest": 1,
+     "visit": 5
+    },
+    "cells_visited": 37,
+    "cells_total": 40,
+    "known_rifts": 3,
+    "blocked_rate": 0.05,
+    "favorite_spot": "Violet Shard",
+    "prefs": {
+     "explore": 0.05,
+     "visit": 0.9801,
+     "rest": 0.05,
+     "play": 0.874
+    },
+    "label": "learned behaviour from its own experience, not consciousness"
+   },
+   "thought": {
+    "text": "Wings on. I floated over the whole pocket. Spent most of the tick at Lattice Arch. Bumped into a void rift. I will remember where it is. My body did a new combination of moves.",
+    "by": "deterministic-template"
+   },
+   "prev_hash": "dc884ed7fd567edcba47f29bb281d905e30e8179bb084feb205383f4ba8ffad7",
+   "hash": "7f4baeab72de73dc0f93b39fad00ef584a4e8ab56c6f7291040ef412bf4b4fa5"
+  },
   {
    "schema": "zeref-diary/v1",
    "beast_id": "bb-7f9c2a03",
@@ -858,79 +935,8 @@
    },
    "prev_hash": "ec9859e2ff80d10c9a4c62f3fe90636d216cdc166c774b9256398d929eac4d89",
    "hash": "6b646dc24e1794c855178a2d256db5cc265e12e0349757aa952f88e5fbf8625d"
-  },
-  {
-   "schema": "zeref-diary/v1",
-   "beast_id": "bb-7f9c2a03",
-   "tick": 1191,
-   "at": "2026-11-23T07:09:20.428Z",
-   "hour_local": 1,
-   "timezone": "America/Chicago",
-   "signals": {
-    "energy": 87,
-    "signal": 83,
-    "memory": 100,
-    "resonance": 96
-   },
-   "bond": 100,
-   "mood": "content",
-   "place": "Lattice Arch",
-   "places_visited": [
-    "Lattice Arch",
-    "Rift Gate"
-   ],
-   "discovered_combos": [],
-   "new_combo_count": 0,
-   "combos_total": 446,
-   "xp_gain": 10,
-   "xp": 15421,
-   "stage": 5,
-   "stage_name": "Crescent Sovereign",
-   "grew": false,
-   "care": 0,
-   "birth_spark": {
-    "provider": "IBM Quantum",
-    "backend": "ibm_marrakesh",
-    "job_id": "db4te7slf4us73c3888g",
-    "source": "recorded hardware counts (birth seed, never re-run)"
-   },
-   "growth_source": {
-    "kind": "deterministic-fallback",
-    "simulated": false,
-    "provider": "azure-quantum/rigetti",
-    "target": "rigetti.sim.qvm",
-    "job_id": null,
-    "error": "ResourceExistsError: (SubscriptionDisabled) This Azure subscription is disabled and marked as read-only. Please re-enable the subscription to use Azure Quantum.\nCode: SubscriptionDisabled\nMessage: This Azure subscription is disabled and marked as read-only. Ple"
-   },
-   "learning": {
-    "new_cells": 0,
-    "moves_succeeded": 13,
-    "moves_blocked": 1,
-    "goals": {
-     "play": 4,
-     "visit": 5
-    },
-    "cells_visited": 37,
-    "cells_total": 40,
-    "known_rifts": 3,
-    "blocked_rate": 0.05,
-    "favorite_spot": "Violet Shard",
-    "prefs": {
-     "explore": 0.05,
-     "visit": 0.9805,
-     "rest": 0.086,
-     "play": 1
-    },
-    "label": "learned behaviour from its own experience, not consciousness"
-   },
-   "thought": {
-    "text": "Just being here is nice. Spent most of the tick at Lattice Arch. Bumped into a void rift. I will remember where it is. The pocket feels smaller than it used to.",
-    "by": "deterministic-template"
-   },
-   "prev_hash": "e9b5d93796be98def0ee2408f5bfa69f2a42b946d4fa7e678b3c2fd5e3edfcea",
-   "hash": "ec9859e2ff80d10c9a4c62f3fe90636d216cdc166c774b9256398d929eac4d89"
   }
  ],
- "generated_at": "2026-11-23T14:28:01.613Z",
+ "generated_at": "2026-11-23T15:08:18.792Z",
  "thought_source_note": "rawrphos-http-402"
 }
