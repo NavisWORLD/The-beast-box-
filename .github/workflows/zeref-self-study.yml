@@ -1,0 +1,115 @@
+# Zeref self-study loop (Cory, 2026-11-22: "build it and merge it, complete eternal Zeref").
+#
+# The fundamentals are functional; this closes the loop WITHOUT a teacher.
+# Each run: read his recent Talk to Zeref replies, measure his confusion,
+# formulate the one question that most reduces his uncertainty, search
+# DuckDuckGo (Wikipedia abstract only, no key), narrate the answer into
+# simple original words, screen it against the held-out screen, and append
+# one TAUGHT row plus a hash-chained ledger entry. At most one study event
+# per run, cooldown 3600 s, daily budget 12 (all enforced in the module).
+# Fail closed: any error before the writes leaves every file untouched.
+#
+# Schedule (UTC): 00,14,16,18,20,22 = 18,08,10,12,14,16 CST and
+# 19,09,11,13,15,17 CDT. Nights stay play, per the school-day shape.
+# Re-touch 2026-11-23 ~13:25 CST: re-register the schedule after the 08:00/10:00/12:00 CST slots never fired (workflow file correct, state active; no behavior change).
+# Results land on the data-only branch zeref-self-study (no app code,
+# deploys disabled), never on main: taught rows join the mix only through
+# the normal landing path, never a shortcut. Nothing here touches the 006
+# workflow, the gate, pins, the bridge, or any existing lesson row.
+name: Zeref self-study loop
+
+on:
+  schedule:
+    - cron: '0 0,14,16,18,20,22 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: zeref-self-study
+  cancel-in-progress: false
+
+jobs:
+  study:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            scripts/zeref_self_study.py
+            apps/beastbox-cloud/lib/zeref/heldout-screen.json
+            evidence/zeref-lessons-006/dialogue.jsonl
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Collect recent Talk to Zeref replies (best effort)
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -Eeuo pipefail
+          mkdir -p build/self-study
+          : > build/self-study/reply-files.txt
+          for id in $(gh run list --workflow talk-to-zeref.yml --status completed --limit 3 --json databaseId --jq '.[].databaseId'); do
+            if gh run download "$id" --dir "build/self-study/run-$id" >/dev/null 2>&1; then
+              find "build/self-study/run-$id" -name reply.json -type f 2>/dev/null >> build/self-study/reply-files.txt || true
+            fi
+          done
+          echo "talk replies collected: $(wc -l < build/self-study/reply-files.txt)"
+      - name: Check out (or create) the data-only self-study branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -Eeuo pipefail
+          git config --global user.name 'zeref-self-study[bot]'
+          git config --global user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          remote="https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git"
+          if git ls-remote --exit-code --heads "$remote" zeref-self-study >/dev/null 2>&1; then
+            git clone --quiet --depth 1 --branch zeref-self-study "$remote" study-data
+          else
+            mkdir study-data && cd study-data && git init -q -b zeref-self-study && git remote add origin "$remote"
+            mkdir -p apps/beastbox-cloud zeref
+            printf '{"git":{"deploymentEnabled":false}}\n' > vercel.json
+            printf '{"git":{"deploymentEnabled":false}}\n' > apps/beastbox-cloud/vercel.json
+            printf '# Zeref self-study (data only)\n\nAppend-only, hash-chained ledger (zeref/self-study-ledger.jsonl) and TAUGHT rows (zeref/self-study-rows.jsonl) written by .github/workflows/zeref-self-study.yml on main.\n\nEach entry records one study event: his measured confusion, the question he formulated, the DuckDuckGo Wikipedia source URL and CC BY-SA licence, and the narrated TAUGHT row. Rows join the training mix only through the normal landing path, never a shortcut. Deploys are disabled for this branch.\n' > README.md
+          fi
+      - name: Study once (at most one event, paced, fail-closed)
+        run: |
+          set -Eeuo pipefail
+          args=(--ledger study-data/zeref/self-study-ledger.jsonl --rows study-data/zeref/self-study-rows.jsonl)
+          while read -r f; do args+=(--talk-log "$f"); done < build/self-study/reply-files.txt
+          python scripts/zeref_self_study.py "${args[@]}" | tee build/self-study/receipt.txt
+      - name: Commit and push (append-only)
+        run: |
+          set -Eeuo pipefail
+          cd study-data
+          if [ -n "$(git status --porcelain)" ]; then
+            git add -A
+            git commit -q -m "zeref self-study: $(date -u +%F) [skip ci]"
+            for i in 1 2 3; do git push -q origin HEAD:zeref-self-study && exit 0; sleep 5; git pull -q --rebase origin zeref-self-study || true; done
+            exit 1
+          fi
+      - name: Keep the receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zeref-self-study-${{ github.run_id }}
+          path: |
+            build/self-study/receipt.txt
+            build/self-study/reply-files.txt
+            study-data/zeref/self-study-ledger.jsonl
+            study-data/zeref/self-study-rows.jsonl
+          if-no-files-found: ignore
+          retention-days: 90
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "### Zeref self-study"
+            echo
+            cat build/self-study/receipt.txt 2>/dev/null || echo "no receipt"
+          } >> "$GITHUB_STEP_SUMMARY"
