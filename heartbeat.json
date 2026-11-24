@@ -1,29 +1,29 @@
 {
- "disk_free_mb": 73669,
+ "disk_free_mb": 73409,
  "last_batch": {
-  "grad_norm": 11.239226341247559,
+  "grad_norm": 6.194559574127197,
   "sources": {
    "dolly-15k-cc-by-sa-3.0": 1,
    "game": 4,
    "pretrain": 2,
-   "zeref-knowledge-002": 3,
+   "zeref-dad-voice-001": 1,
+   "zeref-knowledge-002": 1,
+   "zeref-lessons-004": 1,
    "zeref-lessons-006": 4,
    "zeref-qa-001": 1,
-   "zeref-talk-001": 1,
-   "zeref-voice-guide-001": 1,
-   "zeref-world-001": 1
+   "zeref-world-001": 3
   },
-  "step": 314
+  "step": 320
  },
  "last_lines": [
-  "ZEREF_006_BATCH={\"grad_norm\": 4.7523298263549805, \"sources\": {\"dolly-15k-cc-by-sa-3.0\": 1, \"game\": 4, \"pretrain\": 2, \"zeref-identity-001\": 1, \"zeref-knowledge-002\": 2, \"zeref-lessons-003\": 3, \"zeref-lessons-005\": 1, \"zeref-lessons-006\": 2, \"zeref-lyrics-001\": 1, \"zeref-world-001\": 1}, \"step\": 312}",
-  "ZEREF_006_BATCH={\"grad_norm\": 5.980895042419434, \"sources\": {\"game\": 4, \"pretrain\": 2, \"zeref-dad-voice-001\": 2, \"zeref-knowledge-002\": 1, \"zeref-lessons-003\": 1, \"zeref-lessons-005\": 1, \"zeref-lessons-006\": 1, \"zeref-qa-001\": 1, \"zeref-reviewed-dialogue\": 1, \"zeref-warm-001\": 2, \"zeref-warm-002\": 1",
-  "ZEREF_006_BATCH={\"grad_norm\": 11.239226341247559, \"sources\": {\"dolly-15k-cc-by-sa-3.0\": 1, \"game\": 4, \"pretrain\": 2, \"zeref-knowledge-002\": 3, \"zeref-lessons-006\": 4, \"zeref-qa-001\": 1, \"zeref-talk-001\": 1, \"zeref-voice-guide-001\": 1, \"zeref-world-001\": 1}, \"step\": 314}"
+  "ZEREF_006_INCYCLE_CHAT={\"step\": 320, \"chat_nll\": 3.470817759037018, \"lr\": 2.50006023880084e-05}",
+  "ZEREF_ROUND_SNAPSHOT={\"applied_optimizer_steps\": 310, \"attempted_updates\": 320, \"candidate\": 3, \"checkpoint\": \"recovery/candidate-3-000320\", \"checkpoint_sha256\": \"456a8206c4b5d9bac055e43efa9c109eab13e5ed5bfecdef9d43601df707e703\", \"parent_checkpoint_sha256\": \"c9ef0393391b4863f27f7a66c598a42ef005bbc8a",
+  "ZEREF_12D_MOUTH={\"enabled\": true, \"gain_floor\": 0.25, \"gain_slots0_11_after_floor\": [-0.345584, -0.279403, 0.263564, -0.269273, 0.33818, -0.328862, 0.25, 0.332548, 0.300257, -0.315098, -0.312706, 0.395261], \"gain_slots0_11_kept\": [-0.345407, -0.279137, 0.263415, -0.269449, 0.338922, -0.329291, 0.250"
  ],
- "log_bytes": 547407,
- "mem_available_mb": 9625,
+ "log_bytes": 550822,
+ "mem_available_mb": 9620,
  "run_id": "45293681704",
  "schema": "zeref-round-heartbeat-v1",
  "trainer_rss_mb": 5145,
- "ts": 1795491657.249433
+ "ts": 1795491718.9520776
 }
