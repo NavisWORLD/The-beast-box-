@@ -18,14 +18,14 @@
   "step": 320
  },
  "last_lines": [
-  "ZEREF_12D_MOUTH={\"enabled\": true, \"gain_floor\": 0.25, \"gain_slots0_11_after_floor\": [-0.346537, -0.280225, 0.261966, -0.270512, 0.345093, -0.331648, 0.25, 0.338715, 0.301646, -0.316078, -0.312907, 0.404527], \"gain_slots0_11_kept\": [-0.349526, -0.288109, 0.260625, -0.271549, 0.354417, -0.336622, 0.25",
-  "ZEREF_006_CANDIDATE={\"best_in_cycle\": {\"best_in_cycle_chat_nll\": 3.443629841208458, \"best_in_cycle_step\": 288}, \"chat_a_nll\": 3.443629841208458, \"elapsed_s\": 4238.5, \"index\": 2, \"lr\": 8e-05, \"lr_min_fraction\": 0.3, \"seed\": 218963002872713, \"skipped_batches\": 4}",
-  "ZEREF_006_BEST_IN_CYCLE={\"chat_a_nll\": 3.4177428883314134, \"index\": 1, \"parent_checkpoint_sha256\": \"b8114bca1fdb6cdbf054e508ec5bf136625f094b11c18e572805fd3b899c96bd\"}"
+  "ZEREF_006_GATE_BAR={\"source\": \"training_parent\", \"sha256\": \"b8114bca1fdb6cdbf054e508ec5bf136625f094b11c18e572805fd3b899c96bd\", \"training_parent_sha256\": \"b8114bca1fdb6cdbf054e508ec5bf136625f094b11c18e572805fd3b899c96bd\", \"training_parent_layers\": 44, \"threads\": 4}",
+  "ZEREF_PRETRAIN_SLICE={\"rows\": 3000, \"tokens\": 621007, \"sha256\": \"dbafbdaf69257285a54ef4190edce265e142f7c070c37602fc0f5e47f41021a9\", \"per_batch\": 2}",
+  "ZEREF_006_CANDIDATE_SKIPPED={\"index\": 3, \"reason\": \"job clock: a full variant plus the final scoring reserve no longer fits\", \"job_elapsed_s\": 17359.2, \"job_deadline_s\": 20400.0, \"variant_budget_s\": 4400.0, \"final_reserve_s\": 900.0}"
  ],
- "log_bytes": 422924,
- "mem_available_mb": 14791,
+ "log_bytes": 423683,
+ "mem_available_mb": 14796,
  "run_id": "45371064286",
  "schema": "zeref-round-heartbeat-v1",
  "trainer_rss_mb": null,
- "ts": 1795531953.2275367
+ "ts": 1795531972.6322913
 }
