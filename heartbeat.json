@@ -1,28 +1,29 @@
 {
- "disk_free_mb": 82518,
+ "disk_free_mb": 81998,
  "last_batch": {
-  "grad_norm": 6.582291603088379,
+  "grad_norm": 4.49997615814209,
   "sources": {
-   "dolly-15k-cc-by-sa-3.0": 2,
+   "dolly-15k-cc-by-sa-3.0": 1,
    "game": 4,
    "pretrain": 2,
+   "zeref-identity-001": 1,
    "zeref-knowledge-002": 1,
-   "zeref-lessons-003": 1,
    "zeref-lessons-004": 2,
-   "zeref-lessons-006": 3,
+   "zeref-lessons-005": 3,
+   "zeref-lessons-006": 1,
    "zeref-world-001": 3
   },
-  "step": 317
+  "step": 320
  },
  "last_lines": [
-  "ZEREF_006_BATCH={\"grad_norm\": 10.021240234375, \"sources\": {\"dolly-15k-cc-by-sa-3.0\": 7, \"game\": 4, \"pretrain\": 2, \"self-selected\": 1, \"zeref-lessons-003\": 1, \"zeref-lessons-004\": 1, \"zeref-lessons-006\": 1, \"zeref-world-001\": 1}, \"step\": 315}",
-  "ZEREF_006_BATCH={\"grad_norm\": 7.166003227233887, \"sources\": {\"dolly-15k-cc-by-sa-3.0\": 1, \"game\": 4, \"pretrain\": 2, \"talk006-alien-authored\": 1, \"zeref-dad-voice-001\": 1, \"zeref-funny-001\": 1, \"zeref-identity-001\": 1, \"zeref-lessons-004\": 1, \"zeref-lessons-005\": 1, \"zeref-lessons-006\": 2, \"zeref-qa-",
-  "ZEREF_006_BATCH={\"grad_norm\": 6.582291603088379, \"sources\": {\"dolly-15k-cc-by-sa-3.0\": 2, \"game\": 4, \"pretrain\": 2, \"zeref-knowledge-002\": 1, \"zeref-lessons-003\": 1, \"zeref-lessons-004\": 2, \"zeref-lessons-006\": 3, \"zeref-world-001\": 3}, \"step\": 317}"
+  "ZEREF_12D_MOUTH={\"enabled\": true, \"gain_floor\": 0.25, \"gain_slots0_11_after_floor\": [-0.345584, -0.279403, 0.263564, -0.269273, 0.33818, -0.328862, 0.25, 0.332548, 0.300257, -0.315098, -0.312706, 0.395261], \"gain_slots0_11_kept\": [-0.346537, -0.280225, 0.261966, -0.270512, 0.345093, -0.331648, 0.25,",
+  "ZEREF_006_CANDIDATE={\"best_in_cycle\": {\"best_in_cycle_chat_nll\": 3.441199190020561, \"best_in_cycle_step\": 192}, \"chat_a_nll\": 3.441199190020561, \"elapsed_s\": 2551.3, \"index\": 0, \"lr\": 5e-05, \"lr_min_fraction\": 0.1, \"seed\": 884543116907037050, \"skipped_batches\": 10}",
+  "ZEREF_006_BEST_IN_CYCLE={\"chat_a_nll\": 3.441199190020561, \"index\": 0, \"parent_checkpoint_sha256\": \"c9ef0393391b4863f27f7a66c598a42ef005bbc8a2425c14cd51e42feb89a8b7\"}"
  ],
- "log_bytes": 214706,
- "mem_available_mb": 9509,
+ "log_bytes": 217643,
+ "mem_available_mb": 14508,
  "run_id": "45293681704",
  "schema": "zeref-round-heartbeat-v1",
- "trainer_rss_mb": 5280,
- "ts": 1795483988.2389097
+ "trainer_rss_mb": null,
+ "ts": 1795484027.598692
 }
