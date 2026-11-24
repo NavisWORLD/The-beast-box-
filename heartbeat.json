@@ -1,5 +1,5 @@
 {
- "disk_free_mb": 73409,
+ "disk_free_mb": 73149,
  "last_batch": {
   "grad_norm": 6.194559574127197,
   "sources": {
@@ -16,14 +16,14 @@
   "step": 320
  },
  "last_lines": [
-  "ZEREF_006_SPLIT_ROUND={\"best_in_cycle\": {\"chat_a_nll\": 3.441199190020561, \"index\": 0, \"parent_checkpoint_sha256\": \"c9ef0393391b4863f27f7a66c598a42ef005bbc8a2425c14cd51e42feb89a8b7\"}, \"candidates_finished\": [0, 1, 2, 3], \"control\": \"finished\"}",
-  "ZEREF_006_CANDIDATE_SELECTED={\"index\": 0, \"chat_a_nll\": 3.441199190020561, \"of\": 4, \"rule\": \"lowest set A NLL; set B never used to select; unchanged Gate v2 applies to the selected candidate only\"}",
-  "ZEREF_COND54_BANK={\"bank_sha256\": \"4cb3906ac11526a9deedd8f50edac2715d5c03dae17dee88bb98ba7e82de8333\", \"drop\": 0.5, \"first_tick\": 23703, \"label\": \"Rigetti SIMULATED spark ticks (bb-deada969); other bands masked 0.0\", \"last_tick\": 24303, \"pairing\": \"by training-step time, not by meaning (no owner sens"
+  "ZEREF_006_REAL_TRAINING_GATE={\"approved\": true, \"cycle\": 88, \"canonical_root\": \"37ca3f8fc9cdc0e78175508fc816ed02d5a12da1f3b106505715b7366fde5a48\", \"parent\": \"c9ef0393391b4863f27f7a66c598a42ef005bbc8a2425c14cd51e42feb89a8b7\", \"candidate\": \"b8114bca1fdb6cdbf054e508ec5bf136625f094b11c18e572805fd3b899c9",
+  "ZEREF_006_OBSERVATION_DIAGNOSTICS={\"source\": \"original_native_rom_emulator_screen_summaries\", \"scripted_teacher_action_histogram\": {\"A\": 9, \"B\": 10, \"DOWN\": 10, \"LEFT\": 10, \"RIGHT\": 9, \"UP\": 8}, \"unique_before_frame_summaries\": 24, \"unique_after_frame_summaries\": 25, \"different_before_after_summarie",
+  "ZEREF_006_NEXT_PARENT={\"accepted\": true, \"optimizer_steps_completed\": 320, \"checkpoint_preserved\": true}"
  ],
- "log_bytes": 552549,
- "mem_available_mb": 13568,
+ "log_bytes": 555096,
+ "mem_available_mb": 14539,
  "run_id": "45293681704",
  "schema": "zeref-round-heartbeat-v1",
- "trainer_rss_mb": 1173,
- "ts": 1795491788.0746298
+ "trainer_rss_mb": null,
+ "ts": 1795491818.6875215
 }
