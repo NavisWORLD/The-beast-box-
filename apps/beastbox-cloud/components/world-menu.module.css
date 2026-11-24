@@ -17,6 +17,7 @@
 .views,.links{display:grid;grid-template-columns:1fr;gap:6px}
 .views button,.links button,.links a,.mapBtn{display:flex;align-items:center;gap:10px;min-height:44px;box-sizing:border-box;padding:6px 12px;border-radius:12px;border:1px solid #ffffff22;background:#ffffff0d;color:#f1ecff;font:600 14px system-ui,sans-serif;text-align:left;text-decoration:none;cursor:pointer}
 .views button small{display:block;font-weight:400;font-size:11.5px;color:#cfc6ee}
+.links a small{display:block;font-weight:400;font-size:11.5px;color:#cfc6ee}
 .views button[aria-pressed=true]{background:#7c5cff44;border-color:#b9a6ff}
 .views button[aria-pressed=true]::after{content:'✓';margin-left:auto}
 .mapBtn{margin-top:6px;width:100%}
