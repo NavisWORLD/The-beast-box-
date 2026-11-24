@@ -9,9 +9,10 @@
 # per run, cooldown 3600 s, daily budget 12 (all enforced in the module).
 # Fail closed: any error before the writes leaves every file untouched.
 #
-# Schedule (UTC): 00,14,16,18,20,22 = 18,08,10,12,14,16 CST and
+# Schedule (UTC): 00:17,14:17,16:17,18:17,20:17,22:17 = 18:17,08:17,10:17,12:17,14:17,16:17 CST and
 # 19,09,11,13,15,17 CDT. Nights stay play, per the school-day shape.
 # Re-touch 2026-11-23 ~13:25 CST: re-register the schedule after the 08:00/10:00/12:00 CST slots never fired (workflow file correct, state active; no behavior change).
+# Change 2026-11-23 ~20:15 CST: cron moved off the hour to :17 (006 fires at :17 fine) after six missed slots at :00 — re-touch, disable/re-enable and delete/re-add did not register the schedule.
 # Results land on the data-only branch zeref-self-study (no app code,
 # deploys disabled), never on main: taught rows join the mix only through
 # the normal landing path, never a shortcut. Nothing here touches the 006
@@ -20,7 +21,7 @@ name: Zeref self-study loop
 
 on:
   schedule:
-    - cron: '0 0,14,16,18,20,22 * * *'
+    - cron: '17 0,14,16,18,20,22 * * *'
   workflow_dispatch:
 
 permissions:
