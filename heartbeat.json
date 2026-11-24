@@ -18,14 +18,14 @@
   "step": 320
  },
  "last_lines": [
-  "ZEREF_006_GATE_BAR={\"source\": \"training_parent\", \"sha256\": \"b8114bca1fdb6cdbf054e508ec5bf136625f094b11c18e572805fd3b899c96bd\", \"training_parent_sha256\": \"b8114bca1fdb6cdbf054e508ec5bf136625f094b11c18e572805fd3b899c96bd\", \"training_parent_layers\": 44, \"threads\": 4}",
   "ZEREF_PRETRAIN_SLICE={\"rows\": 3000, \"tokens\": 621007, \"sha256\": \"dbafbdaf69257285a54ef4190edce265e142f7c070c37602fc0f5e47f41021a9\", \"per_batch\": 2}",
-  "ZEREF_006_CANDIDATE_SKIPPED={\"index\": 3, \"reason\": \"job clock: a full variant plus the final scoring reserve no longer fits\", \"job_elapsed_s\": 17359.2, \"job_deadline_s\": 20400.0, \"variant_budget_s\": 4400.0, \"final_reserve_s\": 900.0}"
+  "ZEREF_006_SPLIT_ROUND={\"best_in_cycle\": {\"chat_a_nll\": 3.4177428883314134, \"index\": 1, \"parent_checkpoint_sha256\": \"b8114bca1fdb6cdbf054e508ec5bf136625f094b11c18e572805fd3b899c96bd\"}, \"candidates_finished\": [0, 1, 2], \"control\": \"finished\"}",
+  "ZEREF_006_CANDIDATE_SELECTED={\"index\": 1, \"chat_a_nll\": 3.4177428883314134, \"of\": 3, \"rule\": \"lowest set A NLL; set B never used to select; unchanged Gate v2 applies to the selected candidate only\"}"
  ],
- "log_bytes": 423683,
- "mem_available_mb": 14796,
+ "log_bytes": 424638,
+ "mem_available_mb": 13878,
  "run_id": "45371064286",
  "schema": "zeref-round-heartbeat-v1",
- "trainer_rss_mb": null,
- "ts": 1795531972.6322913
+ "trainer_rss_mb": 1172,
+ "ts": 1795532039.4300833
 }
