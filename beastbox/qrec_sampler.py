@@ -188,11 +188,15 @@ def build_table_bytes(records):
     (every record starts with outcome 00000): a round-robin interleave was measured
     and rejected, its stream began with 33,003 consecutive zeros. The modular
     shuffle scatters consecutive new positions to old positions A apart, so every
-    52-bit window samples 52 distinct, well-spread shots. Every shot appears
-    exactly once; the permutation is recomputable from the archive alone.
+    52-bit window samples 52 distinct, well-spread shots. Every non-simulator
+    shot appears exactly once; the permutation is recomputable from the archive
+    alone. Classical-simulator records are excluded here (the loader filters
+    them too); the table holds measured hardware plus legacy unlabelled only.
     """
     canonical = bytearray()
     for r in records:
+        if r["provider_class"] == "classical_simulator":
+            continue
         canonical += _record_bit_bytes(r)
     assert len(canonical) == TABLE_BITS, (len(canonical), TABLE_BITS)
     shuffled = bytearray()
@@ -208,9 +212,11 @@ def build_table_bytes(records):
     assert len(shuffled) == TABLE_BITS and all(seen), "permutation did not cover every shot"
     packed = bytearray()
     for j in range(0, len(shuffled), 8):
+        chunk = shuffled[j:j + 8]
         b = 0
-        for v in shuffled[j:j + 8]:
+        for v in chunk:
             b = (b << 1) | v
+        b <<= 8 - len(chunk)  # left-align a partial final byte: table_bit reads MSB-first
         packed.append(b)
     assert len(packed) == TABLE_BYTES
     return bytes(packed)
