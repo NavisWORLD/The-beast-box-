@@ -1,31 +1,29 @@
 {
  "disk_free_mb": 82466,
  "last_batch": {
-  "grad_norm": 5.043224811553955,
+  "grad_norm": 6.300830841064453,
   "sources": {
-   "dolly-15k-cc-by-sa-3.0": 1,
+   "dolly-15k-cc-by-sa-3.0": 2,
    "game": 4,
    "pretrain": 2,
    "zeref-dad-voice-001": 1,
-   "zeref-ibm-play-001": 1,
-   "zeref-identity-001": 2,
-   "zeref-lessons-003": 1,
-   "zeref-lessons-004": 2,
-   "zeref-lessons-005": 1,
+   "zeref-knowledge-002": 1,
+   "zeref-lessons-003": 2,
+   "zeref-lessons-005": 2,
    "zeref-lessons-006": 2,
-   "zeref-reviewed-dialogue": 1
+   "zeref-world-001": 2
   },
-  "step": 192
+  "step": 200
  },
  "last_lines": [
-  "ZEREF_006_REAL_CPU_UPDATE={\"step\": 192, \"train_loss\": 2.6432220935821533, \"anchor_drift\": 0.10093528032302856, \"grad_norm\": 5.043224811553955}",
-  "ZEREF_006_INCYCLE_EMA_CHAT={\"step\": 192, \"chat_nll\": 3.454721623659134}",
-  "ZEREF_006_INCYCLE_CHAT={\"step\": 192, \"chat_nll\": 3.4440076518058778, \"lr\": 2.075753126758423e-05}"
+  "ZEREF_006_BATCH={\"grad_norm\": 5.012131690979004, \"sources\": {\"dolly-15k-cc-by-sa-3.0\": 3, \"game\": 4, \"pretrain\": 2, \"zeref-dad-voice-001\": 2, \"zeref-lessons-006\": 3, \"zeref-reviewed-dialogue\": 2, \"zeref-world-001\": 2}, \"step\": 198}",
+  "ZEREF_006_BATCH={\"grad_norm\": 5.5997209548950195, \"sources\": {\"dolly-15k-cc-by-sa-3.0\": 4, \"game\": 4, \"pretrain\": 2, \"zeref-lessons-005\": 1, \"zeref-lessons-006\": 4, \"zeref-qa-001\": 1, \"zeref-voice-guide-001\": 1, \"zeref-world-001\": 1}, \"step\": 199}",
+  "ZEREF_006_BATCH={\"grad_norm\": 6.300830841064453, \"sources\": {\"dolly-15k-cc-by-sa-3.0\": 2, \"game\": 4, \"pretrain\": 2, \"zeref-dad-voice-001\": 1, \"zeref-knowledge-002\": 1, \"zeref-lessons-003\": 2, \"zeref-lessons-005\": 2, \"zeref-lessons-006\": 2, \"zeref-world-001\": 2}, \"step\": 200}"
  ],
- "log_bytes": 65280,
- "mem_available_mb": 10107,
+ "log_bytes": 67410,
+ "mem_available_mb": 9914,
  "run_id": "45707667024",
  "schema": "zeref-round-heartbeat-v1",
- "trainer_rss_mb": 4999,
- "ts": 1795645011.363939
+ "trainer_rss_mb": 5119,
+ "ts": 1795645072.841486
 }
