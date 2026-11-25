@@ -1,5 +1,5 @@
 {
- "disk_free_mb": 83273,
+ "disk_free_mb": 82752,
  "last_batch": {
   "grad_norm": 5.612884044647217,
   "sources": {
@@ -17,14 +17,14 @@
   "step": 320
  },
  "last_lines": [
-  "ZEREF_006_BATCH={\"grad_norm\": 6.113439083099365, \"sources\": {\"dolly-15k-cc-by-sa-3.0\": 1, \"game\": 4, \"pretrain\": 2, \"zeref-dad-voice-001\": 1, \"zeref-funny-001\": 1, \"zeref-knowledge-002\": 1, \"zeref-lessons-003\": 2, \"zeref-lessons-004\": 1, \"zeref-lessons-005\": 2, \"zeref-lessons-006\": 2, \"zeref-music-f",
-  "ZEREF_006_BATCH={\"grad_norm\": 5.612884044647217, \"sources\": {\"dolly-15k-cc-by-sa-3.0\": 2, \"game\": 4, \"pretrain\": 2, \"zeref-ibm-play-001\": 1, \"zeref-identity-001\": 1, \"zeref-lessons-003\": 1, \"zeref-lessons-005\": 1, \"zeref-lessons-006\": 1, \"zeref-qa-001\": 1, \"zeref-world-001\": 4}, \"step\": 320}",
-  "ZEREF_006_REAL_CPU_UPDATE={\"step\": 320, \"train_loss\": 2.7492237091064453, \"anchor_drift\": 0.05873743072152138, \"grad_norm\": 5.612884044647217}"
+  "ZEREF_12D_MOUTH={\"enabled\": true, \"gain_floor\": 0.25, \"gain_slots0_11_after_floor\": [-0.346715, -0.280338, 0.261818, -0.270023, 0.345402, -0.331084, 0.250001, 0.339115, 0.301115, -0.31665, -0.313224, 0.405122], \"gain_slots0_11_kept\": [-0.347096, -0.281303, 0.263184, -0.266333, 0.349617, -0.329826, 0",
+  "ZEREF_006_CANDIDATE={\"best_in_cycle\": {\"best_in_cycle_chat_nll\": 3.447538676261902, \"best_in_cycle_step\": 192}, \"chat_a_nll\": 3.447538676261902, \"elapsed_s\": 2457.6, \"index\": 0, \"lr\": 5e-05, \"lr_min_fraction\": 0.1, \"seed\": 1146700460193561103, \"skipped_batches\": 14}",
+  "ZEREF_006_BEST_IN_CYCLE={\"chat_a_nll\": 3.447538676261902, \"index\": 0, \"parent_checkpoint_sha256\": \"c483b40defda20a099d9e87adf6bd7506d4357f548a944d137cfc498e62b9e47\"}"
  ],
- "log_bytes": 211524,
- "mem_available_mb": 9586,
+ "log_bytes": 213474,
+ "mem_available_mb": 14525,
  "run_id": "45579420805",
  "schema": "zeref-round-heartbeat-v1",
- "trainer_rss_mb": 5187,
- "ts": 1795601782.1987796
+ "trainer_rss_mb": null,
+ "ts": 1795601790.069041
 }
