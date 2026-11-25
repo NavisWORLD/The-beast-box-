@@ -1,31 +1,31 @@
 {
  "disk_free_mb": 71274,
  "last_batch": {
-  "grad_norm": 7.786631107330322,
+  "grad_norm": 7.876828193664551,
   "sources": {
    "dolly-15k-cc-by-sa-3.0": 1,
    "game": 4,
    "pretrain": 2,
    "zeref-dad-voice-001": 1,
-   "zeref-knowledge-002": 2,
-   "zeref-lessons-003": 2,
+   "zeref-lessons-003": 1,
    "zeref-lessons-004": 2,
+   "zeref-lessons-005": 1,
    "zeref-lessons-006": 1,
+   "zeref-music-001": 1,
    "zeref-qa-001": 1,
-   "zeref-voice-guide-001": 1,
-   "zeref-world-001": 1
+   "zeref-world-001": 3
   },
-  "step": 256
+  "step": 262
  },
  "last_lines": [
-  "ZEREF_006_REAL_CPU_UPDATE={\"step\": 256, \"train_loss\": 2.624514579772949, \"anchor_drift\": 0.11396261304616928, \"grad_norm\": 7.786631107330322}",
-  "ZEREF_006_INCYCLE_EMA_CHAT={\"step\": 256, \"chat_nll\": 3.4798821246623994}",
-  "ZEREF_006_INCYCLE_CHAT={\"step\": 256, \"chat_nll\": 3.4659947794675827, \"lr\": 2.7459905856491942e-05}"
+  "ZEREF_006_BATCH={\"grad_norm\": 5.367897987365723, \"sources\": {\"dolly-15k-cc-by-sa-3.0\": 1, \"game\": 4, \"pretrain\": 2, \"zeref-identity-001\": 3, \"zeref-lessons-004\": 2, \"zeref-lessons-005\": 2, \"zeref-music-001\": 1, \"zeref-warm-001\": 1, \"zeref-world-001\": 2}, \"step\": 260}",
+  "ZEREF_006_BATCH={\"grad_norm\": 7.003451824188232, \"sources\": {\"dolly-15k-cc-by-sa-3.0\": 4, \"game\": 4, \"pretrain\": 2, \"zeref-dad-voice-001\": 1, \"zeref-identity-001\": 1, \"zeref-knowledge-002\": 1, \"zeref-lessons-004\": 1, \"zeref-lessons-006\": 3, \"zeref-world-001\": 1}, \"step\": 261}",
+  "ZEREF_006_BATCH={\"grad_norm\": 7.876828193664551, \"sources\": {\"dolly-15k-cc-by-sa-3.0\": 1, \"game\": 4, \"pretrain\": 2, \"zeref-dad-voice-001\": 1, \"zeref-lessons-003\": 1, \"zeref-lessons-004\": 2, \"zeref-lessons-005\": 1, \"zeref-lessons-006\": 1, \"zeref-music-001\": 1, \"zeref-qa-001\": 1, \"zeref-world-001\": 3}"
  ],
- "log_bytes": 529514,
- "mem_available_mb": 9949,
+ "log_bytes": 532085,
+ "mem_available_mb": 9935,
  "run_id": "45502201973",
  "schema": "zeref-round-heartbeat-v1",
- "trainer_rss_mb": 5048,
- "ts": 1795575161.1831841
+ "trainer_rss_mb": 5067,
+ "ts": 1795575222.97272
 }
