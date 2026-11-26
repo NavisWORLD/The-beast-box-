@@ -18,14 +18,14 @@
   "step": 320
  },
  "last_lines": [
-  "ZEREF_006_CANDIDATE_SELECTED={\"index\": 3, \"chat_a_nll\": 3.4238556122779844, \"of\": 4, \"rule\": \"lowest set A NLL; set B never used to select; unchanged Gate v2 applies to the selected candidate only\"}",
-  "ZEREF_COND54_BANK={\"bank_sha256\": \"4cb3906ac11526a9deedd8f50edac2715d5c03dae17dee88bb98ba7e82de8333\", \"drop\": 0.5, \"first_tick\": 23703, \"label\": \"Rigetti SIMULATED spark ticks (bb-deada969); other bands masked 0.0\", \"last_tick\": 24303, \"pairing\": \"by training-step time, not by meaning (no owner sens",
-  "ZEREF_006_STEP_ACCOUNTING={\"attempted_this_round\": 320, \"attempts_discarded_after_snapshot\": 32, \"kept_counting_since_cycle\": 71, \"kept_training_steps_total\": 2592, \"note\": \"selected_snapshot_attempt counts attempts up to the kept snapshot, including any spike-skipped batches\", \"selected_snapshot_at"
+  "ZEREF_006_REAL_TRAINING_GATE={\"approved\": true, \"cycle\": 91, \"canonical_root\": \"37ca3f8fc9cdc0e78175508fc816ed02d5a12da1f3b106505715b7366fde5a48\", \"parent\": \"6f5a8b4f0f416f797a1e31604716c73a652a18a74c2cd1530632466a4400faa6\", \"candidate\": \"9f1a9e2dd21939b913e72adef7f555e84fa4e704759cda0e0888874207f45",
+  "ZEREF_006_OBSERVATION_DIAGNOSTICS={\"source\": \"original_native_rom_emulator_screen_summaries\", \"scripted_teacher_action_histogram\": {\"A\": 5, \"B\": 1, \"DOWN\": 12, \"LEFT\": 25, \"RIGHT\": 4, \"UP\": 9}, \"unique_before_frame_summaries\": 26, \"unique_after_frame_summaries\": 25, \"different_before_after_summaries",
+  "ZEREF_006_NEXT_PARENT={\"accepted\": true, \"optimizer_steps_completed\": 320, \"checkpoint_preserved\": true}"
  ],
- "log_bytes": 564057,
- "mem_available_mb": 13743,
+ "log_bytes": 566202,
+ "mem_available_mb": 14857,
  "run_id": "45707667024",
  "schema": "zeref-round-heartbeat-v1",
- "trainer_rss_mb": 1216,
- "ts": 1795656214.4140308
+ "trainer_rss_mb": null,
+ "ts": 1795656229.7136986
 }
