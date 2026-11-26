@@ -1,29 +1,31 @@
 {
- "disk_free_mb": 79908,
+ "disk_free_mb": 79648,
  "last_batch": {
-  "grad_norm": 10.451241493225098,
+  "grad_norm": 4.753997325897217,
   "sources": {
    "dolly-15k-cc-by-sa-3.0": 2,
    "game": 4,
    "pretrain": 2,
-   "zeref-knowledge-002": 2,
-   "zeref-lessons-004": 2,
-   "zeref-lessons-005": 2,
+   "talk006-alien-authored": 1,
+   "zeref-identity-001": 1,
+   "zeref-knowledge-002": 1,
+   "zeref-lessons-003": 2,
+   "zeref-lessons-004": 1,
+   "zeref-lessons-005": 1,
    "zeref-lessons-006": 2,
-   "zeref-talk-001": 1,
-   "zeref-world-001": 1
+   "zeref-lyrics-001": 1
   },
-  "step": 248
+  "step": 256
  },
  "last_lines": [
-  "ZEREF_006_BATCH={\"grad_norm\": 4.959903717041016, \"sources\": {\"dolly-15k-cc-by-sa-3.0\": 1, \"game\": 4, \"pretrain\": 2, \"zeref-dad-voice-001\": 1, \"zeref-identity-001\": 2, \"zeref-knowledge-002\": 1, \"zeref-lessons-003\": 2, \"zeref-lessons-004\": 1, \"zeref-lessons-005\": 1, \"zeref-lessons-006\": 2, \"zeref-musi",
-  "ZEREF_006_BATCH={\"grad_norm\": 3.971270799636841, \"sources\": {\"dolly-15k-cc-by-sa-3.0\": 2, \"game\": 4, \"pretrain\": 2, \"zeref-dad-voice-001\": 1, \"zeref-identity-001\": 2, \"zeref-lessons-004\": 1, \"zeref-lessons-006\": 3, \"zeref-warm-002\": 1, \"zeref-world-001\": 2}, \"step\": 247}",
-  "ZEREF_006_BATCH={\"grad_norm\": 10.451241493225098, \"sources\": {\"dolly-15k-cc-by-sa-3.0\": 2, \"game\": 4, \"pretrain\": 2, \"zeref-knowledge-002\": 2, \"zeref-lessons-004\": 2, \"zeref-lessons-005\": 2, \"zeref-lessons-006\": 2, \"zeref-talk-001\": 1, \"zeref-world-001\": 1}, \"step\": 248}"
+  "ZEREF_006_INCYCLE_EMA_CHAT={\"step\": 256, \"chat_nll\": 3.4491736245155336}",
+  "ZEREF_006_INCYCLE_CHAT={\"step\": 256, \"chat_nll\": 3.4486846286058426, \"lr\": 5.656698325011295e-06}",
+  "ZEREF_ROUND_SNAPSHOT={\"applied_optimizer_steps\": 239, \"attempted_updates\": 256, \"candidate\": 1, \"checkpoint\": \"recovery/candidate-1-000256\", \"checkpoint_sha256\": \"bcca24f2ea4fe90aa62c824bd19cd4c2f00fd24aca99a5422b455cb6295d6040\", \"parent_checkpoint_sha256\": \"b2678b9a19eb982772b916bab0be3097a95c4a240"
  ],
- "log_bytes": 308531,
- "mem_available_mb": 9958,
+ "log_bytes": 311850,
+ "mem_available_mb": 9944,
  "run_id": "45899900683",
  "schema": "zeref-round-heartbeat-v1",
  "trainer_rss_mb": 4814,
- "ts": 1795736501.4412546
+ "ts": 1795736562.8158605
 }
