@@ -1,17 +1,17 @@
 {
- "at": "2026-11-26T10:53:37Z",
- "at_epoch": 1795690417.2,
+ "at": "2026-11-26T10:55:37Z",
+ "at_epoch": 1795690537.4,
  "beast_id": "bb-deada969",
- "consecutive_failures": 23411,
+ "consecutive_failures": 23412,
  "continues_from": {
   "counts_sha256": "4bb92eef477cd0e9c6463be13f20a4a0b35269f3bfbd3a2b1e144998c99ad1ab",
-  "hash": "a3cfa5e068c91383fa66eade2d5cc3e2ba82466f718e023d4c845c3a8f0b974c",
+  "hash": "3cd7f6c352b71b943a3e82002303acdfe2d1831b1b37c0a253f02524e710b985",
   "seed": null,
-  "tick": 47713
+  "tick": 47714
  },
  "counts": null,
  "counts_sha256": null,
- "hash": "3cd7f6c352b71b943a3e82002303acdfe2d1831b1b37c0a253f02524e710b985",
+ "hash": "6eeb1c40863e4916d065593af8c4e723ea96a300b3a7805a9aa0a7612210f8d5",
  "interval_target_s": 60,
  "job_id": null,
  "label": "Rigetti SIMULATED (Azure Quantum rigetti.sim.qvm, not a QPU)",
@@ -31,13 +31,13 @@
   "tick": 24303
  },
  "last_ok_at_epoch": 1794282605.5266216,
- "late": false,
- "late_by_s": 0.0,
+ "late": true,
+ "late_by_s": 30.2,
  "schema": "zeref-spark-latest/v1",
  "shots": null,
  "simulated": true,
- "since_previous_s": 59.9,
+ "since_previous_s": 120.2,
  "status": "failed",
  "target": "rigetti.sim.qvm",
- "tick": 47714
+ "tick": 47715
 }
