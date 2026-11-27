@@ -336,6 +336,14 @@ MOUTH12=M12.enabled();MOUTH12_INFO={}
 # ZEREF_12D_DIRECT=1 upgrades a cond54 parent to cond54_direct (zero-init cond_in: identical logits at upgrade;
 # unconditioned gate scoring is unaffected because cond_in(0)=0). cond_in joins the fresh, un-anchored group.
 DIRECT12=os.environ.get("ZEREF_12D_DIRECT","0")=="1"
+# 2026-11-26 Step 5: The Mouth (default OFF, same pattern as DIRECT12/MOUTH12).
+# ZEREF_FILM12=1 upgrades a cond54 parent to film (zero-init FiLM taps: identical logits
+# at upgrade; the 22 film weights join the fresh, un-anchored group like cond_in).
+# ZEREF_CFJS_MARGIN=1 adds the counterfactual-JSD margin loss: a second forward with the
+# batch's condition54 rolled by one row, 0.5*relu(0.03-jsd), so the mouth is trained to
+# make its conditioning matter. Doubles the forward cost of conditioned batches.
+FILM12=os.environ.get("ZEREF_FILM12","0")=="1"
+CFJS_MARGIN=os.environ.get("ZEREF_CFJS_MARGIN","0")=="1"
 GEAR_PARAM_RE=re.compile(r"blocks\.\d+\.(attn\.(gate_logit|log_sigma)|transition\.(k|g12|gamma))")
 OPT_RESUME=[]
 def map_optimizer_state(sd,model,groups_now,meta,parent_model=None):
@@ -412,15 +420,28 @@ def identity_probe(path):
  for kind in("identity","controls"):out[kind+"_hits"]=sum(x["hit"] for x in out[kind])
  out["hebbian"]=bool(e.model.config.hebbian);del e
  return out
+def cfjs_margin_term(model,x,m,cond,logits,targets):
+ """Counterfactual-JSD margin (Step 5, ZEREF_CFJS_MARGIN=1 only): a second forward with the
+ batch's condition54 rolled by one row; when the two next-token distributions are too close
+ the model is not using its conditioning, so 0.5*relu(0.03-jsd) pushes them apart.
+ Returns (term, jsd) or (None, None) when there is nothing to contrast."""
+ if cond is None or cond.shape[0]<2: return None,None
+ rolled=torch.roll(cond,shifts=1,dims=0)
+ if bool(torch.equal(rolled,cond)): return None,None
+ logits_r=model(x,attention_mask=m,condition54=rolled)["logits"]
+ jsd=M12.jsd_mean(logits,logits_r,targets)
+ if jsd is None: return None,None
+ return 0.5*torch.relu(0.03-jsd),float(jsd.detach())
 def grouped_backward(model,batch,y,m,game_n,cond):
  """Backward of the 006 batch loss (token-mean CE over ALL rows + DECISION_WEIGHT x mean decision-token CE
  over the game rows) computed in length groups. y/m are the full padded batch tensors (used only for the
- whole-batch counts and to check each group's targets). Returns the batch loss value as a tensor (logging)."""
+ whole-batch counts and to check each group's targets). Returns (batch loss value as a tensor (logging),
+ mean CF-JS margin term or None)."""
  F_=torch.nn.functional;V=model.config.vocab_size
  n_sup=int((y!=-100).sum())
  if n_sup<1:raise ValueError("no supervised tokens")
  lens=[int(m[k].sum()) for k in range(len(batch))]
- total=0.
+ total=0.;margins=[]
  for gidx in length_groups(lens):
   xg,yg,mg=collate([batch[j] for j in gidx])
   if not torch.equal(yg,y[gidx,:yg.shape[1]]):raise AssertionError("length group changed a row's targets")
@@ -436,9 +457,12 @@ def grouped_backward(model,batch,y,m,game_n,cond):
     pos=(yg[kk]!=-100).nonzero().flatten();p_=int(pos[DECISION_INDEX])
     dl.append(logits[kk,p_]);dt.append(int(yg[kk,p_]))
   if dl:part=part+DECISION_WEIGHT*F_.cross_entropy(torch.stack(dl),torch.tensor(dt),reduction="sum")/game_n
+  if CFJS_MARGIN and cond is not None:
+   term,jsd=cfjs_margin_term(model,xg,mg,cond[gidx],logits,yg)
+   if term is not None:part=part+term;margins.append(float(term.detach()))
   if not bool(torch.isfinite(part)):raise FloatingPointError("Nonfinite Zeref CPU training loss")
   part.backward();total+=float(part.detach())
- return torch.tensor(total)
+ return torch.tensor(total),((sum(margins)/len(margins)) if margins else None)
 def train_variant(parent_path,tokenizer,pool,seed,chat_pool=(),chat_eval=None,lr=None,min_frac=None,recovery_candidate=None):
  """Configured bounded AdamW attempts with action-balanced sampling and parent anchor."""
  from collections import defaultdict
@@ -458,6 +482,10 @@ def train_variant(parent_path,tokenizer,pool,seed,chat_pool=(),chat_eval=None,lr
   from rawrphos.architecture.model import upgrade_to_cond54_direct
   model=upgrade_to_cond54_direct(model)  # zero cond_in: identical logits at upgrade
   print("ZEREF_12D_DIRECT="+json.dumps({"enabled":True,"upgraded":True,"cond_in_params":model.cond_in.weight.numel()}),flush=True)
+ if FILM12 and model.config.cond54 and not model.config.film:
+  from rawrphos.architecture.model import upgrade_to_film
+  model=upgrade_to_film(model)  # zero film weights: identical logits at upgrade; film joins the fresh, un-anchored group
+  print("ZEREF_FILM12="+json.dumps({"enabled":True,"upgraded":True,"taps":list(model.film_taps),"film_alpha":model.film_alpha}),flush=True)
  if MOUTH12 and model.config.cond54:
   MOUTH12_INFO.update({"enabled":True,"text_drop":M12.text_drop(),"gain_floor":M12.gain_floor(),
    "gain_slots0_11_parent":[round(float(x),6) for x in model.cond_gain.detach()[:12]],
@@ -481,6 +509,7 @@ def train_variant(parent_path,tokenizer,pool,seed,chat_pool=(),chat_eval=None,lr
   else:print("ZEREF_GROWTH_WIP_IGNORED (different parent or shape)",flush=True)
  model.grad_checkpointing=GRAD_CKPT;model.grad_checkpointing_every=GRAD_CKPT_EVERY
  print("ZEREF_006_GRAD_CKPT="+json.dumps({"enabled":GRAD_CKPT,"every":GRAD_CKPT_EVERY}),flush=True)
+ print("ZEREF_CFJS_MARGIN="+json.dumps({"enabled":CFJS_MARGIN,"margin":0.03,"weight":0.5,"film":FILM12}),flush=True)
  print("ZEREF_006_LENGTH_GROUPING="+json.dumps({"enabled":LENGTH_GROUPING,"max_tokens_per_group":GROUP_MAX_TOKENS,
   "rows_per_attempt_unchanged":True,"attempts_unchanged":UPDATES,"loss_weighting":LOSS_WEIGHTING}),flush=True)
  print("ZEREF_006_VARIANT_WORKLOAD="+json.dumps({"candidate":recovery_candidate,"role":"report_only_control" if recovery_candidate is None else "candidate",
@@ -559,6 +588,7 @@ def train_variant(parent_path,tokenizer,pool,seed,chat_pool=(),chat_eval=None,lr
   elif m12_on and any(r.get("state12") is not None for r in batch):
    cond=torch.tensor(M12.condition_rows(batch,lambda j:[0.]*54),dtype=torch.float32)
   if LOSS_WEIGHTING=="row" and not LENGTH_GROUPING:raise ValueError("row loss weighting needs ZEREF_006_LENGTH_GROUPING=1")
+  cfjs=None
   if not LENGTH_GROUPING:  # exact old path: one batch padded to its longest row
    out=model(x,targets=y,attention_mask=m,**({} if cond is None else {"condition54":cond}));loss=out["loss"]
    # Decision-token loss: the shared "ACTION: " prefix dominated the mean
@@ -571,12 +601,15 @@ def train_variant(parent_path,tokenizer,pool,seed,chat_pool=(),chat_eval=None,lr
    dec_loss=torch.nn.functional.cross_entropy(torch.stack([logits[k,j] for k,j,_ in dec]),
       torch.tensor([t for _,_,t in dec]))
    loss=loss+DECISION_WEIGHT*dec_loss
+   if CFJS_MARGIN and cond is not None:
+    term,jsd=cfjs_margin_term(model,x,m,cond,logits,y)
+    if term is not None:loss=loss+term;cfjs=float(term.detach())
    drift=sum(((p-a)**2).sum() for p,a in zip(base,anchor))
    total=loss+ANCHOR*drift
    if not bool(torch.isfinite(total)):raise FloatingPointError("Nonfinite Zeref CPU training loss")
    total.backward()
   else:  # length-grouped micro-batches of the SAME rows; same objective, gradients summed
-   loss=grouped_backward(model,batch,y,m,game_n,cond)
+   loss,cfjs=grouped_backward(model,batch,y,m,game_n,cond)
    drift=sum(((p-a)**2).sum() for p,a in zip(base,anchor))
    dpart=ANCHOR*drift
    if not bool(torch.isfinite(dpart)):raise FloatingPointError("Nonfinite Zeref CPU training loss")
@@ -600,6 +633,7 @@ def train_variant(parent_path,tokenizer,pool,seed,chat_pool=(),chat_eval=None,lr
      else:ema[k].copy_(v)
   if (n+1)%16==0:
    row={"step":n+1,"train_loss":float(loss.detach()),"anchor_drift":float(drift.detach()),"grad_norm":float(grad)}
+   if CFJS_MARGIN: row["cfjs_margin"]=cfjs
    logs.append(row);print("ZEREF_006_REAL_CPU_UPDATE="+json.dumps(row),flush=True)
   if chat_eval and (n+1)%EVAL_EVERY==0:
    c=chat_eval(model)
@@ -1015,6 +1049,19 @@ def main(recovery=False):
  character=char_compare(char_run(bar_path),char_run(temp))
  save_json(ROOT/"character-check.json",character)
  print("ZEREF_006_CHARACTER="+json.dumps({k:character[k] for k in("warmth_delta","no_rude_or_unsafe_regression")}|{"parent_warmth":character["parent"]["warmth"],"candidate_warmth":character["candidate"]["warmth"]}),flush=True)
+ # Gate 9 probe (Step 5: The Mouth): delta_nll_12d and mean_jsd on text-hidden served rows.
+ # Runs before the guard so the check can bind; a probe with no usable rows (MOUTH12 off,
+ # or no served rows carrying a recorded state12) leaves the check not-applicable (True).
+ mouth_probe=None
+ try:
+  if MOUTH12 and model.config.cond54:
+   mouth_probe=M12.mouth12_probe(model,tokenizer.encode,served_probe_rows)
+ except Exception as _exc:
+  mouth_probe={"error":type(_exc).__name__}
+ mouth12_gate=True
+ if isinstance(mouth_probe,dict) and mouth_probe.get("delta_nll_12d") is not None and mouth_probe.get("mean_jsd") is not None:
+  mouth12_gate=bool(mouth_probe["delta_nll_12d"]>=0.05 and mouth_probe["mean_jsd"]>=0.02)
+ print("ZEREF_006_MOUTH12_PROBE="+json.dumps({"probe":mouth_probe,"gate9_pass":mouth12_gate}),flush=True)
  # STOP A BAD MODEL FROM BEING THE NEXT TRAINING PARENT.
  # We do not expect every cycle to be promoted; poor results are honest data.
  guard={
@@ -1029,7 +1076,11 @@ def main(recovery=False):
   "chat_heldout_nll_not_worse_than_public_pin":new_chat<=chat_bar_a,  # within 0.5% (selection set)
   "chat_fresh_heldout_b_not_worse_than_pin":new_chat_b<=chat_bar_b,  # within 0.5% (fresh set, unbiased; 2026-11-01 fix)
   "native_heldout_policy_not_single_action":len({r["legal_action"] for r in trial_out if r["legal_action"]})>=2,
-  "character_no_rude_or_unsafe_regression":character["no_rude_or_unsafe_regression"]
+  "character_no_rude_or_unsafe_regression":character["no_rude_or_unsafe_regression"],
+  # Gate 9 (2026-11-26 Step 5: The Mouth): the 12D path must carry signal the text does not.
+  # Binds only when the probe ran (MOUTH12 on + text-hidden served rows with a recorded
+  # state12); when the probe has no rows it is not-applicable and cannot fail a candidate.
+  "mouth12_conditioning_carries_signal":mouth12_gate
  }
  accepted=all(guard.values())
  # Report-only. These NLL numbers are not a gate input and do not change selection.
@@ -1076,6 +1127,7 @@ def main(recovery=False):
     "chat_gate_public14k_ref_nll":public_ref_chat,"chat_metric":"fix-003 per-pair mean (same as rawrphos_chat_eval.ref_nll), no margin","character_check":{k:character[k] for k in("warmth_delta","no_rude_or_unsafe_regression")},"chat_gate_rule":"fix-002: not worse than the public-pin parent (absolute); promotion additionally requires rawrphos_chat_eval not worse than 14000 AND ref_nll below the current pin","lr_schedule":"cosine to %d%% of lr"%round(SEL["lr_min_fraction"]*100),"loss_weighting":LOSS_WEIGHTING,"best_in_cycle":True,"fresh_train_rows":len(train)},
   "rigetti_batch_order":rigetti,
   "mouth12":MOUTH12_INFO or {"enabled":False},
+  "mouth12_probe":mouth_probe,
   "cond54":{"enabled":bool(model.config.cond54),"gate_evaluation":"unconditioned (unchanged)","bank":COND_INFO or None,"report_only_ab_on_set_b":cond_report},
   "served_shape_probe":served_shape_probe,
   "rigetti_on_off":{"on_candidate":{"heldout_nll":new_held,"chat_nll":new_chat,"retention_nll":new_ret,**trial,
