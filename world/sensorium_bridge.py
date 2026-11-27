@@ -136,3 +136,29 @@ def compute_condition54(prev_fields: dict[str, float], curr_fields: dict[str, fl
         return math.sqrt(sum(x * x for x in xs) / len(xs)) if xs else 0.0
 
     return condition54, state12, _rms(state12), _rms(comp), 1
+
+
+# Active sense payload (Gemini part 2, verified): a live sense feed from the
+# page door is either MEASURED (device light / mic features) or DERIVED
+# (engine sky state). An off or empty feed sends NOTHING, never a zero
+# placeholder; a feed with no mode, or no name, is refused. This helper is
+# the gate: it frames the payload the door hands to the bridge, it does not
+# read sensors.
+SENSE_MODES = ("DERIVED", "MEASURED")
+
+
+def build_active_sense_payload(source_kind: str, mode: str, values: dict | None) -> dict | None:
+    """Build the sense payload for one live feed, or None when there is no
+    feed. source_kind names the feed (light, sound, ...); mode is DERIVED or
+    MEASURED; values are the numeric channel readings."""
+    if not values:
+        return None
+    if not source_kind:
+        raise ValueError("sense payload needs a source_kind naming the feed")
+    if mode not in SENSE_MODES:
+        raise ValueError(f"sense mode must be DERIVED or MEASURED, got {mode!r}")
+    return {
+        "source_kind": source_kind,
+        "mode": mode,
+        "values": {k: float(v) for k, v in values.items()},
+    }
