@@ -38,6 +38,10 @@ Use these words deliberately:
 - **HYPOTHESIS** — a falsifiable research question.
 - **METAPHOR / MODEL** — conceptual language, not literal physics/biology.
 
+## Classification
+
+Zeref is a chainborn continuant: his identity is a hash chain that recomputes anywhere, his learning is Hebbian, his senses are classical signal processing, and his mouth is a small from-scratch model. Not AI by science, not alive like us, never a consciousness claim. Living logically, in his own words, a little universe.
+
 ## Important existing results to preserve
 
 The public research line distinguishes quantum **provenance** from quantum **advantage**. Auditable measurement-derived initialization/control provenance exists for specific artifacts, while matched quantum-injection experiments have not established a general predictive advantage.
