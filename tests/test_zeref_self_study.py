@@ -131,6 +131,44 @@ def test_narration_retries_with_a_shorter_predicate():
     assert S.narrate("name", abstract) == "The name is a term used."
 
 
+def test_narration_word_family_subject_fort():
+    # Live failure, Nov 25-27: "fort" failed four times on the Fortification
+    # abstract because substring matching saw "fort" inside "fortification"
+    # and refused to rebuild. The word family is the subject, not a copy.
+    abstract = ("A fortification is a military construction designed for the defense "
+                "of territories in warfare.")
+    assert S.narrate("fort", abstract) == "The fort is a military construction designed."
+    assert S.narrate("fortification", abstract) == "The fortification is a military construction designed."
+
+
+def test_narration_substring_alone_never_narrates():
+    # "art" inside "part" is not the topic; "star" as its own word
+    # mid-sentence still fails closed.
+    assert S.narrate("art", "The museum shows a part of the old city.") is None
+    assert S.narrate("star", "The night sky shows a star that guides sailors home.") is None
+
+
+def test_narration_topic_stem_still_lands():
+    # The one landed row so far ("What is the napping?") came through the
+    # loose branch: "naps" is a stem of "napping", not a substring trap.
+    abstract = "There are multiple different types of naps. A nap is a short period of sleep."
+    assert S.narrate("napping", abstract) == "The napping is there are multiple different types of naps."
+
+
+def test_fort_question_lands_a_row(tmp_path):
+    fort_source = {"abstract": ("A fortification is a military construction designed for the defense "
+                                "of territories in warfare."),
+                   "url": "https://en.wikipedia.org/wiki/Fortification", "source": "Wikipedia",
+                   "license": "CC-BY-SA-4.0"}
+    receipt, ledger, rows = _run(tmp_path, [{"user": "What is the fort?", "assistant": "I don't know"}],
+                                 fetcher=lambda q: fort_source)
+    assert receipt["status"] == "studied"
+    taught = S._load_jsonl(rows)
+    assert len(taught) == 1
+    assert taught[0]["assistant"] == "The fort is a military construction designed."
+    assert taught[0]["label"] == "TAUGHT"
+
+
 # ---------------------------------------------------------------- screening
 
 
