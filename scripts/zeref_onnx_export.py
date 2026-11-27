@@ -101,11 +101,11 @@ class Step(torch.nn.Module):
     def __init__(self, model):
         super().__init__(); self.m = model; self.L = model.config.n_layers
 
-    def forward(self, ids, pk, pv, ps, fast):
+    def forward(self, ids, pk, pv, ps, fast, cond_in):
         mask = torch.ones((1, pk.shape[3]), dtype=torch.bool)
         past = [{"key": pk[i], "value": pv[i], "state": ps[i], "key_mask": mask} for i in range(self.L)]
         past[-1]["hebbian_fast"] = fast
-        out = self.m(ids, past_key_values=past, use_cache=True)
+        out = self.m(ids, past_key_values=past, use_cache=True, condition54=cond_in)
         c = out["past_key_values"]
         return (out["logits"][:, -1].float(), torch.stack([x["key"] for x in c]), torch.stack([x["value"] for x in c]),
                 torch.stack([x["state"] for x in c]), c[-1]["hebbian_fast"])
@@ -143,9 +143,9 @@ def main(argv=None) -> int:
         original = rawrphos_model.HebbianFastWeights.forward
         rawrphos_model.HebbianFastWeights.forward = _hebbian_forward_for_export
         try:
-            torch.onnx.export(Step(m).eval(), ex, str(onnx_path), input_names=["ids", "pk", "pv", "ps", "fast"],
+            torch.onnx.export(Step(m).eval(), (*ex, torch.full((1, 54), 0.1, dtype=torch.float32)), str(onnx_path), input_names=["ids", "pk", "pv", "ps", "fast", "cond_in"],
                           output_names=["logits", "nk", "nv", "ns", "nfast"],
-                          dynamic_axes={"ids": {1: "T"}, "pk": {3: "S"}, "pv": {3: "S"}, "ps": {2: "S"}, "nk": {3: "S1"}, "nv": {3: "S1"}, "ns": {2: "S1"}},
+                          dynamic_axes={"ids": {1: "T"}, "pk": {3: "S"}, "pv": {3: "S"}, "ps": {2: "S"}, "cond_in": {0: "B"}, "nk": {3: "S1"}, "nv": {3: "S1"}, "ns": {2: "S1"}},
                           opset_version=17, dynamo=False)
         finally:
             rawrphos_model.HebbianFastWeights.forward = original
@@ -154,7 +154,10 @@ def main(argv=None) -> int:
     # on the slimmed graph, which is the only one that ships.
     import onnx
     import onnxslim
-    onnx.save(onnxslim.slim(onnx.load(str(onnx_path))), str(onnx_path))
+    _slimmed = onnxslim.slim(onnx.load(str(onnx_path)))
+    _graph_inputs = [i.name for i in _slimmed.graph.input]
+    assert "cond_in" in _graph_inputs, f"onnxslim pruned cond_in; inputs={_graph_inputs}"
+    onnx.save(_slimmed, str(onnx_path))
     blob = onnx_path.read_bytes()
     dims = {"n_layers": cfg.n_layers, "n_heads": cfg.n_heads, "head_dim": cfg.d_model // cfg.n_heads,
             "state_width": int(ex[3].shape[-1]), "hebbian_dim": int(ex[4].shape[-1]), "vocab_size": cfg.vocab_size,
@@ -168,7 +171,7 @@ def main(argv=None) -> int:
     def ort_greedy(ids):
         k = np.zeros((L, 1, H, 0, Dh), np.float32); v = k.copy(); st = np.zeros((L, 1, 0, W), np.float32)
         f = np.zeros((1, n, n), np.float32); gen = []
-        feed = lambda t: sess.run(None, {"ids": np.array([t], np.int64), "pk": k, "pv": v, "ps": st, "fast": f})
+        feed = lambda t: sess.run(None, {"ids": np.array([t], np.int64), "pk": k, "pv": v, "ps": st, "fast": f, "cond_in": np.zeros((1, 54), np.float32)})
         lo, k, v, st, f = feed(list(ids))  # whole-prompt prefill, as the server
         for _ in range(gl.MAX_OUTPUT_TOKENS):
             t = int(np.argmax(apply_rules(lo[0], gen))); gen.append(t)
