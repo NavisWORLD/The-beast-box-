@@ -1,0 +1,17 @@
+{
+ "batch_size": 8,
+ "browser_lane": "scripts/zeref_onnx_export.py (untouched; browser tier keeps schema zeref-browser-brain-v1, opset 17)",
+ "chain_schema": "zeref-runtime-parity-chain-v1",
+ "chain_verification": "same deterministic SHA-256 construction as the browser lane: beastbox.hashutil.canonical_json plus the verify rule in scripts/zeref_self_study.py verify_ledger",
+ "description": "Local high-capacity tier for Zeref: larger parameter generations run on local hardware (Jetson or a local GPU) while distilled or pinned artifacts export to the public browser door through scripts/zeref_onnx_export.py, which this profile never touches.",
+ "device_class": "jetson-or-local-gpu",
+ "dtype": "float16",
+ "max_parameters": 120000000000,
+ "memory_budget_gb": 32,
+ "name": "local-high-capacity",
+ "notes": "Declared capacity ceiling, not a measured benchmark. No value here was measured on hardware in this PR; hardware numbers stay NULL until a run on a Jetson or local GPU records them.",
+ "provider": "local-gpu-or-cpu",
+ "schema": "zeref-local-runtime-profile-v1",
+ "threads": 8,
+ "tier": "local"
+}
