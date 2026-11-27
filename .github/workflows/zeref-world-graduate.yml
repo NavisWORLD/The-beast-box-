@@ -1,0 +1,101 @@
+name: zeref-world-graduate
+
+# Graduate sandbox DIARY entries into heldout-screened TAUGHT rows.
+# Runs after the tick workflow succeeds (workflow_run) or on demand.
+# Opens a reviewed PR into main; NEVER auto-merges.
+#
+# BRANCHING FIX (do not regress): the graduation branch is based on MAIN,
+# never on zeref/world-sandbox-log — branching off the log branch would drag
+# the whole sandbox log (world_state.json, world_chain.jsonl) into main.
+# Only graduated_hashes.json + staged_taught_rows.jsonl (+ the provenance
+# sidecar) are copied in, fetched from the sandbox-log branch.
+#
+# The staged rows conform to evidence/zeref-lessons-006/dialogue.jsonl's
+# 10-key landing schema (user, assistant, expect_regex, good_answer_note,
+# source, teacher_role, author, subject, topic, split) with source
+# "zeref-world-sandbox". Landing them into dialogue.jsonl is a separate
+# reviewed step; this PR stages them only.
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: ["zeref-world-tick-sandbox"]
+    types: [completed]
+
+permissions:
+  contents: write
+  pull-requests: write
+  actions: read
+
+concurrency:
+  group: zeref-world-graduate
+  cancel-in-progress: false
+
+jobs:
+  graduate:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Fetch sandbox chain + heldout manifest
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -Eeuo pipefail
+          mkdir -p build/graduate
+          # Sandbox chain from the log branch (read-only fetch; never
+          # checked out as a base).
+          curl -fsSL --max-time 120 -o build/graduate/world_chain.jsonl \
+            "https://raw.githubusercontent.com/NavisWORLD/The-beast-box-/zeref/world-sandbox-log/evidence/zeref-world-sandbox/world_chain.jsonl"
+          # Heldout manifest from PR #1041's branch (emeth/self-study-bridge),
+          # content-sha verified against the pinned value. When #1041 merges,
+          # this URL moves to main.
+          HELDOUT_SHA256=f1ff751c98146a3cfe0917727b9b4375538dd880ade71061a95be41a2b4ab6be
+          curl -fsSL --max-time 120 -o build/graduate/heldout-hashes.json \
+            "https://raw.githubusercontent.com/NavisWORLD/The-beast-box-/emeth/self-study-bridge/evidence/zeref-self-study/heldout-hashes.json"
+          ACTUAL=$(sha256sum build/graduate/heldout-hashes.json | cut -d' ' -f1)
+          [ "$ACTUAL" = "$HELDOUT_SHA256" ] || { echo "heldout sha mismatch: $ACTUAL != $HELDOUT_SHA256"; exit 1; }
+          echo "heldout manifest sha OK: $ACTUAL"
+      - name: Run graduation (heldout-screened, idempotent cursor)
+        run: |
+          set -Eeuo pipefail
+          # The cursor lives in the PR branch once it exists; on a fresh
+          # branch every DIARY entry is a new candidate, screened against
+          # the 5,827 heldout hashes.
+          mkdir -p evidence/zeref-world-sandbox
+          python3 scripts/zeref_world_graduate.py \
+            --chain build/graduate/world_chain.jsonl \
+            --heldout-hashes build/graduate/heldout-hashes.json \
+            --cursor evidence/zeref-world-sandbox/graduated_hashes.json \
+            --staged evidence/zeref-world-sandbox/staged_taught_rows.jsonl \
+            --provenance evidence/zeref-world-sandbox/staged_taught_provenance.jsonl
+      - name: Open the graduation PR (never merge)
+        env:
+          GH_TOKEN: ${{ secrets.ZEREF_PR_TOKEN || secrets.GITHUB_TOKEN }}
+        run: |
+          set -Eeuo pipefail
+          git config user.name 'zeref-world-graduate[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add evidence/zeref-world-sandbox/graduated_hashes.json \
+                  evidence/zeref-world-sandbox/staged_taught_rows.jsonl \
+                  evidence/zeref-world-sandbox/staged_taught_provenance.jsonl
+          git status --porcelain | tee build/graduate/status.txt
+          [ -n "$(git status --porcelain)" ] || { echo "nothing graduated; no PR"; exit 0; }
+          BRANCH="zeref/world-graduate-$(date -u +%Y%m%d-%H%M)"
+          git fetch origin "$BRANCH" 2>/dev/null || true
+          git checkout -B "$BRANCH"
+          git commit -q -m "zeref world sandbox: graduate heldout-screened TAUGHT rows"
+          for i in 1 2 3; do git push -q origin "$BRANCH" && break; sleep 5; git pull -q --rebase origin "$BRANCH" || true; done
+          [ "$(git rev-parse HEAD)" = "$(git ls-remote origin "$BRANCH" | cut -f1)" ] || { echo "push failed after retries"; exit 1; }
+          if [ "$(gh pr list --head "$BRANCH" --json number --jq 'length')" = "0" ]; then
+            gh pr create --base main --head "$BRANCH" \
+              --title "Zeref world sandbox: graduate heldout-screened TAUGHT rows" \
+              --body "Heldout-screened graduation of sandbox DIARY entries into staged TAUGHT rows (10-key dialogue.jsonl schema, source zeref-world-sandbox). The PR stages the rows only; landing them into evidence/zeref-lessons-006/dialogue.jsonl is a separate reviewed step. Never auto-merge."
+          else
+            echo "PR for $BRANCH already exists:"
+            gh pr list --head "$BRANCH" --json number,url --jq '.[0] | "\(.number) \(.url)"'
+          fi
