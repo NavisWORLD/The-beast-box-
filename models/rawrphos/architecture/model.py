@@ -311,7 +311,34 @@ class RawrphosLM(nn.Module):
             state=torch.tanh(state_logits+ext+(self.cond_gain.to(state)*condition54.to(state))[:,None,:])
             # direct path (cond54_direct): the same routed 54D vector into every position's token stream,
             # so the 12D reaches the mouth without passing the distance kernel (masked slots are 0.0).
-            if c.cond54_direct: x=x+self.cond_in(condition54.to(x))[:,None,:]
+            if c.cond54_direct:
+                dyn = self.cond_in(condition54.to(x))[:, None, :]
+                # dyn12 telemetry (REPORT-ONLY, 2026-11-23): measure the 12D path at the injection point.
+                # It never changes the computation: detached norms only, stored on the instance for the
+                # serving layer to read after a turn. text_path is the token stream x at the last input
+                # position before the addition; dyn12_path is what cond_in adds there; R is their L2
+                # ratio. prefill is the first forward of a turn (past_key_values is None); last is the
+                # most recent forward call. A zero R with a non-zero condition54 means the weights never
+                # moved; a zero condition54_l2 means nothing was sent. This measures the direct path
+                # only; the routed cond_gain path is a separate, weaker route (H1 KL probe).
+                with torch.no_grad():
+                    _text = x[:, -1, :].detach()
+                    _dyn = dyn[:, 0, :].detach()
+                    _m = {
+                        "text_path_l2": float(_text.norm(2).item()),
+                        "dyn12_path_l2": float(_dyn.norm(2).item()),
+                        "condition54_l2": float(condition54.detach().norm(2).item()),
+                        "cond_in_weight_l2": float(self.cond_in.weight.detach().norm(2).item()),
+                    }
+                    _m["ratio_R"] = _m["dyn12_path_l2"] / max(_m["text_path_l2"], 1e-12)
+                    _prev = getattr(self, "_dyn12_telemetry", None) or {}
+                    self._dyn12_telemetry = {
+                        "schema": "zeref-dyn12-telemetry-v1",
+                        "condition54_sent": True,
+                        "prefill": _m if past_key_values is None else _prev.get("prefill"),
+                        "last": _m,
+                    }
+                x = x + dyn
         if c.attention_mode=='frozen_state': state=state.detach()
         caches=[]; telemetry=[]
         for i,block in enumerate(self.blocks):

@@ -79,7 +79,9 @@ def create_app(checkpoint,api_key,max_new_tokens=256,threads=4,expected_sha256=N
                 'model':'rawrphos-native','choices':[choice],'usage':usage,'checkpoint_sha256':engine.metadata['checkpoint_sha256'],
                 'hebbian':bool(engine.model.config.hebbian),'state_mode':engine.model.config.state_mode,
                 # Honest per-request receipt: True only when this request's condition54 went into the forward pass.
-                'condition54_used':c54 is not None}
+                'condition54_used':c54 is not None,
+                # REPORT-ONLY dyn12 mouth telemetry for this turn (nulls when no condition54 was sent).
+                'dyn12_telemetry':engine.last_metrics.get('dyn12_telemetry')}
         except (ValueError,RuntimeError,TimeoutError,FloatingPointError):
             return JSONResponse({'error':'native inference unavailable; no fallback'},status_code=503)
     @app.post('/v1/condition-probe')

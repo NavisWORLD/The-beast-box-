@@ -163,6 +163,10 @@ def talk(checkpoint: str, pin: dict, history: list[dict], text: str, identity: s
         "zeref": reply,
         "empty": reply.strip() == "",
         "generated_tokens": engine.last_metrics.get("generated_tokens"),
+        # REPORT-ONLY dyn12 mouth telemetry. The Talk lane sends no condition54 (no senses,
+        # no 12D state by design), so this records condition54_sent False: the drop, stated
+        # plainly in the run summary rather than silently absent.
+        "dyn12_telemetry": engine.last_metrics.get("dyn12_telemetry"),
         "seconds": round(time.perf_counter() - t0, 2),
         "edited": False,
     }

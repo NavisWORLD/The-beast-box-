@@ -60,6 +60,9 @@ class Engine:
         if len(ids)+max_tokens>self.model.config.max_seq_len: raise ValueError('prompt plus output exceeds context limit')
         if not self.lock.acquire(blocking=False): raise RuntimeError('native provider is busy')
         try:
+            # dyn12 telemetry (REPORT-ONLY): clear any previous turn's record so a turn that sends
+            # no condition54 cannot read a stale one.
+            self.model._dyn12_telemetry = None
             gen=torch.Generator(device=self.device).manual_seed(seed); started=time.perf_counter(); first=None; generated=[]; emitted=''
             for token,full in generate(self.model,torch.tensor([ids],device=self.device),max_new_tokens=max_tokens,
                     temperature=temperature,top_k=min(40,self.tokenizer.vocab_size),eos_token_id=self.tokenizer.eos_id,
@@ -75,9 +78,25 @@ class Engine:
             self.last_metrics={'tokenization_seconds':tokenize,'prefill_and_first_token_seconds':first,
                 'generation_seconds':seconds,'prompt_tokens':len(ids),'generated_tokens':len(generated),
                 'decode_tokens_per_second':(len(generated)-1)/max(1e-9,seconds-(first or seconds)) if len(generated)>1 else None,
-                'total_tokens_per_second':len(generated)/max(seconds,1e-9),'cache_enabled':use_cache}
+                'total_tokens_per_second':len(generated)/max(seconds,1e-9),'cache_enabled':use_cache,
+                'dyn12_telemetry':self._dyn12_telemetry()}
             self.last_success=time.time()
         finally: self.lock.release()
+    def _dyn12_telemetry(self):
+        """REPORT-ONLY record of the 12D mouth path for the turn just generated.
+
+        The model records norms at the cond54_direct injection point when a turn sends
+        condition54; a turn that sends none reports condition54_sent False and nulls.
+        Copies the record so callers cannot mutate the model's stored values.
+        """
+        tel = getattr(self.model, "_dyn12_telemetry", None)
+        if tel is None:
+            return {"schema": "zeref-dyn12-telemetry-v1", "condition54_sent": False,
+                    "prefill": None, "last": None}
+        return {"schema": tel["schema"], "condition54_sent": True,
+                "prefill": dict(tel["prefill"]) if tel.get("prefill") else None,
+                "last": dict(tel["last"]) if tel.get("last") else None}
+
     @staticmethod
     def validate_condition54(value):
         """Routed 12D+42D state as numbers only (masked slots are exactly 0.0 upstream)."""
