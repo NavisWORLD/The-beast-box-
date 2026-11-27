@@ -55,6 +55,7 @@ test('home and cage share one menu model but frame it for their own page',()=>{
  assert.equal(c.diary.href,'#zeref-diary');assert.equal(h.diary.href,'/beast-cage#zeref-diary');
  assert.deepEqual([...MENU_SECTIONS],['view','place','tools','diary','senses','about']);
  assert.ok(CONTEXTS.home&&CONTEXTS.cage);assert.match(c.senses.note,/only when you tap/);
+ assert.equal(h.gba.label,c.gba.label);assert.equal(h.gba.label,'Play the GBA game');assert.equal(h.gba.href,'/sol-game');assert.equal(c.gba.href,'/sol-game');assert.match(h.gba.hint,/LOST COSMOS/);
 });
 test('cage and home use ONE menu: no sprite overlay by default, no loose buttons on the scene, every option still wired',()=>{
  const cage=stripC(read('components/beast-cage-portal.tsx')),home=stripC(read('components/home-pocket.tsx')),menu=read('components/world-menu.tsx');
@@ -64,7 +65,8 @@ test('cage and home use ONE menu: no sprite overlay by default, no loose buttons
  assert.doesNotMatch(cage,/className="cage-view-toggle"/);assert.doesNotMatch(home,/data-home-view-toggle|lc-roamer-tools|>🌍 Enter the tiny world</);
  assert.match(cage,/menuHost=\{hosts\.tools\}/);assert.match(cage,/menuHost=\{hosts\.place\} infoHost=\{hosts\.about\}/);
  assert.match(home,/menuHost=\{hosts\.tools\} ignorePixel/);assert.match(home,/setWorld\(true\)/);assert.match(home,/lc-tools-open/);
- for(const k of ['data-world-view','data-menu-reset','data-menu-diary','data-menu-look','data-menu-senses','data-menu-open-map','POCKET_3D_CAMERA_RESET','Escape'])assert.ok(menu.includes(k),k);
+ for(const k of ['data-world-view','data-menu-reset','data-menu-diary','data-menu-look','data-menu-senses','data-menu-open-map','data-menu-gba','POCKET_3D_CAMERA_RESET','Escape'])assert.ok(menu.includes(k),k);
+ assert.match(menu,/href=\{model\.gba\.href\}/);
  assert.match(menu,/hidden=\{!open\}/);assert.match(menu,/aria-haspopup="dialog"/);
  const css=read('components/world-menu.module.css');assert.match(css,/min-height:44px/);assert.match(css,/max-height:84dvh/);
 });

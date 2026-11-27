@@ -2,6 +2,7 @@
 // explorer / Classic pixel sprite view switch, Reset 3D camera, the Diary, the sensing pointer and the naming. Each
 // page asks for its own CONTEXT (home frames the pocket universe, the cage frames the habitat); labels and the saved
 // choice never diverge. Pure functions, storage is injected.
+// The GBA game link is shared the same way: one entry in the model, shown in the place section of both contexts.
 export const VIEW_STORAGE='beastbox-cage-view-v1';
 export const VIEW_EVENT='beastbox:world-view';
 export const VIEW_OPTIONS=Object.freeze([
@@ -40,5 +41,6 @@ export const MENU_SECTIONS=Object.freeze(['view','place','tools','diary','senses
 export function menuModel(ctxKey,{hasBeast,beastName}){
  const ctx=CONTEXTS[ctxKey]||CONTEXTS.cage;
  return {ctx,views:viewOptionsFor({hasBeast}),reset:{label:SHARED_LABELS.reset,aria:SHARED_LABELS.resetAria},
-  diary:{label:SHARED_LABELS.diary(beastName),href:ctx.diaryHref},senses:{label:SHARED_LABELS.senses,note:SHARED_LABELS.sensesNote,href:'/workspace#senses'},look:{label:SHARED_LABELS.look,href:hasBeast?'/beast-cage/look':'/beast-cage/look?with=zeref'},sections:MENU_SECTIONS};
+  diary:{label:SHARED_LABELS.diary(beastName),href:ctx.diaryHref},senses:{label:SHARED_LABELS.senses,note:SHARED_LABELS.sensesNote,href:'/workspace#senses'},look:{label:SHARED_LABELS.look,href:hasBeast?'/beast-cage/look':'/beast-cage/look?with=zeref'},
+  gba:{id:'gba',icon:'🎮',label:'Play the GBA game',hint:'The LOST COSMOS handheld game, played in your browser.',href:'/sol-game'},sections:MENU_SECTIONS};
 }
