@@ -152,7 +152,10 @@ def test_narration_topic_stem_still_lands():
     # The one landed row so far ("What is the napping?") came through the
     # loose branch: "naps" is a stem of "napping", not a substring trap.
     abstract = "There are multiple different types of naps. A nap is a short period of sleep."
-    assert S.narrate("napping", abstract) == "The napping is there are multiple different types of naps."
+    # Family-aware picker finds the real definition sentence ("nap" is the
+    # topic's stem family), so the answer is the clean definition, not the
+    # first sentence.
+    assert S.narrate("napping", abstract) == "The napping is a short period of sleep."
 
 
 def test_fort_question_lands_a_row(tmp_path):
@@ -438,3 +441,83 @@ def test_no_em_dashes_anywhere_the_module_emits(tmp_path):
         assert "\u2014" not in path.read_text()
     assert "\u2014" not in json.dumps(receipt)
     assert "\u2014" not in (ROOT / "scripts" / "zeref_self_study.py").read_text()
+
+
+def test_normalize_family_token():
+    assert S._normalize_family_token("fortification") == "fort"
+    assert S._normalize_family_token("fort") == "fort"
+    assert S._normalize_family_token("leaves") == "leaf"
+    assert S._normalize_family_token("leaf") == "leaf"
+    assert S._normalize_family_token("teeth") == "tooth"
+    assert S._normalize_family_token("children") == "child"
+    assert S._normalize_family_token("men") == "man"
+    assert S._normalize_family_token("women") == "woman"
+    assert S._normalize_family_token("feet") == "foot"
+    assert S._normalize_family_token("geese") == "goose"
+
+
+def test_narration_irregular_family_forms():
+    assert S.narrate("tooth", "Teeth are hard structures in the jaw.") == "The tooth is hard structures in the jaw."
+    assert S.narrate("leaf", "Leaves are the green parts of a plant.") == "The leaf is the green parts of a plant."
+    assert S.narrate("child", "Children are young humans who learn and play.") == "The child is young humans who learn and play."
+    assert S.narrate("foot", "Feet are the lower limbs that help us walk.") == "The foot is the lower limbs that help us walk."
+
+
+def test_narration_family_mid_sentence_still_fails_closed():
+    assert S.narrate("fort", "The Romans built fortifications along the border.") is None
+
+
+def test_license_gate():
+    assert S.accept_licensed_source({"license": "CC-BY-SA-4.0", "summary": "Short abstract."}) is True
+    assert S.accept_licensed_source({"license": "cc by-sa 4.0", "summary": "x"}) is True
+    assert S.accept_licensed_source({"license": "", "summary": "x"}) is False
+    assert S.accept_licensed_source({"license": "CC-BY-SA-4.0", "summary": ""}) is False
+    assert S.accept_licensed_source({"license": "All rights reserved", "summary": "x"}) is False
+    assert S._open_source_license("Wikipedia") == "CC-BY-SA-4.0"
+    assert S._open_source_license("Wiktionary") == "CC-BY-SA-4.0"
+    assert S._open_source_license("Simple Wikipedia") == "CC-BY-SA-4.0"
+    assert S._open_source_license("Example") is None
+
+
+class _FakeResp:
+    def __init__(self, payload):
+        self._payload = payload
+    def __enter__(self):
+        return self
+    def __exit__(self, *a):
+        return False
+    def read(self):
+        return json.dumps(self._payload).encode()
+
+
+def _fake_opener(payload):
+    def open_fn(req, timeout=None):
+        return _FakeResp(payload)
+    return open_fn
+
+
+def test_fetch_accepts_wiktionary_and_rejects_proprietary():
+    got = S.fetch_abstract("river", opener=_fake_opener(
+        {"AbstractText": "A river is a natural flowing watercourse.",
+         "AbstractSource": "Wiktionary",
+         "AbstractURL": "https://en.wiktionary.org/wiki/river"}))
+    assert got["license"] == "CC-BY-SA-4.0"
+    assert got["source"] == "Wiktionary"
+    with pytest.raises(S.SearchError):
+        S.fetch_abstract("river", opener=_fake_opener(
+            {"AbstractText": "A river is a natural flowing watercourse.",
+             "AbstractSource": "Merriam-Webster",
+             "AbstractURL": "https://example.com/river"}))
+
+
+def test_run_studies_wiktionary_row(tmp_path):
+    turns = [{"user": "What is the river?", "assistant": "I don't know"}] * 2
+    fetcher = lambda q: {"abstract": "A river is a natural flowing watercourse.",
+                         "url": "https://en.wiktionary.org/wiki/river",
+                         "source": "Wiktionary", "license": "CC-BY-SA-4.0"}
+    receipt, ledger, rows = _run(tmp_path, turns, fetcher=fetcher)
+    assert receipt["status"] == "studied"
+    assert receipt["topic"] == "river"
+    landed = json.loads(rows.read_text(encoding="utf-8").splitlines()[0])
+    assert landed["license"] == "CC-BY-SA-4.0"
+    assert landed["origin"] == "https://en.wiktionary.org/wiki/river"
