@@ -25,7 +25,22 @@
 #      for it). Any mismatch stops the run before any release is touched.
 #      A newer export run whose manifest has not merged yet fails here:
 #      its artifact manifest will not be byte-identical to main's.
-#   4. Create release zeref-browser-brain-<pin step> with the 6 files as
+#   4. Stamp the ledger counters (Step 6) and enforce ledger growth: the
+#      release carries ledger.json plus the same numbers in its notes, with
+#      ledger_accounting {S_lived, S_taught_lessons, S_taught_self_study,
+#      R_pin}. S_taught_* are counted from the checkout (dialogue.jsonl on
+#      main); S_lived comes from the pin file's promotion.ledger_accounting,
+#      written at promote time by the caller who counted the live Talk thread
+#      (the runner cannot see that thread). A pin whose ledger R_pin does not
+#      match the manifest step fails here, and so does a release whose ledger
+#      did not grow since the previous brain release's ledger.json. A pin
+#      that predates ledger_accounting (e.g. 47344) is the legacy case: the
+#      release still publishes, with S_lived null and the gap named, so the
+#      page brain is never stranded by the ledger. The manifest itself is
+#      untouched: its writer (scripts/zeref_onnx_export.py) is owned by the
+#      Steps 1-2 build, so the ledger reaches the manifest only when that
+#      writer adds the same block.
+#   5. Create release zeref-browser-brain-<pin step> with the 7 files as
 #      assets (or --clobber upload if the release already exists).
 #
 # Triggers: push to main touching the manifest (the refresh PR merge) or
@@ -124,25 +139,129 @@ jobs:
           print("parity-reference.json OK: valid JSON, schema + checkpoint match")
           Path("build/brain/verified.txt").write_text(f"step={steps}\ncheckpoint={ckpt}\nonnx={o['sha256']}\n")
           PY
+      - name: Stamp the ledger counters (Step 6) and enforce ledger growth
+        id: ledger
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -Eeuo pipefail
+          STEPS=$(python -c "import json; print(json.load(open('evidence/zeref-browser-brain-001/manifest.json'))['provenance']['training_steps'])")
+          # Previous brain release, if any: the latest zeref-browser-brain-<step>
+          # below this one. Its ledger.json (when it has one) is the baseline
+          # the growth guard compares against.
+          mkdir -p build/ledger/prev
+          PREV_STEP=$(gh release list --limit 100 --json tagName --jq -r '.[].tagName' \
+            | sed -n 's/^zeref-browser-brain-\([0-9][0-9]*\)$/\1/p' \
+            | awk -v cur="$STEPS" '$1 < cur' | sort -n | tail -1 || true)
+          if [ -n "$PREV_STEP" ]; then
+            echo "previous brain release: zeref-browser-brain-$PREV_STEP"
+            gh release download "zeref-browser-brain-$PREV_STEP" --pattern ledger.json \
+              --dir build/ledger/prev --clobber --repo "${{ github.repository }}" \
+              || echo "no ledger.json on the previous brain release"
+          else
+            echo "no previous brain release"
+          fi
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          man = json.loads(Path("evidence/zeref-browser-brain-001/manifest.json").read_text())
+          steps = man["provenance"]["training_steps"]
+          # Taught counts are counted from the checkout, never hardcoded.
+          dialogue = Path("evidence/zeref-lessons-006/dialogue.jsonl")
+          assert dialogue.is_file(), "dialogue.jsonl missing from the checkout"
+          taught, taught_self = 0, 0
+          for line in dialogue.read_text(encoding="utf-8").splitlines():
+              if not line.strip():
+                  continue
+              taught += 1
+              try:
+                  row = json.loads(line)
+              except json.JSONDecodeError:
+                  continue
+              if isinstance(row, dict) and (row.get("source") == "zeref-self-study-taught"
+                                            or row.get("label") == "TAUGHT"):
+                  taught_self += 1
+          # S_lived comes from the pin file's promotion.ledger_accounting,
+          # written at promote time by the caller who counted the live Talk
+          # thread; the runner cannot see that thread.
+          pin = json.loads(Path("apps/beastbox-cloud/lib/rawrphos-public-pin.json").read_text())
+          pin_ledger = (pin.get("promotion") or {}).get("ledger_accounting")
+          legacy = not isinstance(pin_ledger, dict)
+          if legacy:
+              lived = None
+              lived_source = "unknown: pin promotion predates ledger_accounting (legacy pin)"
+          else:
+              assert pin_ledger.get("R_pin") == steps, (
+                  f"pin ledger R_pin {pin_ledger.get('R_pin')} != manifest step {steps}: "
+                  "the pin moved without a ledger update")
+              lived = pin_ledger.get("S_lived")
+              assert type(lived) is int and lived >= 0, "pin ledger S_lived is not a non-negative count"
+              lived_source = "pin promotion.ledger_accounting (counted from the live Talk thread at promote time)"
+          ledger = {"S_lived": lived, "S_taught_lessons": taught,
+                    "S_taught_self_study": taught_self, "R_pin": steps}
+          # Growth guard against the previous brain release's ledger.json.
+          prev_path = Path("build/ledger/prev/ledger.json")
+          prev = None
+          if prev_path.is_file():
+              try:
+                  prev = json.loads(prev_path.read_text()).get("ledger_accounting")
+              except (OSError, UnicodeError, json.JSONDecodeError):
+                  prev = None
+          if not legacy and isinstance(prev, dict) and type(prev.get("S_lived")) is int:
+              growth = sum(ledger[k] - prev[k] for k in ("S_lived", "S_taught_lessons", "S_taught_self_study"))
+              assert growth > 0, (
+                  f"ledger did not grow since the previous brain release "
+                  f"(dS_lived={ledger['S_lived'] - prev['S_lived']}, "
+                  f"dS_taught_lessons={ledger['S_taught_lessons'] - prev['S_taught_lessons']}, "
+                  f"dS_taught_self_study={ledger['S_taught_self_study'] - prev['S_taught_self_study']}): "
+                  "refusing to advance the page brain")
+              print(f"ledger growth since previous release: +{growth}")
+          elif not legacy:
+              total = (ledger["S_lived"] or 0) + taught + taught_self
+              assert total > 0, "ledger totals are all zero: refusing to advance the page brain"
+              print("no previous brain-release ledger; current ledger totals are positive")
+          else:
+              print("LEGACY: pin has no ledger_accounting; releasing with S_lived unknown, growth not enforced")
+          out = {"schema": "zeref-ledger-accounting-v1", "ledger_accounting": ledger,
+                 "S_lived_source": lived_source,
+                 "previous_ledger_accounting": prev,
+                 "manifest_step": steps,
+                 "manifest_checkpoint_sha256": man["provenance"]["checkpoint_sha256"]}
+          Path("build/ledger").mkdir(parents=True, exist_ok=True)
+          Path("build/ledger/ledger.json").write_text(json.dumps(out, indent=1) + "\n")
+          lived_line = str(ledger["S_lived"]) if ledger["S_lived"] is not None else "unknown (legacy pin)"
+          ckpt12 = man["provenance"]["checkpoint_sha256"][:12]
+          notes = (
+              f"In-browser brain for pin step {steps} (checkpoint {ckpt12}, "
+              f"release {man['provenance']['release_tag']}). "
+              f"ONNX sha256 {man['onnx']['sha256'][:12]}, {man['onnx']['bytes']} bytes, "
+              f"3 chunks, parity 9/9. Fetched by the NavisWORLD repo place workflow; "
+              "files are verified against the manifest on main before placement.\n"
+              "\n"
+              "Ledger accounting (Step 6):\n"
+              f"- S_lived: {lived_line}\n"
+              f"- S_taught_lessons: {taught}\n"
+              f"- S_taught_self_study: {taught_self}\n"
+              f"- R_pin: {steps}\n"
+          )
+          Path("build/ledger/notes.md").write_text(notes)
+          print("ledger:", json.dumps(ledger))
+          PY
       - name: Publish the brain files as a public release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -Eeuo pipefail
           STEPS=$(python -c "import json; print(json.load(open('evidence/zeref-browser-brain-001/manifest.json'))['provenance']['training_steps'])")
-          CKPT12=$(python -c "import json; print(json.load(open('evidence/zeref-browser-brain-001/manifest.json'))['provenance']['checkpoint_sha256'][:12])")
           TAG="zeref-browser-brain-$STEPS"
-          RELTAG=$(python -c "import json; print(json.load(open('evidence/zeref-browser-brain-001/manifest.json'))['provenance']['release_tag'])")
-          ONNXSHA=$(python -c "import json; print(json.load(open('evidence/zeref-browser-brain-001/manifest.json'))['onnx']['sha256'][:12])")
-          ONNXBYTES=$(python -c "import json; print(json.load(open('evidence/zeref-browser-brain-001/manifest.json'))['onnx']['bytes'])")
-          FILES="$BRAIN_DIR/manifest.json $BRAIN_DIR/parity-reference.json $BRAIN_DIR/tokenizer.json $BRAIN_DIR/zeref-step.onnx.part00 $BRAIN_DIR/zeref-step.onnx.part01 $BRAIN_DIR/zeref-step.onnx.part02"
+          FILES="$BRAIN_DIR/manifest.json $BRAIN_DIR/parity-reference.json $BRAIN_DIR/tokenizer.json $BRAIN_DIR/zeref-step.onnx.part00 $BRAIN_DIR/zeref-step.onnx.part01 $BRAIN_DIR/zeref-step.onnx.part02 build/ledger/ledger.json"
           if gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
             echo "release $TAG already exists; uploading with --clobber"
             gh release upload "$TAG" $FILES --clobber --repo "${{ github.repository }}"
           else
             gh release create "$TAG" $FILES --repo "${{ github.repository }}" \
               --title "Zeref browser brain - pin step $STEPS" \
-              --notes "In-browser brain for pin step $STEPS (checkpoint $CKPT12, release $RELTAG). ONNX sha256 $ONNXSHA, $ONNXBYTES bytes, 3 chunks, parity 9/9. Fetched by the NavisWORLD repo place workflow; files are verified against the manifest on main before placement."
+              --notes-file build/ledger/notes.md
           fi
           gh release view "$TAG" --repo "${{ github.repository }}" --json assets --jq '.assets[] | "\(.name) \(.size)"'
       - name: Summary
@@ -152,4 +271,5 @@ jobs:
             echo "### Zeref browser brain release"
             echo
             python -c "import json; m=json.load(open('evidence/zeref-browser-brain-001/manifest.json')); p=m['provenance']; print(f\"release tag: zeref-browser-brain-{p['training_steps']}\"); print(f\"pin step {p['training_steps']}, checkpoint {p['checkpoint_sha256'][:12]}, release {p['release_tag']}\"); print(f\"onnx {m['onnx']['sha256'][:12]}, {m['onnx']['bytes']} bytes, {len(m['onnx']['chunks'])} chunks\")" 2>/dev/null || echo "manifest read failed"
+            python -c "import json; l=json.load(open('build/ledger/ledger.json'))['ledger_accounting']; print(f\"ledger: S_lived={l['S_lived']} S_taught_lessons={l['S_taught_lessons']} S_taught_self_study={l['S_taught_self_study']} R_pin={l['R_pin']}\")" 2>/dev/null || echo "ledger not stamped"
           } >> "$GITHUB_STEP_SUMMARY"
