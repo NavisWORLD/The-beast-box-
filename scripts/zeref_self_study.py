@@ -92,6 +92,7 @@ ROW_LABEL = "TAUGHT"
 
 DAILY_MAX = int(os.environ.get("ZEREF_SELF_STUDY_DAILY_MAX", "12"))
 COOLDOWN_S = int(os.environ.get("ZEREF_SELF_STUDY_COOLDOWN_S", "3600"))
+FAILED_TOPIC_BLOCK_H = int(os.environ.get("ZEREF_SELF_STUDY_FAILED_TOPIC_BLOCK_H", "24"))
 MAX_EVENTS_PER_RUN = 1
 COVERAGE_ROWS_FOR_FULL = 3  # >= this many lesson rows mentioning a topic: gap 0
 SEARCH_TIMEOUT_S = 20
@@ -220,15 +221,19 @@ def score_candidate(confusion: float, gap: float) -> float:
     return confusion * (0.5 + gap)
 
 
-def pick_question(turns: list[dict], lesson_rows: list[dict]) -> dict | None:
+def pick_question(turns: list[dict], lesson_rows: list[dict], blocked: set[str] | None = None) -> dict | None:
     """One question per run: the max-scoring (turn, topic) pair. Ties break
-    deterministically by (score desc, phrase, turn index)."""
+    deterministically by (score desc, phrase, turn index). Topics in blocked
+    (see blocked_topics) are skipped."""
+    blocked = blocked or set()
     best = None
     for idx, turn in enumerate(turns):
         conf, signals = turn_confusion(turn.get("user") or "", turn.get("assistant") or "")
         if conf <= 0.0:
             continue
         for phrase in candidate_topics(turn.get("user") or ""):
+            if phrase in blocked:
+                continue
             score = score_candidate(conf, coverage_gap(phrase, lesson_rows))
             key = (-score, phrase, idx)
             if best is None or key < best[0]:
@@ -615,6 +620,27 @@ def _load_talk_logs(paths: list[Path]) -> list[dict]:
     return turns
 
 
+def blocked_topics(entries: list[dict], now_utc: datetime) -> set[str]:
+    """Topics that failed narration recently. A topic whose narration failed
+    within the last FAILED_TOPIC_BLOCK_H hours is not picked again until the
+    block expires: one failure burns one event, the loop moves on to other
+    confused topics instead of hammering the same wall, and it retries after
+    a day, when the narration may have been fixed or the abstract changed.
+    A repeat failure on the same question can therefore happen at most once
+    a day, never four times in three days unnoticed."""
+    blocked = set()
+    for e in entries:
+        if e.get("status") != "narration_failed":
+            continue
+        ts = _parse_ts(e.get("ts") or "")
+        topic = (e.get("topic") or "").strip()
+        if ts is None or not topic:
+            continue
+        if (now_utc - ts).total_seconds() < FAILED_TOPIC_BLOCK_H * 3600:
+            blocked.add(topic)
+    return blocked
+
+
 def run(ledger_path: Path, rows_path: Path, talk_logs: list[Path], lessons_path: Path,
         screen_path: Path | None, now: datetime | None = None,
         fetcher=None, dry_run: bool = False) -> dict:
@@ -649,7 +675,10 @@ def run(ledger_path: Path, rows_path: Path, talk_logs: list[Path], lessons_path:
     turns = _load_talk_logs(talk_logs)
     receipt["turns_seen"] = len(turns)
     receipt["confusion_before"] = window_confusion(turns)
-    picked = pick_question(turns, lesson_rows)
+    blocked = blocked_topics(entries, now_local.astimezone(timezone.utc))
+    if blocked:
+        receipt["blocked_topics"] = sorted(blocked)
+    picked = pick_question(turns, lesson_rows, blocked)
     if picked is None:
         receipt["status"] = ("no_studyable_topic" if receipt["confusion_before"] > 0 else "no_confusion")
         return receipt
@@ -675,6 +704,9 @@ def run(ledger_path: Path, rows_path: Path, talk_logs: list[Path], lessons_path:
         entry = build_entry(entries, now_local, picked, source, None, "narration_failed")
         _write_attempt(ledger_path, rows_path, entries, entry, None, dry_run)
         receipt["status"] = "narration_failed"
+        receipt["consecutive_failures"] = 1 + sum(
+            1 for e in entries
+            if e.get("status") == "narration_failed" and norm(e.get("question") or "") == norm(picked["question"]))
         return receipt
     screen = Screen(ROOT, screen_path)
     ok, reason = screen_row(picked["question"], answer, screen, lesson_rows, prior_questions)
