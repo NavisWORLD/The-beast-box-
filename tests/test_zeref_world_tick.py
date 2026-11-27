@@ -19,7 +19,8 @@ from pathlib import Path
 import pytest
 
 from scripts.prove_zeref_autonomous_loop import make_probe_mouth
-from scripts.zeref_syndicate_pulse import decode_state12_b64, encode_state12_b64
+from scripts.zeref_autonomous_pulse import CORY_ONLY_ACTIONS, can_autonomous_run_execute
+from scripts.zeref_syndicate_pulse import assemble_story_context_from_taught, decode_state12_b64, encode_state12_b64
 from scripts.zeref_world_tick import canonical_json, run_ticks
 from world.action_actuator import QUANTUM_SHOTS_N
 from world.recorded_dice import (
@@ -30,7 +31,7 @@ from world.recorded_dice import (
     state12_hex,
     turn_seed,
 )
-from world.sensorium_bridge import ambient_fields, compute_condition54
+from world.sensorium_bridge import ambient_fields, build_active_sense_payload, compute_condition54
 
 REPO = Path(__file__).resolve().parents[1]
 SEED = REPO / "world" / "seed_world_001.json"
@@ -239,3 +240,49 @@ def test_permalink_param_is_c12_q8_on_both_ends(tmp_path):
         assert 'params.get("c12_q8")' in src
         assert "m42: 0" in src or "m42 = 0" in src
         assert "8-bit quantized 12D approximation (42D zeroed" in src
+
+
+def test_active_sense_payload_off_feed_is_none():
+    assert build_active_sense_payload("light", "MEASURED", {}) is None
+    assert build_active_sense_payload("light", "MEASURED", None) is None
+
+
+def test_active_sense_payload_modes_and_values():
+    payload = build_active_sense_payload("light", "MEASURED", {"brightness": 0.7, "hue": 0.2})
+    assert payload == {"source_kind": "light", "mode": "MEASURED",
+                       "values": {"brightness": 0.7, "hue": 0.2}}
+    assert build_active_sense_payload("sky", "DERIVED", {"light_flux": 0.5})["mode"] == "DERIVED"
+    with pytest.raises(ValueError):
+        build_active_sense_payload("light", "SIMULATED", {"brightness": 0.5})
+    with pytest.raises(ValueError):
+        build_active_sense_payload("", "MEASURED", {"brightness": 0.5})
+
+
+def test_story_context_uses_real_taught_schema():
+    rows = [
+        {"user": "What is the napping?", "assistant": "The napping is there are multiple different types.",
+         "origin": "https://en.wikipedia.org/wiki/Nap", "license": "CC-BY-SA-4.0",
+         "source": "zeref-self-study-taught", "label": "TAUGHT", "mode": "chat"},
+        {"user": "What is the river?", "assistant": "The river is a natural flowing watercourse.",
+         "origin": "https://en.wiktionary.org/wiki/river", "license": "CC-BY-SA-4.0",
+         "source": "zeref-self-study-taught", "label": "TAUGHT", "mode": "chat"},
+        {"user": "What is the moon?", "assistant": "", "origin": "https://en.wikipedia.org/wiki/Moon",
+         "license": "CC-BY-SA-4.0", "source": "zeref-self-study-taught", "label": "TAUGHT", "mode": "chat"},
+        {"user": "What is the sun?", "assistant": "The sun is a star.",
+         "origin": "", "license": "CC-BY-SA-4.0", "source": "zeref-self-study-taught", "label": "TAUGHT", "mode": "chat"},
+    ]
+    got = assemble_story_context_from_taught(rows, max_items=3)
+    assert [r["user"] for r in got] == ["What is the napping?", "What is the river?"]
+    # A selector keyed on a "text" field (as first drafted) would select
+    # nothing from real rows, which carry "assistant" instead.
+    assert assemble_story_context_from_taught(rows, max_items=1)[0]["user"] == "What is the river?"
+
+
+def test_ownership_guard():
+    assert CORY_ONLY_ACTIONS == {"keys", "money", "name", "merges", "flags",
+                                 "gate", "pin", "accounts", "kids", "cases"}
+    assert can_autonomous_run_execute("chain") is True
+    assert can_autonomous_run_execute("diary") is True
+    assert can_autonomous_run_execute("proposals") is True
+    for action in ("keys", "money", "name", "merges", "flags", "gate", "pin", "accounts", "kids", "cases"):
+        assert can_autonomous_run_execute(action) is False
