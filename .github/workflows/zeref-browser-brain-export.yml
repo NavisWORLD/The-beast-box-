@@ -155,7 +155,7 @@ jobs:
       - name: Commit refreshed evidence and open the PR (the gate)
         if: steps.check.outputs.export_needed == 'true'
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.ZEREF_PR_TOKEN || secrets.GITHUB_TOKEN }}
         run: |
           set -Eeuo pipefail
           git config user.name 'zeref-browser-brain-export[bot]'
@@ -166,7 +166,8 @@ jobs:
           STEPS=$(python -c "import json; print(json.load(open('evidence/zeref-browser-brain-001/manifest.json'))['provenance']['training_steps'])")
           TAG=$(python -c "import json; print(json.load(open('evidence/zeref-browser-brain-001/manifest.json'))['provenance']['release_tag'])")
           BRANCH="zeref/browser-brain-export-$STEPS"
-          git checkout -b "$BRANCH" || git checkout "$BRANCH"
+          git fetch origin "$BRANCH" 2>/dev/null || true
+          git checkout -B "$BRANCH"
           git commit -q -m "zeref browser brain: re-export from pin step $STEPS ($TAG)"
           for i in 1 2 3; do git push -q origin "$BRANCH" && break; sleep 5; git pull -q --rebase origin "$BRANCH" || true; done
           [ "$(git rev-parse HEAD)" = "$(git ls-remote origin "$BRANCH" | cut -f1)" ] || { echo "push failed after retries"; exit 1; }
