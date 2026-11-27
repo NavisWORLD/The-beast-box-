@@ -1,0 +1,134 @@
+name: zeref-autonomous-pulse
+
+# Autonomous pulse: world ticks + heldout-safe graduation + manifest ledger
+# sync + read-only snapshot bundle to public/live_telemetry, all committed
+# to the zeref/world-sandbox-log branch. The page door (NavisWORLD repo)
+# fetches the bundle by raw URL from that branch; nothing is pushed to the
+# NavisWORLD repo by this workflow.
+#
+# LIVE RUNS, NOT DRY RUNS: the pulse fetches the pinned checkpoint (release
+# asset, sha-verified) and the recorded dice table (PR #1034 branch,
+# sha-verified) and runs with --require-live-dice. If either fetch fails,
+# the run FAILS — scheduled runs appending synthetic ticks to the chain are
+# forbidden. The pulse script itself also refuses to append when no real
+# dice table is present (dry-run mode ticks into a temp dir only).
+#
+# COUNTS IN CI: the Talk thread file does not exist in a runner checkout,
+# so S_lived cannot be live-counted there. The pulse reads S_lived from the
+# pin's promotion.ledger_accounting (counted at promote time on the box)
+# and counts S_taught live from dialogue.jsonl in the checkout. The
+# count_live_ledger_totals() helper (which raises FileNotFoundError when a
+# canonical file is missing) is used only by local/box runs where both
+# files exist — never wired into this workflow, by design. See
+# scripts/zeref_ledger_guard.py count_live_ledger_totals for the rule.
+on:
+  workflow_dispatch:
+    inputs:
+      ticks:
+        description: "Ticks per pulse"
+        required: false
+        default: "12"
+  schedule:
+    # Daytime only, 08:15-18:15 CST = 14:15-00:15 UTC (CST = UTC-6).
+    # Verified: "15 14,16,18,20,22,0 * * *" is 08:15, 10:15, 12:15, 14:15,
+    # 16:15, 18:15 CST (in CDT summer it shifts one hour, same as the
+    # existing auto-learn dispatcher pattern).
+    - cron: "15 14,16,18,20,22,0 * * *"
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: zeref-autonomous-pulse
+  cancel-in-progress: false
+
+jobs:
+  pulse:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        # Default checkout: the branch this workflow ran from.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Test suite
+        run: |
+          set -Eeuo pipefail
+          python -m pytest tests/test_zeref_world_tick.py tests/test_zeref_world_graduation.py tests/test_parse_12d_evidence_report.py -q
+      - name: Install runtime (CPU torch, repo)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -Eeuo pipefail
+          python -m pip install -q --upgrade pip
+          pip install -q torch==2.6.0 --index-url https://download.pytorch.org/whl/cpu
+          pip install -q -e . -e ./models/rawrphos
+      - name: Download pinned checkpoint release (sha-verified)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -Eeuo pipefail
+          TAG=$(python -c "import json; print(json.load(open('apps/beastbox-cloud/lib/rawrphos-public-pin.json'))['promotion']['release_tag'])")
+          EXPECTED=$(python -c "import json; print(json.load(open('apps/beastbox-cloud/lib/rawrphos-public-pin.json'))['promotion']['release_asset_sha256'])")
+          gh release download "$TAG" --repo "${{ github.repository }}" --pattern '*.tar.gz' -D build/pulse
+          FILE=$(ls build/pulse/*.tar.gz)
+          ACTUAL=$(sha256sum "$FILE" | cut -d' ' -f1)
+          [ "$ACTUAL" = "$EXPECTED" ] || { echo "sha mismatch: $ACTUAL != $EXPECTED"; exit 1; }
+          tar -xzf "$FILE" -C build/pulse
+          [ -f build/pulse/accepted-checkpoint/tokenizer/tokenizer.json ] || { echo "checkpoint layout unexpected"; exit 1; }
+      - name: Fetch recorded dice table from PR #1034 (sha-verified)
+        run: |
+          set -Eeuo pipefail
+          TABLE_SHA256=fdd6ad7f41578b9654adc168d4982a3b7f787d355543915e3bac7bc317f910d5
+          curl -fsSL --max-time 120 -o build/pulse/quantum-dice-table.bin \
+            "https://raw.githubusercontent.com/NavisWORLD/The-beast-box-/emeth/qrec-full-loop-table/evidence/zeref-qrec-002/quantum-dice-table.bin"
+          ACTUAL=$(sha256sum build/pulse/quantum-dice-table.bin | cut -d' ' -f1)
+          [ "$ACTUAL" = "$TABLE_SHA256" ] || { echo "dice table sha mismatch: $ACTUAL != $TABLE_SHA256"; exit 1; }
+          echo "dice table sha OK: $ACTUAL (11,354,112 recorded shots, RECORDED)"
+      - name: Fetch heldout manifest from PR #1041 (sha-verified)
+        run: |
+          set -Eeuo pipefail
+          HELDOUT_SHA256=f1ff751c98146a3cfe0917727b9b4375538dd880ade71061a95be41a2b4ab6be
+          curl -fsSL --max-time 120 -o build/pulse/heldout-hashes.json \
+            "https://raw.githubusercontent.com/NavisWORLD/The-beast-box-/emeth/self-study-bridge/evidence/zeref-self-study/heldout-hashes.json"
+          ACTUAL=$(sha256sum build/pulse/heldout-hashes.json | cut -d' ' -f1)
+          [ "$ACTUAL" = "$HELDOUT_SHA256" ] || { echo "heldout sha mismatch: $ACTUAL != $HELDOUT_SHA256"; exit 1; }
+          echo "heldout manifest sha OK: $ACTUAL"
+      - name: Run the autonomous pulse
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -Eeuo pipefail
+          git fetch origin zeref/world-sandbox-log 2>/dev/null || echo "no sandbox-log branch yet; starting from seed"
+          if git rev-parse --verify origin/zeref/world-sandbox-log >/dev/null 2>&1; then
+            git checkout origin/zeref/world-sandbox-log -- evidence/zeref-world-sandbox/world_state.json evidence/zeref-world-sandbox/world_chain.jsonl evidence/zeref-world-sandbox/graduated_hashes.json 2>/dev/null || echo "sandbox-log branch has no state yet; starting from seed"
+          fi
+          python3 scripts/zeref_autonomous_pulse.py \
+            --ticks "${{ inputs.ticks || 12 }}" \
+            --checkpoint build/pulse/accepted-checkpoint \
+            --dice-table build/pulse/quantum-dice-table.bin \
+            --heldout-hashes build/pulse/heldout-hashes.json \
+            --require-live-dice
+      - name: Syndicate the pulse
+        run: |
+          set -Eeuo pipefail
+          python3 scripts/zeref_syndicate_pulse.py \
+            --chain evidence/zeref-world-sandbox/world_chain.jsonl \
+            --staged evidence/zeref-world-sandbox/staged_taught_rows.jsonl \
+            --out public/live_telemetry/syndication_feed.json
+      - name: Commit evidence + bundle to the sandbox-log branch
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -Eeuo pipefail
+          git config user.name 'zeref-autonomous-pulse[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add evidence/zeref-world-sandbox public/live_telemetry
+          git status --porcelain | tee build/pulse/status.txt
+          [ -n "$(git status --porcelain)" ] || { echo "no new pulse output; nothing to commit"; exit 0; }
+          git fetch origin zeref/world-sandbox-log 2>/dev/null || true
+          git checkout -B zeref/world-sandbox-log
+          git commit -q -m "autonomous pulse: ${{ inputs.ticks || 12 }} ticks (pin $(python -c "import json; print(json.load(open('apps/beastbox-cloud/lib/rawrphos-public-pin.json'))['training_steps'])"))"
+          for i in 1 2 3; do git push -q origin zeref/world-sandbox-log && break; sleep 5; git pull -q --rebase origin zeref/world-sandbox-log || true; done
+          [ "$(git rev-parse HEAD)" = "$(git ls-remote origin zeref/world-sandbox-log | cut -f1)" ] || { echo "push failed after retries"; exit 1; }
