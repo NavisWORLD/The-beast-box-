@@ -1,0 +1,167 @@
+name: zeref-self-study-land
+
+# Bridge: land clean TAUGHT rows from the zeref-self-study branch onto main.
+#
+# Flow:
+#   1. Triggered by a push to zeref-self-study (or manual dispatch).
+#   2. Reads zeref/self-study-rows.jsonl from the self-study branch.
+#   3. Keeps only label == "TAUGHT" rows not already on main.
+#   4. Screens each row's prompt against evidence/zeref-self-study/heldout-hashes.json
+#      (hashes only; the raw heldout oracle is NEVER in the repo and the runner
+#      never sees it). Exact/normalized overlap -> HELD, never landed.
+#   5. Opens a reviewed PR (zeref/self-study-land-<run_id> -> main) appending
+#      only the clean rows to evidence/zeref-lessons-006/dialogue.jsonl.
+#   6. The heldout hash list itself is NEVER modified (verified before the PR).
+#   7. Held rows are NEVER committed and NEVER quoted in the PR body (a held
+#      prompt may itself be a heldout prompt); they go to a run artifact only.
+#
+# Additive only: this workflow touches dialogue.jsonl by append and opens a PR.
+# It does not touch the export workflow, the export script, model.py, or the
+# talk script. It never merges anything itself; a human reviews the PR.
+
+on:
+  push:
+    branches: [zeref-self-study]
+    paths:
+      - 'zeref/self-study-rows.jsonl'
+      - 'zeref/self-study-ledger.jsonl'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  land:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out self-study branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch main (destination + hash list)
+        run: |
+          git fetch origin main
+          git show origin/main:evidence/zeref-lessons-006/dialogue.jsonl > /tmp/dialogue-main.jsonl
+          git show origin/main:evidence/zeref-self-study/heldout-hashes.json > /tmp/heldout-hashes.json
+          wc -l /tmp/dialogue-main.jsonl
+          python3 -c "import json; d=json.load(open('/tmp/heldout-hashes.json')); print('heldout hashes:', len(d['hashes']), 'oracle:', d['oracle_sha256'][:16], '...')"
+
+      - name: Screen rows and split clean / held
+        id: screen
+        run: |
+          cat > /tmp/screen.py <<'PYEOF'
+          import hashlib, json, re
+
+          def normalize(s: str) -> str:
+              # MUST match heldout-hashes-README.md exactly:
+              # lowercase; every non-alphanumeric, non-whitespace char -> space
+              # (covers punctuation AND math symbols + = x /); collapse whitespace; strip.
+              s = s.lower()
+              s = "".join(ch if (ch.isalnum() or ch.isspace()) else " " for ch in s)
+              return re.sub(r"\s+", " ", s).strip()
+
+          def prompt_hash(s: str) -> str:
+              return hashlib.sha256(normalize(s).encode("utf-8")).hexdigest()
+
+          heldout = set(json.load(open("/tmp/heldout-hashes.json"))["hashes"])
+
+          # Prompts already landed on main (normalized) -> skip, never re-land.
+          on_main = set()
+          main_lines = set()
+          with open("/tmp/dialogue-main.jsonl") as f:
+              for line in f:
+                  line = line.strip()
+                  if not line:
+                      continue
+                  main_lines.add(line)
+                  try:
+                      row = json.loads(line)
+                  except json.JSONDecodeError:
+                      continue
+                  p = row.get("user", "") or row.get("prompt", "") or ""
+                  if normalize(p):
+                      on_main.add(prompt_hash(p))
+
+          clean, held, skipped = [], [], {"not_taught": 0, "already_on_main": 0}
+          with open("zeref/self-study-rows.jsonl") as f:
+              for line in f:
+                  line = line.strip()
+                  if not line:
+                      continue
+                  row = json.loads(line)
+                  if row.get("label") != "TAUGHT":
+                      skipped["not_taught"] += 1
+                      continue
+                  if line in main_lines:
+                      skipped["already_on_main"] += 1
+                      continue
+                  prompt = row.get("user", "") or row.get("prompt", "") or ""
+                  norm = normalize(prompt)
+                  if not norm or prompt_hash(prompt) in heldout or prompt_hash(prompt) in on_main:
+                      reason = ("empty-normalized-prompt" if not norm
+                                else "already-on-main" if prompt_hash(prompt) in on_main
+                                else "heldout-overlap")
+                      held.append({"row": row, "reason": reason})
+                  else:
+                      clean.append(row)
+
+          with open("/tmp/clean.jsonl", "w") as f:
+              for row in clean:
+                  f.write(json.dumps(row, ensure_ascii=False) + "\n")
+          with open("/tmp/held.jsonl", "w") as f:
+              for h in held:
+                  f.write(json.dumps(h["row"], ensure_ascii=False) + "\n")
+          print(f"clean={len(clean)} held={len(held)} "
+                f"not_taught={skipped['not_taught']} already_on_main={skipped['already_on_main']}")
+          for h in held:
+              print(f"HELD {h['reason']}: normalized={normalize(h['row'].get('user','') or h['row'].get('prompt',''))!r}")
+          with open("/tmp/counts.txt", "w") as f:
+              f.write(f"clean={len(clean)}\nheld={len(held)}\n"
+                      f"not_taught={skipped['not_taught']}\nalready_on_main={skipped['already_on_main']}\n")
+          PYEOF
+          python3 /tmp/screen.py
+          cat /tmp/counts.txt
+
+      - name: Upload held rows as a run artifact (never committed, never quoted)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: held-rows-${{ github.run_id }}
+          path: /tmp/held.jsonl
+          if-no-files-found: warn
+
+      - name: Open landing PR (clean rows only)
+        if: steps.screen.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          source /tmp/counts.txt
+          if [ "$clean" = "0" ]; then
+            echo "No clean rows to land (clean=0 held=$held). No PR opened."
+            exit 0
+          fi
+          BRANCH="zeref/self-study-land-${{ github.run_id }}"
+          git checkout -b "$BRANCH" origin/main
+          cat /tmp/clean.jsonl >> evidence/zeref-lessons-006/dialogue.jsonl
+          # Guard: the heldout hash list must be untouched.
+          git diff --exit-code -- evidence/zeref-self-study/heldout-hashes.json
+          git status --porcelain
+          git add evidence/zeref-lessons-006/dialogue.jsonl
+          git -c user.name="emeth-self-study-land" -c user.email="emeth@local" commit \
+            -m "Land $clean clean TAUGHT row(s) from zeref-self-study (run ${{ github.run_id }})"
+          git push origin "$BRANCH"
+          gh pr create --base main --head "$BRANCH" \
+            --title "Land $clean clean TAUGHT row(s) from zeref-self-study (run ${{ github.run_id }})" \
+            --body "Self-study landing bridge (run ${{ github.run_id }}).
+
+          - Clean TAUGHT rows landed: $clean
+          - Held (heldout-overlap / already-on-main / empty): $held — NOT in this PR; see the held-rows run artifact. Held prompts are never quoted here.
+          - Non-TAUGHT rows skipped: $not_taught; already on main: $already_on_main
+          - Screen: normalized-prompt SHA-256 vs evidence/zeref-self-study/heldout-hashes.json (hashes only; raw oracle never in repo).
+          - Source branch: zeref-self-study (zeref/self-study-rows.jsonl).
+          - Destination: evidence/zeref-lessons-006/dialogue.jsonl (append only).
+          - Heldout hash list untouched (verified by git diff --exit-code before commit).
+
+          Human review required; this workflow never merges."
