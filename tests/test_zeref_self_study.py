@@ -169,6 +169,79 @@ def test_fort_question_lands_a_row(tmp_path):
     assert taught[0]["label"] == "TAUGHT"
 
 
+# ---------------------------------------------------------------- repeat failures
+
+
+def _failed_entry(entries, when, question, topic):
+    picked = {"question": question, "search_query": question, "topic": topic,
+              "confusion": 0.7, "signals": ["off_topic"]}
+    return S.build_entry(entries, when, picked, APPLE_SOURCE, None, "narration_failed")
+
+
+def _write_ledger(tmp_path, entries):
+    path = tmp_path / "ledger.jsonl"
+    path.write_text("".join(S._canonical(e) + "\n" for e in entries))
+    return path
+
+
+RIVER_SOURCE = {"abstract": "The river is a natural flowing watercourse.",
+                "url": "https://en.wikipedia.org/wiki/River", "source": "Wikipedia",
+                "license": "CC-BY-SA-4.0"}
+FORT_SOURCE = {"abstract": ("A fortification is a military construction designed for the defense "
+                            "of territories in warfare."),
+               "url": "https://en.wikipedia.org/wiki/Fortification", "source": "Wikipedia",
+               "license": "CC-BY-SA-4.0"}
+
+
+def test_pick_question_skips_blocked_topic():
+    turns = [{"user": "What is the fort?", "assistant": "I don't know"},
+             {"user": "What is the river?", "assistant": "I don't know"}]
+    assert S.pick_question(turns, [], {"fort"})["topic"] == "river"
+    assert S.pick_question(turns, [])["topic"] == "fort"
+
+
+def test_run_moves_on_after_recent_narration_failure(tmp_path):
+    # The Nov 25-27 "fort" loop: four failures in three days because nothing
+    # remembered the failures. One recent failure now blocks the topic for a
+    # day, so the run studies the next confused topic instead.
+    entries = [_failed_entry([], NOW - timedelta(hours=2), "What is the fort?", "fort")]
+    _write_ledger(tmp_path, entries)
+    turns = [{"user": "What is the fort?", "assistant": "I don't know"},
+             {"user": "What is the river?", "assistant": "I don't know"}]
+    receipt, ledger, rows = _run(tmp_path, turns, fetcher=lambda q: RIVER_SOURCE)
+    assert receipt["status"] == "studied"
+    assert receipt["topic"] == "river"
+    assert receipt["blocked_topics"] == ["fort"]
+    assert len(S._load_jsonl(rows)) == 1
+
+
+def test_run_retries_failed_topic_after_block_expires(tmp_path):
+    entries = [_failed_entry([], NOW - timedelta(hours=25), "What is the fort?", "fort")]
+    _write_ledger(tmp_path, entries)
+    turns = [{"user": "What is the fort?", "assistant": "I don't know"}]
+    receipt, ledger, rows = _run(tmp_path, turns, fetcher=lambda q: FORT_SOURCE)
+    assert receipt["status"] == "studied"
+    assert receipt["topic"] == "fort"
+    assert "blocked_topics" not in receipt
+
+
+def test_narration_failure_receipt_counts_consecutive(tmp_path):
+    # Two earlier failures, both past the 24h block, so the question is
+    # picked again; the receipt shows this is the third failure, not the first.
+    moon_abstract = {"abstract": ("The moon is the only natural satellite that orbits the Earth every month "
+                                  "and lights the night sky for all of us."),
+                     "url": "https://en.wikipedia.org/wiki/Moon", "source": "Wikipedia",
+                     "license": "CC-BY-SA-4.0"}
+    entries = [_failed_entry([], NOW - timedelta(hours=49), "What does moon mean?", "moon")]
+    entries.append(_failed_entry(entries, NOW - timedelta(hours=25), "What does moon mean?", "moon"))
+    _write_ledger(tmp_path, entries)
+    turns = [{"user": "What is the moon?", "assistant": "I don't know"}]
+    receipt, ledger, rows = _run(tmp_path, turns, fetcher=lambda q: moon_abstract)
+    assert receipt["status"] == "narration_failed"
+    assert receipt["consecutive_failures"] == 3
+    assert not rows.exists()
+
+
 # ---------------------------------------------------------------- screening
 
 
