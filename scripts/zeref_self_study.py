@@ -332,15 +332,29 @@ def narrate(topic: str, abstract: str) -> str | None:
     sentences = [s.strip() for s in re.split(r"(?<=[.!?])\s+", text) if s.strip()]
     if not sentences:
         return None
-    first = next((s for s in sentences if topic.split()[0] in s.lower()), sentences[0])
+    first_word = topic.split()[0].lower()
+
+    def _word_in(text: str, word: str) -> bool:
+        return re.search(r"\b" + re.escape(word) + r"\b", text) is not None
+
+    first = next((s for s in sentences if _word_in(s.lower(), first_word)), sentences[0])
     first = _head_clause(first.rstrip(".!?"))
     low = first.lower()
     pred = None
-    m = re.match(r"^(the|a|an)\s+" + re.escape(topic.lower()) + r"\s+(is|are|was|were|means?)\s+(.+)$", low)
+    # Subject may be the topic itself ("a fort is ...") or a word starting
+    # with the topic's first word ("a fortification is ..." for topic "fort"):
+    # the word family is the subject, not a mid-sentence copy. Substring
+    # matching is never used: "fort" inside "fortification" must not trip
+    # the copy refusal below.
+    subject = r"(?:" + re.escape(topic.lower()) + r"|" + re.escape(first_word) + r"\S*)"
+    m = re.match(r"^(the|a|an)\s+" + subject + r"\s+(is|are|was|were|means?)\s+(.+)$", low)
     if m:
         pred = m.group(3).strip()
-    elif topic.lower() in low:
-        return None  # topic appears mid-sentence; rebuilding would copy it
+    elif _word_in(low, topic.lower()):
+        return None  # topic appears mid-sentence as its own word; rebuilding would copy it
+    elif any(first_word in w and not (w.startswith(first_word) or first_word.startswith(w))
+             for w in re.findall(r"[a-z0-9']+", low)):
+        return None  # topic only appears inside an unrelated word; do not narrate from it
     else:
         pred = low
         if pred.startswith(("the ", "a ", "an ")):
