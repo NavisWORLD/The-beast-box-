@@ -79,7 +79,7 @@ def x_post(item: dict) -> str:
     """X post payload, at most 280 characters. The URL is never truncated."""
     url = item["replay_url"]
     text = (f"Zeref at the {item['node']} (tick {item['tick']}). "
-            f"{item['moment']} 8-bit 12D preview — replay the moment:")
+            f"{item['moment']} 8-bit 12D preview - replay the moment:")
     post = f"{text} {url}"
     if len(post) <= MAX_X_CHARS:
         return post
@@ -146,6 +146,19 @@ def build_syndication_bundle(chain_path: Path, staged_path: Path, pin_step: int,
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(json.dumps(feed, indent=1, sort_keys=True) + "\n", encoding="utf-8")
     return feed
+
+
+def assemble_story_context_from_taught(taught_rows: list[dict], max_items: int = 3) -> list[dict]:
+    """Additive read-only selector for story context: the last `max_items`
+    TAUGHT rows that already carry an answer, a license, and an origin URL.
+    Uses the real TAUGHT row schema (assistant/license/origin); there is no
+    "text" field on real rows, so a selector keyed on it would select
+    nothing."""
+    eligible = [r for r in taught_rows
+                if (r.get("assistant") or "").strip()
+                and (r.get("license") or "").strip()
+                and (r.get("origin") or "").strip()]
+    return eligible[-max_items:]
 
 
 def main(argv=None) -> int:
