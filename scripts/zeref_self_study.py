@@ -269,6 +269,37 @@ class SearchError(Exception):
     pass
 
 
+# Open-license gate for travel beyond Wikipedia (Gemini part 4, verified):
+# a source is allowed only when its license is a recognized open license
+# AND the source itself is on the explicit allowlist. New sources join the
+# map only once their license verification exists; the gate never accepts
+# an unverified scraped page.
+OPEN_SOURCE_LICENSES = {"wikipedia": "CC-BY-SA-4.0", "wiktionary": "CC-BY-SA-4.0"}
+ALLOWED_OPEN_LICENSES = {"CC-BY-SA-4.0", "CC-BY-SA-3.0", "CC-BY-SA", "CC0-1.0", "PUBLIC-DOMAIN"}
+
+
+def _normalize_license(value) -> str:
+    return (value or "").strip().upper().replace(" ", "-")
+
+
+def accept_licensed_source(record: dict) -> bool:
+    """True when the record carries a recognized open license and a non-empty
+    summary. License alone is not enough; a record with no summary to
+    narrate from is refused."""
+    return (_normalize_license(record.get("license")) in ALLOWED_OPEN_LICENSES
+            and bool((record.get("summary") or "").strip()))
+
+
+def _open_source_license(source_name) -> str | None:
+    """License for a known open source by name, else None. Substring match so
+    "Simple Wikipedia" still maps to Wikipedia's license."""
+    name = (source_name or "").lower()
+    for key, lic in OPEN_SOURCE_LICENSES.items():
+        if key in name:
+            return lic
+    return None
+
+
 def fetch_abstract(query: str, opener=None) -> dict:
     """One DuckDuckGo instant-answer fetch. Wikipedia abstracts only (CC
     BY-SA): any other source, or no abstract, is a failed search, not a
@@ -286,9 +317,10 @@ def fetch_abstract(query: str, opener=None) -> dict:
     abstract = (body.get("AbstractText") or "").strip()
     source = (body.get("AbstractSource") or "").strip()
     link = (body.get("AbstractURL") or "").strip()
-    if not abstract or "wikipedia" not in source.lower() or not link:
+    lic = _open_source_license(source)
+    if not abstract or lic is None or not link:
         raise SearchError("no_open_abstract")
-    return {"abstract": abstract, "url": link, "source": source, "license": "CC-BY-SA-4.0"}
+    return {"abstract": abstract, "url": link, "source": source, "license": lic}
 
 
 # ---------------------------------------------------------------- narration
@@ -323,6 +355,38 @@ def _verbatim_run(answer: str, source: str, n: int = MAX_VERBATIM_RUN) -> str | 
     return None
 
 
+_IRREGULAR_FAMILY = {
+    "teeth": "tooth", "feet": "foot", "geese": "goose",
+    "men": "man", "women": "woman", "children": "child", "leaves": "leaf",
+}
+
+
+def _normalize_family_token(token: str) -> str:
+    """Morphological stem for family matching: irregular forms first, then
+    one suffix strip. The irregular map is checked before stripping, so
+    "leaves" becomes "leaf" instead of "leav"."""
+    t = token.lower()
+    if t in _IRREGULAR_FAMILY:
+        return _IRREGULAR_FAMILY[t]
+    for suffix in ("ification", "ations", "ation", "ments", "ment", "ness", "ing", "ed", "es", "s"):
+        if len(t) > len(suffix) + 3 and t.endswith(suffix):
+            t = t[: -len(suffix)]
+            break
+    return _IRREGULAR_FAMILY.get(t, t)
+
+
+def _same_family_word(word: str, first_word: str) -> bool:
+    """True when two words are the same word family: same stem, or one is a
+    prefix of the other (fort/fortification, nap/napping). Words shorter than
+    3 letters never count by prefix, so "a" cannot match "apple"."""
+    w, f = word.lower(), first_word.lower()
+    if _normalize_family_token(w) == _normalize_family_token(f):
+        return True
+    if len(w) >= 3 and len(f) >= 3:
+        return w.startswith(f) or f.startswith(w)
+    return False
+
+
 def narrate(topic: str, abstract: str) -> str | None:
     """Fixed-template narration into simple original words. The answer is
     built from the abstract's first topic sentence, rebuilt as
@@ -339,31 +403,34 @@ def narrate(topic: str, abstract: str) -> str | None:
         return None
     first_word = topic.split()[0].lower()
 
-    def _word_in(text: str, word: str) -> bool:
-        return re.search(r"\b" + re.escape(word) + r"\b", text) is not None
+    def _family_here(sentence: str) -> bool:
+        return any(_same_family_word(w, first_word)
+                   for w in re.findall(r"[a-z0-9']+", sentence.lower()))
 
-    first = next((s for s in sentences if _word_in(s.lower(), first_word)), sentences[0])
+    first = next((s for s in sentences if _family_here(s)), sentences[0])
     first = _head_clause(first.rstrip(".!?"))
     low = first.lower()
     pred = None
-    # Subject may be the topic itself ("a fort is ...") or a word starting
-    # with the topic's first word ("a fortification is ..." for topic "fort"):
-    # the word family is the subject, not a mid-sentence copy. Substring
-    # matching is never used: "fort" inside "fortification" must not trip
-    # the copy refusal below.
-    subject = r"(?:" + re.escape(topic.lower()) + r"|" + re.escape(first_word) + r"\S*)"
-    m = re.match(r"^(the|a|an)\s+" + subject + r"\s+(is|are|was|were|means?)\s+(.+)$", low)
+    # Subject may be the topic itself ("a fort is ...") or a word from the
+    # topic's family ("a fortification is ..." for topic "fort", "teeth are ..."
+    # for topic "tooth"): the word family is the subject, not a mid-sentence
+    # copy. Substring matching is never used: "fort" inside "fortification"
+    # must not trip the copy refusal below.
+    m = re.match(r"^(the|a|an)\s+" + re.escape(topic.lower()) + r"\s+(is|are|was|were|means?)\s+(.+)$", low)
     if m:
         pred = m.group(3).strip()
-    elif _word_in(low, topic.lower()):
-        return None  # topic appears mid-sentence as its own word; rebuilding would copy it
-    elif any(first_word in w and not (w.startswith(first_word) or first_word.startswith(w))
-             for w in re.findall(r"[a-z0-9']+", low)):
-        return None  # topic only appears inside an unrelated word; do not narrate from it
     else:
-        pred = low
-        if pred.startswith(("the ", "a ", "an ")):
-            pred = pred.split(" ", 1)[1]
+        m2 = re.match(r"^(?:(the|a|an)\s+)?(\S+)\s+(is|are|was|were|means?)\s+(.+)$", low)
+        if m2 and _same_family_word(m2.group(2), first_word):
+            pred = m2.group(4).strip()
+        elif _family_here(low):
+            return None  # topic family appears mid-sentence; rebuilding would copy it
+        elif any(first_word in w for w in re.findall(r"[a-z0-9']+", low)):
+            return None  # topic only appears inside an unrelated word; do not narrate from it
+        else:
+            pred = low
+            if pred.startswith(("the ", "a ", "an ")):
+                pred = pred.split(" ", 1)[1]
     if not pred:
         return None
     for attempt in range(2):
@@ -693,7 +760,9 @@ def run(ledger_path: Path, rows_path: Path, talk_logs: list[Path], lessons_path:
         receipt["status"] = "search_failed"
         receipt["why"] = str(exc)
         return receipt
-    if "wikipedia" not in (source.get("source") or "").lower():
+    if (_open_source_license(source.get("source")) is None
+            or not accept_licensed_source({"license": source.get("license"),
+                                           "summary": source.get("abstract")})):
         entry = build_entry(entries, now_local, picked, source, None, "search_failed:non_open_source")
         _write_attempt(ledger_path, rows_path, entries, entry, None, dry_run)
         receipt["status"] = "search_failed"
