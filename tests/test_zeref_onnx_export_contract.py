@@ -27,9 +27,9 @@ def test_exporter_proves_parity_and_chunks_under_github_limits():
 
 def test_recorded_manifest_provenance():
     p = MANIFEST["provenance"]
-    assert p["training_steps"] == 45744
-    assert p["checkpoint_sha256"].startswith("0f29d5c33828")
-    assert p["release_tag"] == "zeref-006-cycle-86-0f29d5c33828"
+    assert p["training_steps"] == 47664
+    assert p["checkpoint_sha256"].startswith("b2678b9a19eb")
+    assert p["release_tag"] == "zeref-006-cycle-92-b2678b9a19eb"
     assert MANIFEST["parity"]["onnxruntime_python_vs_torch_greedy"] == "9/9"
     assert all(c["bytes"] < 50_000_000 for c in MANIFEST["onnx"]["chunks"])
     assert sum(c["bytes"] for c in MANIFEST["onnx"]["chunks"]) == MANIFEST["onnx"]["bytes"]

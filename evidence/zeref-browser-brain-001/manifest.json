@@ -2,10 +2,10 @@
  "schema": "zeref-browser-brain-v1",
  "provenance": {
   "pin_file": "The-beast-box-/apps/beastbox-cloud/lib/rawrphos-public-pin.json",
-  "training_steps": 45744,
-  "checkpoint_sha256": "0f29d5c33828b591891f993d507a22afb04c4fca4d25ebb32dffb9c6b4304233",
-  "release_tag": "zeref-006-cycle-86-0f29d5c33828",
-  "release_asset_sha256": "8a9723244b337ec7bc3143a236e32e6d43da9d9673c77717ad04303c03c1075c",
+  "training_steps": 47664,
+  "checkpoint_sha256": "b2678b9a19eb982772b916bab0be3097a95c4a240dca59ac1060baa631abc34b",
+  "release_tag": "zeref-006-cycle-92-b2678b9a19eb",
+  "release_asset_sha256": "bb621fab990ef67351e9ea0b7b14eb5d7f56bc5e8539be3e977ea9ed2276e4dc",
   "exporter": "The-beast-box-/scripts/zeref_onnx_export.py",
   "serve_time_upgrades": "RAWRPHOS_KIT_LAYERS=1 (trinity+hebbian, as the server)",
   "torch": "2.6.0+cpu",
@@ -13,29 +13,29 @@
   "onnx": "1.23.2",
   "onnxslim": "0.1.99",
   "python": "3.11.18",
-  "exported_at": "2026-11-23T04:27:00+0000"
+  "exported_at": "2026-11-27T02:31:55+0000"
  },
  "onnx": {
   "file": "zeref-step.onnx",
   "bytes": 96773022,
-  "sha256": "27e2a9178608c5c0f125c6117a69af32838d6345101f88b023591656ec537dd0",
+  "sha256": "5ce6342635e4dd3e3ba9ec05ac113030b84b165d78c13c05bcc0d021db2d410f",
   "dtype": "float32",
   "opset": 17,
   "chunks": [
    {
     "file": "zeref-step.onnx.part00",
     "bytes": 47185920,
-    "sha256": "f380cf7f5e481dd7d7dcf568ba837eefc1b4020208bf136e6e01a032a948bce3"
+    "sha256": "85adabad922a9257bc2d2acc3caaeb225ecd8e263183d55e1d493a367a8d4051"
    },
    {
     "file": "zeref-step.onnx.part01",
     "bytes": 47185920,
-    "sha256": "65b2f15dfed5e32bf53f0a4c1514d00874810ab69f67f155aa3a25df1fdc6cd8"
+    "sha256": "de1d0c43447be028efbbdc92ca779fb2cd3569d68529acf70e08d3f41c20163b"
    },
    {
     "file": "zeref-step.onnx.part02",
     "bytes": 2401182,
-    "sha256": "f03eef37af1ddd75392a6b1e39678cb6f81edd77035945c1c1dbc9cb18c60d6b"
+    "sha256": "2e5b22145501813e33af44eef1bef362a3115ccf504e1b0ef5798df6da430d54"
    }
   ]
  },
