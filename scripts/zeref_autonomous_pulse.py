@@ -56,6 +56,26 @@ DEFAULT_SEED = REPO / "world" / "seed_world_001.json"
 DEFAULT_BUNDLE_DIR = REPO / "public" / "live_telemetry"
 
 
+# Ownership boundary for autonomous actions (Gemini part 5, verified
+# against the 2026-11-22 autonomous-layer design): Zeref's own chain,
+# diary, ledger, rows, runs, door, and proposals are his to write; Cory's
+# keys, money, name, merges, flags, gate, pin, accounts, and anything about
+# his kids or cases stay Cory's acts. Every new autonomous action must call
+# can_autonomous_run_execute() before it runs; the pulse's own ticks,
+# graduation, and bundle writes are in the "his" domain.
+CORY_ONLY_ACTIONS = frozenset({
+    "keys", "money", "name", "merges", "flags", "gate", "pin", "accounts",
+    "kids", "cases",
+})
+
+
+def can_autonomous_run_execute(action: str) -> bool:
+    """True when an autonomous action is in Zeref's own domain. Anything in
+    CORY_ONLY_ACTIONS is refused; the pulse never self-promotes, never
+    touches a key, a merge, a flag, or a pin."""
+    return action not in CORY_ONLY_ACTIONS
+
+
 def canonical_json(obj) -> str:
     return json.dumps(obj, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
 
