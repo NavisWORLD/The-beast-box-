@@ -130,3 +130,70 @@ def floor_gain(model, floor):
         sign = torch.where(head < 0, -torch.ones_like(head), torch.ones_like(head))
         head.copy_(torch.where(head.abs() < floor, sign * floor, head))
     return [round(float(x), 6) for x in gain.data[:12]]
+
+
+def jsd_mean(logits_p, logits_q, targets):
+    """Mean Jensen-Shannon divergence (nats) between two next-token distributions, over
+    supervised positions (targets != -100). Differentiable: used by the CF-JS margin loss
+    and, under no-grad, by the mouth12 gate probe."""
+    import torch
+    mask = (targets != -100)
+    if not bool(mask.any()):
+        return None
+    p = torch.softmax(logits_p.float(), dim=-1)
+    q = torch.softmax(logits_q.float(), dim=-1)
+    m = 0.5 * (p + q)
+
+    def kl(a, b):
+        return (a * (a.clamp_min(1e-12).log() - b.clamp_min(1e-12).log())).sum(-1)
+
+    return (0.5 * kl(p, m) + 0.5 * kl(q, m))[mask].mean()
+
+
+def mouth12_probe(model, encode, rows):
+    """Gate probe 9 (Step 5): does the 12D path carry signal the text does not?
+
+    On text-hidden served rows (the descriptor text removed, so the answer is reachable
+    only through the tensor): delta_nll_12d = NLL(unconditioned) - NLL(conditioned on the
+    row's own recorded state12), and mean_jsd = mean JSD between the own-state and the
+    rolled-state (row j conditioned on row j-1's state) distributions. Returns None when
+    no usable rows exist (probe did not run: the gate treats that as not-applicable)."""
+    import torch
+    hidden = []
+    conds = []
+    for row in rows or []:
+        example = encode_row(encode, row)
+        if example is None or not example.get("served_shape"):
+            continue
+        state = descriptor_state(example.get("messages"))
+        if state is None or not example.get("hidden"):
+            continue
+        hidden.append(example["hidden"])
+        conds.append(condition54(state))
+    if not hidden:
+        return None
+    was_training = model.training
+    model.eval()
+    try:
+        with torch.inference_mode():
+            cond_t = torch.tensor(conds, dtype=torch.float32)
+            rolled = torch.roll(cond_t, shifts=1, dims=0)
+            nll_c = 0.0
+            nll_u = 0.0
+            jsds = []
+            for j, h in enumerate(hidden):
+                x = torch.tensor([h["input"]])
+                y = torch.tensor([h["target"]])
+                nll_c += float(model(x, targets=y, condition54=cond_t[j:j + 1])["loss"])
+                nll_u += float(model(x, targets=y)["loss"])
+                lg_c = model(x, condition54=cond_t[j:j + 1])["logits"]
+                lg_r = model(x, condition54=rolled[j:j + 1])["logits"]
+                v = jsd_mean(lg_c, lg_r, y)
+                if v is not None:
+                    jsds.append(float(v))
+        return {"rows": len(hidden),
+                "delta_nll_12d": round(nll_u / len(hidden) - nll_c / len(hidden), 6),
+                "mean_jsd": round(sum(jsds) / len(jsds), 6) if jsds else None}
+    finally:
+        if was_training:
+            model.train()
