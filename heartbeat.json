@@ -1,5 +1,5 @@
 {
- "disk_free_mb": 73401,
+ "disk_free_mb": 73141,
  "last_batch": {
   "grad_norm": 6.287288188934326,
   "sources": {
@@ -17,14 +17,14 @@
   "step": 320
  },
  "last_lines": [
-  "ZEREF_006_SPLIT_ROUND={\"best_in_cycle\": {\"chat_a_nll\": 3.4148119366168976, \"index\": 2, \"parent_checkpoint_sha256\": \"b2678b9a19eb982772b916bab0be3097a95c4a240dca59ac1060baa631abc34b\"}, \"candidates_finished\": [0, 1, 2, 3], \"control\": \"finished\"}",
-  "ZEREF_006_CANDIDATE_SELECTED={\"index\": 2, \"chat_a_nll\": 3.4148119366168976, \"of\": 4, \"rule\": \"lowest set A NLL; set B never used to select; unchanged Gate v2 applies to the selected candidate only\"}",
-  "ZEREF_COND54_BANK={\"bank_sha256\": \"4cb3906ac11526a9deedd8f50edac2715d5c03dae17dee88bb98ba7e82de8333\", \"drop\": 0.5, \"first_tick\": 23703, \"label\": \"Rigetti SIMULATED spark ticks (bb-deada969); other bands masked 0.0\", \"last_tick\": 24303, \"pairing\": \"by training-step time, not by meaning (no owner sens"
+  "ZEREF_006_REAL_TRAINING_GATE={\"approved\": true, \"cycle\": 93, \"canonical_root\": \"37ca3f8fc9cdc0e78175508fc816ed02d5a12da1f3b106505715b7366fde5a48\", \"parent\": \"b2678b9a19eb982772b916bab0be3097a95c4a240dca59ac1060baa631abc34b\", \"candidate\": \"3750de99ea83d052ee7575f26460c92683a1f84dd31fc7f8dcf08fe7e6360",
+  "ZEREF_006_OBSERVATION_DIAGNOSTICS={\"source\": \"original_native_rom_emulator_screen_summaries\", \"scripted_teacher_action_histogram\": {\"A\": 9, \"B\": 7, \"DOWN\": 11, \"LEFT\": 12, \"RIGHT\": 7, \"UP\": 10}, \"unique_before_frame_summaries\": 29, \"unique_after_frame_summaries\": 26, \"different_before_after_summarie",
+  "ZEREF_006_NEXT_PARENT={\"accepted\": true, \"optimizer_steps_completed\": 320, \"checkpoint_preserved\": true}"
  ],
- "log_bytes": 566837,
- "mem_available_mb": 13561,
+ "log_bytes": 569427,
+ "mem_available_mb": 14553,
  "run_id": "45899900683",
  "schema": "zeref-round-heartbeat-v1",
- "trainer_rss_mb": 1177,
- "ts": 1795742066.5487592
+ "trainer_rss_mb": null,
+ "ts": 1795742091.8790388
 }
