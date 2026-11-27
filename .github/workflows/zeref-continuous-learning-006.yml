@@ -66,6 +66,18 @@ jobs:
       TOKENIZERS_PARALLELISM: 'false'
       NAVISWORLD_NATIVE_TRAINING_BEAST: zeref
       NAVISWORLD_NATIVE_TRAINING_CYCLE: ${{ github.run_id }}
+      # FILM SWITCH (PR 2, Cory's order): switch the 12D-into-the-mouth FiLM
+      # taps + CF-JS margin loss ON in training. Both vars are REAL trainer
+      # inputs (scripts/zeref_continuation_006.py L345-346 on the #1043
+      # branch; defaults "0"). The margin 0.03 and the 0.05/0.02 gate
+      # thresholds are hardcoded literals in the trainer, NOT env vars —
+      # ZEREF_CFJS_FLOOR / ZEREF_12D_MIN_DELTA_NLL / ZEREF_12D_MIN_JSD do
+      # not exist and are deliberately NOT set here. This does not change
+      # live serving: the flags are training-only, and the 9th gate
+      # (scripts/gate_12d_paired_control.py) must pass before any film
+      # candidate promotes.
+      ZEREF_FILM12: "1"
+      ZEREF_CFJS_MARGIN: "1"
     steps:
       # Explicit owner-requested controlled CPU continuation after Azure Blob read/write proof.
       # Still the established 006 lineage: this does NOT endorse rejected experiment 011,
@@ -772,3 +784,4 @@ jobs:
             build/zeref-006/identity-probe.json
             build/zeref-006/failure.json
           if-no-files-found: error
+
