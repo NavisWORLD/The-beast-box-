@@ -329,3 +329,96 @@ def test_sync_workflow_delegates_to_the_sha_check():
     assert '[ "$got" = "$want" ]' not in text
     assert "training_steps" not in text
     assert "/api/guest" not in text
+
+
+# --- Ledger accounting (Step 6) -------------------------------------------
+# A pin advance carries ledger_accounting {S_lived, S_taught_lessons,
+# S_taught_self_study, R_pin} and is refused unless lived+taught grew.
+
+DIALOGUE_REL = Path("evidence/zeref-lessons-006/dialogue.jsonl")
+
+
+def write_dialogue(root: Path, rows: list[dict]) -> None:
+    path = root / DIALOGUE_REL
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in rows), encoding="utf-8")
+
+
+def dialogue_rows(n_lessons: int = 2, n_self_study: int = 1) -> list[dict]:
+    rows = [{"user": f"u{i}", "assistant": f"a{i}", "source": "zeref-lessons-006"}
+            for i in range(n_lessons)]
+    rows += [{"user": f"s{i}", "assistant": f"t{i}", "source": "zeref-self-study-taught", "label": "TAUGHT"}
+             for i in range(n_self_study)]
+    return rows
+
+
+def test_compute_ledger_counts_dialogue_rows_and_self_study_markers(tmp_path):
+    mod = load()
+    root = copy_pin_tree(tmp_path)
+    assert mod.compute_ledger(root, 1570, 47345) == {
+        "S_lived": 1570, "S_taught_lessons": 0, "S_taught_self_study": 0, "R_pin": 47345}
+    write_dialogue(root, dialogue_rows(2, 1))
+    assert mod.compute_ledger(root, 1570, 47345) == {
+        "S_lived": 1570, "S_taught_lessons": 3, "S_taught_self_study": 1, "R_pin": 47345}
+    assert mod.previous_ledger(json.loads((root / PIN_REL).read_text())) == {
+        "S_lived": 0, "S_taught_lessons": 0, "S_taught_self_study": 0, "R_pin": 0}
+
+
+def test_promote_writes_ledger_accounting_and_keeps_gates(tmp_path):
+    mod = load()
+    root = copy_pin_tree(tmp_path)
+    write_dialogue(root, dialogue_rows(2, 1))
+    original = json.loads((root / PIN_REL).read_text())
+    tag, raw, sidecar, model_sha, asset = make_release(b"ledger-weights", 37011)
+    result = mod.promote(tag, root, fetch=fetcher(tag, raw, sidecar), lived_turns=1570)
+    assert result["training_steps"] == 37011
+    pin = json.loads((root / PIN_REL).read_text())
+    assert pin["promotion"]["ledger_accounting"] == {
+        "S_lived": 1570, "S_taught_lessons": 3, "S_taught_self_study": 1, "R_pin": 37011}
+    assert pin["gate_v2"] == original["gate_v2"]
+    assert pin["promotion"]["chat_not_worse"] == original["promotion"]["chat_not_worse"]
+    mod.files_agree(root)
+    assert not list(root.rglob("*.tmp"))
+
+
+def test_promote_guard_refuses_zero_growth_without_writing(tmp_path):
+    mod = load()
+    root = copy_pin_tree(tmp_path)
+    write_dialogue(root, dialogue_rows(2, 1))
+    tag, raw, sidecar, _sha, _asset = make_release(b"ledger-once", 37012)
+    mod.promote(tag, root, fetch=fetcher(tag, raw, sidecar), lived_turns=1570)
+    before = snapshot(root)
+    tag2, raw2, sidecar2, _sha2, _asset2 = make_release(b"ledger-twice", 37013)
+    with pytest.raises(mod.PromotePinError, match="ledger did not grow"):
+        mod.promote(tag2, root, fetch=fetcher(tag2, raw2, sidecar2), lived_turns=1570)
+    assert snapshot(root) == before
+
+
+def test_promote_guard_passes_when_only_taught_rows_grow(tmp_path):
+    mod = load()
+    root = copy_pin_tree(tmp_path)
+    write_dialogue(root, dialogue_rows(2, 0))
+    tag, raw, sidecar, _sha, _asset = make_release(b"ledger-taught-a", 37014)
+    mod.promote(tag, root, fetch=fetcher(tag, raw, sidecar), lived_turns=1570)
+    write_dialogue(root, dialogue_rows(3, 0))
+    tag2, raw2, sidecar2, _sha2, _asset2 = make_release(b"ledger-taught-b", 37015)
+    mod.promote(tag2, root, fetch=fetcher(tag2, raw2, sidecar2), lived_turns=1570)
+    pin = json.loads((root / PIN_REL).read_text())
+    assert pin["promotion"]["ledger_accounting"] == {
+        "S_lived": 1570, "S_taught_lessons": 3, "S_taught_self_study": 0, "R_pin": 37015}
+
+
+def test_promote_without_lived_turns_writes_no_ledger(tmp_path):
+    mod = load()
+    root = copy_pin_tree(tmp_path)
+    tag, raw, sidecar, _sha, _asset = make_release(b"ledger-legacy", 37016)
+    mod.promote(tag, root, fetch=fetcher(tag, raw, sidecar))
+    pin = json.loads((root / PIN_REL).read_text())
+    assert "ledger_accounting" not in pin["promotion"]
+
+
+def test_promote_cli_requires_lived_turns(tmp_path):
+    ran = subprocess.run([sys.executable, str(SCRIPT), "zeref-006-cycle-59-" + "ab" * 6],
+                         cwd=tmp_path, capture_output=True, text=True)
+    assert ran.returncode == 2
+    assert "lived-turns" in ran.stderr
