@@ -1,5 +1,5 @@
 {
- "disk_free_mb": 73878,
+ "disk_free_mb": 73879,
  "last_batch": {
   "grad_norm": 5.899151802062988,
   "sources": {
@@ -18,14 +18,14 @@
   "step": 320
  },
  "last_lines": [
-  "ZEREF_12D_MOUTH={\"enabled\": true, \"gain_floor\": 0.25, \"gain_slots0_11_after_floor\": [-0.349706, -0.27774, 0.263488, -0.25611, 0.3606, -0.345849, 0.250031, 0.359558, 0.313806, -0.339432, -0.329479, 0.429599], \"gain_slots0_11_kept\": [-0.348715, -0.278023, 0.262348, -0.257359, 0.362259, -0.346423, 0.25",
-  "ZEREF_006_CANDIDATE={\"best_in_cycle\": {\"best_in_cycle_chat_nll\": 3.398544561266899, \"best_in_cycle_step\": 32}, \"chat_a_nll\": 3.398544561266899, \"elapsed_s\": 2498.7, \"index\": 3, \"lr\": 5e-05, \"lr_min_fraction\": 0.5, \"seed\": 84309679743431, \"skipped_batches\": 33}",
-  "ZEREF_006_BEST_IN_CYCLE={\"chat_a_nll\": 3.39211551964283, \"index\": 2, \"parent_checkpoint_sha256\": \"84fae433b0639b3b9bc19dd787e3d4961854c35e73824116d931763bcab5cdd4\"}"
+  "ZEREF_006_SPLIT_ROUND={\"best_in_cycle\": {\"chat_a_nll\": 3.39211551964283, \"index\": 2, \"parent_checkpoint_sha256\": \"84fae433b0639b3b9bc19dd787e3d4961854c35e73824116d931763bcab5cdd4\"}, \"candidates_finished\": [0, 1, 2, 3], \"control\": \"finished\"}",
+  "ZEREF_006_CANDIDATE_SELECTED={\"index\": 2, \"chat_a_nll\": 3.39211551964283, \"of\": 4, \"rule\": \"lowest set A NLL; set B never used to select; unchanged Gate v2 applies to the selected candidate only\"}",
+  "ZEREF_COND54_BANK={\"bank_sha256\": \"4cb3906ac11526a9deedd8f50edac2715d5c03dae17dee88bb98ba7e82de8333\", \"drop\": 0.5, \"first_tick\": 23703, \"label\": \"Rigetti SIMULATED spark ticks (bb-deada969); other bands masked 0.0\", \"last_tick\": 24303, \"pairing\": \"by training-step time, not by meaning (no owner sens"
  ],
- "log_bytes": 572070,
- "mem_available_mb": 14589,
+ "log_bytes": 573365,
+ "mem_available_mb": 13610,
  "run_id": "46070315728",
  "schema": "zeref-round-heartbeat-v1",
- "trainer_rss_mb": null,
- "ts": 1795827754.2903268
+ "trainer_rss_mb": 1176,
+ "ts": 1795827820.8452408
 }
