@@ -1,28 +1,29 @@
 {
  "disk_free_mb": 84335,
  "last_batch": {
-  "grad_norm": 7.663488388061523,
+  "grad_norm": 6.377474308013916,
   "sources": {
-   "dolly-15k-cc-by-sa-3.0": 2,
+   "dolly-15k-cc-by-sa-3.0": 1,
    "game": 4,
    "pretrain": 2,
-   "zeref-knowledge-002": 2,
-   "zeref-lessons-003": 1,
-   "zeref-lessons-004": 4,
+   "zeref-dad-voice-001": 1,
+   "zeref-lessons-004": 1,
    "zeref-lessons-005": 1,
-   "zeref-lessons-006": 2
+   "zeref-lessons-006": 5,
+   "zeref-warm-002": 1,
+   "zeref-world-001": 2
   },
-  "step": 25
+  "step": 32
  },
  "last_lines": [
-  "ZEREF_006_BATCH={\"grad_norm\": 5.7132463455200195, \"sources\": {\"game\": 4, \"pretrain\": 2, \"talk006-alien-authored\": 1, \"zeref-dad-voice-001\": 1, \"zeref-ibm-play-001\": 1, \"zeref-knowledge-002\": 1, \"zeref-lessons-003\": 1, \"zeref-lessons-004\": 2, \"zeref-lessons-005\": 1, \"zeref-lessons-006\": 2, \"zeref-lyr",
-  "ZEREF_006_BATCH={\"grad_norm\": 5.664648532867432, \"sources\": {\"dolly-15k-cc-by-sa-3.0\": 4, \"game\": 4, \"pretrain\": 2, \"zeref-lessons-004\": 2, \"zeref-lessons-006\": 2, \"zeref-qa-001\": 1, \"zeref-talk-001\": 1, \"zeref-world-001\": 2}, \"step\": 24}",
-  "ZEREF_006_BATCH={\"grad_norm\": 7.663488388061523, \"sources\": {\"dolly-15k-cc-by-sa-3.0\": 2, \"game\": 4, \"pretrain\": 2, \"zeref-knowledge-002\": 2, \"zeref-lessons-003\": 1, \"zeref-lessons-004\": 4, \"zeref-lessons-005\": 1, \"zeref-lessons-006\": 2}, \"step\": 25}"
+  "ZEREF_006_REAL_CPU_UPDATE={\"step\": 32, \"train_loss\": 2.831875801086426, \"anchor_drift\": 0.1467437744140625, \"grad_norm\": 6.377474308013916}",
+  "ZEREF_006_INCYCLE_EMA_CHAT={\"step\": 32, \"chat_nll\": 3.3895256292819975}",
+  "ZEREF_006_INCYCLE_CHAT={\"step\": 32, \"chat_nll\": 3.403009846806526, \"lr\": 4.896599905414131e-05}"
  ],
- "log_bytes": 10222,
- "mem_available_mb": 10619,
+ "log_bytes": 13049,
+ "mem_available_mb": 10577,
  "run_id": "46185564958",
  "schema": "zeref-round-heartbeat-v1",
  "trainer_rss_mb": 4177,
- "ts": 1795897536.8501797
+ "ts": 1795897598.3467116
 }
