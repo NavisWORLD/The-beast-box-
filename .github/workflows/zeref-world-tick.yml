@@ -1,0 +1,121 @@
+name: zeref-world-tick-sandbox
+
+# Sandboxed world ticks: Zeref walks the 12-node world graph, the sensorium
+# bridge turns world transitions into condition54, the live pinned mouth
+# speaks, and every tick lands as a hash-chained receipt in
+# evidence/zeref-world-sandbox/ on the zeref/world-sandbox-log branch.
+#
+# LIVE RUNS, NOT DRY RUNS: this workflow fetches the pinned checkpoint
+# (release asset, sha-verified against the pin file) and the recorded dice
+# table (from PR #1034's branch, sha-verified), and runs the tick script
+# with --require-live-dice. If either fetch fails, the run FAILS — it never
+# silently falls back to the dry-run mouth or the synthetic dice table.
+# Scheduled runs appending synthetic ticks to the chain are forbidden.
+#
+# Nothing here touches main, R_pin, the Talk thread, the heldout hashes,
+# or the default-off ZEREF_FILM12 / ZEREF_CFJS_MARGIN flags. State commits
+# go only to the sandbox-log branch.
+on:
+  workflow_dispatch:
+    inputs:
+      ticks:
+        description: "Ticks per run"
+        required: false
+        default: "10"
+  schedule:
+    # Daytime only, 08:00-18:00 CST = 14:00-00:00 UTC (CST = UTC-6).
+    - cron: "0 14,16,18,20,22,0 * * *"
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: zeref-world-tick
+  cancel-in-progress: false
+
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        # Default checkout: the branch this workflow ran from (the PR
+        # branch while open, main after merge). The sandbox STATE is fetched
+        # separately from zeref/world-sandbox-log in the tick step below.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install runtime (CPU torch, repo)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -Eeuo pipefail
+          python -m pip install -q --upgrade pip
+          pip install -q torch==2.6.0 --index-url https://download.pytorch.org/whl/cpu
+          pip install -q -e . -e ./models/rawrphos
+      - name: Download pinned checkpoint release (sha-verified)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -Eeuo pipefail
+          TAG=$(python -c "import json; print(json.load(open('apps/beastbox-cloud/lib/rawrphos-public-pin.json'))['promotion']['release_tag'])")
+          EXPECTED=$(python -c "import json; print(json.load(open('apps/beastbox-cloud/lib/rawrphos-public-pin.json'))['promotion']['release_asset_sha256'])")
+          echo "tag=$TAG expected=$EXPECTED"
+          gh release download "$TAG" --repo "${{ github.repository }}" --pattern '*.tar.gz' -D build/world-tick
+          FILE=$(ls build/world-tick/*.tar.gz)
+          ACTUAL=$(sha256sum "$FILE" | cut -d' ' -f1)
+          [ "$ACTUAL" = "$EXPECTED" ] || { echo "sha mismatch: $ACTUAL != $EXPECTED"; exit 1; }
+          echo "checkpoint tarball sha OK: $ACTUAL"
+          tar -xzf "$FILE" -C build/world-tick
+          [ -f build/world-tick/accepted-checkpoint/tokenizer/tokenizer.json ] || { echo "checkpoint layout unexpected"; exit 1; }
+      - name: Fetch recorded dice table from PR #1034 (sha-verified)
+        run: |
+          set -Eeuo pipefail
+          # The compact table lives in OPEN PR #1034 (branch
+          # emeth/qrec-full-loop-table), not on main; do not copy it into
+          # this PR. When #1034 merges, this URL moves to main.
+          TABLE_SHA256=fdd6ad7f41578b9654adc168d4982a3b7f787d355543915e3bac7bc317f910d5
+          curl -fsSL --max-time 120 -o build/world-tick/quantum-dice-table.bin \
+            "https://raw.githubusercontent.com/NavisWORLD/The-beast-box-/emeth/qrec-full-loop-table/evidence/zeref-qrec-002/quantum-dice-table.bin"
+          ACTUAL=$(sha256sum build/world-tick/quantum-dice-table.bin | cut -d' ' -f1)
+          [ "$ACTUAL" = "$TABLE_SHA256" ] || { echo "dice table sha mismatch: $ACTUAL != $TABLE_SHA256"; exit 1; }
+          echo "dice table sha OK: $ACTUAL (11,354,112 recorded shots, RECORDED)"
+      - name: Run world ticks (live mouth, live dice)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -Eeuo pipefail
+          # State lives on the sandbox-log branch: fetch it (or start from
+          # the seed on tick 0 if the branch has never run).
+          git fetch origin zeref/world-sandbox-log 2>/dev/null || echo "no sandbox-log branch yet; starting from seed"
+          if git rev-parse --verify origin/zeref/world-sandbox-log >/dev/null 2>&1; then
+            git checkout origin/zeref/world-sandbox-log -- evidence/zeref-world-sandbox/world_state.json evidence/zeref-world-sandbox/world_chain.jsonl 2>/dev/null || echo "sandbox-log branch has no state yet; starting from seed"
+          fi
+          python3 scripts/zeref_world_tick.py \
+            --ticks "${{ inputs.ticks || 10 }}" \
+            --checkpoint build/world-tick/accepted-checkpoint \
+            --dice-table build/world-tick/quantum-dice-table.bin \
+            --require-live-dice
+      - name: Commit state to the sandbox-log branch
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -Eeuo pipefail
+          git config user.name 'zeref-world-tick[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add evidence/zeref-world-sandbox/world_state.json evidence/zeref-world-sandbox/world_chain.jsonl
+          git status --porcelain | tee build/world-tick/status.txt
+          [ -n "$(git status --porcelain)" ] || { echo "no new ticks; nothing to commit"; exit 0; }
+          git fetch origin zeref/world-sandbox-log 2>/dev/null || true
+          git checkout -B zeref/world-sandbox-log
+          git commit -q -m "world ticks: ${{ inputs.ticks || 10 }} ticks (pin $(python -c "import json; print(json.load(open('apps/beastbox-cloud/lib/rawrphos-public-pin.json'))['training_steps'])"))"
+          for i in 1 2 3; do git push -q origin zeref/world-sandbox-log && break; sleep 5; git pull -q --rebase origin zeref/world-sandbox-log || true; done
+          [ "$(git rev-parse HEAD)" = "$(git ls-remote origin zeref/world-sandbox-log | cut -f1)" ] || { echo "push failed after retries"; exit 1; }
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "### zeref-world-tick-sandbox"
+            echo
+            python -c "import json; c=[json.loads(l) for l in open('evidence/zeref-world-sandbox/world_chain.jsonl') if l.strip()]; print(f\"chain entries: {len(c)}, tail {c[-1]['entry_hash'][:12] if c else 'none'}, last node {c[-1]['node_after'] if c else 'none'}\")" 2>/dev/null || echo "chain not readable"
+          } >> "$GITHUB_STEP_SUMMARY"

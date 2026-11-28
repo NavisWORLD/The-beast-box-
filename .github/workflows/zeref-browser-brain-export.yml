@@ -152,6 +152,34 @@ jobs:
         run: |
           set -Eeuo pipefail
           python -m pytest tests/test_zeref_onnx_export_contract.py -q
+      - name: Stamp the ledger into the manifest (PR 1, world stack)
+        # Syncs classification + ledger_accounting (S_lived from the pin's
+        # promotion.ledger_accounting, counted at promote time on the box;
+        # S_taught counted live from dialogue.jsonl in this checkout;
+        # R_pin from the pin file) + ledger_sha256 into the manifest, so the
+        # exported brain carries its ledger. The sandbox chain lives on the
+        # zeref/world-sandbox-log branch, not in this checkout: fetch it
+        # (tolerate 404 — the branch does not exist until the first tick
+        # run lands it) and pass it when present so S_world_ticks and the
+        # chain tail are stamped too; otherwise they stay null, labelled,
+        # never invented. Runs AFTER the contract tests (the manifest must
+        # pass contract before it is stamped) and BEFORE the commit step
+        # (the stamped manifest is what the PR carries).
+        if: steps.check.outputs.export_needed == 'true'
+        run: |
+          set -Eeuo pipefail
+          CHAIN_ARG=""
+          if curl -fsSL --max-time 60 -o /tmp/world_chain.jsonl \
+              "https://raw.githubusercontent.com/NavisWORLD/The-beast-box-/zeref/world-sandbox-log/evidence/zeref-world-sandbox/world_chain.jsonl"; then
+            CHAIN_ARG="--world-chain /tmp/world_chain.jsonl"
+            echo "sandbox chain fetched; stamping S_world_ticks + tail"
+          else
+            echo "no sandbox chain yet (branch absent or fetch failed); stamping ledger without world fields"
+          fi
+          python3 scripts/zeref_ledger_guard.py sync-manifest \
+            --manifest evidence/zeref-browser-brain-001/manifest.json \
+            --pin apps/beastbox-cloud/lib/rawrphos-public-pin.json \
+            --root . $CHAIN_ARG
       - name: Commit refreshed evidence and open the PR (the gate)
         if: steps.check.outputs.export_needed == 'true'
         env:
@@ -201,3 +229,4 @@ jobs:
             echo
             python -c "import json; m=json.load(open('evidence/zeref-browser-brain-001/manifest.json')); p=m['provenance']; print(f\"pin step {p['training_steps']}, checkpoint {p['checkpoint_sha256'][:12]}, release {p['release_tag']}\"); print(f\"onnx {m['onnx']['sha256'][:12]}, {m['onnx']['bytes']} bytes, {len(m['onnx']['chunks'])} chunks, parity {m['parity']['onnxruntime_python_vs_torch_greedy']}\")" 2>/dev/null || echo "export did not complete"
           } >> "$GITHUB_STEP_SUMMARY"
+
