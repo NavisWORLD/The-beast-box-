@@ -41,6 +41,11 @@ class RawrphosConfig:
     # at ~1e-7 nats/token. cond54_direct adds a ZERO-initialised linear path from condition54
     # into the token stream (identical logits at upgrade). Off = exact old model.
     cond54_direct: bool = False
+    # 2026-11-26 additive (Step 5: The Mouth): per-block FiLM scale/shift of the token stream
+    # from the normalized 54D conditioning vector. Zero-init (identical logits at upgrade).
+    # Off = exact old model; the flag exists so old checkpoints (no film weights) still
+    # load strict (see models/rawrphos/training/checkpoint.py).
+    film: bool = False
 
     def __post_init__(self):
         if type(self.hebbian) is not bool or type(self.hebbian_dim) is not int or self.hebbian_dim<1:
@@ -55,6 +60,7 @@ class RawrphosConfig:
         if self.state_mode not in {'dyn12','tri'}: raise ValueError('state_mode must be dyn12 or tri')
         if type(self.cond54) is not bool or (self.cond54 and self.state_mode!='tri'): raise ValueError('cond54 needs state_mode tri')
         if type(self.cond54_direct) is not bool or (self.cond54_direct and not self.cond54): raise ValueError('cond54_direct needs cond54')
+        if type(self.film) is not bool or (self.film and not self.cond54): raise ValueError('film needs cond54')
         if self.state_dim != 12: raise ValueError('this architecture implements dyn12 only')
         if self.attention_mode not in {'dyn12','standard','zero_gate','frozen_state','shuffled_state'}:
             raise ValueError('unsupported attention mode')
@@ -70,6 +76,7 @@ class RawrphosConfig:
         if self.state_mode=='dyn12': d.pop('state_mode')
         if not self.cond54: d.pop('cond54')  # byte-identical config.json for non-conditioned checkpoints
         if not self.cond54_direct: d.pop('cond54_direct')  # byte-identical config.json without the direct path
+        if not self.film: d.pop('film')  # byte-identical config.json without FiLM
         return d
     @classmethod
     def from_dict(cls, value): return cls(**value)
@@ -81,6 +88,18 @@ class RMSNorm(nn.Module):
     def forward(self,x):
         xf=x.float()
         return (xf*torch.rsqrt(xf.square().mean(-1,keepdim=True)+1e-6)).to(x.dtype)*self.weight
+
+
+def rms_norm_zero_preserving(v):
+    """RMS-normalize each row; an exactly-zero element stays exactly zero, so masked
+    conditioning slots (exactly 0.0 upstream) can never leak a signal downstream.
+    Straight-through guard: the forward value is exactly the where() result, while the
+    backward pass still flows through r -- a plain where() would block every gradient
+    at the zero-init point (g_raw is exactly 0 there) and the FiLM weights could never
+    leave zero."""
+    r=v*torch.rsqrt(v.square().mean(-1,keepdim=True)+1e-6)
+    guard=torch.where(v==0,torch.zeros_like(r),r)
+    return r+(guard-r).detach()
 
 
 def rotary(x, positions):
@@ -250,6 +269,15 @@ class RawrphosLM(nn.Module):
         if config.cond54_direct:
             self.cond_in=nn.Linear(54,config.d_model,bias=False)  # registered after cond_gain: older indices unchanged
             nn.init.zeros_(self.cond_in.weight)  # zero output at upgrade: identical logits
+        # FiLM taps (2026-11-26 additive, Step 5: The Mouth). Plain attributes (no state_dict /
+        # config impact); the ModuleLists register AFTER cond_in, so older optimizer indices
+        # stay unchanged. Zero-init => the tap is the identity at upgrade.
+        self.film_taps=(3,7,11,15,19,23,27,31,35,39,43)
+        self.film_alpha=0.12
+        if config.film:
+            self.film_gamma=nn.ModuleList(nn.Linear(54,config.d_model,bias=False) for _ in self.film_taps)
+            self.film_beta=nn.ModuleList(nn.Linear(54,config.d_model,bias=False) for _ in self.film_taps)
+            for _m in list(self.film_gamma)+list(self.film_beta): nn.init.zeros_(_m.weight)
     @staticmethod
     def _init(m):
         if isinstance(m,(nn.Linear,nn.Embedding)):
@@ -265,13 +293,14 @@ class RawrphosLM(nn.Module):
                 for n,p in b.transition.named_parameters() if n not in ('k','g12')]
         if self.config.cond54: out+=[self.cond_gain]
         if self.config.cond54_direct: out+=[self.cond_in.weight]
+        if self.config.film: out+=list(self.film_gamma.parameters())+list(self.film_beta.parameters())
         return out
     def base_parameters(self):
         ids={id(p) for p in self.hebbian_parameters()}
         return [p for p in self.parameters() if id(p) not in ids]
 
     def forward(self,input_ids,targets=None,attention_mask=None,past_key_values=None,use_cache=False,
-                control_vector=None,return_attention=False,condition54=None):
+                control_vector=None,return_attention=False,condition54=None,m42:float=1.0):
         c=self.config
         if input_ids.ndim!=2 or input_ids.dtype!=torch.long or input_ids.shape[1]<1:
             raise ValueError('input_ids must be a nonempty rank-2 int64 tensor')
@@ -302,16 +331,35 @@ class RawrphosLM(nn.Module):
             # tri: the 12 control scalars drive x12 only; x42 gets zero external input.
             if c.state_mode=='tri': control_vector=torch.cat([control_vector,control_vector.new_zeros(b,42)],-1)
             state=torch.tanh(state_logits+control_vector.to(state)[:,None,:])
+        c54_norm=None
         if condition54 is not None:
             if not c.cond54: raise ValueError('this model does not declare cond54')
             if condition54.shape!=(b,54) or not bool(torch.isfinite(condition54).all()) or bool((condition54.abs()>1).any()):
                 raise ValueError('condition54 must be finite [batch,54] in [-1,1]')
+            # 15% conditioning dropout (training only): a whole-row keep mask, so the mouth
+            # cannot lean on the tensor for every row.
+            if self.training:
+                keep=(torch.rand(b,device=condition54.device,dtype=condition54.dtype)>=0.15)
+                c54_eff=condition54*keep[:,None]
+            else:
+                c54_eff=condition54
+            s12=c54_eff[:,:12]; z42=c54_eff[:,12:]
             # routed slots (masked slots are exactly 0.0 upstream) scaled by the learned per-slot gain
             ext=control_vector.to(state)[:,None,:] if control_vector is not None else 0.
-            state=torch.tanh(state_logits+ext+(self.cond_gain.to(state)*condition54.to(state))[:,None,:])
+            # Live-state fill: a row whose 42D band is all zero (e.g. a mouth12 row, which carries
+            # only a recorded state12) borrows the model's own live 42D state, scaled by m42.
+            if c.state_mode=='tri' and m42>0:
+                zero_rows=(z42.abs().sum(dim=1)==0)
+                if bool(zero_rows.any()):
+                    live42=state[:,:,12:].detach().mean(dim=1)
+                    z42=torch.where(zero_rows[:,None],(m42*live42).to(z42.dtype),z42)
+            # Block-decoupled RMSNorm: the 12D and 42D bands are normalized separately, so a
+            # live band cannot squash a quiet one; an exactly-zero slot stays exactly zero.
+            c54_norm=torch.cat([rms_norm_zero_preserving(s12),rms_norm_zero_preserving(z42)],dim=-1)
+            state=torch.tanh(state_logits+ext+(self.cond_gain.to(state)*c54_norm.to(state))[:,None,:])
             # direct path (cond54_direct): the same routed 54D vector into every position's token stream,
             # so the 12D reaches the mouth without passing the distance kernel (masked slots are 0.0).
-            if c.cond54_direct: x=x+self.cond_in(condition54.to(x))[:,None,:]
+            if c.cond54_direct: x=x+self.cond_in(c54_norm.to(x))[:,None,:]
         if c.attention_mode=='frozen_state': state=state.detach()
         caches=[]; telemetry=[]
         for i,block in enumerate(self.blocks):
@@ -324,6 +372,15 @@ class RawrphosLM(nn.Module):
                 x,state,cache,tel=block(x,state,attention_mask,None if past_key_values is None else past_key_values[i],return_attention)
             if use_cache: caches.append(cache)
             telemetry.append(tel)
+            # FiLM tap (Step 5: The Mouth): in-place scale/shift of the token stream from the
+            # normalized conditioning vector. x is NEVER renormalized to unit RMS here: at zero
+            # film weights the tap is bit-for-bit the identity (x*(1+0)+0 == x).
+            if c54_norm is not None and c.film and i in self.film_taps:
+                tap=self.film_taps.index(i)
+                x_rms=x*torch.rsqrt(x.square().mean(-1,keepdim=True)+1e-6)
+                g_hat=rms_norm_zero_preserving(self.film_gamma[tap](c54_norm.to(x.dtype)))
+                b_hat=rms_norm_zero_preserving(self.film_beta[tap](c54_norm.to(x.dtype)))
+                x=x*(1.0+self.film_alpha*g_hat[:,None,:])+(self.film_alpha*x_rms*b_hat[:,None,:])
         if c.hebbian:
             fast=None if past_key_values is None else past_key_values[-1].get('hebbian_fast')
             if past_key_values is not None and fast is None: raise ValueError('hebbian cache missing fast weights')
@@ -386,6 +443,19 @@ def upgrade_to_cond54_direct(model):
     new=RawrphosLM(RawrphosConfig.from_dict(dict(asdict(model.config),cond54_direct=True)))
     missing,unexpected=new.load_state_dict(model.state_dict(),strict=False)
     if unexpected or missing!=['cond_in.weight']: raise ValueError('cond54_direct upgrade may only add cond_in')
+    return new
+
+
+def upgrade_to_film(model):
+    """Return a film copy of a cond54 model with IDENTICAL outputs at upgrade: only the 22
+    FiLM linears are new and their weights start at zero (each tap is the identity)."""
+    if model.config.film: return model
+    if not model.config.cond54: raise ValueError('film upgrade needs a cond54 model')
+    new=RawrphosLM(RawrphosConfig.from_dict(dict(asdict(model.config),film=True)))
+    missing,unexpected=new.load_state_dict(model.state_dict(),strict=False)
+    want=sorted([f'film_gamma.{k}.weight' for k in range(len(new.film_taps))]
+                +[f'film_beta.{k}.weight' for k in range(len(new.film_taps))])
+    if unexpected or sorted(missing)!=want: raise ValueError('film upgrade may only add film_gamma/film_beta')
     return new
 
 
