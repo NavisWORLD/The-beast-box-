@@ -12,6 +12,10 @@ Path (same as the local 44144 talk test, 2026-11-20):
     (guest_local.CHAT_TEMPERATURE, guest_local.MAX_OUTPUT_TOKENS) and a
     per-turn seed from guest_local._request_seed; the seed is recorded so the
     exact reply can be re-derived from the same checkpoint.
+  * condition54 is plumbing-only zeros (no live senses on the runner;
+    m42=0, receipt mode "plumbing_zero_m42_0") and a rolling "[ANCHORS ...]"
+    prefix built from the last 2 parsed turns keeps places/kin/analogy in
+    play. The receipt records both the raw and effective prompt hashes.
 """
 from __future__ import annotations
 
@@ -107,6 +111,42 @@ def format_prompt(messages: list[dict]) -> str:
     return "\n".join(f"{m['role']}: {m['content']}" for m in messages) + "\nassistant:"
 
 
+def build_talk_condition54() -> list[float]:
+    """Plumbing-only zeros for the Talk lane.
+
+    The Talk lane has no live senses (no camera/mic/bio on the runner), so
+    there is no measured 12D state and no 42D sense vector to forward: every
+    slot is 0.0, including m42 (the 12D-magnitude slot) = 0. This wires the
+    condition54 path end to end without pretending a measurement exists;
+    the receipt labels it honestly as "plumbing_zero_m42_0".
+    """
+    return [0.0] * 54
+
+
+_PLACES = ("fort", "river", "island")
+_KIN = ("dad", "emeth", "sister", "family")
+
+
+def build_rolling_entity_register(history: list[dict]) -> str:
+    """Rolling entity register from the PARSED history list, last 2 turns.
+
+    Reads msgs (role/content dicts from history_from_issue / parse_thread),
+    never raw comment bodies (those carry base64 reply-marker blobs). Last 4
+    entries = last 2 turns. Extracts places (fort/river/island), kin
+    (dad/emeth/sister/family), and whether an analogy ("sounds like") is
+    present or still open. Returned as the "[ANCHORS ...]" prefix prepended
+    to the prompt so the pinned mouth keeps the entities in play.
+    """
+    recent = (history or [])[-4:]
+    text = " ".join((m.get("content") or "") for m in recent).lower()
+    places = [p for p in _PLACES if p in text]
+    kin = [k for k in _KIN if k in text]
+    analogy = "sounds-like" if "sounds like" in text else "open"
+    return ("[ANCHORS places=" + (",".join(places) if places else "-")
+            + " kin=" + (",".join(kin) if kin else "-")
+            + " analogy=" + analogy + "]")
+
+
 def verify_and_extract(asset: Path, pin: dict, dest: Path) -> Path:
     """Check the release tarball against the pin, then extract it. Returns the checkpoint dir."""
     got = sha256_file(asset)
@@ -134,17 +174,22 @@ def talk(checkpoint: str, pin: dict, history: list[dict], text: str, identity: s
         raise ValueError("empty message")
     msgs = assemble_messages({}, history, text)
     prompt = format_prompt(msgs)
+    cond54 = build_talk_condition54()
+    anchors_prefix = build_rolling_entity_register(history)
+    effective_prompt = anchors_prefix + "\n" + prompt
     if seed is None:
         seed = gl._request_seed(identity, text)
     engine = Engine(checkpoint, max_new_tokens=256, threads=threads,
                     expected_sha256=pin["checkpoint_sha256"])
     if engine.metadata["checkpoint_sha256"] != pin["checkpoint_sha256"]:
         raise RuntimeError("identity check failed: loaded checkpoint is not the pin")
-    if len(engine.tokenizer.encode(prompt, add_bos=True)) + gl.MAX_OUTPUT_TOKENS > engine.model.config.max_seq_len:
+    if len(engine.tokenizer.encode(effective_prompt, add_bos=True)) + gl.MAX_OUTPUT_TOKENS > engine.model.config.max_seq_len:
         raise ValueError("context limit exceeded")
     t0 = time.perf_counter()
-    reply = engine.complete(prompt, max_tokens=gl.MAX_OUTPUT_TOKENS,
-                            temperature=gl.CHAT_TEMPERATURE, seed=seed)
+    reply = engine.complete(effective_prompt, max_tokens=gl.MAX_OUTPUT_TOKENS,
+                            temperature=gl.CHAT_TEMPERATURE, seed=seed, condition54=cond54)
+    rms_12d = (sum(v * v for v in cond54[:12]) / 12) ** 0.5
+    rms_42d = (sum(v * v for v in cond54[12:]) / 42) ** 0.5
     return {
         "label": LABEL.format(step=pin["training_steps"], sha=pin["checkpoint_sha256"][:12], where=where()),
         "step": pin["training_steps"],
@@ -159,6 +204,13 @@ def talk(checkpoint: str, pin: dict, history: list[dict], text: str, identity: s
                      "kit_layers": os.environ.get("RAWRPHOS_KIT_LAYERS", "1")},
         "messages_sent": len(msgs),
         "prompt_sha256": hashlib.sha256(prompt.encode()).hexdigest(),
+        "condition54_mode": "plumbing_zero_m42_0",
+        "m42": 0,
+        "rms_12d": rms_12d,
+        "rms_42d": rms_42d,
+        "raw_prompt_sha256": hashlib.sha256(prompt.encode()).hexdigest(),
+        "effective_prompt_sha256": hashlib.sha256(effective_prompt.encode()).hexdigest(),
+        "anchors_prefix": anchors_prefix,
         "cory": text,
         "zeref": reply,
         "empty": reply.strip() == "",
