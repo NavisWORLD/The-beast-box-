@@ -92,6 +92,7 @@ ROW_LABEL = "TAUGHT"
 
 DAILY_MAX = int(os.environ.get("ZEREF_SELF_STUDY_DAILY_MAX", "12"))
 COOLDOWN_S = int(os.environ.get("ZEREF_SELF_STUDY_COOLDOWN_S", "3600"))
+FAILED_TOPIC_BLOCK_H = int(os.environ.get("ZEREF_SELF_STUDY_FAILED_TOPIC_BLOCK_H", "24"))
 MAX_EVENTS_PER_RUN = 1
 COVERAGE_ROWS_FOR_FULL = 3  # >= this many lesson rows mentioning a topic: gap 0
 SEARCH_TIMEOUT_S = 20
@@ -220,15 +221,19 @@ def score_candidate(confusion: float, gap: float) -> float:
     return confusion * (0.5 + gap)
 
 
-def pick_question(turns: list[dict], lesson_rows: list[dict]) -> dict | None:
+def pick_question(turns: list[dict], lesson_rows: list[dict], blocked: set[str] | None = None) -> dict | None:
     """One question per run: the max-scoring (turn, topic) pair. Ties break
-    deterministically by (score desc, phrase, turn index)."""
+    deterministically by (score desc, phrase, turn index). Topics in blocked
+    (see blocked_topics) are skipped."""
+    blocked = blocked or set()
     best = None
     for idx, turn in enumerate(turns):
         conf, signals = turn_confusion(turn.get("user") or "", turn.get("assistant") or "")
         if conf <= 0.0:
             continue
         for phrase in candidate_topics(turn.get("user") or ""):
+            if phrase in blocked:
+                continue
             score = score_candidate(conf, coverage_gap(phrase, lesson_rows))
             key = (-score, phrase, idx)
             if best is None or key < best[0]:
@@ -264,6 +269,37 @@ class SearchError(Exception):
     pass
 
 
+# Open-license gate for travel beyond Wikipedia (Gemini part 4, verified):
+# a source is allowed only when its license is a recognized open license
+# AND the source itself is on the explicit allowlist. New sources join the
+# map only once their license verification exists; the gate never accepts
+# an unverified scraped page.
+OPEN_SOURCE_LICENSES = {"wikipedia": "CC-BY-SA-4.0", "wiktionary": "CC-BY-SA-4.0"}
+ALLOWED_OPEN_LICENSES = {"CC-BY-SA-4.0", "CC-BY-SA-3.0", "CC-BY-SA", "CC0-1.0", "PUBLIC-DOMAIN"}
+
+
+def _normalize_license(value) -> str:
+    return (value or "").strip().upper().replace(" ", "-")
+
+
+def accept_licensed_source(record: dict) -> bool:
+    """True when the record carries a recognized open license and a non-empty
+    summary. License alone is not enough; a record with no summary to
+    narrate from is refused."""
+    return (_normalize_license(record.get("license")) in ALLOWED_OPEN_LICENSES
+            and bool((record.get("summary") or "").strip()))
+
+
+def _open_source_license(source_name) -> str | None:
+    """License for a known open source by name, else None. Substring match so
+    "Simple Wikipedia" still maps to Wikipedia's license."""
+    name = (source_name or "").lower()
+    for key, lic in OPEN_SOURCE_LICENSES.items():
+        if key in name:
+            return lic
+    return None
+
+
 def fetch_abstract(query: str, opener=None) -> dict:
     """One DuckDuckGo instant-answer fetch. Wikipedia abstracts only (CC
     BY-SA): any other source, or no abstract, is a failed search, not a
@@ -281,9 +317,10 @@ def fetch_abstract(query: str, opener=None) -> dict:
     abstract = (body.get("AbstractText") or "").strip()
     source = (body.get("AbstractSource") or "").strip()
     link = (body.get("AbstractURL") or "").strip()
-    if not abstract or "wikipedia" not in source.lower() or not link:
+    lic = _open_source_license(source)
+    if not abstract or lic is None or not link:
         raise SearchError("no_open_abstract")
-    return {"abstract": abstract, "url": link, "source": source, "license": "CC-BY-SA-4.0"}
+    return {"abstract": abstract, "url": link, "source": source, "license": lic}
 
 
 # ---------------------------------------------------------------- narration
@@ -318,6 +355,38 @@ def _verbatim_run(answer: str, source: str, n: int = MAX_VERBATIM_RUN) -> str | 
     return None
 
 
+_IRREGULAR_FAMILY = {
+    "teeth": "tooth", "feet": "foot", "geese": "goose",
+    "men": "man", "women": "woman", "children": "child", "leaves": "leaf",
+}
+
+
+def _normalize_family_token(token: str) -> str:
+    """Morphological stem for family matching: irregular forms first, then
+    one suffix strip. The irregular map is checked before stripping, so
+    "leaves" becomes "leaf" instead of "leav"."""
+    t = token.lower()
+    if t in _IRREGULAR_FAMILY:
+        return _IRREGULAR_FAMILY[t]
+    for suffix in ("ification", "ations", "ation", "ments", "ment", "ness", "ing", "ed", "es", "s"):
+        if len(t) > len(suffix) + 3 and t.endswith(suffix):
+            t = t[: -len(suffix)]
+            break
+    return _IRREGULAR_FAMILY.get(t, t)
+
+
+def _same_family_word(word: str, first_word: str) -> bool:
+    """True when two words are the same word family: same stem, or one is a
+    prefix of the other (fort/fortification, nap/napping). Words shorter than
+    3 letters never count by prefix, so "a" cannot match "apple"."""
+    w, f = word.lower(), first_word.lower()
+    if _normalize_family_token(w) == _normalize_family_token(f):
+        return True
+    if len(w) >= 3 and len(f) >= 3:
+        return w.startswith(f) or f.startswith(w)
+    return False
+
+
 def narrate(topic: str, abstract: str) -> str | None:
     """Fixed-template narration into simple original words. The answer is
     built from the abstract's first topic sentence, rebuilt as
@@ -332,19 +401,36 @@ def narrate(topic: str, abstract: str) -> str | None:
     sentences = [s.strip() for s in re.split(r"(?<=[.!?])\s+", text) if s.strip()]
     if not sentences:
         return None
-    first = next((s for s in sentences if topic.split()[0] in s.lower()), sentences[0])
+    first_word = topic.split()[0].lower()
+
+    def _family_here(sentence: str) -> bool:
+        return any(_same_family_word(w, first_word)
+                   for w in re.findall(r"[a-z0-9']+", sentence.lower()))
+
+    first = next((s for s in sentences if _family_here(s)), sentences[0])
     first = _head_clause(first.rstrip(".!?"))
     low = first.lower()
     pred = None
+    # Subject may be the topic itself ("a fort is ...") or a word from the
+    # topic's family ("a fortification is ..." for topic "fort", "teeth are ..."
+    # for topic "tooth"): the word family is the subject, not a mid-sentence
+    # copy. Substring matching is never used: "fort" inside "fortification"
+    # must not trip the copy refusal below.
     m = re.match(r"^(the|a|an)\s+" + re.escape(topic.lower()) + r"\s+(is|are|was|were|means?)\s+(.+)$", low)
     if m:
         pred = m.group(3).strip()
-    elif topic.lower() in low:
-        return None  # topic appears mid-sentence; rebuilding would copy it
     else:
-        pred = low
-        if pred.startswith(("the ", "a ", "an ")):
-            pred = pred.split(" ", 1)[1]
+        m2 = re.match(r"^(?:(the|a|an)\s+)?(\S+)\s+(is|are|was|were|means?)\s+(.+)$", low)
+        if m2 and _same_family_word(m2.group(2), first_word):
+            pred = m2.group(4).strip()
+        elif _family_here(low):
+            return None  # topic family appears mid-sentence; rebuilding would copy it
+        elif any(first_word in w for w in re.findall(r"[a-z0-9']+", low)):
+            return None  # topic only appears inside an unrelated word; do not narrate from it
+        else:
+            pred = low
+            if pred.startswith(("the ", "a ", "an ")):
+                pred = pred.split(" ", 1)[1]
     if not pred:
         return None
     for attempt in range(2):
@@ -601,6 +687,27 @@ def _load_talk_logs(paths: list[Path]) -> list[dict]:
     return turns
 
 
+def blocked_topics(entries: list[dict], now_utc: datetime) -> set[str]:
+    """Topics that failed narration recently. A topic whose narration failed
+    within the last FAILED_TOPIC_BLOCK_H hours is not picked again until the
+    block expires: one failure burns one event, the loop moves on to other
+    confused topics instead of hammering the same wall, and it retries after
+    a day, when the narration may have been fixed or the abstract changed.
+    A repeat failure on the same question can therefore happen at most once
+    a day, never four times in three days unnoticed."""
+    blocked = set()
+    for e in entries:
+        if e.get("status") != "narration_failed":
+            continue
+        ts = _parse_ts(e.get("ts") or "")
+        topic = (e.get("topic") or "").strip()
+        if ts is None or not topic:
+            continue
+        if (now_utc - ts).total_seconds() < FAILED_TOPIC_BLOCK_H * 3600:
+            blocked.add(topic)
+    return blocked
+
+
 def run(ledger_path: Path, rows_path: Path, talk_logs: list[Path], lessons_path: Path,
         screen_path: Path | None, now: datetime | None = None,
         fetcher=None, dry_run: bool = False) -> dict:
@@ -635,7 +742,10 @@ def run(ledger_path: Path, rows_path: Path, talk_logs: list[Path], lessons_path:
     turns = _load_talk_logs(talk_logs)
     receipt["turns_seen"] = len(turns)
     receipt["confusion_before"] = window_confusion(turns)
-    picked = pick_question(turns, lesson_rows)
+    blocked = blocked_topics(entries, now_local.astimezone(timezone.utc))
+    if blocked:
+        receipt["blocked_topics"] = sorted(blocked)
+    picked = pick_question(turns, lesson_rows, blocked)
     if picked is None:
         receipt["status"] = ("no_studyable_topic" if receipt["confusion_before"] > 0 else "no_confusion")
         return receipt
@@ -650,7 +760,9 @@ def run(ledger_path: Path, rows_path: Path, talk_logs: list[Path], lessons_path:
         receipt["status"] = "search_failed"
         receipt["why"] = str(exc)
         return receipt
-    if "wikipedia" not in (source.get("source") or "").lower():
+    if (_open_source_license(source.get("source")) is None
+            or not accept_licensed_source({"license": source.get("license"),
+                                           "summary": source.get("abstract")})):
         entry = build_entry(entries, now_local, picked, source, None, "search_failed:non_open_source")
         _write_attempt(ledger_path, rows_path, entries, entry, None, dry_run)
         receipt["status"] = "search_failed"
@@ -661,6 +773,9 @@ def run(ledger_path: Path, rows_path: Path, talk_logs: list[Path], lessons_path:
         entry = build_entry(entries, now_local, picked, source, None, "narration_failed")
         _write_attempt(ledger_path, rows_path, entries, entry, None, dry_run)
         receipt["status"] = "narration_failed"
+        receipt["consecutive_failures"] = 1 + sum(
+            1 for e in entries
+            if e.get("status") == "narration_failed" and norm(e.get("question") or "") == norm(picked["question"]))
         return receipt
     screen = Screen(ROOT, screen_path)
     ok, reason = screen_row(picked["question"], answer, screen, lesson_rows, prior_questions)

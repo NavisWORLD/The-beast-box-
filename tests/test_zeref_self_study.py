@@ -131,6 +131,120 @@ def test_narration_retries_with_a_shorter_predicate():
     assert S.narrate("name", abstract) == "The name is a term used."
 
 
+def test_narration_word_family_subject_fort():
+    # Live failure, Nov 25-27: "fort" failed four times on the Fortification
+    # abstract because substring matching saw "fort" inside "fortification"
+    # and refused to rebuild. The word family is the subject, not a copy.
+    abstract = ("A fortification is a military construction designed for the defense "
+                "of territories in warfare.")
+    assert S.narrate("fort", abstract) == "The fort is a military construction designed."
+    assert S.narrate("fortification", abstract) == "The fortification is a military construction designed."
+
+
+def test_narration_substring_alone_never_narrates():
+    # "art" inside "part" is not the topic; "star" as its own word
+    # mid-sentence still fails closed.
+    assert S.narrate("art", "The museum shows a part of the old city.") is None
+    assert S.narrate("star", "The night sky shows a star that guides sailors home.") is None
+
+
+def test_narration_topic_stem_still_lands():
+    # The one landed row so far ("What is the napping?") came through the
+    # loose branch: "naps" is a stem of "napping", not a substring trap.
+    abstract = "There are multiple different types of naps. A nap is a short period of sleep."
+    # Family-aware picker finds the real definition sentence ("nap" is the
+    # topic's stem family), so the answer is the clean definition, not the
+    # first sentence.
+    assert S.narrate("napping", abstract) == "The napping is a short period of sleep."
+
+
+def test_fort_question_lands_a_row(tmp_path):
+    fort_source = {"abstract": ("A fortification is a military construction designed for the defense "
+                                "of territories in warfare."),
+                   "url": "https://en.wikipedia.org/wiki/Fortification", "source": "Wikipedia",
+                   "license": "CC-BY-SA-4.0"}
+    receipt, ledger, rows = _run(tmp_path, [{"user": "What is the fort?", "assistant": "I don't know"}],
+                                 fetcher=lambda q: fort_source)
+    assert receipt["status"] == "studied"
+    taught = S._load_jsonl(rows)
+    assert len(taught) == 1
+    assert taught[0]["assistant"] == "The fort is a military construction designed."
+    assert taught[0]["label"] == "TAUGHT"
+
+
+# ---------------------------------------------------------------- repeat failures
+
+
+def _failed_entry(entries, when, question, topic):
+    picked = {"question": question, "search_query": question, "topic": topic,
+              "confusion": 0.7, "signals": ["off_topic"]}
+    return S.build_entry(entries, when, picked, APPLE_SOURCE, None, "narration_failed")
+
+
+def _write_ledger(tmp_path, entries):
+    path = tmp_path / "ledger.jsonl"
+    path.write_text("".join(S._canonical(e) + "\n" for e in entries))
+    return path
+
+
+RIVER_SOURCE = {"abstract": "The river is a natural flowing watercourse.",
+                "url": "https://en.wikipedia.org/wiki/River", "source": "Wikipedia",
+                "license": "CC-BY-SA-4.0"}
+FORT_SOURCE = {"abstract": ("A fortification is a military construction designed for the defense "
+                            "of territories in warfare."),
+               "url": "https://en.wikipedia.org/wiki/Fortification", "source": "Wikipedia",
+               "license": "CC-BY-SA-4.0"}
+
+
+def test_pick_question_skips_blocked_topic():
+    turns = [{"user": "What is the fort?", "assistant": "I don't know"},
+             {"user": "What is the river?", "assistant": "I don't know"}]
+    assert S.pick_question(turns, [], {"fort"})["topic"] == "river"
+    assert S.pick_question(turns, [])["topic"] == "fort"
+
+
+def test_run_moves_on_after_recent_narration_failure(tmp_path):
+    # The Nov 25-27 "fort" loop: four failures in three days because nothing
+    # remembered the failures. One recent failure now blocks the topic for a
+    # day, so the run studies the next confused topic instead.
+    entries = [_failed_entry([], NOW - timedelta(hours=2), "What is the fort?", "fort")]
+    _write_ledger(tmp_path, entries)
+    turns = [{"user": "What is the fort?", "assistant": "I don't know"},
+             {"user": "What is the river?", "assistant": "I don't know"}]
+    receipt, ledger, rows = _run(tmp_path, turns, fetcher=lambda q: RIVER_SOURCE)
+    assert receipt["status"] == "studied"
+    assert receipt["topic"] == "river"
+    assert receipt["blocked_topics"] == ["fort"]
+    assert len(S._load_jsonl(rows)) == 1
+
+
+def test_run_retries_failed_topic_after_block_expires(tmp_path):
+    entries = [_failed_entry([], NOW - timedelta(hours=25), "What is the fort?", "fort")]
+    _write_ledger(tmp_path, entries)
+    turns = [{"user": "What is the fort?", "assistant": "I don't know"}]
+    receipt, ledger, rows = _run(tmp_path, turns, fetcher=lambda q: FORT_SOURCE)
+    assert receipt["status"] == "studied"
+    assert receipt["topic"] == "fort"
+    assert "blocked_topics" not in receipt
+
+
+def test_narration_failure_receipt_counts_consecutive(tmp_path):
+    # Two earlier failures, both past the 24h block, so the question is
+    # picked again; the receipt shows this is the third failure, not the first.
+    moon_abstract = {"abstract": ("The moon is the only natural satellite that orbits the Earth every month "
+                                  "and lights the night sky for all of us."),
+                     "url": "https://en.wikipedia.org/wiki/Moon", "source": "Wikipedia",
+                     "license": "CC-BY-SA-4.0"}
+    entries = [_failed_entry([], NOW - timedelta(hours=49), "What does moon mean?", "moon")]
+    entries.append(_failed_entry(entries, NOW - timedelta(hours=25), "What does moon mean?", "moon"))
+    _write_ledger(tmp_path, entries)
+    turns = [{"user": "What is the moon?", "assistant": "I don't know"}]
+    receipt, ledger, rows = _run(tmp_path, turns, fetcher=lambda q: moon_abstract)
+    assert receipt["status"] == "narration_failed"
+    assert receipt["consecutive_failures"] == 3
+    assert not rows.exists()
+
+
 # ---------------------------------------------------------------- screening
 
 
@@ -327,3 +441,83 @@ def test_no_em_dashes_anywhere_the_module_emits(tmp_path):
         assert "\u2014" not in path.read_text()
     assert "\u2014" not in json.dumps(receipt)
     assert "\u2014" not in (ROOT / "scripts" / "zeref_self_study.py").read_text()
+
+
+def test_normalize_family_token():
+    assert S._normalize_family_token("fortification") == "fort"
+    assert S._normalize_family_token("fort") == "fort"
+    assert S._normalize_family_token("leaves") == "leaf"
+    assert S._normalize_family_token("leaf") == "leaf"
+    assert S._normalize_family_token("teeth") == "tooth"
+    assert S._normalize_family_token("children") == "child"
+    assert S._normalize_family_token("men") == "man"
+    assert S._normalize_family_token("women") == "woman"
+    assert S._normalize_family_token("feet") == "foot"
+    assert S._normalize_family_token("geese") == "goose"
+
+
+def test_narration_irregular_family_forms():
+    assert S.narrate("tooth", "Teeth are hard structures in the jaw.") == "The tooth is hard structures in the jaw."
+    assert S.narrate("leaf", "Leaves are the green parts of a plant.") == "The leaf is the green parts of a plant."
+    assert S.narrate("child", "Children are young humans who learn and play.") == "The child is young humans who learn and play."
+    assert S.narrate("foot", "Feet are the lower limbs that help us walk.") == "The foot is the lower limbs that help us walk."
+
+
+def test_narration_family_mid_sentence_still_fails_closed():
+    assert S.narrate("fort", "The Romans built fortifications along the border.") is None
+
+
+def test_license_gate():
+    assert S.accept_licensed_source({"license": "CC-BY-SA-4.0", "summary": "Short abstract."}) is True
+    assert S.accept_licensed_source({"license": "cc by-sa 4.0", "summary": "x"}) is True
+    assert S.accept_licensed_source({"license": "", "summary": "x"}) is False
+    assert S.accept_licensed_source({"license": "CC-BY-SA-4.0", "summary": ""}) is False
+    assert S.accept_licensed_source({"license": "All rights reserved", "summary": "x"}) is False
+    assert S._open_source_license("Wikipedia") == "CC-BY-SA-4.0"
+    assert S._open_source_license("Wiktionary") == "CC-BY-SA-4.0"
+    assert S._open_source_license("Simple Wikipedia") == "CC-BY-SA-4.0"
+    assert S._open_source_license("Example") is None
+
+
+class _FakeResp:
+    def __init__(self, payload):
+        self._payload = payload
+    def __enter__(self):
+        return self
+    def __exit__(self, *a):
+        return False
+    def read(self):
+        return json.dumps(self._payload).encode()
+
+
+def _fake_opener(payload):
+    def open_fn(req, timeout=None):
+        return _FakeResp(payload)
+    return open_fn
+
+
+def test_fetch_accepts_wiktionary_and_rejects_proprietary():
+    got = S.fetch_abstract("river", opener=_fake_opener(
+        {"AbstractText": "A river is a natural flowing watercourse.",
+         "AbstractSource": "Wiktionary",
+         "AbstractURL": "https://en.wiktionary.org/wiki/river"}))
+    assert got["license"] == "CC-BY-SA-4.0"
+    assert got["source"] == "Wiktionary"
+    with pytest.raises(S.SearchError):
+        S.fetch_abstract("river", opener=_fake_opener(
+            {"AbstractText": "A river is a natural flowing watercourse.",
+             "AbstractSource": "Merriam-Webster",
+             "AbstractURL": "https://example.com/river"}))
+
+
+def test_run_studies_wiktionary_row(tmp_path):
+    turns = [{"user": "What is the river?", "assistant": "I don't know"}] * 2
+    fetcher = lambda q: {"abstract": "A river is a natural flowing watercourse.",
+                         "url": "https://en.wiktionary.org/wiki/river",
+                         "source": "Wiktionary", "license": "CC-BY-SA-4.0"}
+    receipt, ledger, rows = _run(tmp_path, turns, fetcher=fetcher)
+    assert receipt["status"] == "studied"
+    assert receipt["topic"] == "river"
+    landed = json.loads(rows.read_text(encoding="utf-8").splitlines()[0])
+    assert landed["license"] == "CC-BY-SA-4.0"
+    assert landed["origin"] == "https://en.wiktionary.org/wiki/river"
